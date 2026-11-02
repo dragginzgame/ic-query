@@ -1,11 +1,11 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json scripts/ci/read-workspace-msrv.sh
+# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json scripts/ci/check-rust-compiler.sh
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
-	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check msrv package \
-	package-contents-check public-docs-check publish publish-guards-check msrv-version \
+	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check compiler-check package \
+	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
@@ -30,7 +30,6 @@ override RUSTUP_AUTO_INSTALL := $(RUSTUP_AUTO_INSTALL)
 export RUSTUP_AUTO_INSTALL
 endif
 
-MSRV ?= $(shell bash "$(REPO_ROOT)scripts/ci/read-workspace-msrv.sh")
 CARGO_AUDIT_VERSION ?= 0.22.2
 CARGO_MACHETE_VERSION ?= 0.9.2
 TESTKIT_TOOL = bash "$(REPO_ROOT)scripts/dev/install-rust-tools.sh" --consumer "$(CURDIR)" --package ic-testkit --lockfile Cargo.lock --bin ic-testkit-server --profile release --features cli
@@ -57,12 +56,12 @@ format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := shared-tooling-check tools-check clippy changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
+CI_TARGETS := shared-tooling-check compiler-check tools-check clippy changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
 	feature-boundary-check library-process-boundary-check ci-scripts-check \
 	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
 	schema-version-check fmt-check check test package
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -99,7 +98,7 @@ help:
 	@echo "  check      Run cargo check with locked/offline dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
-	@echo "  msrv       Check the crate with the declared MSRV"
+	@echo "  compiler-check  Admit and record the declared Cargo/rustc versions"
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
@@ -216,13 +215,8 @@ clippy:
 test:
 	cargo test --workspace --all-targets --all-features --locked --offline
 
-msrv:
-	+@version="$$( $(MAKE) --no-print-directory -s -f "$(REPO_ROOT)Makefile" msrv-version MSRV="$(MSRV)" )" && \
-		cargo +"$$version" check --workspace --all-targets --all-features --locked --offline
-
-msrv-version:
-	@version="$(MSRV)"; test -n "$$version" || { echo 'error: cannot select the workspace MSRV' >&2; exit 1; }; \
-		printf '%s\n' "$$version"
+compiler-check:
+	bash scripts/ci/check-rust-compiler.sh
 
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline

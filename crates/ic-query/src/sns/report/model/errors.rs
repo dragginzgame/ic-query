@@ -16,9 +16,7 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum SnsHostError {
-    #[error(
-        "`icq sns` supports only the mainnet `ic` network\n\nThe SNS list is queried from the public Internet Computer mainnet SNS-W canister.\nLocal replica SNS discovery is not supported.\n\nTry:\n  icq --network ic sns list"
-    )]
+    #[error("SNS reports support only the mainnet `ic` network (requested {network:?})")]
     UnsupportedNetwork { network: String },
 
     #[error("failed to build IC agent for endpoint {endpoint}: {reason}")]
@@ -207,13 +205,13 @@ pub enum SnsHostError {
     },
 
     #[error(
-        "SNS neurons cache is missing at {}\n\nRun `icq sns neuron refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting.",
+        "SNS neurons cache is missing at {}",
         path.display()
     )]
     MissingNeuronsCache { path: PathBuf },
 
     #[error(
-        "SNS proposals cache is missing at {}\n\nRun `icq sns proposal refresh <id|root-principal>` to fetch a complete snapshot.",
+        "SNS proposals cache is missing at {}",
         path.display()
     )]
     MissingProposalsCache { path: PathBuf },

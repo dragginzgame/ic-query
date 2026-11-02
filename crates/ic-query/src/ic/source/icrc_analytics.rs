@@ -183,17 +183,13 @@ pub(in crate::ic) fn validate_icrc_total_supply_query(
         return invalid_request("query.step_secs", "must be either 3600 or 86400");
     }
 
-    let requested_observations =
-        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
-    if requested_observations > MAX_ICRC_ANALYTICS_OBSERVATIONS {
-        return invalid_request(
-            "query",
-            format!(
-                "would request {requested_observations} observations; maximum is {MAX_ICRC_ANALYTICS_OBSERVATIONS}"
-            ),
-        );
-    }
-    Ok(())
+    super::validate_observation_budget(
+        query.start_unix_secs,
+        query.end_unix_secs,
+        query.step_secs,
+        MAX_ICRC_ANALYTICS_OBSERVATIONS,
+        "",
+    )
 }
 
 pub(in crate::ic) fn icrc_total_supply_report_from_source(

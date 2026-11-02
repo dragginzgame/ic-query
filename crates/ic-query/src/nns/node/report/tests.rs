@@ -1,8 +1,9 @@
 use super::{
     NnsInventoryCacheRequest, NnsNodeHostError, NnsNodeListFilters, NnsNodeListReport,
-    NnsNodeListRequest, NnsNodeRow, NnsNodeSource, build_nns_node_list_report_with_source,
-    cache::load_cached_nns_node_report, filter_node_list_report, nns_node_cache_path,
-    nns_node_list_report_text, nns_node_list_report_verbose_text, resolve_node,
+    NnsNodeListRequest, NnsNodeRow, NnsNodeSource,
+    build_nns_node_list_report_with_source_and_progress, cache::load_cached_nns_node_report,
+    filter_node_list_report, nns_node_cache_path, nns_node_list_report_text,
+    nns_node_list_report_verbose_text, resolve_node,
 };
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
@@ -103,11 +104,12 @@ async fn node_report_uses_live_registry_source() {
         "https://icp-api.io".to_string(),
         1_780_531_200,
     );
-    let report = build_nns_node_list_report_with_source(
+    let report = build_nns_node_list_report_with_source_and_progress(
         &request,
         &FixtureNodeSource {
             nodes: vec![node_fixture()],
         },
+        &mut |_| {},
     )
     .await
     .expect("node report");
@@ -148,11 +150,12 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
         NnsNodeHostError::Cache(crate::HostCacheError::InvalidCache { .. })
     ));
 
-    let report = build_nns_node_list_report_with_source(
+    let report = build_nns_node_list_report_with_source_and_progress(
         &request,
         &FixtureNodeSource {
             nodes: vec![node_fixture()],
         },
+        &mut |_| {},
     )
     .await
     .expect("invalid cache refreshes");
@@ -177,9 +180,13 @@ async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
         1_780_531_200,
     );
 
-    let error = build_nns_node_list_report_with_source(&request, &InvalidNodeSource)
-        .await
-        .expect_err("invalid source is rejected before publication");
+    let error = build_nns_node_list_report_with_source_and_progress(
+        &request,
+        &InvalidNodeSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("invalid source is rejected before publication");
 
     assert!(
         matches!(error, NnsNodeHostError::InvalidSourceData { reason } if reason.contains("node_count"))

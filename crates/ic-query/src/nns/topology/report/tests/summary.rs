@@ -172,7 +172,7 @@ fn topology_summary_text_renders_count_and_version_tables() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn topology_summary_rejects_local_network_with_topology_hint() {
+async fn topology_summary_rejects_local_network() {
     let request = NnsInventoryListRequest {
         cache: crate::nns::NnsInventoryCacheRequest::new(
             temp_dir("ic-query-topology-local-network"),
@@ -185,16 +185,7 @@ async fn topology_summary_rejects_local_network_with_topology_hint() {
     let err = build_nns_topology_summary_report(&request)
         .await
         .expect_err("local rejected");
-    let message = err.to_string();
-
-    assert!(message.contains("supports only the mainnet `ic` network"));
-    assert!(message.contains("icq --network ic nns topology summary"));
-    assert!(message.contains("icq --network ic nns topology coverage"));
-    assert!(message.contains("icq --network ic nns topology versions"));
-    assert!(message.contains("icq --network ic nns topology check"));
-    assert!(message.contains("icq --network ic nns topology gaps"));
-    assert!(message.contains("icq --network ic nns topology capacity"));
-    assert!(message.contains("icq --network ic nns topology regions"));
-    assert!(message.contains("icq --network ic nns topology providers"));
-    assert!(message.contains("icq --network ic nns topology refresh"));
+    assert!(
+        matches!(err, NnsTopologyHostError::UnsupportedNetwork { network } if network == "local")
+    );
 }

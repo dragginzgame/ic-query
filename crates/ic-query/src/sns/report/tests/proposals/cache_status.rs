@@ -468,10 +468,13 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
 
         let mut cached_request = proposals_request(ROOT_B);
         cached_request.cache_root = Some(root.clone());
-        let report =
-            build_sns_proposals_report_with_source(&cached_request, &NoLiveSnsProposalsSource)
-                .await
-                .expect("read second SNS from cache");
+        let report = build_sns_proposals_report_with_source_and_progress(
+            &cached_request,
+            &NoLiveSnsProposalsSource,
+            &mut |_| {},
+        )
+        .await
+        .expect("read second SNS from cache");
         assert_eq!(report.context.instance.id, refresh.context.instance.id);
         assert_eq!(report.context.instance.root_canister_id, ROOT_B);
         let _ = fs::remove_dir_all(root);

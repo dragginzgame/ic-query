@@ -1,9 +1,7 @@
 use super::*;
+use crate::icrc::live::test_support::replied_query_fixture;
 use crate::{QueryProgressEvent, icrc::IcrcAccountTransactionCacheRequest};
-use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
 use ic_platform::candid::contract::{CandidType, Nat};
-use serde_cbor::Value;
-use std::{collections::BTreeMap, time::Duration};
 
 #[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
@@ -59,32 +57,9 @@ async fn run_page(
     Result<IcrcAccountTransactionCollectionData, IcrcAccountTransactionError>,
     Vec<QueryProgressEvent>,
 ) {
-    let envelope = Value::Map(BTreeMap::from([
-        (Value::Text("status".into()), Value::Text("replied".into())),
-        (
-            Value::Text("reply".into()),
-            Value::Map(BTreeMap::from([(
-                Value::Text("arg".into()),
-                Value::Bytes(reply),
-            )])),
-        ),
-    ]));
-    let server = HttpFixture::spawn(
-        &serde_cbor::to_vec(&envelope).unwrap(),
-        "application/cbor",
-        HttpFixtureLimits {
-            timeout: Duration::from_secs(10),
-            max_header_bytes: 64 * 1024,
-            max_body_bytes: 64 * 1024,
-        },
-    )
-    .unwrap();
+    let (server, agent) = replied_query_fixture(reply, 64 * 1024);
     let context = AccountTransactionQueryContext {
-        agent: Agent::builder()
-            .with_url(server.endpoint())
-            .with_verify_query_signatures(false)
-            .build()
-            .unwrap(),
+        agent,
         index_canister: Principal::management_canister(),
         account: LedgerAccount {
             owner: Principal::anonymous(),

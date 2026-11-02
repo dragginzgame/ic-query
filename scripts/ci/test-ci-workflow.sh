@@ -32,18 +32,14 @@ jq="$repo_root/.tools/host/bin/jq"
   ] |
   all(.[]; . as $case | ($workflow | selected($case[0]; $case[1])) == $case[2]) and
   ($workflow.on.push == {branches:["main"]}) and
-  ($workflow.jobs | keys == ["canister", "checks", "msrv"]) and
+  ($workflow.jobs | keys == ["canister", "checks"]) and
   ($workflow.jobs | all(.[];
     (has("if") | not) and
     (.strategy.matrix.host | sort == ["macos-15", "macos-15-intel", "ubuntu-24.04"]) and
     all(.steps[]; .with.ref == null))) and
-  ($workflow.jobs.msrv.steps | any(.[]; .id == "msrv" and .shell == "bash")) and
-  ($workflow.jobs.msrv.steps | any(.[];
-    ((.uses // "") | startswith("dtolnay/rust-toolchain@")) and
-    .with.toolchain == "${{ steps.msrv.outputs.version }}")) and
-  ($workflow.jobs.msrv.steps | any(.[];
-    .env.MSRV == "${{ steps.msrv.outputs.version }}" and
-    .run == "echo \"RUSTUP_TOOLCHAIN=$MSRV\" >> \"$GITHUB_ENV\"")) and
+  ($workflow.jobs | all(.[]; any(.steps[]; .run == "make compiler-check"))) and
+  ($workflow.jobs.checks.steps | any(.[]; .run == "make ci")) and
+  ($workflow.jobs.canister.steps | any(.[]; .run == "make canister-test")) and
   ($workflow.jobs.canister.steps | any(.[]; .if == "always()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | all(.[] | select((.uses // "") | startswith("actions/upload-artifact@"));
@@ -53,7 +49,7 @@ jq="$repo_root/.tools/host/bin/jq"
       ((.with.path // "") | contains("ic-query-tool-evidence.*/")) and
       .with["include-hidden-files"] == true and .with["retention-days"] == 30)))
 ' > /dev/null
-echo 'CI event selection and nine-job native coverage fixtures passed'
+echo 'CI event selection and six-job native coverage fixtures passed'
 
 fixture="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-retention.XXXXXX")"
 fixture_complete=false
@@ -67,25 +63,12 @@ finish() {
 trap finish EXIT
 fixture="$(cd -P "$fixture" && printf '%s/.' "$PWD")"
 fixture="${fixture%/.}"
-mkdir -p "$fixture/msrv/bin"
-"$yq" -o=json '.' "$repo_root/.github/workflows/ci.yml" | "$jq" -er \
-  '.jobs.msrv.steps[] | select(.id == "msrv") | .run' > "$fixture/msrv/select.sh"
-cat > "$fixture/msrv/bin/rustup" <<'STUB'
-#!/usr/bin/env bash
-[[ "$*" == default ]] || exit 60
-printf 'fixture-bootstrap (default)\n'
-STUB
-cat > "$fixture/msrv/bin/make" <<'STUB'
-#!/usr/bin/env bash
-[[ "$*" == '--no-print-directory -s msrv-version' ]] || exit 61
-[[ "$RUSTUP_TOOLCHAIN" == fixture-bootstrap && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 62
-printf '1.87.0\n'
-STUB
-chmod +x "$fixture/msrv/bin/"{rustup,make}
-PATH="$fixture/msrv/bin:$PATH" RUSTUP_TOOLCHAIN=unprepared-repository-toolchain \
-  GITHUB_OUTPUT="$fixture/msrv/output" "$BASH" "$fixture/msrv/select.sh"
-grep -Fxq 'version=1.87.0' "$fixture/msrv/output"
-echo 'CI bootstraps MSRV selection with an installed compiler and preserves the declared floor'
+# Admitted source policy binds package requirements and the exact development pin.
+"$yq" -p toml -o=json '.' "$repo_root/Cargo.toml" | "$jq" -er '.workspace.package."rust-version"' > "$fixture/floor"
+"$yq" -p toml -o=json '.' "$repo_root/rust-toolchain.toml" | "$jq" -er '.toolchain.channel' > "$fixture/pin"
+cmp "$fixture/floor" "$fixture/pin"
+grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' "$fixture/pin"
+echo 'CI uses the declared exact compiler for retained native and canister qualification'
 # shellcheck disable=SC2016 # Dollar-prefixed names belong to jq.
 "$yq" -o=json '.' "$repo_root/.github/workflows/ci.yml" | "$jq" -er '
   [.jobs.checks.steps[], .jobs.canister.steps[] | select(.name == "Archive retained tool evidence")]

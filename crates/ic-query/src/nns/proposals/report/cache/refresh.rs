@@ -15,7 +15,6 @@ use crate::{
         },
     },
     progress::IgnoreQueryProgress,
-    snapshot_cache::SnapshotRefreshProgress,
 };
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
@@ -60,20 +59,13 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
         &paths,
         NNS_PROPOSAL_CACHE_COMPONENT,
         async |context| {
-            let data = fetch_complete_nns_proposal_collection(
+            let (data, publication_progress) = fetch_complete_nns_proposal_collection(
                 request,
                 source,
                 &paths.refresh_attempt_path,
                 progress,
             )
             .await?;
-            let publication_progress = SnapshotRefreshProgress::new(
-                data.collection_state.pages_fetched(),
-                data.proposals.len(),
-                data.collection_state
-                    .next_before_proposal_id()
-                    .map(|cursor| cursor.to_string()),
-            );
             context.publish(
                 "proposals",
                 NNS_PROPOSAL_FETCHED_BY,

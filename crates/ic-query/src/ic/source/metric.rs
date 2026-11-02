@@ -52,17 +52,13 @@ pub(in crate::ic) fn validate_metric_query(query: &IcMetricQuery) -> Result<(), 
         );
     }
 
-    let requested_observations =
-        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
-    if requested_observations > MAX_IC_METRIC_OBSERVATIONS_PER_SERIES {
-        return invalid_request(
-            "query",
-            format!(
-                "would request {requested_observations} observations per series; maximum is {MAX_IC_METRIC_OBSERVATIONS_PER_SERIES}"
-            ),
-        );
-    }
-    Ok(())
+    super::validate_observation_budget(
+        query.start_unix_secs,
+        query.end_unix_secs,
+        query.step_secs,
+        MAX_IC_METRIC_OBSERVATIONS_PER_SERIES,
+        " per series",
+    )
 }
 
 pub(in crate::ic) fn metric_report_from_source(

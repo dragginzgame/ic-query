@@ -11,11 +11,8 @@ pub use report::{
 pub use report::{
     NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
     NnsNodeOperatorHostError, NnsNodeOperatorSource, build_nns_node_operator_info_report,
-    build_nns_node_operator_info_report_with_progress,
-    build_nns_node_operator_info_report_with_source,
     build_nns_node_operator_info_report_with_source_and_progress,
-    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_progress,
-    build_nns_node_operator_list_report_with_source,
+    build_nns_node_operator_list_report,
     build_nns_node_operator_list_report_with_source_and_progress, nns_node_operator_cache_path,
     nns_node_operator_refresh_lock_path, refresh_nns_node_operator_report,
     refresh_nns_node_operator_report_with_source,

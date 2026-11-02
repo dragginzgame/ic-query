@@ -9,9 +9,7 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum NnsRegistryHostError {
-    #[error(
-        "`icq nns registry` supports only the mainnet `ic` network\n\nThe NNS registry inspected by this command is the public Internet Computer mainnet registry canister.\nLocal replica NNS registry discovery is not supported.\n\nTry:\n  icq --network ic nns registry version"
-    )]
+    #[error("NNS Registry reports support only the mainnet `ic` network (requested {network:?})")]
     UnsupportedNetwork { network: String },
 
     /// A custom Registry source returned provenance for a different request.

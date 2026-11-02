@@ -5,10 +5,7 @@
 //! Boundary: defines complete public neuron snapshot rows and report shapes.
 
 use crate::{
-    nns::{
-        governance::NnsGovernanceCacheMetadata,
-        neuron::report::{collection::NnsNeuronCollectionState, model::NnsNeuronRow},
-    },
+    nns::{governance::NnsGovernanceCacheMetadata, neuron::report::model::NnsNeuronRow},
     snapshot_cache::SnapshotEnvelope,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -24,6 +21,7 @@ pub(super) type NnsNeuronCache = SnapshotEnvelope<NnsGovernanceCacheMetadata, Nn
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct NnsNeuronCacheRows {
-    pub(super) collection_state: NnsNeuronCollectionState,
+    pub(super) collection_evidence:
+        crate::nns::governance::collection::NnsGovernanceCollectionEvidence,
     pub(super) neurons: Vec<NnsNeuronRow>,
 }

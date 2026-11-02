@@ -190,7 +190,7 @@ pub enum NnsProposalHostError {
     },
 
     /// A cache-only read could not find the required complete snapshot.
-    #[error("NNS proposals cache is missing at {}\n\nRun `icq nns proposal refresh` to fetch a complete snapshot.", path.display())]
+    #[error("NNS proposals cache is missing at {}", path.display())]
     MissingProposalCache {
         /// Expected complete snapshot path.
         path: PathBuf,

@@ -29,8 +29,16 @@ pub fn optional_node_count_text(value: Option<u32>) -> String {
 #[must_use]
 /// Render a Registry inventory refresh publication outcome.
 pub fn nns_inventory_refresh_report_text(report: &crate::nns::NnsInventoryRefreshReport) -> String {
+    let [
+        registry_id,
+        version,
+        network,
+        fetched_at,
+        endpoint,
+        fetched_by,
+    ] = registry_provenance_lines(&report.provenance);
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.provenance.network)),
+        network,
         format!("cache_path: {}", terminal_text(&report.cache_path)),
         format!(
             "refresh_lock_path: {}",
@@ -44,23 +52,11 @@ pub fn nns_inventory_refresh_report_text(report: &crate::nns::NnsInventoryRefres
         ));
     }
     lines.extend([
-        format!(
-            "registry_canister_id: {}",
-            report.provenance.registry_canister_id
-        ),
-        format!("registry_version: {}", report.provenance.registry_version),
-        format!(
-            "fetched_at: {}",
-            terminal_text(&report.provenance.fetched_at)
-        ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.provenance.source_endpoint)
-        ),
-        format!(
-            "fetched_by: {}",
-            terminal_text(&report.provenance.fetched_by)
-        ),
+        registry_id,
+        version,
+        fetched_at,
+        endpoint,
+        fetched_by,
         format!("dry_run: {}", yes_no(report.dry_run)),
         format!("wrote_cache: {}", yes_no(report.wrote_cache)),
         format!(

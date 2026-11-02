@@ -8,7 +8,7 @@ async fn node_provider_info_resolves_exact_principal() {
         input: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
         now_unix_secs: 1_780_531_200,
     };
-    let report = build_nns_node_provider_info_report_with_source(
+    let report = build_nns_node_provider_info_report_with_source_and_progress(
         &request,
         &FixtureNodeProviderSource {
             node_providers: vec![MainnetNodeProvider {
@@ -17,6 +17,7 @@ async fn node_provider_info_resolves_exact_principal() {
                 reward_account_hex: Some("abcd".to_string()),
             }],
         },
+        &mut |_| {},
     )
     .await
     .expect("node provider info");

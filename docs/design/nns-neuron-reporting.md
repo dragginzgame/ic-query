@@ -62,12 +62,14 @@ incoming-state validator. Native list and detail report construction derives
 cache origin from the optional cache path; the public `from_cache` field remains
 available in both Rust reports and JSON.
 
-The complete schema-1 snapshot retains this final continuation as
-`collection_state`. `build_nns_neuron_distribution_report_from_cache` and the
-cache-only `icq nns neuron distribution` command use its recorded evidence and
-the existing pure distribution builder. Readers reject disagreement between
-the state and snapshot metadata. Existing snapshot shapes require explicit
-refresh; see [Cache-only NNS Analytics](0.46/0.46-design.md).
+Complete schema-1 proposal and neuron snapshots retain rows plus
+`collection_evidence`: the original requested source, page ceiling and start
+time. The envelope owns concrete provenance, identity, end time and page/row
+accounting once. Readers reconstruct final state for family admission and
+analytics, preserving independent corruption checks and family exhaustion
+rules. Portable continuation JSON fields remain unchanged. Explicit refresh
+replaces earlier cache shapes; no former reader or migration is retained. See
+[Cache-only NNS Analytics](0.46/0.46-design.md).
 
 ## Portable Distribution Contract
 

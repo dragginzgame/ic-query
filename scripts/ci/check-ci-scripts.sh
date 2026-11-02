@@ -221,6 +221,7 @@ for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... 
 done
 expected_ci_targets=(
   shared-tooling-check
+  compiler-check
   tools-check
   clippy
   changelog-check
@@ -441,17 +442,14 @@ case " $* " in *' --locked '*) ;; *) exit 58 ;; esac
 case " $* " in *' --offline '*) ;; *) exit 58 ;; esac
 if [[ "$1" == metadata ]]; then
   [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 54
-  if [[ -n "${MSRV_FIXTURE_METADATA:-}" ]]; then printf '%s\n' "$MSRV_FIXTURE_METADATA"
-  else printf '%s\n' '{"workspace_members":["fixture"],"packages":[{"id":"fixture","rust_version":"1.87.0"}]}'
-  fi
-  [[ "${FAIL_MSRV_METADATA:-}" != yes ]] || exit 53
+  printf '%s\n' '{"workspace_members":["fixture"],"packages":[{"id":"fixture","rust_version":"1.99.1"}]}'
   exit 0
 fi
 printf 'cargo %s\n' "$*" >> "$TRACE_FILE"
 [[ "${FAIL_CARGO:-}" != yes ]] || exit 57
 EOF
 chmod +x "$offline_validation_case/bin/"{git,cargo}
-for target in build check clippy test msrv package; do
+for target in build check clippy test package; do
   : > "$offline_validation_case/trace"
   PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
     CARGO_NET_OFFLINE=false MAKEFLAGS='' MAKEOVERRIDES='' \
@@ -470,35 +468,7 @@ for target in build check clippy test msrv package; do
     || fail "$target continued after failed Cargo validation"
 done
 
-PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/default-msrv-trace" \
-  MAKEFLAGS='' MAKEOVERRIDES='' "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv
-grep -Fxq 'cargo +1.87.0 check --workspace --all-targets --all-features --locked --offline' \
-  "$offline_validation_case/default-msrv-trace" \
-  || fail 'MSRV validation did not use the manifest metadata floor'
-PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/override-trace" \
-  FAIL_MSRV_METADATA=yes MAKEFLAGS='' MAKEOVERRIDES='' \
-  "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv MSRV=1.92.0
-grep -Fxq 'cargo +1.92.0 check --workspace --all-targets --all-features --locked --offline' \
-  "$offline_validation_case/override-trace" || fail 'explicit MSRV override was ignored'
-for metadata in \
-  '{"workspace_members":["fixture"],"packages":[{"id":"fixture"}]}' \
-  '{"workspace_members":["a","b"],"packages":[{"id":"a","rust_version":"1.87"},{"id":"b","rust_version":"1.88"}]}' \
-  'invalid JSON'; do
-  : > "$offline_validation_case/trace"
-  if PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
-    MSRV_FIXTURE_METADATA="$metadata" MAKEFLAGS='' MAKEOVERRIDES='' \
-    "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv > "$offline_validation_case/msrv-refusal.log" 2>&1; then
-    fail 'MSRV validation accepted invalid workspace metadata'
-  fi
-  [[ ! -s "$offline_validation_case/trace" ]] || fail 'invalid MSRV metadata reached compilation'
-done
-: > "$offline_validation_case/trace"
-if PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
-  FAIL_MSRV_METADATA=yes MAKEFLAGS='' MAKEOVERRIDES='' \
-  "$make_bin" --no-print-directory -s -C "$offline_validation_case" msrv > "$offline_validation_case/msrv-cargo-refusal.log" 2>&1; then
-  fail 'MSRV validation accepted failed Cargo metadata with valid-looking output'
-fi
-[[ ! -s "$offline_validation_case/trace" ]] || fail 'failed MSRV discovery reached compilation'
+bash "$repo_root/scripts/ci/test-rust-compiler.sh"
 
 workflow_ci_count="$(grep -Fxc '        run: make ci' "${repo_root}/.github/workflows/ci.yml" || true)"
 [[ "${workflow_ci_count}" -eq 1 ]] \

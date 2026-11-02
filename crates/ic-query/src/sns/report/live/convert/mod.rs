@@ -14,9 +14,7 @@ mod sns;
 mod swap;
 mod upgrade;
 
-pub(super) use canisters::{
-    mainnet_sns_canister_inventory, mainnet_sns_canister_inventory_without_health,
-};
+pub(super) use canisters::mainnet_sns_canister_inventory;
 pub(super) use metrics::mainnet_sns_metrics;
 pub(super) use neurons::{mainnet_sns_neuron, sns_neuron_row, sns_reward_checkpoint_row};
 pub(super) use params::sns_governance_parameters;

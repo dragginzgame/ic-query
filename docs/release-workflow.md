@@ -268,9 +268,10 @@ remain unqualified on unfinished hosts; a later pass does not certify an older
 release. This scheduling policy does not change runner capacity.
 
 Automatic native qualification runs on `main` pushes and pull requests. All
-three gate families (complete checks, MSRV and canister integration) run on
-Linux, Intel macOS and Apple Silicon. An atomic branch/tag release therefore
-runs these nine jobs once on the branch source; pushing its tag does not repeat
+two gate families (complete checks and canister integration) run on
+Linux, Intel macOS and Apple Silicon. Both admit the same declared Rust 1.99.1
+compiler; the complete gate retains the former MSRV compilation scope and its
+feature/consumer checks. An atomic branch/tag release therefore runs these six jobs once on the branch source; pushing its tag does not repeat
 the complete check matrix. Annotated tag/version/commit admission remains in
 the release runner and `make publish`; those read-only guards are unchanged.
 
@@ -283,8 +284,8 @@ with the existing GitHub CLI command:
 gh workflow run ci.yml --repo dragginzgame/ic-query --ref v0.52.2
 ```
 
-Dispatch checks out the selected ref and runs all nine jobs, including MSRV and
-live local canister integration. Inspect the run's exact `headSha` against the
+Dispatch checks out the selected ref and runs all six jobs, including compiler
+admission, complete feature/consumer checks and live local canister integration. Inspect the run's exact `headSha` against the
 intended release commit; another commit's success and queued, absent or skipped
 jobs do not qualify it. Older refs whose workflow lacks dispatch cannot use
 this route. A tag does not establish native acceptance, and dispatch remains
@@ -324,7 +325,7 @@ After setup, source identity, cleanliness and candidate/notes agreement are
 checked again before tool admission, so concurrent selection changes stop the
 attempt rather than admitting another installation.
 
-The ordinary build, check, lint, test, MSRV, rustdoc and package checks also
+The ordinary build, check, lint, test, compiler, rustdoc and package checks also
 select locked/offline dependency access explicitly. A missing cache is a
 preparation failure, not permission for validation to download or resolve a
 different selection. Cargo Machete's metadata scan uses the prepared cache;
@@ -574,7 +575,10 @@ Use `make release-guards-check` for focused qualification; Make supplies the
 metadata editor's configured input-byte allowance. Full CI and release gates
 retain their separate authorization requirements.
 Failed CI, publication and release fixture directories retain their inputs and
-diagnostics and print their paths. Feature-boundary and public rustdoc checks
+diagnostics and print their paths. These diagnostics intentionally default outside
+Cargo’s `target/` so explicit Cargo cleanup preserves failure and release
+evidence. The shared fixture lifecycle removes only its caller’s successful
+temporary directory. Feature-boundary and public rustdoc checks
 retain their diagnostics on failure too; successful checks remove their own
 temporary files. Hosted CI puts validation scratch files in a physical,
 job-owned directory and uploads failed fixtures, hidden metadata and complete

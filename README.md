@@ -25,7 +25,7 @@
 [![CI](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml/badge.svg)](https://github.com/dragginzgame/ic-query/actions/workflows/ci.yml)
 [![docs.rs](https://docs.rs/ic-query/badge.svg)](https://docs.rs/ic-query)
 [![License](https://img.shields.io/crates/l/ic-query.svg)](LICENSE)
-[![MSRV](https://img.shields.io/badge/MSRV-1.91.0-blue.svg)](Cargo.toml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.99.1-blue.svg)](Cargo.toml)
 
 IC Query makes it easy to find answers about any part of the Internet Computer
 blockchain.

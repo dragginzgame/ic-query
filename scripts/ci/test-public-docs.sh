@@ -13,7 +13,11 @@ fixture_complete=false
 source "$root/scripts/ci/fixture-lifecycle.sh"
 trap 'fixture_finish "$?" "$fixture" "Rustdoc debt compiler fixture retained"' EXIT
 export CARGO_TARGET_DIR="$fixture/target" RUSTDOCFLAGS='-W missing-docs'
-export RUSTUP_AUTO_INSTALL=0
+# The independent fixture leaves the checkout; carry its selected compiler with it.
+compiler="$(rustup show active-toolchain)"
+export RUSTUP_TOOLCHAIN="${compiler%% *}" RUSTUP_AUTO_INSTALL=0
+cargo --version
+rustc --version
 mkdir "$fixture/src"
 cat > "$fixture/Cargo.toml" <<'MANIFEST'
 [package]

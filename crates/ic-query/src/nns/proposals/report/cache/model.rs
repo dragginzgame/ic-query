@@ -7,7 +7,7 @@
 use crate::{
     nns::{
         governance::{NnsGovernanceCacheMetadata, NnsGovernanceCacheSummary},
-        proposals::report::{collection::NnsProposalCollectionState, model::NnsProposalRow},
+        proposals::report::model::NnsProposalRow,
     },
     snapshot_cache::SnapshotEnvelope,
 };
@@ -51,6 +51,7 @@ pub struct NnsProposalCacheListReport {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct NnsProposalCacheRows {
-    pub(super) collection_state: NnsProposalCollectionState,
+    pub(super) collection_evidence:
+        crate::nns::governance::collection::NnsGovernanceCollectionEvidence,
     pub(super) proposals: Vec<NnsProposalRow>,
 }

@@ -19,14 +19,15 @@ use crate::{
             NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
             NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
             NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_VERBOSE_FLAG,
-            NnsProposalListSortArg, NnsProposalRewardStatusArg, NnsProposalStatusArg,
-            NnsProposalTopicArg,
         },
     },
 };
 use clap::Command as ClapCommand;
 use clap::builder::{NonEmptyStringValueParser, RangedU64ValueParser};
-use ic_query::nns::proposals::{DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE};
+use ic_query::nns::proposals::{
+    DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalListSort,
+    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
+};
 
 const NNS_PROPOSAL_LIST_DEFAULT_LIMIT: &str = "25";
 const NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE: &str = "100";
@@ -157,7 +158,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
                 .long("status")
                 .value_name("status")
                 .default_value(NNS_PROPOSAL_STATUS_ANY_LABEL)
-                .value_parser(clap::value_parser!(NnsProposalStatusArg))
+                .value_parser(crate::cli::clap::choice_parser(NnsProposalStatusFilter::ALL, NnsProposalStatusFilter::as_str))
                 .help("NNS governance decision status filter"),
         )
         .arg(
@@ -165,7 +166,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
                 .long(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
                 .value_name("reward-status")
                 .default_value(NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL)
-                .value_parser(clap::value_parser!(NnsProposalRewardStatusArg))
+                .value_parser(crate::cli::clap::choice_parser(NnsProposalRewardStatusFilter::ALL, NnsProposalRewardStatusFilter::as_str))
                 .help("NNS governance voting reward status filter"),
         )
         .arg(
@@ -173,7 +174,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
                 .long("topic")
                 .value_name("topic")
                 .default_value(NNS_PROPOSAL_TOPIC_ANY_LABEL)
-                .value_parser(clap::value_parser!(NnsProposalTopicArg))
+                .value_parser(crate::cli::clap::choice_parser(NnsProposalTopicFilter::ALL, NnsProposalTopicFilter::as_str))
                 .help("NNS governance topic filter applied to returned rows"),
         )
         .arg(
@@ -195,7 +196,7 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
                 .long("sort")
                 .value_name("sort")
                 .default_value(NNS_PROPOSAL_SORT_API_LABEL)
-                .value_parser(clap::value_parser!(NnsProposalListSortArg))
+                .value_parser(crate::cli::clap::choice_parser(NnsProposalListSort::ALL, NnsProposalListSort::as_str))
                 .help("Sort proposals locally; status/reward-status/text sorts default ascending, numeric and timestamp sorts default descending"),
         )
         .arg(

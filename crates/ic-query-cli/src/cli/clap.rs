@@ -4,7 +4,7 @@
 //! Does not own: command-family specs, report requests, or runtime dispatch.
 //! Boundary: normalizes typed values, parse errors, and help rendering.
 
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command, builder::TypedValueParser};
 use std::ffi::OsString;
 
 /// Prepare the complete Clap tree with shared namespace-help and alphabetical
@@ -87,6 +87,20 @@ where
 #[cfg(test)]
 pub fn render_help(mut command: Command) -> String {
     command.render_help().to_string()
+}
+
+/// Adapt a domain-owned choice list to Clap without duplicating its vocabulary.
+pub fn choice_parser<T: Copy + Send + Sync + 'static>(
+    choices: &'static [T],
+    label: fn(T) -> &'static str,
+) -> impl clap::builder::TypedValueParser<Value = T> {
+    clap::builder::PossibleValuesParser::new(choices.iter().copied().map(label)).map(move |value| {
+        choices
+            .iter()
+            .copied()
+            .find(|choice| label(*choice) == value)
+            .expect("Clap admitted a declared choice")
+    })
 }
 
 pub fn value_names<T: clap::ValueEnum + PartialEq>(excluded: T) -> String {

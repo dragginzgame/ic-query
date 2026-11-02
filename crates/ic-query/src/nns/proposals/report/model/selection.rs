@@ -11,11 +11,14 @@ macro_rules! governance_code_enum {
     (
         $(#[$enum_attr:meta])*
         pub enum $name:ident {
+            $(#[$unspecified_attr:meta])* Unspecified = 0 => "unspecified",
             $($(#[$variant_attr:meta])* $variant:ident = $code:literal => $label:literal,)*
         }
+        filter $filter:ident;
     ) => {
         $(#[$enum_attr])*
         pub enum $name {
+            $(#[$unspecified_attr])* #[serde(rename = "unspecified")] Unspecified,
             $($(#[$variant_attr])* #[serde(rename = $label)] $variant,)*
         }
 
@@ -32,13 +35,41 @@ macro_rules! governance_code_enum {
             /// Return the canonical native code for this classification.
             #[must_use]
             pub const fn code(self) -> i32 {
-                match self { $(Self::$variant => $code,)* }
+                match self { Self::Unspecified => 0, $(Self::$variant => $code,)* }
             }
 
             /// Return the stable JSON and text label.
             #[must_use]
             pub const fn as_str(self) -> &'static str {
-                match self { $(Self::$variant => $label,)* }
+                match self { Self::Unspecified => "unspecified", $(Self::$variant => $label,)* }
+            }
+        }
+        ///
+        #[doc = stringify!($filter)]
+        ///
+        /// Selection of one known proposal classification or all proposals.
+        ///
+
+        #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+        pub enum $filter {
+            /// Do not restrict this classification.
+            #[default]
+            Any,
+            $($(#[$variant_attr])* $variant,)*
+        }
+
+        impl $filter {
+            /// All supported filter choices in presentation order.
+            pub const ALL: &'static [Self] = &[Self::Any, $(Self::$variant,)*];
+
+            /// Return the canonical filter label.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self.classification() { None => "any", Some(value) => value.as_str() }
+            }
+
+            const fn classification(self) -> Option<$name> {
+                match self { Self::Any => None, $(Self::$variant => Some($name::$variant),)* }
             }
         }
     };
@@ -66,6 +97,7 @@ governance_code_enum! {
         /// Proposal execution failed.
         Failed = 5 => "failed",
     }
+    filter NnsProposalStatusFilter;
 }
 
 governance_code_enum! {
@@ -88,6 +120,7 @@ governance_code_enum! {
         /// Proposal is not eligible for voting rewards.
         Ineligible = 4 => "ineligible",
     }
+    filter NnsProposalRewardStatusFilter;
 }
 
 governance_code_enum! {
@@ -136,90 +169,80 @@ governance_code_enum! {
         /// Protocol-canister management.
         ProtocolCanisterManagement = 18 => "protocol-canister-management",
     }
+    filter NnsProposalTopicFilter;
 }
 
-///
-/// NnsProposalListSort
-///
-/// Report-model sort selector for NNS proposal listings.
-///
+macro_rules! proposal_sort {
+    ($($(#[$attr:meta])* $variant:ident => $label:literal,)*) => {
+        ///
+        /// NnsProposalListSort
+        ///
+        /// Report-model sort selector for NNS proposal listings.
+        ///
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum NnsProposalListSort {
+        #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+        pub enum NnsProposalListSort { $($(#[$attr])* $variant,)* }
+
+        impl NnsProposalListSort {
+            /// All supported sort choices in presentation order.
+            pub const ALL: &'static [Self] = &[$(Self::$variant,)*];
+
+            /// Return the canonical sort label.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self { $(Self::$variant => $label,)* }
+            }
+        }
+    };
+}
+
+proposal_sort! {
     /// Preserve the descending proposal-id order returned by Governance.
     #[default]
-    Api,
+    Api => "api",
     /// Sort by proposal id.
-    Id,
+    Id => "id",
     /// Sort by the raw decision-status code.
-    Status,
+    Status => "status",
     /// Sort by the raw reward-settlement code.
-    RewardStatus,
+    RewardStatus => "reward-status",
     /// Sort by the raw topic code.
-    Topic,
+    Topic => "topic",
     /// Sort by proposer neuron id.
-    Proposer,
+    Proposer => "proposer",
     /// Sort by proposal title.
-    Title,
+    Title => "title",
     /// Sort by the human-readable action classification.
-    Action,
+    Action => "action",
     /// Sort by affirmative voting power in the latest tally.
-    Yes,
+    Yes => "yes",
     /// Sort by negative voting power in the latest tally.
-    No,
+    No => "no",
     /// Sort by total voting power in the latest tally.
-    TotalVotes,
+    TotalVotes => "total-votes",
     /// Sort by the latest tally timestamp.
-    TallyTime,
+    TallyTime => "tally-time",
     /// Sort by total potential voting power.
-    VotingPower,
+    VotingPower => "voting-power",
     /// Sort by ballot count returned by Governance.
-    Ballots,
+    Ballots => "ballots",
     /// Sort by reject cost in ICP e8s.
-    RejectCost,
+    RejectCost => "reject-cost",
     /// Sort by reward event round.
-    RewardRound,
+    RewardRound => "reward-round",
     /// Sort by proposal creation time.
-    Proposed,
+    Proposed => "proposed",
     /// Sort by voting deadline.
-    Deadline,
+    Deadline => "deadline",
     /// Sort by decision time.
-    Decided,
+    Decided => "decided",
     /// Sort by execution time.
-    Executed,
+    Executed => "executed",
     /// Sort by execution failure time.
-    Failed,
+    Failed => "failed",
 }
 
 impl NnsProposalListSort {
-    /// Return the canonical filter or sort label used in reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Api => "api",
-            Self::Id => "id",
-            Self::Status => "status",
-            Self::RewardStatus => "reward-status",
-            Self::Topic => "topic",
-            Self::Proposer => "proposer",
-            Self::Title => "title",
-            Self::Action => "action",
-            Self::Yes => "yes",
-            Self::No => "no",
-            Self::TotalVotes => "total-votes",
-            Self::TallyTime => "tally-time",
-            Self::VotingPower => "voting-power",
-            Self::Ballots => "ballots",
-            Self::RejectCost => "reject-cost",
-            Self::RewardRound => "reward-round",
-            Self::Proposed => "proposed",
-            Self::Deadline => "deadline",
-            Self::Decided => "decided",
-            Self::Executed => "executed",
-            Self::Failed => "failed",
-        }
-    }
-
     /// Return the default direction for this sort key.
     #[must_use]
     pub const fn default_direction(self) -> SortDirection {
@@ -250,92 +273,7 @@ impl NnsProposalListSort {
     }
 }
 
-///
-/// NnsProposalStatusFilter
-///
-/// Report-model status filter for bounded NNS proposal listings.
-///
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum NnsProposalStatusFilter {
-    /// Include proposals without restricting this classification.
-    #[default]
-    Any,
-    /// Include only proposals still open for voting.
-    Open,
-    /// Include only rejected proposals.
-    Rejected,
-    /// Include only adopted proposals awaiting successful execution.
-    Adopted,
-    /// Include only successfully executed proposals.
-    Executed,
-    /// Include only proposals whose execution failed.
-    Failed,
-}
-
-///
-/// NnsProposalRewardStatusFilter
-///
-/// Report-model reward status filter for bounded NNS proposal listings.
-///
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum NnsProposalRewardStatusFilter {
-    /// Include proposals without restricting this classification.
-    #[default]
-    Any,
-    /// Include only proposals accepting votes for rewards.
-    AcceptVotes,
-    /// Include only proposals ready for reward settlement.
-    ReadyToSettle,
-    /// Include only proposals with settled rewards.
-    Settled,
-    /// Include only proposals ineligible for voting rewards.
-    Ineligible,
-}
-
-impl NnsProposalRewardStatusFilter {
-    /// Return the canonical filter or sort label used in reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self.classification() {
-            None => "any",
-            Some(value) => value.as_str(),
-        }
-    }
-
-    #[cfg(any(
-        feature = "nns-host",
-        all(feature = "canister", target_arch = "wasm32")
-    ))]
-    pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
-        match self.classification() {
-            None => None,
-            Some(value) => Some(value.code()),
-        }
-    }
-
-    const fn classification(self) -> Option<NnsProposalRewardStatus> {
-        match self {
-            Self::Any => None,
-            Self::AcceptVotes => Some(NnsProposalRewardStatus::AcceptVotes),
-            Self::ReadyToSettle => Some(NnsProposalRewardStatus::ReadyToSettle),
-            Self::Settled => Some(NnsProposalRewardStatus::Settled),
-            Self::Ineligible => Some(NnsProposalRewardStatus::Ineligible),
-        }
-    }
-}
-
 impl NnsProposalStatusFilter {
-    /// Return the canonical filter or sort label used in reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self.classification() {
-            None => "any",
-            Some(value) => value.as_str(),
-        }
-    }
-
     #[cfg(any(
         feature = "nns-host",
         all(feature = "canister", target_arch = "wasm32")
@@ -346,105 +284,26 @@ impl NnsProposalStatusFilter {
             Some(value) => Some(value.code()),
         }
     }
-
-    const fn classification(self) -> Option<NnsProposalStatus> {
-        match self {
-            Self::Any => None,
-            Self::Open => Some(NnsProposalStatus::Open),
-            Self::Rejected => Some(NnsProposalStatus::Rejected),
-            Self::Adopted => Some(NnsProposalStatus::Adopted),
-            Self::Executed => Some(NnsProposalStatus::Executed),
-            Self::Failed => Some(NnsProposalStatus::Failed),
-        }
-    }
 }
 
-///
-/// NnsProposalTopicFilter
-///
-/// Report-model topic filter for bounded NNS proposal listings.
-///
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum NnsProposalTopicFilter {
-    /// Include proposals without restricting this classification.
-    #[default]
-    Any,
-    /// Include only proposals about neuron management.
-    NeuronManagement,
-    /// Include only proposals about exchange-rate management.
-    ExchangeRate,
-    /// Include only proposals about network economics.
-    NetworkEconomics,
-    /// Include only proposals about Governance policy.
-    Governance,
-    /// Include only proposals about node administration.
-    NodeAdmin,
-    /// Include only proposals about participant management.
-    ParticipantManagement,
-    /// Include only proposals about Subnet management.
-    SubnetManagement,
-    /// Include only proposals about network-canister management.
-    NetworkCanisterManagement,
-    /// Include only proposals about know-your-customer policy.
-    Kyc,
-    /// Include only proposals about node-provider rewards.
-    NodeProviderRewards,
-    /// Include only proposals about IC OS version deployment.
-    IcOsVersionDeployment,
-    /// Include only proposals about IC OS version election.
-    IcOsVersionElection,
-    /// Include only proposals about SNS and community-fund policy.
-    SnsAndCommunityFund,
-    /// Include only proposals about API boundary-node management.
-    ApiBoundaryNodeManagement,
-    /// Include only proposals about Subnet rental.
-    SubnetRental,
-    /// Include only proposals about application-canister management.
-    ApplicationCanisterManagement,
-    /// Include only proposals about protocol-canister management.
-    ProtocolCanisterManagement,
-}
-
-impl NnsProposalTopicFilter {
-    /// Return the canonical filter or sort label used in reports.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self.classification() {
-            None => "any",
-            Some(value) => value.as_str(),
-        }
-    }
-
-    pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
+impl NnsProposalRewardStatusFilter {
+    #[cfg(any(
+        feature = "nns-host",
+        all(feature = "canister", target_arch = "wasm32")
+    ))]
+    pub(in crate::nns) const fn governance_reward_status_code(self) -> Option<i32> {
         match self.classification() {
             None => None,
             Some(value) => Some(value.code()),
         }
     }
+}
 
-    const fn classification(self) -> Option<NnsProposalTopic> {
-        match self {
-            Self::Any => None,
-            Self::NeuronManagement => Some(NnsProposalTopic::NeuronManagement),
-            Self::ExchangeRate => Some(NnsProposalTopic::ExchangeRate),
-            Self::NetworkEconomics => Some(NnsProposalTopic::NetworkEconomics),
-            Self::Governance => Some(NnsProposalTopic::Governance),
-            Self::NodeAdmin => Some(NnsProposalTopic::NodeAdmin),
-            Self::ParticipantManagement => Some(NnsProposalTopic::ParticipantManagement),
-            Self::SubnetManagement => Some(NnsProposalTopic::SubnetManagement),
-            Self::NetworkCanisterManagement => Some(NnsProposalTopic::NetworkCanisterManagement),
-            Self::Kyc => Some(NnsProposalTopic::Kyc),
-            Self::NodeProviderRewards => Some(NnsProposalTopic::NodeProviderRewards),
-            Self::IcOsVersionDeployment => Some(NnsProposalTopic::IcOsVersionDeployment),
-            Self::IcOsVersionElection => Some(NnsProposalTopic::IcOsVersionElection),
-            Self::SnsAndCommunityFund => Some(NnsProposalTopic::SnsAndCommunityFund),
-            Self::ApiBoundaryNodeManagement => Some(NnsProposalTopic::ApiBoundaryNodeManagement),
-            Self::SubnetRental => Some(NnsProposalTopic::SubnetRental),
-            Self::ApplicationCanisterManagement => {
-                Some(NnsProposalTopic::ApplicationCanisterManagement)
-            }
-            Self::ProtocolCanisterManagement => Some(NnsProposalTopic::ProtocolCanisterManagement),
+impl NnsProposalTopicFilter {
+    pub(in crate::nns) const fn topic_code(self) -> Option<i32> {
+        match self.classification() {
+            None => None,
+            Some(value) => Some(value.code()),
         }
     }
 }

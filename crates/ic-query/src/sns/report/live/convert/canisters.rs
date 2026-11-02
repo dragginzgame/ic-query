@@ -23,20 +23,6 @@ use std::collections::BTreeMap;
 
 pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory(
     inventory: ListSnsCanistersResponse,
-    health: GetSnsCanistersSummaryResponse,
-) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
-    project_inventory(inventory, Ok(health))
-}
-
-pub(in crate::sns::report::live) fn mainnet_sns_canister_inventory_without_health(
-    inventory: ListSnsCanistersResponse,
-    reason: String,
-) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
-    project_inventory(inventory, Err(reason))
-}
-
-fn project_inventory(
-    inventory: ListSnsCanistersResponse,
     health: Result<GetSnsCanistersSummaryResponse, String>,
 ) -> Result<MainnetSnsCanisterInventory, SnsHostError> {
     let mut canisters = Vec::new();
@@ -414,7 +400,7 @@ mod tests {
         let health = health_response();
 
         let projected =
-            mainnet_sns_canister_inventory(inventory, health).expect("project inventory");
+            mainnet_sns_canister_inventory(inventory, Ok(health)).expect("project inventory");
 
         assert_eq!(
             projected
@@ -462,9 +448,9 @@ mod tests {
 
     #[test]
     fn failed_health_query_preserves_inventory_with_unavailable_cycle_evidence() {
-        let projected = mainnet_sns_canister_inventory_without_health(
+        let projected = mainnet_sns_canister_inventory(
             inventory_response(),
-            "SNS ingress method get_sns_canisters_summary failed: reject".to_string(),
+            Err("SNS ingress method get_sns_canisters_summary failed: reject".to_string()),
         )
         .expect("project inventory without health");
 
@@ -539,7 +525,7 @@ mod tests {
         ];
 
         let projected =
-            mainnet_sns_canister_inventory(inventory, health).expect("project inventory");
+            mainnet_sns_canister_inventory(inventory, Ok(health)).expect("project inventory");
         let kinds = projected
             .gaps
             .iter()
@@ -558,7 +544,7 @@ mod tests {
         let mut inventory = inventory_response();
         inventory.dapps = vec![principal(1)];
 
-        let error = mainnet_sns_canister_inventory(inventory, health_response())
+        let error = mainnet_sns_canister_inventory(inventory, Ok(health_response()))
             .expect_err("duplicate inventory canister must fail");
 
         assert!(matches!(
@@ -581,7 +567,7 @@ mod tests {
         ];
 
         let projected =
-            mainnet_sns_canister_inventory(inventory, health).expect("project inventory");
+            mainnet_sns_canister_inventory(inventory, Ok(health)).expect("project inventory");
         let archive = projected
             .canisters
             .iter()

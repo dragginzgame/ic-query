@@ -5,25 +5,21 @@ use crate::human_quantity::byte_count_text;
 
 #[must_use]
 pub fn nns_registry_version_report_text(report: &NnsRegistryVersionReport) -> String {
+    let [
+        registry_id,
+        version,
+        network,
+        fetched_at,
+        endpoint,
+        fetched_by,
+    ] = crate::nns::render::registry_provenance_lines(&report.provenance);
     [
-        format!("network: {}", terminal_text(&report.provenance.network)),
-        format!(
-            "registry_canister_id: {}",
-            report.provenance.registry_canister_id
-        ),
-        format!("registry_version: {}", report.provenance.registry_version),
-        format!(
-            "fetched_at: {}",
-            terminal_text(&report.provenance.fetched_at)
-        ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.provenance.source_endpoint)
-        ),
-        format!(
-            "fetched_by: {}",
-            terminal_text(&report.provenance.fetched_by)
-        ),
+        network,
+        registry_id,
+        version,
+        fetched_at,
+        endpoint,
+        fetched_by,
         "assurance: certified".to_string(),
         format!(
             "certificate_verified: {}",

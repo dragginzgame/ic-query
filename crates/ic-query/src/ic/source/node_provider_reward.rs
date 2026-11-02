@@ -87,17 +87,13 @@ pub(in crate::ic) fn validate_node_provider_reward_history_query(
             ),
         );
     }
-    let observations =
-        inclusive_observation_count(query.start_unix_secs, query.end_unix_secs, query.step_secs);
-    if observations > MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS {
-        return invalid_request(
-            "query",
-            format!(
-                "would request {observations} observations; maximum is {MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS}"
-            ),
-        );
-    }
-    Ok(())
+    super::validate_observation_budget(
+        query.start_unix_secs,
+        query.end_unix_secs,
+        query.step_secs,
+        MAX_IC_NODE_PROVIDER_REWARD_HISTORY_OBSERVATIONS,
+        "",
+    )
 }
 
 pub(in crate::ic) fn node_provider_reward_list_report_from_source(

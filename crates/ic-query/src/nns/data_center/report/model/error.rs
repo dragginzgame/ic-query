@@ -10,7 +10,7 @@ use thiserror::Error as ThisError;
 #[derive(Debug, ThisError)]
 pub enum NnsDataCenterHostError {
     #[error(
-        "`icq nns data-center` supports only the mainnet `ic` network\n\nThe NNS data-center list is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not supported.\n\nTry:\n  icq --network ic nns data-center list"
+        "NNS data-center reports support only the mainnet `ic` network (requested {network:?})"
     )]
     UnsupportedNetwork { network: String },
 

@@ -13,14 +13,10 @@ use super::{
 };
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
-use crate::nns::{
-    MAINNET_GOVERNANCE_CANISTER_ID,
-    governance::{
-        NnsGovernanceCollectionStatus, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
-        NnsGovernanceSourceSelection, validate_governance_collection_identity,
-        validate_governance_collection_page_bounds, validate_governance_continuation,
-        validate_governance_request, validate_source_provenance,
-    },
+use crate::nns::governance::{
+    GovernanceCollectionState, NnsGovernanceCollectionStatus, NnsGovernanceRequest,
+    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection, validate_governance_continuation,
+    validate_governance_request,
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,19 +31,10 @@ pub const NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronCollectionState {
-    schema_version: u32,
-    network: String,
-    governance_canister_id: String,
-    requested_source: NnsGovernanceSourceSelection,
-    source: Option<NnsGovernanceSourceProvenance>,
-    page_size: u32,
-    max_pages: u32,
-    pages_fetched: u32,
+    #[serde(flatten)]
+    collection: GovernanceCollectionState,
     neurons_fetched: u64,
     next_start_neuron_id: Option<u64>,
-    started_at: String,
-    updated_at: String,
-    status: NnsGovernanceCollectionStatus,
 }
 
 impl NnsNeuronCollectionState {
@@ -63,68 +50,79 @@ impl NnsNeuronCollectionState {
             return Err(NnsNeuronError::InvalidCollectionMaxPages);
         }
         Ok(Self {
-            schema_version: NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
-            network: request.network.clone(),
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-            requested_source: request.source.clone(),
-            source: None,
-            page_size,
-            max_pages,
-            pages_fetched: 0,
+            collection: GovernanceCollectionState::new(request, page_size, max_pages),
             neurons_fetched: 0,
             next_start_neuron_id: None,
-            started_at: request.fetched_at.clone(),
-            updated_at: request.fetched_at.clone(),
-            status: NnsGovernanceCollectionStatus::Ready,
         })
+    }
+
+    #[cfg(feature = "nns-host")]
+    pub(in crate::nns) const fn from_complete_collection(
+        collection: GovernanceCollectionState,
+        rows: u64,
+    ) -> Self {
+        Self {
+            collection,
+            neurons_fetched: rows,
+            next_start_neuron_id: None,
+        }
+    }
+
+    #[cfg(feature = "nns-host")]
+    pub(in crate::nns) fn collection_evidence(
+        &self,
+    ) -> crate::nns::governance::collection::NnsGovernanceCollectionEvidence {
+        crate::nns::governance::collection::NnsGovernanceCollectionEvidence::from_state(
+            &self.collection,
+        )
     }
 
     /// Return the state schema version.
     #[must_use]
     pub const fn schema_version(&self) -> u32 {
-        self.schema_version
+        self.collection.schema_version
     }
 
     /// Return the fixed network identity.
     #[must_use]
     pub fn network(&self) -> &str {
-        &self.network
+        &self.collection.network
     }
 
     /// Return the fixed Governance canister identity.
     #[must_use]
     pub fn governance_canister_id(&self) -> &str {
-        &self.governance_canister_id
+        &self.collection.governance_canister_id
     }
 
     /// Return the source selection fixed when collection started.
     #[must_use]
     pub const fn requested_source(&self) -> &NnsGovernanceSourceSelection {
-        &self.requested_source
+        &self.collection.requested_source
     }
 
     /// Return the concrete source provenance after the first admitted page.
     #[must_use]
     pub const fn source(&self) -> Option<&NnsGovernanceSourceProvenance> {
-        self.source.as_ref()
+        self.collection.source.as_ref()
     }
 
     /// Return the maximum rows requested from each Governance call.
     #[must_use]
     pub const fn page_size(&self) -> u32 {
-        self.page_size
+        self.collection.page_size
     }
 
     /// Return the cumulative source-call ceiling.
     #[must_use]
     pub const fn max_pages(&self) -> u32 {
-        self.max_pages
+        self.collection.max_pages
     }
 
     /// Return the number of successfully admitted pages.
     #[must_use]
     pub const fn pages_fetched(&self) -> u32 {
-        self.pages_fetched
+        self.collection.pages_fetched
     }
 
     /// Return the number of successfully admitted neuron rows.
@@ -142,25 +140,28 @@ impl NnsNeuronCollectionState {
     /// Return the caller-supplied time at which the collection state was created.
     #[must_use]
     pub fn started_at(&self) -> &str {
-        &self.started_at
+        &self.collection.started_at
     }
 
     /// Return the caller-supplied time attached to the latest admitted page.
     #[must_use]
     pub fn updated_at(&self) -> &str {
-        &self.updated_at
+        &self.collection.updated_at
     }
 
     /// Return the collection lifecycle status.
     #[must_use]
     pub const fn status(&self) -> NnsGovernanceCollectionStatus {
-        self.status
+        self.collection.status
     }
 
     /// Return whether Governance API exhaustion was observed.
     #[must_use]
     pub const fn is_complete(&self) -> bool {
-        matches!(self.status, NnsGovernanceCollectionStatus::Complete)
+        matches!(
+            self.collection.status,
+            NnsGovernanceCollectionStatus::Complete
+        )
     }
 }
 
@@ -200,10 +201,10 @@ pub async fn advance_nns_neuron_collection_with_source(
     validate_collection_state(state)?;
     validate_governance_continuation!(request, state, NnsNeuronError)?;
 
-    let mut page_request = NnsNeuronListRequest::new(request.clone(), state.page_size);
+    let mut page_request = NnsNeuronListRequest::new(request.clone(), state.collection.page_size);
     page_request.exclusive_start_neuron_id = state.next_start_neuron_id;
     let page = build_nns_neuron_list_report_with_source(&page_request, source).await?;
-    if let Some(expected) = &state.source
+    if let Some(expected) = &state.collection.source
         && *expected != page.context.source
     {
         return Err(NnsNeuronError::CollectionSourceChanged {
@@ -213,26 +214,22 @@ pub async fn advance_nns_neuron_collection_with_source(
     }
 
     let (pages_fetched, neurons_fetched) = crate::nns::governance::advance_collection_counts(
-        state.pages_fetched,
+        state.collection.pages_fetched,
         state.neurons_fetched,
         u64::try_from(page.returned_neuron_count)
             .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?,
     )
     .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
     let next_start_neuron_id = page.next_start_neuron_id;
-    let status = crate::nns::governance::collection_status_after_page(
-        next_start_neuron_id.is_some(),
-        pages_fetched,
-        state.max_pages,
-    );
     let next_state = NnsNeuronCollectionState {
-        source: Some(page.context.source.clone()),
-        pages_fetched,
+        collection: state.collection.after_page(
+            request,
+            page.context.source.clone(),
+            pages_fetched,
+            next_start_neuron_id.is_some(),
+        ),
         neurons_fetched,
         next_start_neuron_id,
-        updated_at: request.fetched_at.clone(),
-        status,
-        ..state.clone()
     };
     Ok(NnsNeuronCollectionStep {
         page,
@@ -244,48 +241,34 @@ pub(super) fn validate_collection_state(
     state: &NnsNeuronCollectionState,
 ) -> Result<(), NnsNeuronError> {
     let invalid = |reason| NnsNeuronError::InvalidCollectionState { reason };
-    if state.schema_version != NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION {
-        return Err(invalid(format!(
-            "schema_version is {}, expected {NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION}",
-            state.schema_version
-        )));
-    }
-    validate_governance_collection_identity(
-        &state.network,
-        &state.governance_canister_id,
-        &state.requested_source,
-        (&state.started_at, &state.updated_at),
-        invalid,
-    )?;
-    validate_page_size(state.page_size)?;
-    validate_governance_collection_page_bounds(state.max_pages, state.pages_fetched, invalid)?;
-    if let Some(source) = &state.source {
-        validate_source_provenance(&state.requested_source, source)?;
-    }
+    state
+        .collection
+        .validate(NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION, invalid)?;
+    validate_page_size(state.collection.page_size)?;
 
     let neurons_fetched = state.neurons_fetched;
     let maximum_rows = crate::nns::governance::validate_governance_collection_row_bounds(
         "neurons_fetched",
         neurons_fetched,
-        state.pages_fetched,
-        state.page_size,
+        state.collection.pages_fetched,
+        state.collection.page_size,
         invalid,
     )?;
 
     let valid_lifecycle = crate::nns::governance::collection_lifecycle_matches(
-        state.status,
-        state.pages_fetched,
-        state.max_pages,
+        state.collection.status,
+        state.collection.pages_fetched,
+        state.collection.max_pages,
         state.neurons_fetched,
         maximum_rows,
         state.next_start_neuron_id.is_some(),
-        state.source.is_some(),
-    ) && (state.status != NnsGovernanceCollectionStatus::Complete
+        state.collection.source.is_some(),
+    ) && (state.collection.status != NnsGovernanceCollectionStatus::Complete
         || neurons_fetched < maximum_rows);
     if !valid_lifecycle {
         return Err(invalid(format!(
             "status {} disagrees with cursor, provenance, or counters",
-            state.status
+            state.collection.status
         )));
     }
     Ok(())
@@ -347,7 +330,7 @@ mod tests {
         assert!(
             validate_governance_time_interval(
                 "updated_at",
-                &state.updated_at,
+                &state.collection.updated_at,
                 "fetched_at",
                 &start.fetched_at
             )

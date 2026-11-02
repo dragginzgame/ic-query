@@ -30,7 +30,7 @@ pub(super) async fn fetch_complete_neuron_collection(
     source: &dyn NnsNeuronSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNeuronCacheRows, NnsNeuronHostError> {
+) -> Result<(NnsNeuronCacheRows, SnapshotRefreshProgress), NnsNeuronHostError> {
     let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
         MAINNET_NETWORK,
         &request.source_endpoint,
@@ -63,7 +63,7 @@ struct NeuronRefreshPages<'a> {
 }
 
 impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
-    type Complete = NnsNeuronCacheRows;
+    type Complete = (NnsNeuronCacheRows, SnapshotRefreshProgress);
     type Error = NnsNeuronHostError;
 
     fn progress_text(&self) -> String {
@@ -125,9 +125,17 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     }
 
     fn into_complete(self) -> Self::Complete {
-        NnsNeuronCacheRows {
-            neurons: self.neurons,
-            collection_state: self.collection_state,
-        }
+        let progress = SnapshotRefreshProgress::new(
+            self.collection_state.pages_fetched(),
+            self.neurons.len(),
+            None,
+        );
+        (
+            NnsNeuronCacheRows {
+                neurons: self.neurons,
+                collection_evidence: self.collection_state.collection_evidence(),
+            },
+            progress,
+        )
     }
 }

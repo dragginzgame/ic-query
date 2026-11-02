@@ -81,7 +81,7 @@ macro_rules! validate_governance_continuation {
     ($request:expr, $state:expr, $error:ident) => {{
         use $crate::nns::governance::NnsGovernanceCollectionStatus;
         let request = $request;
-        let state = $state;
+        let state = &$state.collection;
         $crate::nns::governance::validate_governance_continuation_request(
             request,
             &state.network,

@@ -10,8 +10,8 @@ use std::future::Future;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::{
     DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT, NnsDataCenterHostError, NnsDataCenterSource,
-    build_nns_data_center_info_report, build_nns_data_center_info_report_with_source,
-    build_nns_data_center_list_report, build_nns_data_center_list_report_with_source,
+    build_nns_data_center_info_report, build_nns_data_center_info_report_with_source_and_progress,
+    build_nns_data_center_list_report, build_nns_data_center_list_report_with_source_and_progress,
     nns_data_center_cache_path, nns_data_center_refresh_lock_path, refresh_nns_data_center_report,
     refresh_nns_data_center_report_with_source,
 };
@@ -51,9 +51,9 @@ use ic_query::nns::neuron::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::{
     DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeHostError, NnsNodeSource, build_nns_node_info_report,
-    build_nns_node_info_report_with_source, build_nns_node_list_report,
-    build_nns_node_list_report_with_source, nns_node_cache_path, nns_node_refresh_lock_path,
-    refresh_nns_node_report, refresh_nns_node_report_with_source,
+    build_nns_node_info_report_with_source_and_progress, build_nns_node_list_report,
+    build_nns_node_list_report_with_source_and_progress, nns_node_cache_path,
+    nns_node_refresh_lock_path, refresh_nns_node_report, refresh_nns_node_report_with_source,
 };
 use ic_query::nns::node::{
     NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
@@ -62,10 +62,12 @@ use ic_query::nns::node::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::{
     DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT, NnsNodeOperatorHostError, NnsNodeOperatorSource,
-    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_source,
-    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_source,
-    nns_node_operator_cache_path, nns_node_operator_refresh_lock_path,
-    refresh_nns_node_operator_report, refresh_nns_node_operator_report_with_source,
+    build_nns_node_operator_info_report,
+    build_nns_node_operator_info_report_with_source_and_progress,
+    build_nns_node_operator_list_report,
+    build_nns_node_operator_list_report_with_source_and_progress, nns_node_operator_cache_path,
+    nns_node_operator_refresh_lock_path, refresh_nns_node_operator_report,
+    refresh_nns_node_operator_report_with_source,
 };
 use ic_query::nns::node_operator::{
     NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow,
@@ -75,10 +77,12 @@ use ic_query::nns::node_operator::{
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::{
     DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, NnsNodeProviderHostError, NnsNodeProviderSource,
-    build_nns_node_provider_info_report, build_nns_node_provider_info_report_with_source,
-    build_nns_node_provider_list_report, build_nns_node_provider_list_report_with_source,
-    nns_node_provider_cache_path, nns_node_provider_refresh_lock_path,
-    refresh_nns_node_provider_report, refresh_nns_node_provider_report_with_source,
+    build_nns_node_provider_info_report,
+    build_nns_node_provider_info_report_with_source_and_progress,
+    build_nns_node_provider_list_report,
+    build_nns_node_provider_list_report_with_source_and_progress, nns_node_provider_cache_path,
+    nns_node_provider_refresh_lock_path, refresh_nns_node_provider_report,
+    refresh_nns_node_provider_report_with_source,
 };
 use ic_query::nns::node_provider::{
     NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow,
@@ -2279,14 +2283,20 @@ async fn assert_public_nns_node_custom_source_api(root: &Path) {
         1_700_000_000,
     )
     .with_dry_run(true);
-    let node_list =
-        build_nns_node_list_report_with_source(&node_list_request, &FixtureNnsNodeSource)
-            .await
-            .expect("node list report");
-    let node_info =
-        build_nns_node_info_report_with_source(&node_info_request, &FixtureNnsNodeSource)
-            .await
-            .expect("node info report");
+    let node_list = build_nns_node_list_report_with_source_and_progress(
+        &node_list_request,
+        &FixtureNnsNodeSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("node list report");
+    let node_info = build_nns_node_info_report_with_source_and_progress(
+        &node_info_request,
+        &FixtureNnsNodeSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("node info report");
     let node_refresh =
         refresh_nns_node_report_with_source(&node_refresh_request, &FixtureNnsNodeSource)
             .await
@@ -2322,15 +2332,17 @@ async fn assert_public_nns_data_center_custom_source_api(root: &Path) {
         1_700_000_000,
     )
     .with_dry_run(true);
-    let data_center_list = build_nns_data_center_list_report_with_source(
+    let data_center_list = build_nns_data_center_list_report_with_source_and_progress(
         &data_center_list_request,
         &FixtureNnsDataCenterSource,
+        &mut |_| {},
     )
     .await
     .expect("data-center list report");
-    let data_center_info = build_nns_data_center_info_report_with_source(
+    let data_center_info = build_nns_data_center_info_report_with_source_and_progress(
         &data_center_info_request,
         &FixtureNnsDataCenterSource,
+        &mut |_| {},
     )
     .await
     .expect("data-center info report");
@@ -2371,15 +2383,17 @@ async fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
         1_700_000_000,
     )
     .with_dry_run(true);
-    let node_provider_list = build_nns_node_provider_list_report_with_source(
+    let node_provider_list = build_nns_node_provider_list_report_with_source_and_progress(
         &node_provider_list_request,
         &FixtureNnsNodeProviderSource,
+        &mut |_| {},
     )
     .await
     .expect("node-provider list report");
-    let node_provider_info = build_nns_node_provider_info_report_with_source(
+    let node_provider_info = build_nns_node_provider_info_report_with_source_and_progress(
         &node_provider_info_request,
         &FixtureNnsNodeProviderSource,
+        &mut |_| {},
     )
     .await
     .expect("node-provider info report");
@@ -2420,15 +2434,17 @@ async fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
         1_700_000_000,
     )
     .with_dry_run(true);
-    let node_operator_list = build_nns_node_operator_list_report_with_source(
+    let node_operator_list = build_nns_node_operator_list_report_with_source_and_progress(
         &node_operator_list_request,
         &FixtureNnsNodeOperatorSource,
+        &mut |_| {},
     )
     .await
     .expect("node-operator list report");
-    let node_operator_info = build_nns_node_operator_info_report_with_source(
+    let node_operator_info = build_nns_node_operator_info_report_with_source_and_progress(
         &node_operator_info_request,
         &FixtureNnsNodeOperatorSource,
+        &mut |_| {},
     )
     .await
     .expect("node-operator info report");
@@ -3610,20 +3626,10 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
                 "point_in_time_guaranteed": false
             },
             "data": { "proposals": [sample_nns_proposal_row()],
-            "collection_state": {
-                "schema_version": 1,
-                "network": "ic",
-                "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
+            "collection_evidence": {
                 "requested_source": {"source_transport": "replica_query", "endpoint": DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, "fetched_by": "ic-query"},
-                "source": {"source_transport": "replica_query", "endpoint": DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, "fetched_by": "ic-query"},
-                "page_size": 100,
                 "max_pages": 1,
-                "pages_fetched": 1,
-                "proposals_fetched": 1,
-                "next_before_proposal_id": null,
-                "started_at": "2023-11-14T22:13:20Z",
-                "updated_at": "2023-11-14T22:13:20Z",
-                "status": "complete"
+                "started_at": "2023-11-14T22:13:20Z"
             }}
         }),
     );

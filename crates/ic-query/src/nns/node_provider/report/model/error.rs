@@ -10,7 +10,7 @@ use thiserror::Error as ThisError;
 #[derive(Debug, ThisError)]
 pub enum NnsNodeProviderHostError {
     #[error(
-        "`icq nns node-provider` supports only the mainnet `ic` network\n\nThe NNS node-provider list is queried from the public Internet Computer mainnet governance canister.\nLocal replica NNS governance discovery is not supported.\n\nTry:\n  icq --network ic nns node-provider list"
+        "NNS node-provider reports support only the mainnet `ic` network (requested {network:?})"
     )]
     UnsupportedNetwork { network: String },
 

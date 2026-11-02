@@ -59,13 +59,14 @@ use std::{
 
 pub(in crate::nns::proposals::report) struct AdmittedProposalCache {
     snapshot: NnsProposalCache,
+    collection_state: crate::nns::proposals::report::NnsProposalCollectionState,
 }
 
 impl AdmittedProposalCache {
     pub(in crate::nns::proposals::report) const fn collection_state(
         &self,
     ) -> &crate::nns::proposals::report::NnsProposalCollectionState {
-        &self.snapshot.data.collection_state
+        &self.collection_state
     }
 
     pub(in crate::nns::proposals::report) fn rows(
@@ -218,14 +219,17 @@ fn load_nns_proposal_cache(
         |mismatch| nns_identity_mismatch_error(cache_path.clone(), mismatch),
         opened_file,
     )?;
-    validate_nns_proposal_cache(&cache_path, &cache)?;
-    Ok(AdmittedProposalCache { snapshot: cache })
+    let collection_state = validate_nns_proposal_cache(&cache_path, &cache)?;
+    Ok(AdmittedProposalCache {
+        snapshot: cache,
+        collection_state,
+    })
 }
 
 fn validate_nns_proposal_cache(
     path: &Path,
     cache: &NnsProposalCache,
-) -> Result<(), NnsProposalHostError> {
+) -> Result<crate::nns::proposals::report::NnsProposalCollectionState, NnsProposalHostError> {
     let invalid = |reason| NnsProposalHostError::InvalidCache {
         path: path.to_path_buf(),
         reason,
@@ -237,14 +241,11 @@ fn validate_nns_proposal_cache(
     )
     .map_err(invalid)?;
     validate_governance_cache_metadata(&cache.metadata).map_err(invalid)?;
-    let state = &cache.data.collection_state;
-    crate::nns::governance::collection::validate_governance_snapshot!(
-        cache,
-        state,
-        proposals_fetched,
-        validate_collection_state
-    )
-    .map_err(invalid)?;
+    let state = crate::nns::proposals::report::NnsProposalCollectionState::from_complete_collection(
+        cache.data.collection_evidence.restore_state(cache),
+        cache.completeness.row_count as u64,
+    );
+    validate_collection_state(&state).map_err(|error| invalid(error.to_string()))?;
     let mut proposal_ids = HashSet::new();
     for proposal in &cache.data.proposals {
         let proposal_id = proposal
@@ -257,7 +258,7 @@ fn validate_nns_proposal_cache(
             return Err(invalid(format!("duplicate proposal id {proposal_id}")));
         }
     }
-    Ok(())
+    Ok(state)
 }
 
 fn nns_proposal_list_report_from_cache(

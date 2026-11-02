@@ -14,14 +14,14 @@ use crate::{
         leaf::NnsCommonOptions,
         proposals::values::{
             NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            NNS_PROPOSAL_VERBOSE_FLAG, NnsProposalListSortArg, NnsProposalRewardStatusArg,
-            NnsProposalStatusArg, NnsProposalTopicArg,
+            NNS_PROPOSAL_VERBOSE_FLAG,
         },
     },
 };
 use clap::ArgMatches;
 use ic_query::nns::proposals::{
     NnsProposalActivityRequest, NnsProposalListRequest, NnsProposalListSort, NnsProposalRequest,
+    NnsProposalRewardStatusFilter, NnsProposalStatusFilter, NnsProposalTopicFilter,
 };
 
 pub(in crate::nns) fn proposal_activity_request(
@@ -42,12 +42,20 @@ pub(in crate::nns) fn proposal_list_request(
     now_unix_secs: u64,
 ) -> Result<(OutputFormat, NnsProposalListRequest), NnsCommandError> {
     let common = NnsCommonOptions::from_matches(matches, network);
-    let sort = NnsProposalListSort::from(required_typed::<NnsProposalListSortArg>(matches, "sort"));
+    let sort = required_typed::<NnsProposalListSort>(matches, "sort");
     let sort_direction = resolve_proposal_sort_direction(
         matches,
         sort.uses_local_direction(),
         sort.default_direction(),
-        || crate::cli::clap::value_names(NnsProposalListSortArg::Api),
+        || {
+            NnsProposalListSort::ALL
+                .iter()
+                .copied()
+                .filter(|sort| *sort != NnsProposalListSort::Api)
+                .map(NnsProposalListSort::as_str)
+                .collect::<Vec<_>>()
+                .join("|")
+        },
     )
     .map_err(NnsCommandError::Usage)?;
     let (format, governance) = common.into_governance_request(now_unix_secs);
@@ -57,13 +65,12 @@ pub(in crate::nns) fn proposal_list_request(
             governance,
             limit: required_typed(matches, "limit"),
             before_proposal_id: typed_option(matches, "before"),
-            status: required_typed::<NnsProposalStatusArg>(matches, "status").into(),
-            reward_status: required_typed::<NnsProposalRewardStatusArg>(
+            status: required_typed::<NnsProposalStatusFilter>(matches, "status"),
+            reward_status: required_typed::<NnsProposalRewardStatusFilter>(
                 matches,
                 NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            )
-            .into(),
-            topic: required_typed::<NnsProposalTopicArg>(matches, "topic").into(),
+            ),
+            topic: required_typed::<NnsProposalTopicFilter>(matches, "topic"),
             proposer_neuron_id: typed_option(matches, "proposer"),
             query: string_option(matches, "query"),
             sort,

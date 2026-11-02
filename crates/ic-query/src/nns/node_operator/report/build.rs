@@ -15,35 +15,20 @@ use crate::{QueryProgress, progress::IgnoreQueryProgress};
 pub async fn build_nns_node_operator_list_report(
     request: &NnsInventoryListRequest,
 ) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source(request, &LiveNnsSource::default()).await
+    build_nns_node_operator_list_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        &mut IgnoreQueryProgress,
+    )
+    .await
 }
 
 pub async fn build_nns_node_operator_info_report(
     request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source(request, &LiveNnsSource::default()).await
-}
-
-/// Build the report while reporting authorized cache refreshes.
-pub async fn build_nns_node_operator_list_report_with_progress(
-    request: &NnsInventoryListRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source_and_progress(
+    build_nns_node_operator_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
-        progress,
-    )
-    .await
-}
-
-pub async fn build_nns_node_operator_list_report_with_source(
-    request: &NnsInventoryListRequest,
-    source: &dyn NnsNodeOperatorSource,
-) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_list_report_with_source_and_progress(
-        request,
-        source,
         &mut IgnoreQueryProgress,
     )
     .await
@@ -65,31 +50,6 @@ pub async fn build_nns_node_operator_list_report_with_source_and_progress(
                 .await
                 .map(|_| ())
         },
-    )
-    .await
-}
-
-/// Build the report while reporting authorized cache refreshes.
-pub async fn build_nns_node_operator_info_report_with_progress(
-    request: &NnsInventoryInfoRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source_and_progress(
-        request,
-        &LiveNnsSource::default(),
-        progress,
-    )
-    .await
-}
-
-pub async fn build_nns_node_operator_info_report_with_source(
-    request: &NnsInventoryInfoRequest,
-    source: &dyn NnsNodeOperatorSource,
-) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
-    build_nns_node_operator_info_report_with_source_and_progress(
-        request,
-        source,
-        &mut IgnoreQueryProgress,
     )
     .await
 }

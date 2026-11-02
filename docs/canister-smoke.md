@@ -121,7 +121,7 @@ when a test panics.
 ## Prerequisites
 
 - Linux or macOS; interruption cleanup uses POSIX process groups.
-- Rust 1.99.0, selected by `rust-toolchain.toml`, with
+- Rust 1.99.1, selected by `rust-toolchain.toml`, with
   `wasm32-unknown-unknown` installed.
 - The verified repository-local IC toolset, including
   ICP CLI **1.7.0**. Prepare it explicitly with `make install-ic-tools`;
@@ -145,8 +145,8 @@ local NNS execution on the existing stable runtime. ICP identities,
 settings and launcher packages use the persistent ignored `.icp-smoke-home/`
 by default. Receipts, Wasm and bundles live under `target/canister-smoke/`;
 runtime state lives in `tests/canister/.icp/`. These directories belong outside
-commits and release artifacts. The library's supported minimum Rust version remains **1.91.0**;
-`make msrv` verifies it separately from the development toolchain.
+commits and release artifacts. The library's supported minimum and development compiler are both **1.99.1**.
+`make compiler-check` records and admits that selection before qualification.
 
 ### ICP binary selection
 

@@ -18,11 +18,9 @@ use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventory
 use build::resolve_node_operator;
 #[cfg(feature = "nns-host")]
 pub use build::{
-    build_nns_node_operator_info_report, build_nns_node_operator_info_report_with_progress,
-    build_nns_node_operator_info_report_with_source,
+    build_nns_node_operator_info_report,
     build_nns_node_operator_info_report_with_source_and_progress,
-    build_nns_node_operator_list_report, build_nns_node_operator_list_report_with_progress,
-    build_nns_node_operator_list_report_with_source,
+    build_nns_node_operator_list_report,
     build_nns_node_operator_list_report_with_source_and_progress,
 };
 #[cfg(feature = "nns-host")]

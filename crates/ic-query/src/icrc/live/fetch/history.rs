@@ -578,10 +578,10 @@ fn icrc3_value_json(value: ICRC3Value) -> JsonValue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
+    use crate::icrc::live::test_support::{query_content, replied_query_fixture};
     use ic_platform::icrc_ledger_types::QueryArchiveFn;
     use serde_cbor::Value;
-    use std::{collections::BTreeMap, time::Duration};
+    use std::collections::BTreeMap;
 
     #[test]
     fn wire_history_projects_plain_decimal_numbers_accepted_by_report_validation() {
@@ -757,33 +757,10 @@ mod tests {
                 .collect(),
             archived_blocks: vec![],
         };
-        let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
-            (Value::Text("status".into()), Value::Text("replied".into())),
-            (
-                Value::Text("reply".into()),
-                Value::Map(BTreeMap::from([(
-                    Value::Text("arg".into()),
-                    Value::Bytes(ic_platform::candid::contract::encode_one(reply).unwrap()),
-                )])),
-            ),
-        ])))
-        .unwrap();
-        let server = HttpFixture::spawn(
-            &body,
-            "application/cbor",
-            HttpFixtureLimits {
-                timeout: Duration::from_secs(10),
-                max_header_bytes: 64 * 1024,
-                max_body_bytes: 8 * 1024 * 1024,
-            },
-        )
-        .unwrap();
-        let endpoint = server.endpoint();
-        let agent = Agent::builder()
-            .with_url(endpoint)
-            .with_verify_query_signatures(false)
-            .build()
-            .unwrap();
+        let (server, agent) = replied_query_fixture(
+            ic_platform::candid::contract::encode_one(reply).unwrap(),
+            8 * 1024 * 1024,
+        );
         let archive = ArchivedBlocks {
             callback: QueryArchiveFn::new(Principal::anonymous(), "read_archive_page"),
             args: vec![GetBlocksRequest {
@@ -793,18 +770,7 @@ mod tests {
         };
         let followed = fetch_archive_blocks(&agent, &[archive]).await;
         let raw = server.finish().unwrap();
-        let body_start = raw
-            .windows(4)
-            .position(|bytes| bytes == b"\r\n\r\n")
-            .unwrap()
-            + 4;
-        let Value::Map(envelope) = serde_cbor::from_slice::<Value>(&raw[body_start..]).unwrap()
-        else {
-            panic!("request envelope")
-        };
-        let Value::Map(content) = &envelope[&Value::Text("content".into())] else {
-            panic!("request content")
-        };
+        let content = query_content(&raw);
         assert_eq!(
             content[&Value::Text("request_type".into())],
             Value::Text("query".into())

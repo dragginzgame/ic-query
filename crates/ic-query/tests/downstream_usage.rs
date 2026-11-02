@@ -77,11 +77,11 @@ mod host {
         nns::{NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest, NnsInventoryCacheRequest},
         sns::{
             DEFAULT_SNS_SOURCE_ENDPOINT, SnsCacheStatusRequest, SnsHostError, SnsMetricsRequest,
-            SnsNeuronsCacheSort, SnsNeuronsRequest, SnsProposalsReport, SnsProposalsRequest,
-            SnsProposalsSort, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
-            build_sns_metrics_report, build_sns_neurons_cache_status_report,
-            build_sns_neurons_report, build_sns_proposals_cache_status_report,
-            build_sns_proposals_report, build_sns_proposals_report_with_progress,
+            SnsNeuronsCacheSort, SnsNeuronsRequest, SnsProposalsRequest, SnsProposalsSort,
+            SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, build_sns_metrics_report,
+            build_sns_neurons_cache_status_report, build_sns_neurons_report,
+            build_sns_proposals_cache_status_report,
+            build_sns_proposals_report_with_source_and_progress,
             refresh_sns_neurons_cache_with_progress, refresh_sns_proposals_cache_with_progress,
             sns_metrics_report_text, sns_neurons_cache_status_report_text, sns_neurons_report_text,
             sns_proposals_cache_status_report_text, sns_proposals_report_text,
@@ -162,13 +162,6 @@ mod host {
             'a,
             Result<SnsSnapshotRefreshReport, SnsHostError>,
         > = |arg0, arg1| Box::pin(refresh_sns_proposals_cache_with_progress(arg0, arg1));
-        let _: for<'a> fn(
-            &'a SnsProposalsRequest,
-            &'a mut dyn QueryProgress,
-        ) -> ic_query::report::SourceFuture<
-            'a,
-            Result<SnsProposalsReport, SnsHostError>,
-        > = |arg0, arg1| Box::pin(build_sns_proposals_report_with_progress(arg0, arg1));
     }
 
     async fn render_application_nodes(
@@ -224,7 +217,12 @@ mod host {
         .with_sort(SnsProposalsSort::Created)
         .with_sort_direction(SortDirection::Desc);
 
-        let report = build_sns_proposals_report(&request).await?;
+        let report = build_sns_proposals_report_with_source_and_progress(
+            &request,
+            &ic_query::sns::LiveSnsSource::default(),
+            &mut |_| {},
+        )
+        .await?;
         Ok(sns_proposals_report_text(&report))
     }
 

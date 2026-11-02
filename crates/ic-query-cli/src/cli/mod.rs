@@ -6,6 +6,7 @@
 
 pub mod clap;
 pub mod common;
+pub mod diagnostics;
 
 macro_rules! value_enum_with_conversion {
     (

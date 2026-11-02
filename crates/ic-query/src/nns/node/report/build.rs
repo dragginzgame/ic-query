@@ -16,34 +16,23 @@ use crate::{QueryProgress, progress::IgnoreQueryProgress};
 pub async fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
 ) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    build_nns_node_list_report_with_source(request, &LiveNnsSource::default()).await
+    build_nns_node_list_report_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        &mut IgnoreQueryProgress,
+    )
+    .await
 }
 
 pub async fn build_nns_node_info_report(
     request: &NnsInventoryInfoRequest,
 ) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
-    build_nns_node_info_report_with_source(request, &LiveNnsSource::default()).await
-}
-
-/// Build the report while reporting authorized cache refreshes.
-pub async fn build_nns_node_list_report_with_progress(
-    request: &NnsNodeListRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    build_nns_node_list_report_with_source_and_progress(
+    build_nns_node_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
-        progress,
+        &mut IgnoreQueryProgress,
     )
     .await
-}
-
-pub async fn build_nns_node_list_report_with_source(
-    request: &NnsNodeListRequest,
-    source: &dyn NnsNodeSource,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
-    build_nns_node_list_report_with_source_and_progress(request, source, &mut IgnoreQueryProgress)
-        .await
 }
 
 /// Build the report with a caller-owned source and progress sink.
@@ -68,27 +57,6 @@ pub async fn build_nns_node_list_report_with_source_and_progress(
     )
     .await?;
     Ok(filter_node_list_report(report, &request.filters))
-}
-
-/// Build the report while reporting authorized cache refreshes.
-pub async fn build_nns_node_info_report_with_progress(
-    request: &NnsInventoryInfoRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
-    build_nns_node_info_report_with_source_and_progress(
-        request,
-        &LiveNnsSource::default(),
-        progress,
-    )
-    .await
-}
-
-pub async fn build_nns_node_info_report_with_source(
-    request: &NnsInventoryInfoRequest,
-    source: &dyn NnsNodeSource,
-) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
-    build_nns_node_info_report_with_source_and_progress(request, source, &mut IgnoreQueryProgress)
-        .await
 }
 
 /// Build the report with a caller-owned source and progress sink.

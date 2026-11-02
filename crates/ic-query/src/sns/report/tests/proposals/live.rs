@@ -70,10 +70,13 @@ async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
         } if reason.contains("ballot_count")
     ));
 
-    let list_error =
-        build_sns_proposals_report_with_source(&proposals_request("1"), &InvalidSnsProposalsSource)
-            .await
-            .expect_err("invalid bounded proposals");
+    let list_error = build_sns_proposals_report_with_source_and_progress(
+        &proposals_request("1"),
+        &InvalidSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("invalid bounded proposals");
     assert!(matches!(
         list_error,
         SnsHostError::InvalidSourceData {
@@ -164,9 +167,13 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
 async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     let request = proposals_request("1");
 
-    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("sns proposals report");
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("sns proposals report");
     let text = sns_proposals_report_text(&report);
 
     assert_eq!(report.schema_version, SNS_PROPOSALS_REPORT_SCHEMA_VERSION);
@@ -225,9 +232,13 @@ async fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.proposer_neuron_id = Some("000102".to_string());
 
-    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("sns proposals report");
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("sns proposals report");
 
     assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
@@ -240,9 +251,13 @@ async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.eligibility = SnsProposalEligibilityFilter::No;
 
-    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("sns proposals report");
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("sns proposals report");
 
     assert_eq!(report.provenance.data_source.as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
@@ -255,9 +270,13 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     let mut request = proposals_request("1");
     request.query = Some("FiXtUrE PrOpOsAl".to_string());
 
-    let report = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("sns proposals report");
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("sns proposals report");
     let text = sns_proposals_report_text(&report);
     let json = serde_json::to_value(&report).expect("serialize live SNS proposals report");
 
@@ -275,9 +294,13 @@ async fn sns_proposals_status_decided_requires_cache_root() {
     request.status = SnsProposalStatusFilter::Decided;
     request.topic = SnsProposalTopicFilter::Governance;
 
-    let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect_err("decided without cache rejected");
+    let error = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("decided without cache rejected");
 
     assert!(matches!(
         error,
@@ -285,9 +308,13 @@ async fn sns_proposals_status_decided_requires_cache_root() {
     ));
 
     request.topic = SnsProposalTopicFilter::Any;
-    let error = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect_err("decided without cache rejected");
+    let error = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("decided without cache rejected");
 
     assert!(matches!(
         error,

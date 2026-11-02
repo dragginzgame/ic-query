@@ -5,8 +5,8 @@ setup, and maintainer release tooling. The declared host matrix is:
 
 | Host | Architecture | CI label | Native workflow |
 | --- | --- | --- | --- |
-| Ubuntu 24.04 | x86-64 | `ubuntu-24.04` | Complete CI, MSRV, release/publication fixtures, canister integration |
-| macOS 15 Sequoia | Apple Silicon (ARM64) | `macos-15` | Complete CI, MSRV, release/publication fixtures, system Bash fixtures, canister integration |
+| Ubuntu 24.04 | x86-64 | `ubuntu-24.04` | Complete CI, compiler admission, release/publication fixtures, canister integration |
+| macOS 15 Sequoia | Apple Silicon (ARM64) | `macos-15` | Complete CI, compiler admission, release/publication fixtures, system Bash fixtures, canister integration |
 | macOS 15 Sequoia | Intel (x86-64) | `macos-15-intel` | Same native checks as Apple Silicon |
 
 The macOS labels and architectures follow
@@ -24,11 +24,11 @@ retain their separate acceptance gates.
 
 ## Prerequisites
 
-- Prepare the development compiler selected by [rust-toolchain.toml](../rust-toolchain.toml),
-  including rustfmt, Clippy and `wasm32-unknown-unknown`. The separate MSRV check
-  reads the inherited `rust-version` from [Cargo.toml](../Cargo.toml) through
-  Cargo metadata. `make msrv-version` prints that selection; `make msrv MSRV=VERSION`
-  permits an explicit compiler experiment without changing the declared floor.
+- Prepare Rust 1.99.1, selected by [rust-toolchain.toml](../rust-toolchain.toml),
+  including rustfmt, Clippy and `wasm32-unknown-unknown`. All packages inherit
+  the same minimum from [Cargo.toml](../Cargo.toml). `make compiler-check`
+  records and admits actual Cargo/rustc identities against that package policy.
+  Current CI fixtures also require the exact toolchain pin to match it.
 - Bash 3.2 or newer, GNU Make 3.81 or newer, Git, Perl with its core modules
   (including JSON::PP), and standard Unix utilities are required. macOS needs
   Xcode Command Line Tools. Explicit executable setup also needs curl, CA
@@ -64,7 +64,7 @@ retain their separate acceptance gates.
   The [shared executable store](local-setup.md#shared-executable-storage) retains
   previous and failed bundles; setup does not erase caller evidence or artifacts.
 - Explicitly prepare the selected dependency cache before validation with
-  `cargo fetch --locked`. Ordinary build, check, Clippy, test, MSRV, rustdoc and
+  `cargo fetch --locked`. Ordinary build, check, Clippy, test, compiler, rustdoc and
   package checks remain locked/offline. Standard maintainer release entry points
   prepare the cache while preserving explicit offline settings; standalone release
   adapters require the existing cache. RustSec refresh is a separate live Git fetch.
@@ -84,7 +84,7 @@ matrix, even where an individual shared executable has an ARM64 mapping.
 | IC setup and offline verification | Bash, curl for setup, tar with xz/gzip support, Perl, SHA-256 backend, reviewed IC catalog |
 | Dependency declaration checks | Git, prepared local jq/yq, Cargo for workspace discovery |
 | Workspace version and release/publication version admission | Prepared Cargo toolchain and local jq/yq; offline manifest validation |
-| MSRV selection | Installed Cargo, Bash and Perl JSON::PP; metadata discovery needs no dependency source cache |
+| Compiler admission | Installed Cargo, Bash and Perl JSON::PP; metadata discovery needs no dependency source cache |
 | Formatting and offline admission | Prepared rustfmt and common Cargo tools, verified through the shared installer |
 | Cargo-tool installation | Prepared compiler, native compilation prerequisites and managed source cache |
 | Local documentation links | Perl core modules; guide and contract roster selected by Make |
@@ -107,8 +107,11 @@ execute releases or create real release commits, tags or pushes.
 
 ## Native CI and qualification
 
-The workflow runs complete checks, MSRV and canister integration on each declared
-host. The general checks compile Governance runner fixtures through
+The workflow runs complete checks and canister integration on each declared
+host using the same admitted Rust 1.99.1 compiler. The former separate MSRV
+lane is consolidated into these six jobs. The complete gate retains workspace
+all-target/all-feature compilation, isolated library feature and public-consumer
+checks, archive qualification, and the native CLI/Testkit dependency paths. The general checks compile Governance runner fixtures through
 `ci-scripts-check`; the all-target test gate executes them. The canister lane
 separately prepares/checks Testkit, executes `make canister-test`, then runs local
 NNS deployment smoke and bundle construction. Cross-compilation does not qualify

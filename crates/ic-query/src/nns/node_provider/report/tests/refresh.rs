@@ -42,10 +42,13 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
         source_endpoint: "https://unused.example".to_string(),
         now_unix_secs: 1_780_531_300,
     };
-    let report =
-        build_nns_node_provider_list_report_with_source(&list_request, &FailingNodeProviderSource)
-            .await
-            .expect("cached report");
+    let report = build_nns_node_provider_list_report_with_source_and_progress(
+        &list_request,
+        &FailingNodeProviderSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("cached report");
 
     assert_eq!(report.provenance.source_endpoint, "https://icp-api.io");
     assert_eq!(report.node_providers.len(), 1);

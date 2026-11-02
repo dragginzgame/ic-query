@@ -8,7 +8,7 @@ use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, SnsCanisterMethod, SnsHostError,
     live::{
-        convert::{mainnet_sns_canister_inventory, mainnet_sns_canister_inventory_without_health},
+        convert::mainnet_sns_canister_inventory,
         query::{principal_from_text, sns_agent, update_canister},
         types::{
             GetSnsCanistersSummaryRequest, GetSnsCanistersSummaryResponse, ListSnsCanistersRequest,
@@ -43,8 +43,5 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_canisters(
         &health_request,
     )
     .await;
-    match health {
-        Ok(health) => mainnet_sns_canister_inventory(inventory, health),
-        Err(error) => mainnet_sns_canister_inventory_without_health(inventory, error.to_string()),
-    }
+    mainnet_sns_canister_inventory(inventory, health.map_err(|error| error.to_string()))
 }

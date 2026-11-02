@@ -1,6 +1,8 @@
 //! Reusable NNS Governance economics, metrics, reward, and collection contracts.
 
 mod build;
+mod continuation;
+pub(in crate::nns) use continuation::GovernanceCollectionState;
 #[cfg(feature = "nns-host")]
 pub(super) mod collection;
 mod error;

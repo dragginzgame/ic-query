@@ -36,18 +36,10 @@ pub async fn build_sns_proposal_report(
 pub async fn build_sns_proposals_report(
     request: &SnsProposalsRequest,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    build_sns_proposals_report_with_source(request, &LiveSnsSource::default()).await
-}
-
-/// Build an SNS proposal list report and emit cache-refresh progress when needed.
-pub async fn build_sns_proposals_report_with_progress(
-    request: &SnsProposalsRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<SnsProposalsReport, SnsHostError> {
     build_sns_proposals_report_with_source_and_progress(
         request,
         &LiveSnsSource::default(),
-        progress,
+        &mut IgnoreQueryProgress,
     )
     .await
 }
@@ -75,15 +67,8 @@ pub async fn build_sns_proposal_report_with_source(
     ))
 }
 
-pub async fn build_sns_proposals_report_with_source(
-    request: &SnsProposalsRequest,
-    source: &dyn SnsProposalsSource,
-) -> Result<SnsProposalsReport, SnsHostError> {
-    let mut progress = IgnoreQueryProgress;
-    build_sns_proposals_report_with_source_and_progress(request, source, &mut progress).await
-}
-
-async fn build_sns_proposals_report_with_source_and_progress(
+/// Build a proposal list with a caller-owned source and progress sink.
+pub async fn build_sns_proposals_report_with_source_and_progress(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,

@@ -1,8 +1,9 @@
 use super::{
     NnsInventoryCacheRequest, NnsInventoryListRequest, NnsNodeOperatorHostError,
     NnsNodeOperatorListReport, NnsNodeOperatorRow, NnsNodeOperatorSource,
-    build_nns_node_operator_list_report_with_source, nns_node_operator_list_report_text,
-    nns_node_operator_list_report_verbose_text, resolve_node_operator,
+    build_nns_node_operator_list_report_with_source_and_progress,
+    nns_node_operator_list_report_text, nns_node_operator_list_report_verbose_text,
+    resolve_node_operator,
 };
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
@@ -36,7 +37,7 @@ async fn node_operator_report_uses_live_registry_source() {
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
     };
-    let report = build_nns_node_operator_list_report_with_source(
+    let report = build_nns_node_operator_list_report_with_source_and_progress(
         &request,
         &FixtureNodeOperatorSource {
             node_operators: vec![NnsNodeOperatorRow {
@@ -47,6 +48,7 @@ async fn node_operator_report_uses_live_registry_source() {
                 node_count: Some(3),
             }],
         },
+        &mut |_| {},
     )
     .await
     .expect("node operator report");

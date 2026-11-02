@@ -273,10 +273,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
+    use crate::icrc::live::test_support::{query_content, query_fixture};
     use ic_platform::agent::{AgentError, RejectCode};
     use serde_cbor::Value;
-    use std::{collections::BTreeMap, time::Duration};
+    use std::collections::BTreeMap;
 
     #[tokio::test(flavor = "current_thread")]
     async fn capability_probe_retains_reject_metadata_through_the_ledger_transport() {
@@ -292,7 +292,7 @@ mod tests {
                 IcrcCapabilityStatus::Error,
             ),
         ] {
-            let body = serde_cbor::to_vec(&Value::Map(BTreeMap::from([
+            let body = Value::Map(BTreeMap::from([
                 (Value::Text("status".into()), Value::Text("rejected".into())),
                 (Value::Text("reject_code".into()), Value::Integer(5)),
                 (
@@ -303,38 +303,11 @@ mod tests {
                     Value::Text("error_code".into()),
                     Value::Text(error_code.into()),
                 ),
-            ])))
-            .unwrap();
-            let server = HttpFixture::spawn(
-                &body,
-                "application/cbor",
-                HttpFixtureLimits {
-                    timeout: Duration::from_secs(10),
-                    max_header_bytes: 64 * 1024,
-                    max_body_bytes: 8 * 1024 * 1024,
-                },
-            )
-            .unwrap();
-            let endpoint = server.endpoint();
-            let agent = Agent::builder()
-                .with_url(endpoint)
-                .with_verify_query_signatures(false)
-                .build()
-                .unwrap();
+            ]));
+            let (server, agent) = query_fixture(&body, 8 * 1024 * 1024);
             let row = fetch_index_capability(&agent, &Principal::anonymous()).await;
             let raw = server.finish().unwrap();
-            let body_start = raw
-                .windows(4)
-                .position(|bytes| bytes == b"\r\n\r\n")
-                .unwrap()
-                + 4;
-            let request: Value = serde_cbor::from_slice(&raw[body_start..]).unwrap();
-            let Value::Map(envelope) = request else {
-                panic!("request envelope")
-            };
-            let Value::Map(content) = &envelope[&Value::Text("content".into())] else {
-                panic!("request content")
-            };
+            let content = query_content(&raw);
             assert_eq!(
                 content[&Value::Text("method_name".into())],
                 Value::Text(ICRC106_GET_INDEX_PRINCIPAL_METHOD.into())

@@ -253,7 +253,19 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
     let report =
         build_nns_neuron_distribution_report_from_cache(&request).expect("cached distribution");
     let cache: serde_json::Value = serde_json::from_slice(&original).unwrap();
-    let collection = serde_json::from_value(cache["data"]["collection_state"].clone()).unwrap();
+    let mut collection =
+        super::NnsNeuronCollectionState::new(&governance_request(1_700_000_000), 2, u32::MAX)
+            .unwrap();
+    while !collection.is_complete() {
+        collection = super::advance_nns_neuron_collection_with_source(
+            &governance_request(1_700_000_000),
+            &collection,
+            &FixtureSource,
+        )
+        .await
+        .unwrap()
+        .state;
+    }
     let rows: Vec<NnsNeuronRow> = serde_json::from_value(cache["data"]["neurons"].clone()).unwrap();
     assert_eq!(
         report,
@@ -292,17 +304,16 @@ async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
     let original: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
     for (field, value) in [
-        ("network", serde_json::json!("invalid")),
-        ("updated_at", serde_json::json!("2023-11-14T22:14:20Z")),
-        ("neurons_fetched", serde_json::json!(2)),
-        ("status", serde_json::json!("collecting")),
+        ("started_at", serde_json::json!("2023-11-14T22:14:20Z")),
+        ("started_at", serde_json::json!("invalid timestamp")),
+        ("max_pages", serde_json::json!(1)),
         (
-            "source",
+            "requested_source",
             serde_json::json!({"source_transport": "replica_query", "endpoint": "https://example.com", "fetched_by": "ic-query"}),
         ),
     ] {
         let mut cache = original.clone();
-        cache["data"]["collection_state"][field] = value;
+        cache["data"]["collection_evidence"][field] = value;
         fs::write(&path, serde_json::to_vec(&cache).unwrap()).unwrap();
         assert!(
             matches!(

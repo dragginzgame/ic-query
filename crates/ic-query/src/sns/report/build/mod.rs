@@ -27,7 +27,7 @@ pub use neurons::{build_sns_neurons_report, build_sns_neurons_report_with_source
 pub use params::{build_sns_params_report, build_sns_params_report_with_source};
 pub use proposals::{
     build_sns_proposal_report, build_sns_proposal_report_with_source, build_sns_proposals_report,
-    build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
+    build_sns_proposals_report_with_source_and_progress,
 };
 pub use reward::{
     build_sns_reward_checkpoint_report, build_sns_reward_checkpoint_report_with_source,

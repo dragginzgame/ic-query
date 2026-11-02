@@ -5,7 +5,8 @@ use crate::storage::cache_root;
 use clap::ArgMatches;
 use ic_query::nns::NnsInventoryCacheRequest;
 use ic_query::nns::node::{
-    build_nns_node_info_report_with_progress, nns_node_info_report_text, refresh_nns_node_report,
+    build_nns_node_info_report_with_source_and_progress, nns_node_info_report_text,
+    refresh_nns_node_report,
 };
 
 pub(in crate::nns) async fn run(
@@ -26,7 +27,14 @@ pub(in crate::nns) async fn run(
             leaf::run_cached_leaf_info(
                 matches,
                 network,
-                build_nns_node_info_report_with_progress,
+                async |request, progress| {
+                    build_nns_node_info_report_with_source_and_progress(
+                        request,
+                        &ic_query::nns::LiveNnsSource::default(),
+                        progress,
+                    )
+                    .await
+                },
                 &nns_node_info_report_text,
             )
             .await

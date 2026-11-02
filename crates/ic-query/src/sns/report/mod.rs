@@ -70,11 +70,10 @@ pub use build::{
     build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
-    build_sns_proposals_report_with_progress, build_sns_proposals_report_with_source,
-    build_sns_reward_checkpoint_report, build_sns_reward_checkpoint_report_with_source,
-    build_sns_swap_report, build_sns_swap_report_with_source, build_sns_token_report,
-    build_sns_token_report_with_source, build_sns_upgrade_report,
-    build_sns_upgrade_report_with_source,
+    build_sns_proposals_report_with_source_and_progress, build_sns_reward_checkpoint_report,
+    build_sns_reward_checkpoint_report_with_source, build_sns_swap_report,
+    build_sns_swap_report_with_source, build_sns_token_report, build_sns_token_report_with_source,
+    build_sns_upgrade_report, build_sns_upgrade_report_with_source,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use cache_summary::{

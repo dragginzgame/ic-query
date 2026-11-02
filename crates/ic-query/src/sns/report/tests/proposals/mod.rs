@@ -195,9 +195,13 @@ async fn assert_cached_proposal_sort(
     request.sort_direction = direction;
     request.limit = 2;
 
-    let report = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh sorted proposals cache");
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh sorted proposals cache");
 
     assert_eq!(report.provenance.data_source.as_str(), "cache");
     assert_eq!(report.sort, sort.as_str());
@@ -222,17 +226,25 @@ async fn assert_cached_status_filter(
     request.sort = SnsProposalsSort::Id;
     request.limit = 10;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh status-filtered proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh status-filtered proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.status_filter, status.as_str());
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse status-filtered proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse status-filtered proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.status_filter, status.as_str());
@@ -258,17 +270,25 @@ async fn assert_cached_eligibility_filter(
     request.sort = SnsProposalsSort::Id;
     request.limit = 10;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh eligibility-filtered proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh eligibility-filtered proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.eligibility_filter, eligibility.as_str());
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse eligibility-filtered proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse eligibility-filtered proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.eligibility_filter, eligibility.as_str());
@@ -293,17 +313,25 @@ async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_propos
     request.sort = SnsProposalsSort::Id;
     request.limit = 10;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh proposer-filtered proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh proposer-filtered proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.proposer_filter.as_deref(), Some(proposer_neuron_id));
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse proposer-filtered proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse proposer-filtered proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.proposer_filter.as_deref(), Some(proposer_neuron_id));
@@ -326,17 +354,25 @@ async fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) 
     request.sort = SnsProposalsSort::Id;
     request.limit = 10;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh query-filtered proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh query-filtered proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.query_filter.as_deref(), Some(query));
     assert_eq!(proposal_ids(&first), expected_proposal_ids);
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse query-filtered proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse query-filtered proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.query_filter.as_deref(), Some(query));

@@ -17,7 +17,7 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::sns::{
     build_sns_proposal_report, build_sns_proposals_cache_list_report,
-    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_progress,
+    build_sns_proposals_cache_status_report, build_sns_proposals_report_with_source_and_progress,
     refresh_sns_proposals_cache_with_progress, sns_proposal_report_text,
     sns_proposals_cache_list_report_text, sns_proposals_cache_status_report_text,
     sns_proposals_report_text,
@@ -49,7 +49,12 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     let (format, request) =
         proposals_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let mut progress = StderrQueryProgress::new();
-    let report = build_sns_proposals_report_with_progress(&request, &mut progress).await?;
+    let report = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &ic_query::sns::LiveSnsSource::default(),
+        &mut progress,
+    )
+    .await?;
     write_text_or_json(format, &report, sns_proposals_report_text)
 }
 

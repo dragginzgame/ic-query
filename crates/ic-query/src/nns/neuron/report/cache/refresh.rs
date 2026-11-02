@@ -15,7 +15,6 @@ use crate::{
         },
     },
     progress::IgnoreQueryProgress,
-    snapshot_cache::SnapshotRefreshProgress,
 };
 
 /// Refresh the complete public neuron index using the built-in live source.
@@ -55,20 +54,13 @@ async fn refresh_with_source_and_progress(
         &paths,
         NNS_NEURON_CACHE_COMPONENT,
         async |context| {
-            let data = fetch_complete_neuron_collection(
+            let (data, publication_progress) = fetch_complete_neuron_collection(
                 request,
                 source,
                 &paths.refresh_attempt_path,
                 progress,
             )
             .await?;
-            let publication_progress = SnapshotRefreshProgress::new(
-                data.collection_state.pages_fetched(),
-                data.neurons.len(),
-                data.collection_state
-                    .next_start_neuron_id()
-                    .map(|cursor| cursor.to_string()),
-            );
             context.publish("neurons", NNS_NEURON_FETCHED_BY, publication_progress, data)
         },
     )

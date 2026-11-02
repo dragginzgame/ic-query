@@ -6,8 +6,13 @@
 
 use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
+use ic_query::nns::data_center::{
+    build_nns_data_center_info_report_with_source_and_progress,
+    build_nns_data_center_list_report_with_source_and_progress, nns_data_center_info_report_text,
+    nns_data_center_list_report_text, nns_data_center_list_report_verbose_text,
+    refresh_nns_data_center_report,
+};
 
-mod reports;
 mod spec;
 
 pub(in crate::nns) fn command() -> clap::Command {
@@ -21,7 +26,45 @@ pub(in crate::nns) async fn run(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    leaf::run_cached_leaf(matches, network, reports::NnsDataCenterReports).await
+    match matches.subcommand() {
+        Some(("list", matches)) => {
+            leaf::run_cached_leaf_list(
+                matches,
+                network,
+                async |request, progress| {
+                    build_nns_data_center_list_report_with_source_and_progress(
+                        request,
+                        &ic_query::nns::LiveNnsSource::default(),
+                        progress,
+                    )
+                    .await
+                },
+                &nns_data_center_list_report_text,
+                &nns_data_center_list_report_verbose_text,
+            )
+            .await
+        }
+        Some(("info", matches)) => {
+            leaf::run_cached_leaf_info(
+                matches,
+                network,
+                async |request, progress| {
+                    build_nns_data_center_info_report_with_source_and_progress(
+                        request,
+                        &ic_query::nns::LiveNnsSource::default(),
+                        progress,
+                    )
+                    .await
+                },
+                &nns_data_center_info_report_text,
+            )
+            .await
+        }
+        Some(("refresh", matches)) => {
+            leaf::run_cached_leaf_refresh(matches, network, refresh_nns_data_center_report).await
+        }
+        _ => unreachable!("clap requires a known NNS leaf subcommand"),
+    }
 }
 
 #[cfg(test)]

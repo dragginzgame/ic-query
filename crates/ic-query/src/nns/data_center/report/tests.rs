@@ -1,7 +1,7 @@
 use super::{
     NnsDataCenterHostError, NnsDataCenterListReport, NnsDataCenterRow, NnsDataCenterSource,
     NnsInventoryCacheRequest, NnsInventoryListRequest,
-    build_nns_data_center_list_report_with_source, nns_data_center_list_report_text,
+    build_nns_data_center_list_report_with_source_and_progress, nns_data_center_list_report_text,
     nns_data_center_list_report_verbose_text, resolve_data_center,
 };
 use crate::nns::LiveNnsSource;
@@ -36,11 +36,12 @@ async fn data_center_report_uses_live_registry_source() {
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
     };
-    let report = build_nns_data_center_list_report_with_source(
+    let report = build_nns_data_center_list_report_with_source_and_progress(
         &request,
         &FixtureDataCenterSource {
             data_centers: vec![data_center_fixture()],
         },
+        &mut |_| {},
     )
     .await
     .expect("data-center report");

@@ -39,9 +39,13 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     let detail_json = serde_json::to_value(&report).unwrap();
     let mut list_request = proposals_request(ROOT_A);
     list_request.cache_root = Some(root.clone());
-    let list = build_sns_proposals_report_with_source(&list_request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("cached proposal listing");
+    let list = build_sns_proposals_report_with_source_and_progress(
+        &list_request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("cached proposal listing");
     let list_json = serde_json::to_value(&list).unwrap();
     for field in [
         "network",
@@ -97,10 +101,13 @@ async fn cached_proposal_reports_reject_non_mainnet_before_cache_lookup() {
     let mut list_request = proposals_request(ROOT_A);
     list_request.lookup.network = "local".to_string();
     list_request.cache_root = Some(root.clone());
-    let list_error =
-        build_sns_proposals_report_with_source(&list_request, &NoLiveSnsProposalsSource)
-            .await
-            .expect_err("cached list must reject non-mainnet");
+    let list_error = build_sns_proposals_report_with_source_and_progress(
+        &list_request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("cached list must reject non-mainnet");
 
     assert!(matches!(
         detail_error,
@@ -123,9 +130,13 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     request.before_proposal_id = Some(99);
     request.limit = 5;
 
-    let first = build_sns_proposals_report_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("auto refresh proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh proposals cache");
 
     assert_eq!(first.proposal_count, 1);
     assert_eq!(first.proposals[0].proposal_id, 42);
@@ -147,9 +158,13 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     .expect("proposal cache status");
     assert!(status.found);
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("cached proposals report");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("cached proposals report");
 
     assert_eq!(second.proposal_count, 1);
     assert_eq!(second.proposals[0].proposal_id, 42);

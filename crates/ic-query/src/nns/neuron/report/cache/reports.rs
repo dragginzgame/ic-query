@@ -52,13 +52,14 @@ use std::path::{Path, PathBuf};
 
 pub(in crate::nns::neuron::report) struct AdmittedNeuronCache {
     snapshot: NnsNeuronCache,
+    collection_state: crate::nns::neuron::report::NnsNeuronCollectionState,
 }
 
 impl AdmittedNeuronCache {
     pub(in crate::nns::neuron::report) const fn collection_state(
         &self,
     ) -> &crate::nns::neuron::report::NnsNeuronCollectionState {
-        &self.snapshot.data.collection_state
+        &self.collection_state
     }
 
     pub(in crate::nns::neuron::report) fn rows(
@@ -218,11 +219,17 @@ fn load_cache_at(
         |mismatch| nns_neuron_identity_mismatch_error(path.to_path_buf(), mismatch),
         opened_file,
     )?;
-    validate_cache(path, &cache)?;
-    Ok(AdmittedNeuronCache { snapshot: cache })
+    let state = validate_cache(path, &cache)?;
+    Ok(AdmittedNeuronCache {
+        snapshot: cache,
+        collection_state: state,
+    })
 }
 
-fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHostError> {
+fn validate_cache(
+    path: &Path,
+    cache: &NnsNeuronCache,
+) -> Result<crate::nns::neuron::report::NnsNeuronCollectionState, NnsNeuronHostError> {
     let invalid = |reason| NnsNeuronHostError::InvalidCache {
         path: path.to_path_buf(),
         reason,
@@ -234,15 +241,13 @@ fn validate_cache(path: &Path, cache: &NnsNeuronCache) -> Result<(), NnsNeuronHo
         "point_in_time_guaranteed must be false for the Governance neuron index",
     )
     .map_err(invalid)?;
-    let state = &cache.data.collection_state;
-    crate::nns::governance::collection::validate_governance_snapshot!(
-        cache,
-        state,
-        neurons_fetched,
-        validate_collection_state
-    )
-    .map_err(invalid)?;
-    validate_neuron_rows(&cache.data.neurons).map_err(|error| invalid(error.to_string()))
+    let state = crate::nns::neuron::report::NnsNeuronCollectionState::from_complete_collection(
+        cache.data.collection_evidence.restore_state(cache),
+        cache.completeness.row_count as u64,
+    );
+    validate_collection_state(&state).map_err(|error| invalid(error.to_string()))?;
+    validate_neuron_rows(&cache.data.neurons).map_err(|error| invalid(error.to_string()))?;
+    Ok(state)
 }
 
 fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProvenance {

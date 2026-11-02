@@ -5,6 +5,38 @@ All notable changes to `ic-query` will be documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and this
 crate follows [Semantic Versioning](https://semver.org/).
 
+## [0.85.0]
+
+### ⚠️ Breaking
+
+- Require Rust 1.99.1 for all packages and use it for development and release.
+  Consolidate duplicate compiler jobs while retaining all three native hosts,
+  feature/consumer checks and canister integration.
+  ([#111 — Adopt Rust 1.99.1 and consolidate compiler qualification](https://github.com/dragginzgame/ic-query/issues/111))
+- Use the explicit source-plus-progress builders for NNS inventory and SNS
+  proposal lists, or their default convenience builders. Update Rust callers
+  using the removed source-only or progress-only variants.
+- Refresh complete NNS proposal and neuron caches explicitly after upgrading.
+  Their schema-1 snapshots store collection metadata once while retaining caller
+  choices and timing evidence; earlier snapshots require replacement.
+- NNS/SNS library errors describe failures without CLI usage instructions. The
+  CLI supplies actionable command advice for unsupported networks and missing
+  Governance caches.
+
+### 🧹 Cleanup
+
+- Share Governance continuation metadata and proposal vocabulary, simplify CLI
+  inventory dispatch, and consolidate observation budgets, Registry text fields
+  and IC query test fixtures. Preserve protocol-specific decoding and independent
+  admission checks.
+
+### 🔧 Changed
+
+- Adopt Shared Tooling 0.27.26. Cargo-tool reuse tracks relevant native build
+  inputs, and setup records current tool requirements for each checkout.
+
+Detailed release notes: [docs/changelog/0.85.md](docs/changelog/0.85.md)
+
 ## [0.84.0] - 2026-11-01
 
 ### ⚠️ Breaking

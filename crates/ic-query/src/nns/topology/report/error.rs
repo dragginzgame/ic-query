@@ -15,9 +15,7 @@ use thiserror::Error as ThisError;
 
 #[derive(Debug, ThisError)]
 pub enum NnsTopologyHostError {
-    #[error(
-        "`icq nns topology` supports only the mainnet `ic` network\n\nThe NNS topology report is derived from public Internet Computer mainnet registry records.\nLocal replica NNS registry discovery is not supported.\n\nTry:\n  icq --network ic nns topology summary\n  icq --network ic nns topology coverage\n  icq --network ic nns topology versions\n  icq --network ic nns topology check\n  icq --network ic nns topology gaps\n  icq --network ic nns topology capacity\n  icq --network ic nns topology regions\n  icq --network ic nns topology providers\n  icq --network ic nns topology refresh"
-    )]
+    #[error("NNS topology reports support only the mainnet `ic` network (requested {network:?})")]
     UnsupportedNetwork { network: String },
 
     #[error(transparent)]

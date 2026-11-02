@@ -31,7 +31,7 @@ pub(super) async fn fetch_complete_nns_proposal_collection(
     source: &dyn NnsProposalSource,
     attempt_path: &Path,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsProposalCacheRows, NnsProposalHostError> {
+) -> Result<(NnsProposalCacheRows, SnapshotRefreshProgress), NnsProposalHostError> {
     let fetch_request = NnsGovernanceRequest::replica_query_from_unix_secs(
         MAINNET_NETWORK,
         &request.source_endpoint,
@@ -70,7 +70,7 @@ struct NnsProposalRefreshPages<'a> {
 }
 
 impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
-    type Complete = NnsProposalCacheRows;
+    type Complete = (NnsProposalCacheRows, SnapshotRefreshProgress);
     type Error = NnsProposalHostError;
 
     fn progress_text(&self) -> String {
@@ -131,12 +131,20 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
         .map_err(NnsProposalHostError::from)
     }
 
-    fn into_complete(self) -> NnsProposalCacheRows {
+    fn into_complete(self) -> Self::Complete {
+        let progress = SnapshotRefreshProgress::new(
+            self.collection_state.pages_fetched(),
+            self.proposals.len(),
+            None,
+        );
         let mut proposals = self.proposals;
         proposals.sort_by_key(|proposal| Reverse(proposal.proposal_id));
-        NnsProposalCacheRows {
-            proposals,
-            collection_state: self.collection_state,
-        }
+        (
+            NnsProposalCacheRows {
+                proposals,
+                collection_evidence: self.collection_state.collection_evidence(),
+            },
+            progress,
+        )
     }
 }

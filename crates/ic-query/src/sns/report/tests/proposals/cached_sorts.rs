@@ -12,9 +12,13 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
     request.sort = SnsProposalsSort::Created;
     request.limit = 2;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh sorted proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh sorted proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "created");
@@ -27,9 +31,13 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
         vec![20, 30]
     );
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse sorted proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse sorted proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "created");
@@ -59,9 +67,13 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     request.sort_direction = SortDirection::Asc;
     request.limit = 2;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh ascending sorted proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh ascending sorted proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "created");
@@ -75,9 +87,13 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
         vec![10, 30]
     );
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse ascending sorted proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse ascending sorted proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "created");
@@ -108,9 +124,13 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
     request.sort = SnsProposalsSort::Decided;
     request.limit = 2;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh decided sorted proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh decided sorted proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "decided");
@@ -123,9 +143,13 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
         vec![30, 10]
     );
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse decided sorted proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse decided sorted proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "decided");
@@ -154,9 +178,13 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
     request.sort = SnsProposalsSort::Executed;
     request.limit = 2;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh executed sorted proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh executed sorted proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "executed");
@@ -169,9 +197,13 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
         vec![10, 30]
     );
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse executed sorted proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse executed sorted proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "executed");
@@ -200,9 +232,13 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
     request.sort = SnsProposalsSort::Failed;
     request.limit = 2;
 
-    let first = build_sns_proposals_report_with_source(&request, &UnsortedSnsProposalsSource)
-        .await
-        .expect("auto refresh failed sorted proposals cache");
+    let first = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &UnsortedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("auto refresh failed sorted proposals cache");
 
     assert_eq!(first.provenance.data_source.as_str(), "cache");
     assert_eq!(first.sort, "failed");
@@ -215,9 +251,13 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
         vec![30, 10]
     );
 
-    let second = build_sns_proposals_report_with_source(&request, &NoLiveSnsProposalsSource)
-        .await
-        .expect("reuse failed sorted proposals cache");
+    let second = build_sns_proposals_report_with_source_and_progress(
+        &request,
+        &NoLiveSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("reuse failed sorted proposals cache");
 
     assert_eq!(second.provenance.data_source.as_str(), "cache");
     assert_eq!(second.sort, "failed");

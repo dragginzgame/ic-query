@@ -57,7 +57,7 @@ use ic_query::sns::{
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_cache_list_report,
     build_sns_proposals_cache_status_report, build_sns_proposals_report,
-    build_sns_proposals_report_with_source, build_sns_reward_checkpoint_report,
+    build_sns_proposals_report_with_source_and_progress, build_sns_reward_checkpoint_report,
     build_sns_reward_checkpoint_report_with_source, build_sns_reward_diff_report_from_paths,
     build_sns_swap_report, build_sns_swap_report_with_source, build_sns_token_report,
     build_sns_token_report_with_source, build_sns_upgrade_report,
@@ -1249,7 +1249,9 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
     .with_before_proposal_id(99)
     .with_status(SnsProposalStatusFilter::Open)
     .with_topic(SnsProposalTopicFilter::Governance);
-    let list = build_sns_proposals_report_with_source(&list_request, &source).await?;
+    let list =
+        build_sns_proposals_report_with_source_and_progress(&list_request, &source, &mut |_| {})
+            .await?;
     assert_eq!(list.proposal_count, 1);
     assert_eq!(list.proposals[0].title, "Upgrade SNS");
 

@@ -88,7 +88,7 @@ Query-owned.
 Host, Build and Testkit are published from the consolidated IC Tooling repository.
 Foundation (Host Artifacts, FS, HTTP, Process, Text and Build), Host Tools and
 Testkit are released as three independent groups. Query selects their published
-packages through one root catalog and lockfile while retaining Rust 1.91.
+packages through one root catalog and lockfile with minimum and development Rust 1.99.1.
 
 The current workspace minimums are Platform 0.17.0, Metrics 0.25.1,
 Foundation 0.73.6, Host Tools 0.77.0, Testkit 0.78.0 and Wire 0.14.2. Platform,

@@ -229,6 +229,23 @@ fn inclusive_observation_count(start_unix_secs: u64, end_unix_secs: u64, step_se
     (end_unix_secs - start_unix_secs) / u64::from(step_secs) + 1
 }
 
+fn validate_observation_budget(
+    start_unix_secs: u64,
+    end_unix_secs: u64,
+    step_secs: u32,
+    maximum: u64,
+    scope: &str,
+) -> Result<(), IcHostError> {
+    let observations = inclusive_observation_count(start_unix_secs, end_unix_secs, step_secs);
+    if observations > maximum {
+        return invalid_request(
+            "query",
+            format!("would request {observations} observations{scope}; maximum is {maximum}"),
+        );
+    }
+    Ok(())
+}
+
 pub fn report_provenance(source: IcSourceRequest) -> IcDashboardReportProvenance {
     IcDashboardReportProvenance {
         schema_version: IC_DASHBOARD_REPORT_SCHEMA_VERSION,

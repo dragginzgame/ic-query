@@ -9,7 +9,6 @@ mod cache;
 pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
 pub(in crate::nns) use cache::{
     build_governance_cache_status_report, validate_governance_cache_completeness,
-    validate_governance_snapshot,
 };
 
 mod refresh;
@@ -187,6 +186,53 @@ impl NnsGovernanceRefreshReport {
             cache_path: paths.snapshot_path.display().to_string(),
             refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
             refresh_lock_path: paths.refresh_lock_path.display().to_string(),
+        }
+    }
+}
+
+///
+/// NnsGovernanceCollectionEvidence
+///
+/// Caller choices and start time not already represented by a complete snapshot envelope.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(in crate::nns) struct NnsGovernanceCollectionEvidence {
+    requested_source: super::NnsGovernanceSourceSelection,
+    max_pages: u32,
+    started_at: String,
+}
+
+impl NnsGovernanceCollectionEvidence {
+    pub(in crate::nns) fn from_state(state: &super::GovernanceCollectionState) -> Self {
+        Self {
+            requested_source: state.requested_source.clone(),
+            max_pages: state.max_pages,
+            started_at: state.started_at.clone(),
+        }
+    }
+
+    /// Reconstruct the final state for family admission and analytics from one canonical envelope.
+    pub(in crate::nns) fn restore_state<Rows>(
+        &self,
+        cache: &SnapshotEnvelope<NnsGovernanceCacheMetadata, Rows>,
+    ) -> super::GovernanceCollectionState {
+        super::GovernanceCollectionState {
+            schema_version: 1,
+            network: cache.network.clone(),
+            governance_canister_id: cache.metadata.governance_canister_id.clone(),
+            requested_source: self.requested_source.clone(),
+            source: Some(super::NnsGovernanceSourceProvenance::ReplicaQuery {
+                endpoint: cache.source_endpoint.clone(),
+                fetched_by: cache.fetched_by.clone(),
+            }),
+            page_size: cache.completeness.page_size,
+            max_pages: self.max_pages,
+            pages_fetched: cache.completeness.page_count,
+            started_at: self.started_at.clone(),
+            updated_at: cache.fetched_at.clone(),
+            status: super::NnsGovernanceCollectionStatus::Complete,
         }
     }
 }

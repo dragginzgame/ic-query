@@ -43,7 +43,7 @@ pub enum IcqCliError {
     #[error("cloud-engine: {0}")]
     CloudEngine(#[from] cloud_engine::CloudEngineCommandError),
 
-    #[error("nns: {0}")]
+    #[error("nns: {0}{advice}", advice = cli::diagnostics::nns_advice(.0))]
     Nns(#[from] nns::NnsCommandError),
 
     #[error("icrc: {0}")]
@@ -52,7 +52,7 @@ pub enum IcqCliError {
     #[error("ic: {0}")]
     Ic(#[from] ic::IcCommandError),
 
-    #[error("sns: {0}")]
+    #[error("sns: {0}{advice}", advice = cli::diagnostics::sns_advice(.0))]
     Sns(#[from] sns::SnsCommandError),
 
     #[error("system: {0}")]

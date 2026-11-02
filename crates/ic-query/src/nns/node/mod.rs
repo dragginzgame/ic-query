@@ -10,10 +10,8 @@ pub use report::{
 #[cfg(feature = "nns-host")]
 pub use report::{
     NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NNS_NODE_LIST_REPORT_SCHEMA_VERSION, NnsNodeHostError,
-    NnsNodeSource, build_nns_node_info_report, build_nns_node_info_report_with_progress,
-    build_nns_node_info_report_with_source, build_nns_node_info_report_with_source_and_progress,
-    build_nns_node_list_report, build_nns_node_list_report_with_progress,
-    build_nns_node_list_report_with_source, build_nns_node_list_report_with_source_and_progress,
+    NnsNodeSource, build_nns_node_info_report, build_nns_node_info_report_with_source_and_progress,
+    build_nns_node_list_report, build_nns_node_list_report_with_source_and_progress,
     nns_node_cache_path, nns_node_refresh_lock_path, refresh_nns_node_report,
     refresh_nns_node_report_with_source,
 };

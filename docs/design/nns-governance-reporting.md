@@ -109,8 +109,8 @@ Neither continuation prescribes a storage or publication format, and
 sequential pages are not point-in-time.
 
 Governance validation owns shared continuation request binding, identity/time
-admission and page ceilings. Each family retains its typed errors, persisted
-fields, row accounting and cursor/exhaustion rules.
+admission and page ceilings. Each family retains its typed errors, row accounting and cursor/exhaustion
+rules; shared private metadata remains flat in persisted portable states.
 
 Each advance validates the incoming continuation before a source call, then
 derives the next state from the validated page and checked accounting. It does
@@ -124,11 +124,13 @@ limit. The CLI uses that same constant for list and refresh bounds. Invalid
 native refresh sizes fail before cache mutation or source calls and surface
 `NnsProposalHostError::Proposal(NnsProposalError::InvalidLimit { .. })`.
 
-Native schema-1 proposal and neuron snapshots now retain the actual final
-`collection_state` beside their rows. Cache reads validate its agreement with
-the envelope's identity, replica provenance, timestamp, and completeness.
-Cache-only activity/distribution builders call the existing pure analytics
-over that evidence. Earlier snapshot shapes require explicit refresh; see
+Complete schema-1 proposal and neuron snapshots retain rows plus
+`collection_evidence`: the original requested source, page ceiling and start
+time. The envelope owns concrete provenance, identity, end time and page/row
+accounting once. Readers reconstruct final state for family admission and
+analytics, preserving independent corruption checks and family exhaustion
+rules. Portable continuation JSON fields remain unchanged. Explicit refresh
+replaces earlier cache shapes; no former reader or migration is retained. See
 [Cache-only NNS Analytics](0.46/0.46-design.md).
 
 ## CLI Contract

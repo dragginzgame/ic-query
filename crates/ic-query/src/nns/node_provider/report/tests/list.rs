@@ -7,7 +7,7 @@ async fn node_provider_report_uses_live_governance_source() {
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_780_531_200,
     };
-    let report = build_nns_node_provider_list_report_with_source(
+    let report = build_nns_node_provider_list_report_with_source_and_progress(
         &request,
         &FixtureNodeProviderSource {
             node_providers: vec![
@@ -23,6 +23,7 @@ async fn node_provider_report_uses_live_governance_source() {
                 },
             ],
         },
+        &mut |_| {},
     )
     .await
     .expect("node provider report");
@@ -57,16 +58,19 @@ async fn node_provider_list_rejects_local_network() {
         now_unix_secs: 1,
     };
 
-    let err = build_nns_node_provider_list_report_with_source(
+    let err = build_nns_node_provider_list_report_with_source_and_progress(
         &request,
         &FixtureNodeProviderSource {
             node_providers: Vec::new(),
         },
+        &mut |_| {},
     )
     .await
     .expect_err("local rejected");
 
-    assert!(err.to_string().contains("supports only the mainnet `ic`"));
+    assert!(
+        matches!(err, NnsNodeProviderHostError::UnsupportedNetwork { network } if network == "local")
+    );
 }
 
 #[test]

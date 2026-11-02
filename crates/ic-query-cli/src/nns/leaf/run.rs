@@ -1,7 +1,4 @@
-use super::{
-    model::NnsLeafReports,
-    options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions},
-};
+use super::options::{NnsLeafInfoOptions, NnsLeafListOptions, NnsLeafRefreshOptions};
 use crate::storage::cache_root;
 use crate::{
     cli::common::{current_unix_secs, write_text_or_json_verbose},
@@ -16,57 +13,33 @@ use ic_query::nns::{
 };
 use serde::Serialize;
 
-pub(in crate::nns) async fn run_cached_leaf<Reports>(
+pub(in crate::nns) async fn run_cached_leaf_list<Report, Error>(
     matches: &ArgMatches,
     network: &str,
-    reports: Reports,
+    build_report: impl AsyncFn(
+        &NnsInventoryListRequest,
+        &mut dyn QueryProgress,
+    ) -> Result<Report, Error>,
+    render: &(dyn Fn(&Report) -> String + Sync),
+    render_verbose: &(dyn Fn(&Report) -> String + Sync),
 ) -> Result<(), NnsCommandError>
 where
-    Reports: NnsLeafReports,
-{
-    match matches.subcommand() {
-        Some(("list", matches)) => run_cached_leaf_list(matches, network, &reports).await,
-        Some(("info", matches)) => {
-            run_cached_leaf_info(
-                matches,
-                network,
-                async |request, progress| reports.build_info_report(request, progress).await,
-                &|report| reports.info_report_text(report),
-            )
-            .await
-        }
-        Some(("refresh", matches)) => {
-            run_cached_leaf_refresh(matches, network, async |request| {
-                reports.refresh_report(request).await
-            })
-            .await
-        }
-        _ => unreachable!("clap requires a known NNS leaf subcommand"),
-    }
-}
-
-async fn run_cached_leaf_list<Reports>(
-    matches: &ArgMatches,
-    network: &str,
-    reports: &Reports,
-) -> Result<(), NnsCommandError>
-where
-    Reports: NnsLeafReports,
+    Report: Serialize,
+    Error: Into<NnsCommandError>,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
     let request =
         NnsInventoryListRequest::new(cache, options.common.source_endpoint, current_unix_secs()?);
-    let report = reports
-        .build_list_report(&request, &mut StderrQueryProgress::new())
+    let report = build_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
     write_text_or_json_verbose(
         options.common.format,
         &report,
         options.verbose,
-        |report| reports.list_report_text(report),
-        |report| reports.list_report_verbose_text(report),
+        render,
+        render_verbose,
     )
 }
 
