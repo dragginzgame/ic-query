@@ -128,21 +128,6 @@ fn validate_snapshot(
         ));
     }
     validate_canonical_account_transactions(&snapshot.transactions).map_err(invalid)?;
-    let newest = snapshot
-        .transactions
-        .first()
-        .map(|transaction| transaction.id.as_str());
-    let oldest = snapshot
-        .transactions
-        .last()
-        .map(|transaction| transaction.id.as_str());
-    if snapshot.newest_transaction_id.as_deref() != newest
-        || snapshot.oldest_transaction_id.as_deref() != oldest
-    {
-        return Err(invalid(
-            "newest or oldest transaction id does not match cached rows".to_string(),
-        ));
-    }
     validate_collection_timestamps(
         path,
         &snapshot.context.collection_started_at,

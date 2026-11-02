@@ -241,8 +241,6 @@ fn publish_complete_snapshot(
         balance: complete.balance,
         token_symbol: complete.token_symbol,
         decimals: complete.decimals,
-        newest_transaction_id: newest_transaction_id.clone(),
-        oldest_transaction_id: oldest_transaction_id.clone(),
         completeness,
         transactions: complete.transactions,
     };

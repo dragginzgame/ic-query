@@ -45,7 +45,7 @@ fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
     let mut lines = vec![
         format!("network: {}", terminal_text(&report.network)),
         format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("cache_count: {}", report.cache_count),
+        format!("cache_count: {}", report.caches.len()),
     ];
     if !report.caches.is_empty() {
         lines.push(String::new());

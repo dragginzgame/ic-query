@@ -547,7 +547,7 @@ fn proposal_row(
         reward_event_round: 0,
         total_potential_voting_power: None,
         latest_tally: None::<NnsProposalTally>,
-        ballot_count: 0,
+
         ballots: Vec::<NnsProposalBallotRow>::new(),
     }
 }

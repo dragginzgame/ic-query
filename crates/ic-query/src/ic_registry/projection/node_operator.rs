@@ -1,5 +1,5 @@
 use crate::ic_registry::{
-    MainnetNodeOperatorList, MainnetRegistryFetchRequest, RegistryFetchError,
+    RegistryFetchError,
     relations::{
         RegistryRelationInventory, node_counts_from_relations, node_provider_principal_from_record,
     },
@@ -9,10 +9,8 @@ use ic_host_tools::registry::proto::NodeOperatorRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_operator_list_from_inventory(
-    request: &MainnetRegistryFetchRequest,
     inventory: RegistryRelationInventory,
-    registry_version: u64,
-) -> Result<MainnetNodeOperatorList, RegistryFetchError> {
+) -> Result<Vec<NnsNodeOperatorRow>, RegistryFetchError> {
     let node_counts = node_counts_from_relations(
         &inventory.node_principals,
         &inventory.node_operator_principals,
@@ -24,10 +22,7 @@ pub(in crate::ic_registry) fn node_operator_list_from_inventory(
         .into_iter()
         .map(|(principal, record)| node_operator_from_record(principal, record, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(MainnetNodeOperatorList {
-        provenance: request.inventory_provenance(registry_version),
-        node_operators,
-    })
+    Ok(node_operators)
 }
 
 fn node_operator_from_record(

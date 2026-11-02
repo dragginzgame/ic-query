@@ -316,10 +316,6 @@ pub struct IcNodeStatusSnapshot {
     #[serde(flatten)]
     /// Shared source and scope evidence.
     pub observation: IcNodeStatusObservation,
-    /// Exact number of raw node rows.
-    pub node_count: usize,
-    /// Snapshot-wide overall and assignment-partitioned totals.
-    pub counts: IcNodeStatusGroupCounts,
     /// Canonically ordered raw node rows.
     pub nodes: Vec<IcNodeStatusRow>,
 }

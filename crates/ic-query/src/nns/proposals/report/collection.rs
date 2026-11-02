@@ -214,7 +214,7 @@ pub async fn advance_nns_proposal_collection_with_source(
         });
     }
 
-    let page_count = u32::try_from(page.proposal_count)
+    let page_count = u32::try_from(page.proposals.len())
         .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
     let (pages_fetched, proposals_fetched) = crate::nns::governance::advance_collection_counts(
         state.collection.pages_fetched,

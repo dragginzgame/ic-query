@@ -18,6 +18,7 @@ use crate::token_amount::e8s_decimal_text;
 use ic_query::sns::SnsNeuronAccount;
 use ic_query::sns::SnsNeuronDetail;
 use ic_query::sns::SnsNeuronDetailReport;
+use ic_query::sns::sns_neuron_permission_name;
 
 /// Render one exact SNS neuron detail report as human-readable text.
 #[must_use]
@@ -33,17 +34,18 @@ pub fn sns_neuron_detail_report_text(report: &SnsNeuronDetailReport) -> String {
 fn neuron_header_lines(report: &SnsNeuronDetailReport) -> Vec<String> {
     let detail = &report.detail;
     let neuron = &detail.neuron;
+    let (mint, staking) = detail.derived_policy_observations();
     let mut lines = crate::sns::common::sns_identity_lines(&report.context);
     lines.extend([
         format!("neuron_id: {}", report.neuron_id),
         format!("data_source: {}", report.data_source),
         format!(
             "maturity_mint_conversion_observed_disabled: {}",
-            detail.maturity_mint_conversion_observed_disabled.as_str()
+            mint.as_str()
         ),
         format!(
             "manual_maturity_staking_observed_disabled: {}",
-            detail.manual_maturity_staking_observed_disabled.as_str()
+            staking.as_str()
         ),
         format!(
             "cached_neuron_stake: {}",
@@ -110,7 +112,7 @@ fn permission_table(detail: &SnsNeuronDetail) -> Option<String> {
                         permission
                             .permission_types
                             .iter()
-                            .map(|value| format!("{}:{}", value.code, value.name))
+                            .map(|value| format!("{value}:{}", sns_neuron_permission_name(*value)))
                             .collect::<Vec<_>>()
                             .join(","),
                     ]

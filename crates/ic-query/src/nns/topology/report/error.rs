@@ -1,10 +1,4 @@
-use crate::{
-    nns::{
-        data_center::NnsDataCenterHostError, node::NnsNodeHostError,
-        node_operator::NnsNodeOperatorHostError, node_provider::NnsNodeProviderHostError,
-    },
-    subnet_catalog::SubnetCatalogHostError,
-};
+use crate::{nns::NnsInventoryError, subnet_catalog::SubnetCatalogHostError};
 use thiserror::Error as ThisError;
 
 ///
@@ -21,15 +15,7 @@ pub enum NnsTopologyHostError {
     #[error(transparent)]
     Subnet(#[from] SubnetCatalogHostError),
 
+    /// One Registry inventory failed, retaining its typed collection and source.
     #[error(transparent)]
-    Node(#[from] NnsNodeHostError),
-
-    #[error(transparent)]
-    NodeProvider(#[from] NnsNodeProviderHostError),
-
-    #[error(transparent)]
-    NodeOperator(#[from] NnsNodeOperatorHostError),
-
-    #[error(transparent)]
-    DataCenter(#[from] NnsDataCenterHostError),
+    Inventory(#[from] NnsInventoryError),
 }

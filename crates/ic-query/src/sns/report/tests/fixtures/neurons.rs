@@ -49,10 +49,7 @@ pub(in crate::sns::report::tests) fn fixture_sns_neuron() -> SnsNeuronDetail {
         },
         permissions: vec![SnsNeuronPermissionRow {
             principal: Some(GOVERNANCE_A.to_string()),
-            permission_types: [1, 2, 3, 4, 9, 10]
-                .into_iter()
-                .map(SnsNeuronPermissionValue::from_code)
-                .collect(),
+            permission_types: [1, 2, 3, 4, 9, 10].into_iter().collect(),
         }],
         disburse_maturity_in_progress: vec![SnsMaturityDisbursementRow {
             timestamp_of_disbursement_seconds: 1_780_272_200,
@@ -75,8 +72,6 @@ pub(in crate::sns::report::tests) fn fixture_sns_neuron() -> SnsNeuronDetail {
                 alias: Some("governance lead".to_string()),
             }],
         }]),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::Violated,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::Violated,
     }
 }
 

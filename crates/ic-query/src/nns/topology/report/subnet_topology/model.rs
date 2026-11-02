@@ -29,10 +29,6 @@ pub struct NnsSubnetTopologyReport {
     pub source_endpoint: String,
     /// Collector identity recorded for provenance.
     pub fetched_by: String,
-    /// Number of Subnet rows in `subnets`.
-    pub subnet_count: usize,
-    /// Total number of Subnet member nodes.
-    pub node_count: u64,
     /// Canonically ordered Subnet topology rows.
     pub subnets: Vec<NnsSubnetTopologyRow>,
 }
@@ -61,8 +57,6 @@ pub struct NnsSubnetTopologyRow {
     pub subnet_principal: String,
     /// Raw Subnet classification stored in the Registry.
     pub subnet_kind: SubnetKind,
-    /// Number of nodes assigned to this Subnet.
-    pub node_count: u32,
     /// Canonically ordered node-provider membership counts.
     pub node_providers: Vec<NnsSubnetNodeProviderRow>,
 }
@@ -196,39 +190,34 @@ pub enum NnsSubnetTopologyValidationError {
         node_provider_principal: String,
     },
 
-    /// Provider node counts do not sum to the Subnet node count.
-    #[error(
-        "provider node counts on Subnet {subnet_principal} sum to {provider_node_count}, but the Subnet declares {subnet_node_count} nodes"
-    )]
-    SubnetNodeCountMismatch {
-        /// Subnet whose counts disagree.
-        subnet_principal: String,
-        /// Node count declared by the Subnet row.
-        subnet_node_count: u32,
-        /// Sum of the Subnet's provider node counts.
-        provider_node_count: u64,
-    },
+    /// A derived node total exceeds its supported integer range.
+    #[error("Subnet topology node count overflow")]
+    NodeCountOverflow,
+}
 
-    /// The declared Subnet count differs from the row count.
-    #[error("report declares {declared} Subnets but contains {actual} rows")]
-    SubnetCountMismatch {
-        /// Count declared in report metadata.
-        declared: usize,
-        /// Number of Subnet rows present.
-        actual: usize,
-    },
-
-    /// The declared total node count differs from the Subnet-row total.
-    #[error("report declares {declared} nodes but Subnet rows contain {actual}")]
-    NodeCountMismatch {
-        /// Count declared in report metadata.
-        declared: u64,
-        /// Sum of node counts in the Subnet rows.
-        actual: u64,
-    },
+impl NnsSubnetTopologyRow {
+    /// Derive the Subnet node total with the native membership-count ceiling.
+    pub fn node_count(&self) -> Result<u32, NnsSubnetTopologyValidationError> {
+        self.node_providers
+            .iter()
+            .try_fold(0_u32, |total, provider| {
+                total
+                    .checked_add(provider.node_count)
+                    .ok_or(NnsSubnetTopologyValidationError::NodeCountOverflow)
+            })
+    }
 }
 
 impl NnsSubnetTopologyReport {
+    /// Derive the complete node total from provider membership counts.
+    pub fn node_count(&self) -> Result<u64, NnsSubnetTopologyValidationError> {
+        self.subnets.iter().try_fold(0_u64, |total, subnet| {
+            total
+                .checked_add(u64::from(subnet.node_count()?))
+                .ok_or(NnsSubnetTopologyValidationError::NodeCountOverflow)
+        })
+    }
+
     /// Validate schema, canonical ordering, principal syntax, uniqueness, and counts.
     pub fn validate(&self) -> Result<(), NnsSubnetTopologyValidationError> {
         if self.schema_version != super::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION {
@@ -259,32 +248,21 @@ impl NnsSubnetTopologyReport {
                     });
                 }
             }
-            validate_node_providers(subnet)?;
-            actual_node_count = actual_node_count.saturating_add(u64::from(subnet.node_count));
+            let node_count = validate_node_providers(subnet)?;
+            actual_node_count = actual_node_count
+                .checked_add(u64::from(node_count))
+                .ok_or(NnsSubnetTopologyValidationError::NodeCountOverflow)?;
             previous_subnet = Some(subnet.subnet_principal.as_str());
         }
 
-        if self.subnet_count != self.subnets.len() {
-            return Err(NnsSubnetTopologyValidationError::SubnetCountMismatch {
-                declared: self.subnet_count,
-                actual: self.subnets.len(),
-            });
-        }
-        if self.node_count != actual_node_count {
-            return Err(NnsSubnetTopologyValidationError::NodeCountMismatch {
-                declared: self.node_count,
-                actual: actual_node_count,
-            });
-        }
         Ok(())
     }
 }
 
 fn validate_node_providers(
     subnet: &NnsSubnetTopologyRow,
-) -> Result<(), NnsSubnetTopologyValidationError> {
+) -> Result<u32, NnsSubnetTopologyValidationError> {
     let mut previous_provider: Option<&str> = None;
-    let mut provider_node_count = 0_u64;
     for provider in &subnet.node_providers {
         validate_principal(&provider.node_provider_principal, "node_provider_principal")?;
         if provider.node_count == 0 {
@@ -310,17 +288,9 @@ fn validate_node_providers(
                 );
             }
         }
-        provider_node_count = provider_node_count.saturating_add(u64::from(provider.node_count));
         previous_provider = Some(provider.node_provider_principal.as_str());
     }
-    if provider_node_count != u64::from(subnet.node_count) {
-        return Err(NnsSubnetTopologyValidationError::SubnetNodeCountMismatch {
-            subnet_principal: subnet.subnet_principal.clone(),
-            subnet_node_count: subnet.node_count,
-            provider_node_count,
-        });
-    }
-    Ok(())
+    subnet.node_count()
 }
 
 fn validate_principal(

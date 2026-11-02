@@ -10,7 +10,7 @@ use super::{
 };
 use crate::nns::registry::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
-    validate_nns_certified_registry_delta_batch,
+    NnsCertifiedRegistryDeltaSummary, validate_nns_certified_registry_delta_batch,
 };
 use ic_host_artifacts::artifact::HashingWriter;
 use std::{
@@ -110,27 +110,30 @@ impl NnsRegistryReplaySession {
         request: &NnsCertifiedRegistryDeltaBatchRequest,
         report: &NnsCertifiedRegistryDeltaBatchReport,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
-        validate_nns_certified_registry_delta_batch(request, report)?;
-        self.apply_prevalidated_batch(report)
+        let summary = validate_nns_certified_registry_delta_batch(request, report)?;
+        self.apply_prevalidated_batch(report, &summary)
     }
 
     pub(super) fn apply_prevalidated_batch(
         &mut self,
         report: &NnsCertifiedRegistryDeltaBatchReport,
+        summary: &NnsCertifiedRegistryDeltaSummary,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
-        self.apply_prevalidated_batch_with_target(report, false)
+        self.apply_prevalidated_batch_with_target(report, summary, false)
     }
 
     pub(super) fn apply_prevalidated_extension_batch(
         &mut self,
         report: &NnsCertifiedRegistryDeltaBatchReport,
+        summary: &NnsCertifiedRegistryDeltaSummary,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
-        self.apply_prevalidated_batch_with_target(report, true)
+        self.apply_prevalidated_batch_with_target(report, summary, true)
     }
 
     fn apply_prevalidated_batch_with_target(
         &mut self,
         report: &NnsCertifiedRegistryDeltaBatchReport,
+        summary: &NnsCertifiedRegistryDeltaSummary,
         select_new_target: bool,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
         if self.state.through_version() != report.requested_version {
@@ -180,8 +183,8 @@ impl NnsRegistryReplaySession {
         )?;
         let (candidate_batch_count, candidate_query_call_count, candidate_response_bytes) = self
             .candidate_accounting(
-                report.query_call_count,
-                u64::try_from(report.response_bytes)
+                summary.query_call_count,
+                u64::try_from(summary.response_bytes)
                     .map_err(|_| NnsRegistryReplayError::Accounting),
             )?;
         let (_, batch_applied_mutation_count) =

@@ -339,11 +339,11 @@ pub fn apply_nns_certified_registry_delta_batch(
     report: &NnsCertifiedRegistryDeltaBatchReport,
     limits: NnsRegistryReplayLimits,
 ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
-    validate_nns_certified_registry_delta_batch(request, report)?;
+    let summary = validate_nns_certified_registry_delta_batch(request, report)?;
     apply_validated_batch_through(
         state,
         report,
-        report.last_version.unwrap_or(report.requested_version),
+        summary.last_version.unwrap_or(report.requested_version),
         limits,
     )
 }
@@ -425,7 +425,7 @@ fn apply_committed_mutation(
     limits: NnsRegistryReplayLimits,
 ) -> Result<(), NnsRegistryReplayError> {
     let key = decode_hex("mutation key", &mutation.key_hex)?;
-    if mutation.mutation_kind == NnsCertifiedRegistryMutationKind::Delete {
+    if mutation.mutation_kind() == Some(NnsCertifiedRegistryMutationKind::Delete) {
         let prior_content_bytes = journal.remove_current(state, &key)?;
         state.content_bytes = state
             .content_bytes

@@ -6,7 +6,7 @@
 
 use super::{
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
-    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryValueEncoding, NnsRegistryHostError,
+    NnsCertifiedRegistryDeltaSummary, NnsCertifiedRegistryValueEncoding, NnsRegistryHostError,
     validate_nns_certified_registry_delta_batch,
 };
 use crate::{
@@ -30,6 +30,7 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub struct NnsAuthenticatedRegistryDeltaBatch<'a> {
     report: &'a NnsCertifiedRegistryDeltaBatchReport,
+    summary: NnsCertifiedRegistryDeltaSummary,
 }
 
 impl<'a> NnsAuthenticatedRegistryDeltaBatch<'a> {
@@ -39,11 +40,18 @@ impl<'a> NnsAuthenticatedRegistryDeltaBatch<'a> {
         self.report
     }
 
+    /// Return checked accounting bound to this immutable authenticated report.
+    #[must_use]
+    pub const fn summary(&self) -> &NnsCertifiedRegistryDeltaSummary {
+        &self.summary
+    }
+
     #[cfg(test)]
-    pub(crate) const fn from_validated_fixture(
-        report: &'a NnsCertifiedRegistryDeltaBatchReport,
-    ) -> Self {
-        Self { report }
+    pub(crate) fn from_validated_fixture(report: &'a NnsCertifiedRegistryDeltaBatchReport) -> Self {
+        Self {
+            report,
+            summary: report.summary().expect("structurally valid fixture"),
+        }
     }
 }
 
@@ -56,7 +64,7 @@ pub fn reauthenticate_nns_certified_registry_delta_batch<'a>(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
     report: &'a NnsCertifiedRegistryDeltaBatchReport,
 ) -> Result<NnsAuthenticatedRegistryDeltaBatch<'a>, NnsRegistryHostError> {
-    validate_nns_certified_registry_delta_batch(request, report)?;
+    let summary = validate_nns_certified_registry_delta_batch(request, report)?;
     let agent = build_historical_certificate_agent(&request.source_endpoint, |reason| {
         RegistryFetchError::AgentBuild {
             endpoint: request.source_endpoint.clone(),
@@ -81,8 +89,8 @@ pub fn reauthenticate_nns_certified_registry_delta_batch<'a>(
         &hash_tree,
     )
     .map_err(authentication_error)?;
-    validate_authenticated_witness(report, &witness)?;
-    Ok(NnsAuthenticatedRegistryDeltaBatch { report })
+    validate_authenticated_witness(report, &summary, &witness)?;
+    Ok(NnsAuthenticatedRegistryDeltaBatch { report, summary })
 }
 
 fn decode_evidence(field: &'static str, value: &str) -> Result<Vec<u8>, NnsRegistryHostError> {
@@ -93,14 +101,16 @@ fn decode_evidence(field: &'static str, value: &str) -> Result<Vec<u8>, NnsRegis
 
 fn validate_authenticated_witness(
     report: &NnsCertifiedRegistryDeltaBatchReport,
+    summary: &NnsCertifiedRegistryDeltaSummary,
     witness: &AuthenticatedRegistryDeltaWitness,
 ) -> Result<(), NnsRegistryHostError> {
-    validate_authenticated_metadata(report, witness)?;
+    validate_authenticated_metadata(report, summary, witness)?;
     validate_authenticated_versions(report, witness)
 }
 
 fn validate_authenticated_metadata(
     report: &NnsCertifiedRegistryDeltaBatchReport,
+    summary: &NnsCertifiedRegistryDeltaSummary,
     witness: &AuthenticatedRegistryDeltaWitness,
 ) -> Result<(), NnsRegistryHostError> {
     authenticated_equal(
@@ -111,27 +121,27 @@ fn validate_authenticated_metadata(
     authenticated_equal(
         "mutation_count",
         &witness.mutation_count,
-        &report.mutation_count,
+        &summary.mutation_count,
     )?;
     authenticated_equal(
         "precondition_count",
         &witness.precondition_count,
-        &report.precondition_count,
+        &summary.precondition_count,
     )?;
     authenticated_equal(
         "inline_value_bytes",
         &witness.inline_value_bytes,
-        &report.inline_value_bytes,
+        &summary.inline_value_bytes,
     )?;
     authenticated_equal(
         "chunk_reference_count",
         &witness.chunk_reference_count,
-        &report.chunk_reference_count,
+        &summary.chunk_reference_count,
     )?;
     authenticated_equal(
         "more_available",
         &witness.more_available,
-        &report.more_available,
+        &summary.more_available,
     )?;
     authenticated_equal(
         "certificate_time_nanos",
@@ -149,19 +159,9 @@ fn validate_authenticated_metadata(
         &report.certification.certificate_hex,
     )?;
     authenticated_equal(
-        "certificate_bytes",
-        &witness.certification.certificate_bytes,
-        &report.certification.certificate_bytes,
-    )?;
-    authenticated_equal(
         "hash_tree_hex",
         &witness.certification.hash_tree_hex,
         &report.certification.hash_tree_hex,
-    )?;
-    authenticated_equal(
-        "hash_tree_bytes",
-        &witness.certification.hash_tree_bytes,
-        &report.certification.hash_tree_bytes,
     )?;
     authenticated_equal(
         "version_count",
@@ -231,11 +231,6 @@ fn validate_authenticated_mutations(
             &format!("{context}.value_encoding"),
             &public_value_encoding(committed.value_encoding),
             &reported.value_encoding,
-        )?;
-        authenticated_equal(
-            &format!("{context}.mutation_kind"),
-            &NnsCertifiedRegistryMutationKind::from_raw_type(committed.mutation_type),
-            &Some(reported.mutation_kind),
         )?;
         let chunk_sha256_hexes = committed
             .chunk_sha256s

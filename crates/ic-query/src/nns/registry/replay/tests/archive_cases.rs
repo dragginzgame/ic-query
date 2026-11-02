@@ -117,7 +117,7 @@ async fn archive_manifest_segments_retain_unchanged_and_advancing_authenticated_
     let mut no_change_report = report_versions(&no_change_request, 2, Vec::new());
     no_change_report.fetched_at = format_utc_timestamp_secs(no_change_time);
     no_change_report.certification.certificate_time_nanos = no_change_time * 1_000_000_000;
-    no_change_report.certification.certificate_time = format_utc_timestamp_secs(no_change_time);
+
     let no_change = NnsAuthenticatedRegistryDeltaBatch::from_validated_fixture(&no_change_report);
     let advance_request = request(2);
     let advance_report = report_versions(

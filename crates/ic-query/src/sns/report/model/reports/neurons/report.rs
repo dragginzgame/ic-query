@@ -28,6 +28,5 @@ pub struct SnsNeuronsReport {
     pub provenance: ReportProvenance,
     pub sort: String,
     pub total_neuron_count: usize,
-    pub neuron_count: usize,
     pub neurons: Vec<SnsNeuronRow>,
 }

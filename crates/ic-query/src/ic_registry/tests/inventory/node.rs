@@ -2,7 +2,6 @@ use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn node_list_follows_nodes_to_subnets_operators_and_providers() {
-    let request = registry_fetch_request();
     let provider = Principal::self_authenticating(b"provider").to_text();
     let operator = Principal::self_authenticating(b"operator").to_text();
     let node = Principal::self_authenticating(b"node").to_text();
@@ -34,14 +33,13 @@ fn node_list_follows_nodes_to_subnets_operators_and_providers() {
         data_center_records: BTreeMap::new(),
     };
 
-    let list = node_list_from_inventory(&request, inventory, 42).expect("nodes");
+    let list = node_list_from_inventory(inventory).expect("nodes");
 
-    assert_eq!(list.provenance.registry_version, 42);
-    assert_eq!(list.nodes.len(), 1);
-    assert_eq!(list.nodes[0].node_principal, node);
-    assert_eq!(list.nodes[0].node_operator_principal, operator);
-    assert_eq!(list.nodes[0].node_provider_principal, provider);
-    assert_eq!(list.nodes[0].subnet_principal, subnet);
-    assert_eq!(list.nodes[0].subnet_kind, SubnetKind::Application);
-    assert_eq!(list.nodes[0].data_center_id, "dc-a");
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].node_principal, node);
+    assert_eq!(list[0].node_operator_principal, operator);
+    assert_eq!(list[0].node_provider_principal, provider);
+    assert_eq!(list[0].subnet_principal, subnet);
+    assert_eq!(list[0].subnet_kind, SubnetKind::Application);
+    assert_eq!(list[0].data_center_id, "dc-a");
 }

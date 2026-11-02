@@ -169,8 +169,6 @@ pub struct NnsNeuronListReport {
     pub total_neuron_count: Option<usize>,
     /// Whether all returned rows are guaranteed to describe one Governance instant.
     pub point_in_time_guaranteed: bool,
-    /// Number of rows returned in this view.
-    pub returned_neuron_count: usize,
     /// Canonically ascending neuron rows.
     pub neurons: Vec<NnsNeuronRow>,
 }

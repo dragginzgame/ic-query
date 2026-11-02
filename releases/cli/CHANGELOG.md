@@ -7,6 +7,26 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.88.0]
+
+### ⚠️ Breaking
+
+- Adopt Query's shared inventory errors and raw SNS reward-checkpoint JSON.
+  Derive checkpoint text summaries while preserving the existing valid output.
+- Adopt raw SNS permission codes and derived policy findings, report counts and
+  ICRC snapshot bounds. JSON consumers use returned arrays for their counts;
+  preserve affected retained files before adopting the new schema-1 contracts.
+- Derive status/topology totals and Registry display metadata from Query's raw
+  contracts. Preserve earlier authenticated archives and coordinate capture-root
+  retirement before adopting the Registry hard cut.
+
+### 🧹 Cleanup
+
+- Define ICRC account arguments and request extraction through typed Clap records,
+  retaining command names, defaults, bounds and collection policies.
+
+Details and consumer actions: [0.88 notes](0.88.md).
+
 ## [0.87.0] - 2026-11-02
 
 ### ⚠️ Breaking

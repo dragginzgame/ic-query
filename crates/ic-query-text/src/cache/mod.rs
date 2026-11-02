@@ -25,7 +25,7 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
             "family_validation_performed: {}",
             yes_no(report.family_validation_performed)
         ),
-        format!("cache_count: {}", report.cache_count),
+        format!("cache_count: {}", report.caches.len()),
         format!("readable_headers: {}", report.readable_header_count),
         format!("invalid_headers: {}", report.invalid_header_count),
         format!("fresh: {}", report.fresh_count),
@@ -36,7 +36,7 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
             "total_size_bytes: {}",
             byte_count_text(u128::from(report.total_size_bytes))
         ),
-        format!("refresh_locks: {}", report.refresh_lock_count),
+        format!("refresh_locks: {}", report.refresh_locks.len()),
         format!("active_refresh_locks: {}", report.active_refresh_lock_count),
         format!(
             "available_refresh_locks: {}",

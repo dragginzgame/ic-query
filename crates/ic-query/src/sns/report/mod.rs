@@ -98,19 +98,18 @@ pub use model::{
     SnsListRequest, SnsListRow, SnsListSort, SnsLookupError, SnsLookupRequest,
     SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
     SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
-    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow,
-    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsParamsReport,
-    SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow, SnsProposalCollection,
-    SnsProposalDecisionState, SnsProposalEligibilityFilter, SnsProposalFailureReason,
-    SnsProposalReport, SnsProposalRequest, SnsProposalRow, SnsProposalStatusFilter,
-    SnsProposalTally, SnsProposalTopicFilter, SnsProposalViewError, SnsProposalsReport,
-    SnsProposalsRequest, SnsProposalsSort, SnsReportContext, SnsRewardAllocationStatus,
-    SnsRewardCheckpointReport, SnsRewardCheckpointRow, SnsRewardCheckpointSummary,
-    SnsRewardCheckpointValidationError, SnsRewardCollectionStatus, SnsRewardDiffCheckpointRef,
-    SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind, SnsRewardDiffNeuronEvidence,
-    SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent, SnsRewardProposalId,
-    SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronRow,
+    SnsNeuronTopicFolloweesRow, SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus,
+    SnsProposalBallotRow, SnsProposalCollection, SnsProposalDecisionState,
+    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
+    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
+    SnsProposalViewError, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
+    SnsReportContext, SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
+    SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
+    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
+    SnsRewardDiffNeuronEvidence, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
+    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
+    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
     sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
@@ -191,6 +190,7 @@ const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_REWARD_CHECKPOINT_MAX_NEURONS: u64 = 200_000;
+#[cfg(feature = "sns-host")]
 const SNS_REWARD_CHECKPOINT_PAGE_SIZE: u32 = 100;
 const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "sns-host")]

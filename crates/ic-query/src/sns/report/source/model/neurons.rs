@@ -197,17 +197,6 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
         }
     }
 
-    let (mint, staking) = neuron.derived_policy_observations();
-    if neuron.maturity_mint_conversion_observed_disabled != mint {
-        return Err(invalid_neuron_detail(
-            "maturity_mint_conversion_observed_disabled does not match raw evidence",
-        ));
-    }
-    if neuron.manual_maturity_staking_observed_disabled != staking {
-        return Err(invalid_neuron_detail(
-            "manual_maturity_staking_observed_disabled does not match raw evidence",
-        ));
-    }
     Ok(())
 }
 

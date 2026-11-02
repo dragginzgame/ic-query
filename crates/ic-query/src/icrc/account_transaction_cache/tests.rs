@@ -87,6 +87,8 @@ async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
         vec!["2", "10"]
     );
     assert_eq!(oldest.total_transaction_count, 3);
+    assert_eq!(oldest.newest_transaction_id.as_deref(), Some("12"));
+    assert_eq!(oldest.oldest_transaction_id.as_deref(), Some("2"));
     assert_eq!(
         status.cache.as_ref().expect("cache summary").cache_status(),
         CacheValidationStatus::Valid
@@ -103,6 +105,35 @@ async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     assert_eq!(source.calls.load(Ordering::Relaxed), 1);
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn empty_account_snapshot_has_no_bounds_in_any_cache_view() {
+    let root = temp_dir("ic-query-icrc-empty-account-bounds");
+    let cache = cache_request(&root);
+    let refresh = refresh_icrc_account_transaction_cache_with_source(
+        &refresh_request(cache.clone(), 1_700_000_000),
+        &SuccessSource::new(Vec::new()),
+    )
+    .await
+    .unwrap();
+    let list = build_icrc_account_transaction_list_report(&IcrcAccountTransactionListRequest::new(
+        cache.clone(),
+        1,
+    ))
+    .unwrap();
+    let status = build_icrc_account_transaction_cache_status_report(&cache).unwrap();
+    assert_eq!(refresh.newest_transaction_id, None);
+    assert_eq!(refresh.oldest_transaction_id, None);
+    assert_eq!(list.newest_transaction_id, None);
+    assert_eq!(list.oldest_transaction_id, None);
+    let crate::icrc::IcrcAccountTransactionCacheSummary::Valid { data } = status.cache.unwrap()
+    else {
+        panic!("empty exhausted snapshot is valid");
+    };
+    assert_eq!(data.newest_transaction_id, None);
+    assert_eq!(data.oldest_transaction_id, None);
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[tokio::test(flavor = "current_thread")]

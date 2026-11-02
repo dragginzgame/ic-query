@@ -74,17 +74,17 @@ async fn certified_delta_public_builder_validates_custom_source_evidence() {
 
     assert_eq!(report.requested_version, 41);
     assert_eq!(report.certified_latest_version, 43);
-    assert_eq!(report.first_version, Some(42));
-    assert_eq!(report.last_version, Some(42));
-    assert!(report.more_available);
+    assert_eq!(report.summary().unwrap().first_version, Some(42));
+    assert_eq!(report.summary().unwrap().last_version, Some(42));
+    assert!(report.summary().unwrap().more_available);
     assert_eq!(
-        report.versions[0].mutations[0].mutation_kind,
-        NnsCertifiedRegistryMutationKind::Upsert
+        report.versions[0].mutations[0].mutation_kind(),
+        Some(NnsCertifiedRegistryMutationKind::Upsert)
     );
 }
 
 #[test]
-fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering() {
+fn certified_delta_validator_rejects_invalid_schema_sequence_and_operation() {
     let request = certified_delta_request();
     let mut report = certified_delta_report(&request);
     report.schema_version = u32::MAX;
@@ -98,8 +98,7 @@ fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering()
 
     let mut report = certified_delta_report(&request);
     report.versions[0].version = 43;
-    report.first_version = Some(43);
-    report.last_version = Some(43);
+
     let error = validate_nns_certified_registry_delta_batch(&request, &report)
         .expect_err("wrong first version");
     assert!(matches!(
@@ -109,23 +108,13 @@ fn certified_delta_pure_validator_rejects_sequence_and_derived_field_tampering()
     ));
 
     let mut report = certified_delta_report(&request);
-    report.mutation_count = 2;
+    report.versions[0].mutations[0].mutation_type = 3;
     let error = validate_nns_certified_registry_delta_batch(&request, &report)
-        .expect_err("derived count mismatch");
+        .expect_err("unsupported raw mutation");
     assert!(matches!(
         error,
         NnsRegistryHostError::InvalidSourceData { reason }
-            if reason.contains("mutation_count mismatch")
-    ));
-
-    let mut report = certified_delta_report(&request);
-    report.versions[0].mutations[0].mutation_type = 1;
-    let error = validate_nns_certified_registry_delta_batch(&request, &report)
-        .expect_err("raw and typed mutation mismatch");
-    assert!(matches!(
-        error,
-        NnsRegistryHostError::InvalidSourceData { reason }
-            if reason.contains("does not match kind")
+            if reason.contains("unsupported mutation type")
     ));
 }
 
@@ -139,21 +128,26 @@ fn certified_delta_validator_accepts_bounded_chunk_evidence_and_recomputes_accou
     mutation.value_encoding = NnsCertifiedRegistryValueEncoding::Chunked;
     mutation.chunk_sha256_hexes = vec![hash.clone(), hash.clone()];
     mutation.value_hex = Some("62636263".to_string());
-    report.inline_value_bytes = 0;
-    report.chunk_value_bytes = 4;
-    report.value_bytes = 4;
-    report.chunk_reference_count = 2;
-    report.chunk_evidence_bytes = content.len();
+
     report.chunk_evidence = vec![NnsCertifiedRegistryChunkEvidence {
         sha256_hex: hash,
         content_hex: crate::hex::hex_bytes(content),
     }];
     report.chunk_query_call_count = 1;
-    report.query_call_count = 2;
-    report.chunk_response_bytes = 32;
-    report.response_bytes = 96;
 
-    validate_nns_certified_registry_delta_batch(&request, &report).expect("bounded chunk evidence");
+    report.chunk_response_bytes = 32;
+
+    let summary = validate_nns_certified_registry_delta_batch(&request, &report)
+        .expect("bounded chunk evidence");
+    assert_eq!(summary.version_count, 1);
+    assert_eq!(summary.mutation_count, 1);
+    assert_eq!(summary.inline_value_bytes, 0);
+    assert_eq!(summary.chunk_value_bytes, 4);
+    assert_eq!(summary.value_bytes, 4);
+    assert_eq!(summary.chunk_reference_count, 2);
+    assert_eq!(summary.chunk_evidence_bytes, 2);
+    assert_eq!(summary.query_call_count, 2);
+    assert_eq!(summary.response_bytes, 96);
 
     let mut invalid_hash = report.clone();
     invalid_hash.versions[0].mutations[0].chunk_sha256_hexes[0] = "AB".repeat(32);
@@ -167,7 +161,7 @@ fn certified_delta_validator_accepts_bounded_chunk_evidence_and_recomputes_accou
 
     let mut hidden_query = report;
     hidden_query.chunk_query_call_count = 2;
-    hidden_query.query_call_count = 3;
+
     let error = validate_nns_certified_registry_delta_batch(&request, &hidden_query)
         .expect_err("query count must equal unique chunk hashes");
     assert!(matches!(
@@ -175,6 +169,24 @@ fn certified_delta_validator_accepts_bounded_chunk_evidence_and_recomputes_accou
         NnsRegistryHostError::InvalidSourceData { reason }
             if reason.contains("chunk_query_call_count mismatch")
     ));
+}
+
+#[test]
+fn retained_registry_reports_refuse_retired_projection_fields() {
+    let report = certified_delta_report(&certified_delta_request());
+    for (pointer, field, value) in [
+        ("", "mutation_count", serde_json::json!(1)),
+        ("/certification", "certificate_bytes", serde_json::json!(8)),
+        (
+            "/versions/0/mutations/0",
+            "mutation_kind",
+            serde_json::json!("upsert"),
+        ),
+    ] {
+        let mut encoded = serde_json::to_value(&report).unwrap();
+        encoded.pointer_mut(pointer).unwrap()[field] = value;
+        assert!(serde_json::from_value::<NnsCertifiedRegistryDeltaBatchReport>(encoded).is_err());
+    }
 }
 
 #[test]
@@ -186,19 +198,14 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
     report.versions[0].mutations[0].value_encoding = NnsCertifiedRegistryValueEncoding::Chunked;
     report.versions[0].mutations[0].chunk_sha256_hexes = vec![hash.clone()];
     report.versions[0].mutations[0].value_hex = Some(crate::hex::hex_bytes(content));
-    report.inline_value_bytes = 0;
-    report.chunk_value_bytes = content.len();
-    report.value_bytes = content.len();
-    report.chunk_reference_count = 1;
-    report.chunk_evidence_bytes = content.len();
+
     report.chunk_evidence = vec![NnsCertifiedRegistryChunkEvidence {
         sha256_hex: hash,
         content_hex: crate::hex::hex_bytes(content),
     }];
     report.chunk_query_call_count = 1;
-    report.query_call_count = 2;
+
     report.chunk_response_bytes = 32;
-    report.response_bytes = 96;
 
     let mut wrong_content = report.clone();
     wrong_content.chunk_evidence[0].content_hex = "00".to_string();
@@ -222,7 +229,7 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
 
     let mut missing = report.clone();
     missing.chunk_evidence.clear();
-    missing.chunk_evidence_bytes = 0;
+
     let error = validate_nns_certified_registry_delta_batch(&request, &missing)
         .expect_err("missing evidence");
     assert!(matches!(
@@ -235,7 +242,7 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
     duplicate
         .chunk_evidence
         .push(duplicate.chunk_evidence[0].clone());
-    duplicate.chunk_evidence_bytes *= 2;
+
     let error = validate_nns_certified_registry_delta_batch(&request, &duplicate)
         .expect_err("duplicate evidence");
     assert!(matches!(
@@ -250,7 +257,7 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
         content_hex: crate::hex::hex_bytes(extra_content),
     };
     let mut unreferenced = report.clone();
-    unreferenced.chunk_evidence_bytes += extra_content.len();
+
     unreferenced.chunk_evidence.push(extra);
     unreferenced
         .chunk_evidence
@@ -271,16 +278,6 @@ fn certified_delta_validator_rehashes_and_reconstructs_canonical_chunk_evidence(
         error,
         NnsRegistryHostError::InvalidSourceData { reason }
             if reason.contains("unique and strictly ordered")
-    ));
-
-    let mut wrong_bytes = report;
-    wrong_bytes.chunk_evidence_bytes += 1;
-    let error = validate_nns_certified_registry_delta_batch(&request, &wrong_bytes)
-        .expect_err("evidence byte mismatch");
-    assert!(matches!(
-        error,
-        NnsRegistryHostError::InvalidSourceData { reason }
-            if reason.contains("chunk_evidence_bytes mismatch")
     ));
 }
 
@@ -308,7 +305,7 @@ async fn registry_version_report_uses_live_source_shape() {
     assert_eq!(report.provenance.fetched_by, "ic-query");
     assert!(report.certification.certificate_verified);
     assert_eq!(
-        report.certification.certificate_time,
+        format_utc_timestamp_secs(report.certification.certificate_time_nanos / 1_000_000_000),
         report.provenance.fetched_at
     );
 }
@@ -462,32 +459,22 @@ fn certified_delta_report(
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,
         certified_latest_version: 43,
-        first_version: Some(42),
-        last_version: Some(42),
-        version_count: 1,
-        mutation_count: 1,
-        precondition_count: 0,
-        inline_value_bytes: 1,
-        chunk_value_bytes: 0,
-        value_bytes: 1,
-        chunk_reference_count: 0,
-        chunk_evidence_bytes: 0,
-        more_available: true,
+
         fetched_at: "2026-06-04T00:00:00Z".to_string(),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
-        query_call_count: 1,
+
         chunk_query_call_count: 0,
         certified_response_bytes: 64,
         chunk_response_bytes: 0,
-        response_bytes: 64,
+
         limits: nns_certified_registry_delta_limits(),
         versions: vec![NnsCertifiedRegistryDeltaVersion {
             version: 42,
             timestamp_nanoseconds: 1_780_531_199_000_000_000,
             mutations: vec![NnsCertifiedRegistryMutation {
                 mutation_type: 4,
-                mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
+
                 key_hex: "61".to_string(),
                 value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
                 chunk_sha256_hexes: Vec::new(),
@@ -504,11 +491,10 @@ fn certification(timestamp_seconds: u64) -> NnsRegistryCertification {
     NnsRegistryCertification {
         certificate_verified: true,
         certificate_time_nanos: timestamp_seconds * 1_000_000_000,
-        certificate_time: format_utc_timestamp_secs(timestamp_seconds),
+
         root_key_digest: "ab".repeat(32),
         certificate_hex: "cd".repeat(8),
-        certificate_bytes: 8,
+
         hash_tree_hex: "ef".repeat(4),
-        hash_tree_bytes: 4,
     }
 }

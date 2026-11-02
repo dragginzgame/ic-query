@@ -10,8 +10,9 @@ use super::{
     model::{
         NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsCertifiedRegistryDeltaBatchReport,
         NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
-        NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-        NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryValueEncoding,
+        NnsCertifiedRegistryDeltaSummary, NnsCertifiedRegistryDeltaVersion,
+        NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+        NnsCertifiedRegistryValueEncoding,
     },
     source::{NnsCertifiedRegistryDeltaSource, nns_certified_registry_delta_limits},
 };
@@ -49,7 +50,7 @@ pub async fn fetch_nns_certified_registry_delta_batch_with_source_async(
 pub fn validate_nns_certified_registry_delta_batch(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
     report: &NnsCertifiedRegistryDeltaBatchReport,
-) -> Result<(), NnsRegistryHostError> {
+) -> Result<NnsCertifiedRegistryDeltaSummary, NnsRegistryHostError> {
     enforce_mainnet_network(&request.network)?;
     validate_equal(
         "schema_version",
@@ -78,21 +79,6 @@ pub fn validate_nns_certified_registry_delta_batch(
         &report.source_endpoint,
     )?;
     validate_text("fetched_by", "ic-query", &report.fetched_by)?;
-    if report.limits != nns_certified_registry_delta_limits() {
-        return Err(invalid_source_data(
-            "limits do not match the fixed certified delta validator ceilings",
-        ));
-    }
-    let expected_query_call_count = report
-        .chunk_query_call_count
-        .checked_add(1)
-        .ok_or_else(|| invalid_source_data("query_call_count overflows u64"))?;
-    if report.query_call_count != expected_query_call_count {
-        return Err(invalid_source_data(format!(
-            "query_call_count must equal one certified query plus chunk_query_call_count; expected {expected_query_call_count}, got {}",
-            report.query_call_count,
-        )));
-    }
     if report.certified_response_bytes == 0
         || report.certified_response_bytes > report.limits.max_response_body_bytes
     {
@@ -112,19 +98,10 @@ pub fn validate_nns_certified_registry_delta_batch(
             "chunk query and response-byte accounting disagree",
         ));
     }
-    let expected_response_bytes = report
-        .certified_response_bytes
-        .checked_add(report.chunk_response_bytes)
-        .ok_or_else(|| invalid_source_data("response_bytes overflows usize"))?;
-    validate_equal(
-        "response_bytes",
-        expected_response_bytes,
-        report.response_bytes,
-    )?;
     let minimum_evidence_bytes = report
         .certification
-        .certificate_bytes
-        .checked_add(report.certification.hash_tree_bytes)
+        .certificate_bytes()
+        .checked_add(report.certification.hash_tree_bytes())
         .ok_or_else(|| invalid_source_data("certified evidence byte counts overflow usize"))?;
     if report.certified_response_bytes < minimum_evidence_bytes {
         return Err(invalid_source_data(
@@ -132,12 +109,24 @@ pub fn validate_nns_certified_registry_delta_batch(
         ));
     }
     validate_certification(request.now_unix_secs, &report.certification)?;
-    validate_delta_contents(report)
+    report.summary()
 }
 
-fn validate_delta_contents(
+impl NnsCertifiedRegistryDeltaBatchReport {
+    /// Derive checked content and transport accounting; does not authenticate certificates.
+    pub fn summary(&self) -> Result<NnsCertifiedRegistryDeltaSummary, NnsRegistryHostError> {
+        summarize_delta_contents(self)
+    }
+}
+
+fn summarize_delta_contents(
     report: &NnsCertifiedRegistryDeltaBatchReport,
-) -> Result<(), NnsRegistryHostError> {
+) -> Result<NnsCertifiedRegistryDeltaSummary, NnsRegistryHostError> {
+    if report.limits != nns_certified_registry_delta_limits() {
+        return Err(invalid_source_data(
+            "limits do not match the fixed certified delta validator ceilings",
+        ));
+    }
     if report.requested_version > report.certified_latest_version {
         return Err(invalid_source_data(
             "requested_version exceeds certified_latest_version",
@@ -149,18 +138,6 @@ fn validate_delta_contents(
             report.limits.max_versions
         )));
     }
-    validate_equal("version_count", report.versions.len(), report.version_count)?;
-    validate_equal(
-        "first_version",
-        report.versions.first().map(|row| row.version),
-        report.first_version,
-    )?;
-    validate_equal(
-        "last_version",
-        report.versions.last().map(|row| row.version),
-        report.last_version,
-    )?;
-
     if report.versions.is_empty() && report.requested_version != report.certified_latest_version {
         return Err(invalid_source_data(
             "versions must not be empty before certified_latest_version",
@@ -168,29 +145,8 @@ fn validate_delta_contents(
     }
 
     let totals = validate_version_sequence(report)?;
-    validate_equal("mutation_count", totals.mutations, report.mutation_count)?;
-    validate_equal(
-        "precondition_count",
-        totals.preconditions,
-        report.precondition_count,
-    )?;
-    validate_equal(
-        "inline_value_bytes",
-        totals.inline_value_bytes,
-        report.inline_value_bytes,
-    )?;
-    validate_equal(
-        "chunk_value_bytes",
-        totals.chunk_value_bytes,
-        report.chunk_value_bytes,
-    )?;
-    validate_equal("value_bytes", totals.value_bytes, report.value_bytes)?;
-    validate_equal(
-        "chunk_reference_count",
-        totals.chunk_reference_count,
-        report.chunk_reference_count,
-    )?;
-    let chunk_evidence = validate_chunk_evidence(report, &totals.chunk_sha256_hexes)?;
+    let (chunk_evidence, chunk_evidence_bytes) =
+        validate_chunk_evidence(report, &totals.chunk_sha256_hexes)?;
     validate_chunked_values(report, &chunk_evidence)?;
     let unique_chunk_query_count = u64::try_from(chunk_evidence.len())
         .map_err(|_| invalid_source_data("unique chunk query count exceeds u64"))?;
@@ -199,19 +155,36 @@ fn validate_delta_contents(
         unique_chunk_query_count,
         report.chunk_query_call_count,
     )?;
-    let last_version = report.last_version.unwrap_or(report.requested_version);
-    validate_equal(
-        "more_available",
-        last_version < report.certified_latest_version,
-        report.more_available,
-    )?;
-    Ok(())
+    let first_version = report.versions.first().map(|row| row.version);
+    let last_version = report.versions.last().map(|row| row.version);
+    Ok(NnsCertifiedRegistryDeltaSummary {
+        first_version,
+        last_version,
+        version_count: report.versions.len(),
+        mutation_count: totals.mutations,
+        precondition_count: totals.preconditions,
+        inline_value_bytes: totals.inline_value_bytes,
+        chunk_value_bytes: totals.chunk_value_bytes,
+        value_bytes: totals.value_bytes,
+        chunk_reference_count: totals.chunk_reference_count,
+        chunk_evidence_bytes,
+        more_available: last_version.unwrap_or(report.requested_version)
+            < report.certified_latest_version,
+        query_call_count: report
+            .chunk_query_call_count
+            .checked_add(1)
+            .ok_or_else(|| invalid_source_data("query_call_count overflows u64"))?,
+        response_bytes: report
+            .certified_response_bytes
+            .checked_add(report.chunk_response_bytes)
+            .ok_or_else(|| invalid_source_data("response_bytes overflows usize"))?,
+    })
 }
 
 fn validate_chunk_evidence<'a>(
     report: &'a NnsCertifiedRegistryDeltaBatchReport,
     referenced_sha256_hexes: &BTreeSet<String>,
-) -> Result<BTreeMap<&'a str, &'a str>, NnsRegistryHostError> {
+) -> Result<(BTreeMap<&'a str, &'a str>, usize), NnsRegistryHostError> {
     let mut chunks = BTreeMap::new();
     let mut evidence_bytes = 0_usize;
     let mut previous_sha256 = None;
@@ -253,11 +226,6 @@ fn validate_chunk_evidence<'a>(
         chunks.insert(row.sha256_hex.as_str(), row.content_hex.as_str());
         previous_sha256 = Some(row.sha256_hex.as_str());
     }
-    validate_equal(
-        "chunk_evidence_bytes",
-        evidence_bytes,
-        report.chunk_evidence_bytes,
-    )?;
     if chunks.len() != referenced_sha256_hexes.len()
         || referenced_sha256_hexes
             .iter()
@@ -267,7 +235,7 @@ fn validate_chunk_evidence<'a>(
             "chunk evidence must contain exactly the unique digests referenced by mutations",
         ));
     }
-    Ok(chunks)
+    Ok((chunks, evidence_bytes))
 }
 
 fn validate_chunked_values(
@@ -413,12 +381,6 @@ fn validate_version_contents(
     let mut totals = DeltaTotals::default();
     for mutation in &version.mutations {
         validate_hex_key(&mutation.key_hex, limits.max_key_bytes)?;
-        if mutation.mutation_type != mutation.mutation_kind.raw_type() {
-            return Err(invalid_source_data(format!(
-                "mutation type {} does not match kind {:?}",
-                mutation.mutation_type, mutation.mutation_kind
-            )));
-        }
         let value = validate_mutation_value(mutation, limits)?;
         totals.inline_value_bytes = checked_total(
             "inline_value_bytes",
@@ -474,6 +436,12 @@ fn validate_mutation_value(
     mutation: &NnsCertifiedRegistryMutation,
     limits: &NnsCertifiedRegistryDeltaLimits,
 ) -> Result<MutationValueBytes, NnsRegistryHostError> {
+    let mutation_kind = mutation.mutation_kind().ok_or_else(|| {
+        invalid_source_data(format!(
+            "unsupported mutation type {}",
+            mutation.mutation_type
+        ))
+    })?;
     let value_bytes = match mutation.value_hex.as_deref() {
         Some(value) if value.len().is_multiple_of(2) && crate::hex::is_lowercase_hex(value) => {
             value.len() / 2
@@ -487,7 +455,7 @@ fn validate_mutation_value(
     };
     match mutation.value_encoding {
         NnsCertifiedRegistryValueEncoding::Absent => {
-            if mutation.mutation_kind != NnsCertifiedRegistryMutationKind::Delete
+            if mutation_kind != NnsCertifiedRegistryMutationKind::Delete
                 || mutation.value_hex.is_some()
                 || !mutation.chunk_sha256_hexes.is_empty()
             {

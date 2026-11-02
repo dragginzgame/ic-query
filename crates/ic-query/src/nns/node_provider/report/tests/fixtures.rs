@@ -46,8 +46,7 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
         Box::pin(async move {
             let node_providers = self
                 .node_providers
@@ -89,10 +88,10 @@ impl NnsNodeProviderSource for FailingNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
         _request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
         Box::pin(async move {
-            Err(NnsNodeProviderHostError::NodeProviderNotFound {
+            Err(NnsInventoryError::NotFound {
+                collection: crate::nns::NnsInventoryCollection::NodeProvider,
                 input: "unexpected-live-fetch".to_string(),
             })
         })

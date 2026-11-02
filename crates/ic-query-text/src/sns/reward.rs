@@ -8,11 +8,21 @@ use crate::text_value::optional_bool_text;
 use ic_host_text::escape::terminal_text;
 
 use crate::token_amount::e8s_decimal_text;
+use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_query::sns::SnsRewardCheckpointReport;
 
 /// Render one API-exhausted SNS reward checkpoint as bounded human-readable text.
 #[must_use]
 pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> String {
+    let summary = match report.summary() {
+        Ok(summary) => summary,
+        Err(error) => {
+            return format!(
+                "invalid SNS reward checkpoint: {}",
+                terminal_text(&error.reason)
+            );
+        }
+    };
     [
         format!("network: {}", terminal_text(&report.network)),
         format!("sns_id: {}", report.id),
@@ -27,15 +37,28 @@ pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> 
             "point_in_time_guaranteed: {}",
             optional_bool_text(Some(report.point_in_time_guaranteed))
         ),
-        format!("collection_started_at: {}", report.collection_started_at),
+        format!(
+            "collection_started_at: {}",
+            format_utc_timestamp_secs(report.collection_started_at_unix_secs)
+        ),
         format!(
             "collection_completed_at: {}",
-            report.collection_completed_at
+            format_utc_timestamp_secs(report.collection_completed_at_unix_secs)
         ),
         format!("page_count: {}", report.page_count),
-        format!("row_count: {}", report.row_count),
-        format!("collection_row_ceiling: {}", report.collection_row_ceiling),
-        format!("client_query_count: {}", report.client_query_count),
+        format!("row_count: {}", report.row_count()),
+        format!(
+            "collection_row_ceiling: {}",
+            report
+                .collection_row_ceiling()
+                .map_or_else(|| "-".to_string(), |value| value.to_string())
+        ),
+        format!(
+            "client_query_count: {}",
+            report
+                .client_query_count()
+                .map_or_else(|| "-".to_string(), |value| value.to_string())
+        ),
         format!(
             "reward_event_end_timestamp_seconds: {}",
             report
@@ -50,52 +73,40 @@ pub fn sns_reward_checkpoint_report_text(report: &SnsRewardCheckpointReport) -> 
         ),
         format!(
             "aggregate_unstaked_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_maturity_e8s_equivalent)
+            e8s_decimal_text(summary.aggregate_maturity_e8s_equivalent)
         ),
         format!(
             "aggregate_staked_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_staked_maturity_e8s_equivalent)
+            e8s_decimal_text(summary.aggregate_staked_maturity_e8s_equivalent)
         ),
         format!(
             "aggregate_combined_maturity: {}",
-            e8s_decimal_text(report.summary.aggregate_combined_maturity_e8s_equivalent)
+            e8s_decimal_text(summary.aggregate_combined_maturity_e8s_equivalent)
         ),
-        format!(
-            "permission_entry_count: {}",
-            report.summary.permission_entry_count
-        ),
+        format!("permission_entry_count: {}", summary.permission_entry_count),
         format!(
             "pending_maturity_disbursement_count: {}",
-            report.summary.pending_maturity_disbursement_count
+            summary.pending_maturity_disbursement_count
         ),
         format!(
             "unassessable_permission_code_count: {}",
-            report.summary.unassessable_permission_code_count
+            summary.unassessable_permission_code_count
         ),
         format!(
             "manage_principals_grantable: {}",
-            optional_bool_text(report.summary.manage_principals_grantable)
+            optional_bool_text(summary.manage_principals_grantable)
         ),
         format!(
             "maturity_mint_conversion_observed_disabled: {}",
-            report
-                .summary
-                .maturity_mint_conversion_observed_disabled
-                .as_str()
+            summary.maturity_mint_conversion_observed_disabled.as_str()
         ),
         format!(
             "manual_maturity_staking_observed_disabled: {}",
-            report
-                .summary
-                .manual_maturity_staking_observed_disabled
-                .as_str()
+            summary.manual_maturity_staking_observed_disabled.as_str()
         ),
         format!(
             "maturity_conversion_policy_observed_status: {}",
-            report
-                .summary
-                .maturity_conversion_policy_observed_status
-                .as_str()
+            summary.maturity_conversion_policy_observed_status.as_str()
         ),
         format!(
             "source_endpoint: {}",

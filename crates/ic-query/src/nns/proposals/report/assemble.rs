@@ -46,7 +46,6 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
             .to_string(),
         result_scope,
 
-        proposal_count: proposals.len(),
         proposals,
     }
 }

@@ -1,6 +1,5 @@
 use crate::ic_registry::{
-    MainnetDataCenterList, MainnetRegistryFetchRequest, RegistryFetchError,
-    normalized_data_center_id,
+    RegistryFetchError, normalized_data_center_id,
     relations::{
         DataCenterOperatorCounts, RegistryRelationInventory,
         data_center_operator_counts_from_records, node_counts_from_relations,
@@ -11,10 +10,8 @@ use ic_host_tools::registry::proto::DataCenterRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn data_center_list_from_inventory(
-    request: &MainnetRegistryFetchRequest,
     inventory: RegistryRelationInventory,
-    registry_version: u64,
-) -> Result<MainnetDataCenterList, RegistryFetchError> {
+) -> Result<Vec<NnsDataCenterRow>, RegistryFetchError> {
     let node_counts = node_counts_from_relations(
         &inventory.node_principals,
         &inventory.node_operator_principals,
@@ -28,10 +25,7 @@ pub(in crate::ic_registry) fn data_center_list_from_inventory(
         .into_iter()
         .map(|(id, record)| data_center_from_record(id, record, &operator_counts, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(MainnetDataCenterList {
-        provenance: request.inventory_provenance(registry_version),
-        data_centers,
-    })
+    Ok(data_centers)
 }
 
 fn data_center_from_record(

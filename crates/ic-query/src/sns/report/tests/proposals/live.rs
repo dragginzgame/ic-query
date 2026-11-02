@@ -174,7 +174,7 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.query_filter, None);
     assert_eq!(report.sort, "api");
     assert_eq!(report.sort_direction, "none");
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(report.proposals[0].action_id, 1);
     assert_eq!(
@@ -213,7 +213,7 @@ async fn sns_proposals_live_proposer_filter_applies_to_returned_rows() {
 
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.proposer_filter.as_deref(), Some("000102"));
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
 }
 
@@ -232,7 +232,7 @@ async fn sns_proposals_live_eligibility_filter_applies_to_returned_rows() {
 
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.eligibility_filter, "no");
-    assert_eq!(report.proposal_count, 0);
+    assert_eq!(report.proposals.len(), 0);
     assert_eq!(report.proposals, Vec::new());
 }
 
@@ -253,7 +253,7 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
 
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.query_filter.as_deref(), Some("FiXtUrE PrOpOsAl"));
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(json["query_filter"], "FiXtUrE PrOpOsAl");
 }

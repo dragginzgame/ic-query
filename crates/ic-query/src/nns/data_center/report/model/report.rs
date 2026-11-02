@@ -22,6 +22,7 @@ impl_nns_inventory_report!(
     NnsDataCenterListReport,
     super::super::NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
     "data_center",
+    super::super::COLLECTION,
     data_center_count,
     data_centers,
     |_report: &NnsDataCenterListReport| None,

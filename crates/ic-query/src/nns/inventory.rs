@@ -4,12 +4,15 @@
 //! Does not own: family row DTOs, source implementations, cache identity, or public errors.
 //! Boundary: one lifecycle and publication outcome serve node, provider, operator, and data-center reports.
 
-use super::{NnsInventoryCacheRequest, NnsInventoryListRequest, NnsInventoryRefreshRequest};
+use super::{
+    NnsInventoryCacheRequest, NnsInventoryCollection, NnsInventoryError, NnsInventoryListRequest,
+    NnsInventoryRefreshRequest,
+};
 use crate::identifier_match::{IdentifierMatch, match_identifier};
 use crate::report::CollectionSourceRequest;
 use crate::{
-    HostCacheError, QueryProgress, QueryProgressEvent,
-    cache_file::{CacheRefreshReason, RefreshCacheWriteResult, load_or_refresh_cache},
+    QueryProgress, QueryProgressEvent,
+    cache_file::{RefreshCacheWriteResult, load_or_refresh_cache},
     nns::leaf::write_nns_leaf_json_refresh_cache,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text},
 };
@@ -51,21 +54,6 @@ pub struct NnsInventoryRefreshReport {
 }
 
 ///
-/// NnsInventoryHostError
-///
-/// Internal conversion from a family host error to the shared read-through policy.
-///
-
-pub(in crate::nns) trait NnsInventoryHostError: Sized {
-    /// Classify recoverable cache content failures, preserving filesystem and source errors.
-    fn cache_refresh_reason(self, expected_path: PathBuf) -> Result<CacheRefreshReason, Self>;
-    /// Build a family error for semantically invalid cached inventory evidence.
-    fn invalid_cache(path: PathBuf, reason: String) -> Self;
-    /// Build a family error for a custom source that violates the inventory contract.
-    fn invalid_source_data(reason: String) -> Self;
-}
-
-///
 /// NnsInventoryReport
 ///
 /// Shared provenance and count contract for one complete NNS inventory report.
@@ -74,6 +62,7 @@ pub(in crate::nns) trait NnsInventoryHostError: Sized {
 pub(in crate::nns) trait NnsInventoryReport {
     const SCHEMA_VERSION: u32;
     const ITEM_NAME: &'static str;
+    const COLLECTION: NnsInventoryCollection;
 
     fn schema_version(&self) -> u32;
     fn provenance(&self) -> &super::registry::NnsRegistryInventoryProvenance;
@@ -161,16 +150,15 @@ pub(in crate::nns) trait NnsInventoryReport {
 }
 
 /// Load one Registry inventory cache, refreshing missing or invalid local content.
-pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report, Error>(
+pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report>(
     request: &NnsInventoryListRequest,
     expected_cache_path: PathBuf,
 
     progress: &mut dyn QueryProgress,
-    mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, Error>,
-    refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), Error>,
-) -> Result<Report, Error>
+    mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, NnsInventoryError>,
+    refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), NnsInventoryError>,
+) -> Result<Report, NnsInventoryError>
 where
-    Error: NnsInventoryHostError,
     Report: NnsInventoryReport,
 {
     load_or_refresh_cache(
@@ -199,15 +187,14 @@ where
     clippy::future_not_send,
     reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
 )]
-pub(in crate::nns) async fn refresh_nns_inventory_cache<Report, Error>(
+pub(in crate::nns) async fn refresh_nns_inventory_cache<Report>(
     request: &NnsInventoryRefreshRequest,
     component_dir: &'static str,
     cache_file: &str,
-    fetch: impl AsyncFnOnce(&CollectionSourceRequest) -> Result<Report, Error>,
-) -> Result<NnsInventoryRefreshReport, Error>
+    fetch: impl AsyncFnOnce(&CollectionSourceRequest) -> Result<Report, NnsInventoryError>,
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError>
 where
     Report: NnsInventoryReport + Serialize,
-    Error: From<HostCacheError> + NnsInventoryHostError,
 {
     let source_request = CollectionSourceRequest::new(
         &request.cache.network,
@@ -216,11 +203,19 @@ where
         "ic-query",
     );
     let report = fetch(&source_request).await?;
-    report
-        .validate_source(&source_request)
-        .map_err(Error::invalid_source_data)?;
+    report.validate_source(&source_request).map_err(|reason| {
+        NnsInventoryError::InvalidSourceData {
+            collection: Report::COLLECTION,
+            reason,
+        }
+    })?;
     let write_result =
-        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report).await?;
+        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report)
+            .await
+            .map_err(|source| NnsInventoryError::Cache {
+                collection: Report::COLLECTION,
+                source,
+            })?;
     Ok(report.refresh_outcome(request, write_result))
 }
 
@@ -258,6 +253,19 @@ pub(in crate::nns) enum NnsInventoryResolveError {
         /// Canonically ordered identifiers that matched.
         matches: Vec<String>,
     },
+}
+
+impl NnsInventoryResolveError {
+    pub(super) fn for_collection(self, collection: NnsInventoryCollection) -> NnsInventoryError {
+        match self {
+            Self::NotFound { input } => NnsInventoryError::NotFound { collection, input },
+            Self::Ambiguous { prefix, matches } => NnsInventoryError::AmbiguousPrefix {
+                collection,
+                prefix,
+                matches,
+            },
+        }
+    }
 }
 
 /// Resolve a Registry inventory row by exact normalized identifier or unique prefix.

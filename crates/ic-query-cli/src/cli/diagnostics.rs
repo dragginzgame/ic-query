@@ -1,30 +1,30 @@
 //! Actionable command advice for typed library failures.
 
 use crate::{nns::NnsCommandError, sns::SnsCommandError};
-use ic_query::nns::data_center::NnsDataCenterHostError;
 use ic_query::nns::neuron::NnsNeuronHostError;
-use ic_query::nns::node::NnsNodeHostError;
-use ic_query::nns::node_operator::NnsNodeOperatorHostError;
-use ic_query::nns::node_provider::NnsNodeProviderHostError;
 use ic_query::nns::proposals::NnsProposalHostError;
 use ic_query::nns::registry::NnsRegistryHostError;
 use ic_query::nns::topology::NnsTopologyHostError;
+use ic_query::nns::{NnsInventoryCollection, NnsInventoryError};
 use ic_query::sns::SnsHostError;
 
 pub const fn nns_advice(error: &NnsCommandError) -> &'static str {
     match error {
-        NnsCommandError::DataCenterHost(NnsDataCenterHostError::UnsupportedNetwork { .. }) => {
-            "\n\nTry:\n  icq --network ic nns data-center list"
-        }
-        NnsCommandError::NodeHost(NnsNodeHostError::UnsupportedNetwork { .. }) => {
-            "\n\nTry:\n  icq --network ic nns node list"
-        }
-        NnsCommandError::NodeOperatorHost(NnsNodeOperatorHostError::UnsupportedNetwork {
+        NnsCommandError::InventoryHost(NnsInventoryError::UnsupportedNetwork {
+            collection,
             ..
-        }) => "\n\nTry:\n  icq --network ic nns node-operator list",
-        NnsCommandError::NodeProviderHost(NnsNodeProviderHostError::UnsupportedNetwork {
-            ..
-        }) => "\n\nTry:\n  icq --network ic nns node-provider list",
+        }) => match collection {
+            NnsInventoryCollection::Node => "\n\nTry:\n  icq --network ic nns node list",
+            NnsInventoryCollection::NodeProvider => {
+                "\n\nTry:\n  icq --network ic nns node-provider list"
+            }
+            NnsInventoryCollection::NodeOperator => {
+                "\n\nTry:\n  icq --network ic nns node-operator list"
+            }
+            NnsInventoryCollection::DataCenter => {
+                "\n\nTry:\n  icq --network ic nns data-center list"
+            }
+        },
         NnsCommandError::RegistryHost(NnsRegistryHostError::UnsupportedNetwork { .. }) => {
             "\n\nTry:\n  icq --network ic nns registry version"
         }
@@ -66,7 +66,8 @@ mod tests {
         for (error, advice) in [
             (
                 IcqCliError::Nns(
-                    NnsNodeHostError::UnsupportedNetwork {
+                    NnsInventoryError::UnsupportedNetwork {
+                        collection: NnsInventoryCollection::Node,
                         network: "local".into(),
                     }
                     .into(),

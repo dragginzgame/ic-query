@@ -34,6 +34,8 @@ pub fn build_icrc_account_transaction_list_report(
     let cached = load_cached_icrc_account_transactions(&request.cache)?;
     let snapshot = cached.snapshot;
     let total_transaction_count = snapshot.transactions.len();
+    let newest_transaction_id = snapshot.transactions.first().map(|row| row.id.clone());
+    let oldest_transaction_id = snapshot.transactions.last().map(|row| row.id.clone());
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     let transactions: Vec<_> = match request.sort {
         IcrcAccountTransactionSort::Newest => {
@@ -46,7 +48,6 @@ pub fn build_icrc_account_transaction_list_report(
             .take(limit)
             .collect(),
     };
-    let returned_transaction_count = transactions.len();
 
     Ok(IcrcAccountTransactionListReport {
         context: snapshot.context,
@@ -54,9 +55,8 @@ pub fn build_icrc_account_transaction_list_report(
         requested_limit: request.limit,
         sort: request.sort.as_str().to_string(),
         total_transaction_count,
-        returned_transaction_count,
-        newest_transaction_id: snapshot.newest_transaction_id,
-        oldest_transaction_id: snapshot.oldest_transaction_id,
+        newest_transaction_id,
+        oldest_transaction_id,
         balance: snapshot.balance,
         token_symbol: snapshot.token_symbol,
         decimals: snapshot.decimals,
@@ -109,8 +109,16 @@ fn load_cache_summary(
             data: crate::icrc::IcrcAccountTransactionValidCacheSummary {
                 index_canister_id: cached.snapshot.context.index_canister_id,
                 transaction_count: cached.snapshot.transactions.len(),
-                newest_transaction_id: cached.snapshot.newest_transaction_id,
-                oldest_transaction_id: cached.snapshot.oldest_transaction_id,
+                newest_transaction_id: cached
+                    .snapshot
+                    .transactions
+                    .first()
+                    .map(|row| row.id.clone()),
+                oldest_transaction_id: cached
+                    .snapshot
+                    .transactions
+                    .last()
+                    .map(|row| row.id.clone()),
                 page_size: cached.snapshot.completeness.page_size,
                 page_count: cached.snapshot.completeness.page_count,
                 point_in_time_guaranteed: cached.snapshot.completeness.point_in_time_guaranteed,

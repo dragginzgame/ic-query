@@ -161,10 +161,7 @@ pub fn icrc_account_transaction_list_report_text(
         ),
         format!("requested_limit: {}", report.requested_limit),
         format!("sort: {}", report.sort),
-        format!(
-            "returned_transactions: {}",
-            report.returned_transaction_count
-        ),
+        format!("returned_transactions: {}", report.transactions.len()),
         format!("total_transactions: {}", report.total_transaction_count),
         format!(
             "newest_transaction_id: {}",

@@ -25,6 +25,6 @@ async fn live_node_provider_source_rejects_non_mainnet_before_agent_construction
 
     assert!(matches!(
         error,
-        NnsNodeProviderHostError::UnsupportedNetwork { network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::NodeProvider, network } if network == "local"
     ));
 }

@@ -214,7 +214,7 @@ pub async fn advance_nns_neuron_collection_with_source(
     let (pages_fetched, neurons_fetched) = crate::nns::governance::advance_collection_counts(
         state.collection.pages_fetched,
         state.neurons_fetched,
-        u64::try_from(page.returned_neuron_count)
+        u64::try_from(page.neurons.len())
             .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?,
     )
     .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;

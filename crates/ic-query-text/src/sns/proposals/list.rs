@@ -51,7 +51,7 @@ pub fn sns_proposals_report_text(
         format!("verbose: {}", yes_no(options.verbose)),
     ]);
     push_report_provenance_lines(&mut lines, &report.provenance);
-    lines.extend([format!("proposal_count: {}", report.proposal_count)]);
+    lines.extend([format!("proposal_count: {}", report.proposals.len())]);
     lines.extend(crate::sns::common::sns_collection_lines(&report.context));
     if !report.proposals.is_empty() {
         lines.push(String::new());

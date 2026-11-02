@@ -1,9 +1,9 @@
 use super::{
-    NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION, NnsDataCenterHostError, NnsDataCenterListReport,
+    NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION, NnsDataCenterListReport, NnsInventoryError,
 };
 use crate::report::CollectionSourceRequest;
 use crate::{
-    ic_registry::{MainnetDataCenterList, fetch_mainnet_data_center_list},
+    ic_registry::fetch_mainnet_data_center_list,
     nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
@@ -17,32 +17,33 @@ pub trait NnsDataCenterSource: Sync {
     fn fetch_data_center_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsInventoryError>>;
 }
 
 impl NnsDataCenterSource for LiveNnsSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsInventoryError>> {
         Box::pin(async move {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
-                NnsDataCenterHostError::UnsupportedNetwork { network }
+                NnsInventoryError::UnsupportedNetwork {
+                    collection: super::COLLECTION,
+                    network,
+                }
             })?;
-            Ok(data_center_report_from_list(
-                fetch_mainnet_data_center_list(&fetch_request).await?,
-            ))
+            let (provenance, data_centers) = fetch_mainnet_data_center_list(&fetch_request)
+                .await
+                .map_err(|source| NnsInventoryError::Registry {
+                collection: super::COLLECTION,
+                source,
+            })?;
+            Ok(NnsDataCenterListReport {
+                schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
+                provenance,
+                data_center_count: data_centers.len(),
+                data_centers,
+            })
         })
-    }
-}
-
-fn data_center_report_from_list(list: MainnetDataCenterList) -> NnsDataCenterListReport {
-    let data_centers = list.data_centers;
-    NnsDataCenterListReport {
-        schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
-        provenance: list.provenance,
-        data_center_count: data_centers.len(),
-        data_centers,
     }
 }

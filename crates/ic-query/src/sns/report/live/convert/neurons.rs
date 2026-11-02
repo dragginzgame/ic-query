@@ -8,15 +8,14 @@ use super::proposals::sns_topic_text;
 use crate::sns::report::{
     SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronId,
-    SnsNeuronPermissionRow, SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-    SnsRewardCheckpointRow, hex_bytes,
+    SnsNeuronPermissionRow, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsRewardCheckpointRow,
+    hex_bytes,
     live::types::{
         SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
         SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
         SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceRewardNeuron,
         SnsGovernanceTopicFollowees,
     },
-    model::reports::neurons::detail::neuron_policy_observations,
 };
 
 macro_rules! base_neuron_row {
@@ -61,8 +60,6 @@ pub(in crate::sns::report::live) fn mainnet_sns_neuron(
         .into_iter()
         .map(maturity_disbursement)
         .collect::<Vec<_>>();
-    let (mint, staking) =
-        neuron_policy_observations(&permissions, !disburse_maturity_in_progress.is_empty());
     Ok(SnsNeuronDetail {
         neuron: row,
         permissions,
@@ -73,8 +70,6 @@ pub(in crate::sns::report::live) fn mainnet_sns_neuron(
             .map(|(function_id, followees)| legacy_followees(function_id, followees))
             .collect(),
         topic_followees: neuron.topic_followees.map(topic_followees_rows),
-        maturity_mint_conversion_observed_disabled: mint,
-        manual_maturity_staking_observed_disabled: staking,
     })
 }
 
@@ -85,7 +80,7 @@ pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
     let neuron_id = neuron_id_text(neuron.id)?;
     let maturity_e8s_equivalent = neuron.maturity_e8s_equivalent;
     let staked_maturity_e8s_equivalent = neuron.staked_maturity_e8s_equivalent;
-    let combined_maturity_e8s_equivalent = maturity_e8s_equivalent
+    maturity_e8s_equivalent
         .checked_add(staked_maturity_e8s_equivalent.unwrap_or(0))
         .ok_or(SnsHostError::RewardCheckpointArithmetic {
             field: "combined_maturity_e8s_equivalent",
@@ -100,19 +95,14 @@ pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
         .into_iter()
         .map(maturity_disbursement)
         .collect::<Vec<_>>();
-    let (mint, staking) =
-        neuron_policy_observations(&permissions, !disburse_maturity_in_progress.is_empty());
     Ok(SnsRewardCheckpointRow {
         neuron_id,
         created_timestamp_seconds: neuron.created_timestamp_seconds,
         maturity_e8s_equivalent,
         staked_maturity_e8s_equivalent,
-        combined_maturity_e8s_equivalent,
         auto_stake_maturity: neuron.auto_stake_maturity,
         permissions,
         disburse_maturity_in_progress,
-        maturity_mint_conversion_observed_disabled: mint,
-        manual_maturity_staking_observed_disabled: staking,
     })
 }
 
@@ -141,11 +131,7 @@ fn required_neuron_permission(
 fn neuron_permission(permission: SnsGovernanceNeuronPermission) -> SnsNeuronPermissionRow {
     SnsNeuronPermissionRow {
         principal: permission.principal.map(|principal| principal.to_text()),
-        permission_types: permission
-            .permission_type
-            .into_iter()
-            .map(SnsNeuronPermissionValue::from_code)
-            .collect(),
+        permission_types: permission.permission_type,
     }
 }
 
@@ -289,8 +275,11 @@ mod tests {
             detail.permissions[0].principal.as_deref(),
             Some("2vxsx-fae")
         );
-        assert_eq!(detail.permissions[0].permission_types[0].code, 9);
-        assert_eq!(detail.permissions[0].permission_types[1].name, "unknown");
+        assert_eq!(detail.permissions[0].permission_types[0], 9);
+        assert_eq!(
+            crate::sns::sns_neuron_permission_name(detail.permissions[0].permission_types[1]),
+            "unknown"
+        );
         let disbursement = &detail.disburse_maturity_in_progress[0];
         let account = disbursement
             .account_to_disburse_to
@@ -303,11 +292,11 @@ mod tests {
         assert_eq!(topic.topic.as_deref(), Some("governance"));
         assert_eq!(topic.followees[0].alias.as_deref(), Some("lead"));
         assert_eq!(
-            detail.maturity_mint_conversion_observed_disabled,
+            detail.derived_policy_observations().0,
             SnsPolicyObservationStatus::Violated
         );
         assert_eq!(
-            detail.manual_maturity_staking_observed_disabled,
+            detail.derived_policy_observations().1,
             SnsPolicyObservationStatus::Violated
         );
     }
@@ -365,10 +354,13 @@ mod tests {
         assert_eq!(row.neuron_id, "01".repeat(32));
         assert_eq!(row.maturity_e8s_equivalent, 10_000_000);
         assert_eq!(row.staked_maturity_e8s_equivalent, Some(5_000_000));
-        assert_eq!(row.combined_maturity_e8s_equivalent, 15_000_000);
+        assert_eq!(row.checked_combined_maturity().unwrap(), 15_000_000);
         assert_eq!(row.permissions[0].principal, None);
-        assert_eq!(row.permissions[0].permission_types[0].code, 11);
-        assert_eq!(row.permissions[0].permission_types[0].name, "unknown");
+        assert_eq!(row.permissions[0].permission_types[0], 11);
+        assert_eq!(
+            crate::sns::sns_neuron_permission_name(row.permissions[0].permission_types[0]),
+            "unknown"
+        );
         let disbursement = &row.disburse_maturity_in_progress[0];
         let account = disbursement
             .account_to_disburse_to
@@ -377,11 +369,11 @@ mod tests {
         assert_eq!(account.owner.as_deref(), Some("2vxsx-fae"));
         assert_eq!(account.subaccount_hex.as_deref(), Some(&*"ab".repeat(32)));
         assert_eq!(
-            row.maturity_mint_conversion_observed_disabled,
+            row.derived_policy_observations().0,
             SnsPolicyObservationStatus::Violated
         );
         assert_eq!(
-            row.manual_maturity_staking_observed_disabled,
+            row.derived_policy_observations().1,
             SnsPolicyObservationStatus::Unassessable
         );
     }

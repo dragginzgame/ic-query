@@ -212,7 +212,7 @@ pub(super) fn list_report_from_rows(
         next_start_neuron_id,
         total_neuron_count,
         point_in_time_guaranteed: false,
-        returned_neuron_count: neurons.len(),
+
         neurons,
     }
 }

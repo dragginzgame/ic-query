@@ -17,12 +17,11 @@ use crate::{
     report::ReportDataSource,
     sns::report::{
         MAINNET_SNS_WASM_CANISTER_ID, MainnetSnsCanisters, SNS_REWARD_CHECKPOINT_MAX_NEURONS,
-        SNS_REWARD_CHECKPOINT_PAGE_SIZE, SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
+        SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         model::reports::{SnsGovernanceParameters, SnsRunningVersionResponse},
     },
     subnet_catalog::MAINNET_NETWORK,
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use serde::Serialize;
 use std::collections::HashSet;
@@ -108,18 +107,12 @@ pub struct SnsRewardCheckpointRow {
     pub maturity_e8s_equivalent: u64,
     /// Raw staked maturity in e8s-equivalent units when present.
     pub staked_maturity_e8s_equivalent: Option<u64>,
-    /// Checked sum of unstaked and staked maturity.
-    pub combined_maturity_e8s_equivalent: u64,
     /// Native automatic maturity-staking state when supplied.
     pub auto_stake_maturity: Option<bool>,
     /// Every current principal permission entry returned by Governance.
     pub permissions: Vec<SnsNeuronPermissionRow>,
     /// Every pending maturity disbursement returned by Governance.
     pub disburse_maturity_in_progress: Vec<SnsMaturityDisbursementRow>,
-    /// Neuron-local observation for permissions 7 and 8 plus pending disbursements.
-    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
-    /// Neuron-local observation for manual maturity-staking permission 9.
-    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
 }
 
 impl SnsRewardCheckpointRow {
@@ -172,24 +165,10 @@ pub struct SnsRewardCheckpointReport {
     pub data_source: ReportDataSource,
     /// Unix timestamp captured immediately before targeted discovery.
     pub collection_started_at_unix_secs: u64,
-    /// UTC rendering of `collection_started_at_unix_secs`.
-    pub collection_started_at: String,
     /// Unix timestamp captured after the final running-version bracket.
     pub collection_completed_at_unix_secs: u64,
-    /// UTC rendering of `collection_completed_at_unix_secs`.
-    pub collection_completed_at: String,
-    /// Fixed native page size used for every Governance neuron query.
-    pub page_size: u32,
     /// Number of neuron pages fetched, including the final exhaustion page.
     pub page_count: u32,
-    /// Number of neuron rows retained.
-    pub row_count: usize,
-    /// Recomputed number of unique full neuron identifiers.
-    pub unique_neuron_id_count: usize,
-    /// Mandatory row ceiling derived from Governance parameters.
-    pub collection_row_ceiling: u64,
-    /// Total targeted-discovery, bracket, and neuron-page client queries.
-    pub client_query_count: u32,
     /// Explicit authority classification for the completed collection.
     pub collection_status: SnsRewardCollectionStatus,
     /// Always false because Governance exposes no point-in-time neuron snapshot version.
@@ -206,9 +185,6 @@ pub struct SnsRewardCheckpointReport {
     pub running_version_before: SnsRunningVersionResponse,
     /// Complete running-version response read after neuron pagination.
     pub running_version_after: SnsRunningVersionResponse,
-    /// Recomputed maturity totals and policy findings, flattened into report JSON.
-    #[serde(flatten)]
-    pub summary: SnsRewardCheckpointSummary,
     /// Strictly increasing full neuron rows retained as raw checkpoint evidence.
     pub rows: Vec<SnsRewardCheckpointRow>,
 }
@@ -231,9 +207,7 @@ pub fn validate_sns_reward_checkpoint_report(
     report: &SnsRewardCheckpointReport,
 ) -> Result<(), SnsRewardCheckpointValidationError> {
     validate_checkpoint_evidence(report)?;
-    let summary = recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows)
-        .map_err(invalid_validation)?;
-    validate_checkpoint_summary(report, &summary)
+    report.summary().map(|_| ())
 }
 
 ///
@@ -264,30 +238,46 @@ pub(in crate::sns::report) fn assess_reward_checkpoint(
     report: &SnsRewardCheckpointReport,
 ) -> RewardCheckpointAssessment {
     let evidence = validate_checkpoint_evidence(report);
-    match recompute_reward_checkpoint_summary(&report.parameters_before, &report.rows) {
-        Ok(summary) => {
-            match evidence.and_then(|()| validate_checkpoint_summary(report, &summary)) {
-                Ok(()) => RewardCheckpointAssessment::Valid(summary),
-                Err(error) => RewardCheckpointAssessment::Invalid {
-                    error,
-                    summary: Some(summary),
-                },
-            }
-        }
+    match report.summary() {
+        Ok(summary) => match evidence {
+            Ok(()) => RewardCheckpointAssessment::Valid(summary),
+            Err(error) => RewardCheckpointAssessment::Invalid {
+                error,
+                summary: Some(summary),
+            },
+        },
         Err(reason) => RewardCheckpointAssessment::Invalid {
-            error: evidence.err().unwrap_or_else(|| invalid_validation(reason)),
+            error: evidence.err().unwrap_or(reason),
             summary: None,
         },
     }
 }
 
 impl SnsRewardCheckpointReport {
-    /// Validate collection evidence after constructing the summary directly from raw rows.
-    #[cfg(feature = "sns-host")]
-    pub(in crate::sns::report) fn validate_collected_evidence(
+    /// Derive checked totals and policy observations from the retained raw evidence.
+    pub fn summary(
         &self,
-    ) -> Result<(), SnsRewardCheckpointValidationError> {
-        validate_checkpoint_evidence(self)
+    ) -> Result<SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError> {
+        recompute_reward_checkpoint_summary(&self.parameters_before, &self.rows)
+            .map_err(invalid_validation)
+    }
+
+    /// Number of retained raw neuron rows.
+    #[must_use]
+    pub const fn row_count(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// Mandatory collection ceiling admitted from the raw parameter bracket.
+    #[must_use]
+    pub fn collection_row_ceiling(&self) -> Option<u64> {
+        reward_checkpoint_neuron_ceiling(&self.parameters_before)
+    }
+
+    /// Targeted discovery, bracket and page calls implied by this collection protocol.
+    #[must_use]
+    pub const fn client_query_count(&self) -> Option<u32> {
+        self.page_count.checked_add(8)
     }
 }
 
@@ -365,11 +355,6 @@ fn validate_checkpoint_header(
     if report.data_source != ReportDataSource::Live {
         return Err(invalid_validation("checkpoint data_source must be live"));
     }
-    if report.collection_status != SnsRewardCollectionStatus::ApiExhaustedObserved {
-        return Err(invalid_validation(
-            "checkpoint collection is not API-exhausted",
-        ));
-    }
     if report.point_in_time_guaranteed {
         return Err(invalid_validation(
             "checkpoint cannot claim a point-in-time neuron snapshot",
@@ -386,44 +371,20 @@ fn validate_checkpoint_collection_metadata(
             "collection completion precedes collection start",
         ));
     }
-    if report.collection_started_at
-        != format_utc_timestamp_secs(report.collection_started_at_unix_secs)
-        || report.collection_completed_at
-            != format_utc_timestamp_secs(report.collection_completed_at_unix_secs)
-    {
+    if report.page_count == 0 {
         return Err(invalid_validation(
-            "collection UTC timestamps do not match raw Unix timestamps",
+            "checkpoint must contain at least one page",
         ));
     }
-    if report.page_size != SNS_REWARD_CHECKPOINT_PAGE_SIZE || report.page_count == 0 {
-        return Err(invalid_validation(
-            "checkpoint must contain at least one fixed-size-100 page",
-        ));
-    }
-    let expected_query_count = report
-        .page_count
-        .checked_add(8)
+    report
+        .client_query_count()
         .ok_or_else(|| invalid_validation("page_count + 8 exceeds the native u32 contract"))?;
-    if report.client_query_count != expected_query_count {
-        return Err(invalid_validation(
-            "client_query_count does not equal page_count + 8",
-        ));
-    }
-    if report.row_count != report.rows.len() || report.unique_neuron_id_count != report.rows.len() {
-        return Err(invalid_validation(
-            "serialized row counts do not match raw checkpoint rows",
-        ));
-    }
-    if reward_checkpoint_neuron_ceiling(&report.parameters_before)
-        != Some(report.collection_row_ceiling)
-    {
-        return Err(invalid_validation(
-            "collection_row_ceiling does not match a valid max_number_of_neurons",
-        ));
-    }
+    let ceiling = report
+        .collection_row_ceiling()
+        .ok_or_else(|| invalid_validation("invalid max_number_of_neurons"))?;
     if u64::try_from(report.rows.len())
         .ok()
-        .is_none_or(|rows| rows > report.collection_row_ceiling)
+        .is_none_or(|rows| rows > ceiling)
     {
         return Err(invalid_validation(
             "raw row count exceeds the mandatory collection ceiling",
@@ -534,19 +495,6 @@ fn validate_checkpoint_rows(
             .map_err(invalid_validation)?;
     }
     Ok(())
-}
-
-fn validate_checkpoint_summary(
-    report: &SnsRewardCheckpointReport,
-    summary: &SnsRewardCheckpointSummary,
-) -> Result<(), SnsRewardCheckpointValidationError> {
-    if report.summary == *summary {
-        Ok(())
-    } else {
-        Err(invalid_validation(
-            "serialized checkpoint summary does not match raw evidence",
-        ))
-    }
 }
 
 pub(in crate::sns::report) fn validate_sns_reward_running_version_evidence(
@@ -729,21 +677,7 @@ fn accumulate_reward_row(
             row.neuron_id
         )
     })?;
-    if row.combined_maturity_e8s_equivalent != combined {
-        return Err(format!(
-            "neuron {} combined maturity does not match raw components",
-            row.neuron_id
-        ));
-    }
     let (row_mint, row_staking) = row.derived_policy_observations();
-    if row.maturity_mint_conversion_observed_disabled != row_mint
-        || row.manual_maturity_staking_observed_disabled != row_staking
-    {
-        return Err(format!(
-            "neuron {} policy observations do not match raw evidence",
-            row.neuron_id
-        ));
-    }
     summary.aggregate_maturity_e8s_equivalent = checked_sum(
         summary.aggregate_maturity_e8s_equivalent,
         row.maturity_e8s_equivalent,
@@ -787,7 +721,7 @@ fn accumulate_reward_row_counts(
             row.permissions
                 .iter()
                 .flat_map(|permission| permission.permission_types.iter())
-                .filter(|value| !permission_code_is_assessable(value.code))
+                .filter(|value| !permission_code_is_assessable(**value))
                 .count(),
         )
         .ok_or_else(|| "unassessable permission code count overflow".to_string())?;

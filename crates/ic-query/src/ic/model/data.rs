@@ -183,29 +183,35 @@ pub struct IcIcrcIndexedCountSourceData {
 /// One untrusted raw account record returned by the official ICRC index.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct IcIcrcAccountSourceRow {
     /// Opaque account id returned by the API.
+    #[serde(rename = "id")]
     pub account_id: String,
     /// Raw owner principal returned by the API.
     pub owner: String,
     /// Raw subaccount text returned by the API.
     pub subaccount: String,
     /// Raw indexed balance in ledger base units.
+    #[serde(rename = "balance")]
     pub balance_base_units: String,
     /// Raw indexed transaction count.
     pub total_transactions: u64,
     /// Raw creation timestamp as Unix nanoseconds.
+    #[serde(rename = "created_timestamp")]
     pub created_at_unix_nanos: u64,
     /// Raw ledger canister principal carried by the row.
     pub ledger_canister_id: String,
     /// Raw latest indexed transaction.
     pub latest_transaction_index: u64,
     /// Raw Dashboard update timestamp.
+    #[serde(rename = "updated_at")]
     pub dashboard_updated_at: String,
     /// Raw active fee-collector classification.
+    #[serde(default)]
     pub active_fee_collector: bool,
     /// Raw fee-collector block-range arrays.
+    #[serde(default)]
     pub fee_collector_block_ranges: Vec<Vec<serde_json::Value>>,
 }
 
@@ -251,15 +257,17 @@ pub struct IcIcrcAccountInfoSourceData {
 /// One untrusted raw holder record returned by the official ICRC index.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct IcIcrcHolderSourceRow {
     /// Raw holder principal returned by the API.
     pub principal: String,
     /// Raw aggregate indexed balance in ledger base units.
+    #[serde(rename = "balance")]
     pub balance_base_units: String,
     /// Raw aggregate indexed transaction count.
     pub total_transactions: u64,
     /// Raw earliest creation timestamp as Unix nanoseconds.
+    #[serde(rename = "created_timestamp")]
     pub created_at_unix_nanos: u64,
     /// Raw ledger canister principal carried by the row.
     pub ledger_canister_id: String,
@@ -270,6 +278,7 @@ pub struct IcIcrcHolderSourceRow {
     /// Raw nullable USD value.
     pub value_usd: serde_json::Value,
     /// Raw Dashboard update timestamp.
+    #[serde(rename = "updated_at")]
     pub dashboard_updated_at: String,
 }
 

@@ -23,6 +23,7 @@ impl_nns_inventory_report!(
     NnsNodeListReport,
     super::super::NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
     "node",
+    super::super::COLLECTION,
     node_count,
     nodes,
     |_report: &NnsNodeListReport| None,

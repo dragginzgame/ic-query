@@ -85,7 +85,6 @@ use ic_query::sns::SnsNeuronFolloweesRow;
 use ic_query::sns::SnsNeuronId;
 use ic_query::sns::SnsNeuronPermissionList;
 use ic_query::sns::SnsNeuronPermissionRow;
-use ic_query::sns::SnsNeuronPermissionValue;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsNeuronRequest;
 use ic_query::sns::SnsNeuronRow;
@@ -126,7 +125,6 @@ use ic_query::sns::SnsRewardCheckpointReport;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsRewardCheckpointRequest;
 use ic_query::sns::SnsRewardCheckpointRow;
-use ic_query::sns::SnsRewardCheckpointSummary;
 use ic_query::sns::SnsRewardCollectionStatus;
 use ic_query::sns::SnsRewardDiffInvalidReasonKind;
 use ic_query::sns::SnsRewardDiffReport;
@@ -379,7 +377,7 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
     assert_eq!(sns_neuron_permission_name(7), "merge_maturity");
     assert_eq!(sns_neuron_permission_name(99), "unknown");
     assert_eq!(
-        report.detail.maturity_mint_conversion_observed_disabled,
+        report.detail.derived_policy_observations().0,
         SnsPolicyObservationStatus::Violated
     );
     assert!(sns_neuron_detail_report_text(&report).contains("7:merge_maturity"));
@@ -391,6 +389,19 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
         SAMPLE_SNS_GOVERNANCE_CANISTER_ID
     );
     assert_eq!(value.get("context"), None);
+    assert_eq!(
+        value["detail"]["permissions"][0]["permission_types"],
+        serde_json::json!([7])
+    );
+    for invalid_codes in [
+        serde_json::json!([{"code": 7, "name": "merge_maturity"}]),
+        serde_json::json!(["7"]),
+        serde_json::json!([2_147_483_648_u64]),
+    ] {
+        let mut invalid = value.clone();
+        invalid["detail"]["permissions"][0]["permission_types"] = invalid_codes;
+        assert!(serde_json::from_value::<SnsNeuronDetailReport>(invalid).is_err());
+    }
     let decoded: SnsNeuronDetailReport =
         serde_json::from_value(value.clone()).expect("detail round trip");
     assert_eq!(decoded, report);
@@ -408,39 +419,54 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
 fn public_sns_reward_checkpoint_models_round_trip_and_render_without_host() {
     let report = sample_sns_reward_checkpoint_report();
     let value = serde_json::to_value(&report).expect("checkpoint JSON");
+    assert!(
+        value
+            .get("aggregate_combined_maturity_e8s_equivalent")
+            .is_none()
+    );
     assert_eq!(
-        value["aggregate_combined_maturity_e8s_equivalent"],
+        report
+            .summary()
+            .unwrap()
+            .aggregate_combined_maturity_e8s_equivalent,
         15_000_000
     );
-    let summary = serde_json::to_value(&report.summary).expect("summary JSON");
     let canisters = serde_json::to_value(&report.canisters).expect("canister identities");
-    for (key, expected) in summary
-        .as_object()
-        .expect("summary fields")
-        .iter()
-        .chain(canisters.as_object().expect("canister fields"))
-    {
-        assert_eq!(
-            value.get(key),
-            Some(expected),
-            "top-level summary field {key}"
-        );
+    for (key, expected) in canisters.as_object().unwrap() {
+        assert_eq!(value.get(key), Some(expected), "flat identity field {key}");
     }
     let decoded: SnsRewardCheckpointReport =
         serde_json::from_value(value.clone()).expect("strict checkpoint decode");
     assert_eq!(decoded, report);
-    for field in ["permission_entry_count", "governance_canister_id"] {
+    for field in ["rows", "governance_canister_id"] {
         let mut missing = value.clone();
         missing.as_object_mut().unwrap().remove(field);
         assert!(serde_json::from_value::<SnsRewardCheckpointReport>(missing).is_err());
     }
+    for (field, legacy) in [
+        ("row_count", serde_json::json!(1)),
+        (
+            "aggregate_combined_maturity_e8s_equivalent",
+            serde_json::json!(15_000_000),
+        ),
+        (
+            "collection_started_at",
+            serde_json::json!("2023-11-15T22:13:20Z"),
+        ),
+    ] {
+        let mut former = value.clone();
+        former[field] = legacy;
+        assert!(serde_json::from_value::<SnsRewardCheckpointReport>(former).is_err());
+    }
+    let mut former_row = value.clone();
+    former_row["rows"][0]["combined_maturity_e8s_equivalent"] = serde_json::json!(15_000_000);
+    assert!(serde_json::from_value::<SnsRewardCheckpointReport>(former_row).is_err());
     let mut invalid = value;
     invalid["unexpected"] = serde_json::json!(true);
     assert!(serde_json::from_value::<SnsRewardCheckpointReport>(invalid).is_err());
-    let duplicate = serde_json::to_string(&report).unwrap().replace(
-        "\"permission_entry_count\":",
-        "\"permission_entry_count\":99,\"permission_entry_count\":",
-    );
+    let duplicate = serde_json::to_string(&report)
+        .unwrap()
+        .replace("\"page_count\":", "\"page_count\":99,\"page_count\":");
     assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
     let duplicate = serde_json::to_string(&report).unwrap().replace(
         "\"root_canister_id\":",
@@ -498,11 +524,11 @@ fn public_sns_reward_diff_reconciles_one_immediate_native_distribution() {
     let later = report.rows[0].after.as_ref().expect("later evidence");
     assert_eq!(
         earlier.combined_maturity_e8s_equivalent,
-        before.rows[0].combined_maturity_e8s_equivalent
+        before.rows[0].checked_combined_maturity().unwrap()
     );
     assert_eq!(
         later.combined_maturity_e8s_equivalent,
-        after.rows[0].combined_maturity_e8s_equivalent
+        after.rows[0].checked_combined_maturity().unwrap()
     );
     assert_eq!(
         earlier.created_timestamp_seconds,
@@ -573,25 +599,14 @@ fn public_sns_reward_diff_returns_no_allocation_for_exact_zero_distribution() {
 fn public_sns_reward_diff_fails_closed_for_unknown_permissions_and_tampering() {
     let before = sample_sns_reward_checkpoint_report();
     let mut unknown = advance_reward_checkpoint(&before, 5_000, 5_000);
-    unknown.rows[0].permissions[0].permission_types = vec![SnsNeuronPermissionValue::from_code(11)];
-    unknown.rows[0].maturity_mint_conversion_observed_disabled =
-        SnsPolicyObservationStatus::Unassessable;
-    unknown.rows[0].manual_maturity_staking_observed_disabled =
-        SnsPolicyObservationStatus::Unassessable;
-    unknown.summary.unassessable_permission_code_count = 1;
-    unknown.summary.maturity_mint_conversion_observed_disabled =
-        SnsPolicyObservationStatus::Unassessable;
-    unknown.summary.manual_maturity_staking_observed_disabled =
-        SnsPolicyObservationStatus::Unassessable;
-    unknown.summary.maturity_conversion_policy_observed_status =
-        SnsPolicyObservationStatus::Unassessable;
+    unknown.rows[0].permissions[0].permission_types = vec![11];
     let report = build_sns_reward_diff_report(&before, &unknown);
     assert!(report.invalid_reasons.iter().any(|reason| {
         reason.kind == SnsRewardDiffInvalidReasonKind::PolicyNotObservedSatisfied
     }));
 
     let mut tampered = advance_reward_checkpoint(&before, 5_000, 5_000);
-    tampered.summary.aggregate_combined_maturity_e8s_equivalent += 1;
+    tampered.rows[0].maturity_e8s_equivalent = u64::MAX;
     let report = build_sns_reward_diff_report(&before, &tampered);
     assert!(
         report.invalid_reasons.iter().any(|reason| {
@@ -602,16 +617,14 @@ fn public_sns_reward_diff_fails_closed_for_unknown_permissions_and_tampering() {
 }
 
 #[test]
-fn public_sns_reward_diff_retains_raw_summaries_when_checkpoint_validation_fails() {
+fn public_sns_reward_diff_retains_recomputed_summaries_when_checkpoint_validation_fails() {
     let before = sample_sns_reward_checkpoint_report();
     let after = advance_reward_checkpoint(&before, 5_000, 5_000);
     let mut bad_header = after.clone();
     bad_header.schema_version = 0;
-    let mut bad_summary = after.clone();
-    bad_summary
-        .summary
-        .aggregate_combined_maturity_e8s_equivalent += 1;
-    for invalid in [bad_header, bad_summary] {
+    let mut bad_identity = after.clone();
+    bad_identity.sns_wasm_canister_id = "aaaaa-aa".to_string();
+    for invalid in [bad_header, bad_identity] {
         let report = build_sns_reward_diff_report(&before, &invalid);
         assert!(report.invalid_reasons.iter().any(|reason| {
             reason.kind == SnsRewardDiffInvalidReasonKind::AfterCheckpointInvalid
@@ -620,11 +633,21 @@ fn public_sns_reward_diff_retains_raw_summaries_when_checkpoint_validation_fails
         assert_eq!(report.rows, Vec::new());
         assert_eq!(
             report.aggregate_after_combined_maturity_e8s_equivalent,
-            Some(after.summary.aggregate_combined_maturity_e8s_equivalent)
+            Some(
+                after
+                    .summary()
+                    .unwrap()
+                    .aggregate_combined_maturity_e8s_equivalent
+            )
         );
         assert_eq!(
             report.after_policy_status,
-            Some(after.summary.maturity_conversion_policy_observed_status)
+            Some(
+                after
+                    .summary()
+                    .unwrap()
+                    .maturity_conversion_policy_observed_status
+            )
         );
     }
 
@@ -647,9 +670,6 @@ fn public_sns_reward_diff_preserves_negative_missing_and_new_neuron_evidence() {
     let before = sample_sns_reward_checkpoint_report();
     let mut decreased = advance_reward_checkpoint(&before, 0, 50);
     decreased.rows[0].maturity_e8s_equivalent -= 40;
-    decreased.rows[0].combined_maturity_e8s_equivalent -= 40;
-    decreased.summary.aggregate_maturity_e8s_equivalent -= 40;
-    decreased.summary.aggregate_combined_maturity_e8s_equivalent -= 40;
     let report = build_sns_reward_diff_report(&before, &decreased);
     assert_eq!(report.rows[0].maturity_delta_e8s_equivalent, -40);
     assert!(
@@ -1283,7 +1303,6 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
             .direction_label(request.sort_direction)
             .to_string(),
 
-        proposal_count: 1,
         proposals: vec![sample_sns_proposal_row()],
     };
 
@@ -1514,7 +1533,7 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
     let list =
         build_sns_proposals_report_with_source_and_progress(&list_request, &source, &mut |_| {})
             .await?;
-    assert_eq!(list.proposal_count, 1);
+    assert_eq!(list.proposals.len(), 1);
     assert_eq!(list.proposals[0].title, "Upgrade SNS");
 
     let cache_root = proposal_source_cache_root();
@@ -1571,7 +1590,7 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
         &source,
     )
     .await?;
-    assert_eq!(report.neuron_count, 1);
+    assert_eq!(report.neurons.len(), 1);
     assert_eq!(report.neurons[0].neuron_id, SAMPLE_SNS_NEURON_ID);
 
     let cache_root = neuron_source_cache_root();
@@ -1610,11 +1629,14 @@ async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<()
     )
     .await?;
 
-    assert_eq!(report.row_count, 1);
+    assert_eq!(report.row_count(), 1);
     assert_eq!(report.page_count, 1);
-    assert_eq!(report.client_query_count, 9);
+    assert_eq!(report.client_query_count().unwrap(), 9);
     assert_eq!(
-        report.summary.maturity_conversion_policy_observed_status,
+        report
+            .summary()
+            .unwrap()
+            .maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::ObservedSatisfied
     );
     Ok(())
@@ -1769,7 +1791,7 @@ fn public_sns_host_api_exposes_cache_paths_and_local_reports() -> Result<(), Sns
     let neurons_list_request = SnsCacheListRequest::new(cache_root.clone(), "ic");
     assert_eq!(neurons_list_request.cache_root(), cache_root.as_path());
     let neurons_list_report = build_sns_neurons_cache_list_report(&neurons_list_request)?;
-    assert_eq!(neurons_list_report.cache_count, 0);
+    assert_eq!(neurons_list_report.caches.len(), 0);
     assert!(sns_neurons_cache_list_report_text(&neurons_list_report).contains("cache_count: 0"));
 
     let neurons_status_request =
@@ -1787,7 +1809,7 @@ fn public_sns_host_api_exposes_cache_paths_and_local_reports() -> Result<(), Sns
     let proposals_list_request = SnsCacheListRequest::new(cache_root.clone(), "ic");
     assert_eq!(proposals_list_request.cache_root(), cache_root.as_path());
     let proposals_list_report = build_sns_proposals_cache_list_report(&proposals_list_request)?;
-    assert_eq!(proposals_list_report.cache_count, 0);
+    assert_eq!(proposals_list_report.caches.len(), 0);
     assert!(
         sns_proposals_cache_list_report_text(&proposals_list_report).contains("cache_count: 0")
     );
@@ -2477,7 +2499,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
 
         sort: "api".to_string(),
         total_neuron_count: 1,
-        neuron_count: 1,
+
         neurons: vec![SnsNeuronRow {
             neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
             cached_neuron_stake_e8s: 100_000_000,
@@ -2587,7 +2609,7 @@ fn sample_sns_neuron_detail() -> SnsNeuronDetail {
         },
         permissions: vec![SnsNeuronPermissionRow {
             principal: Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()),
-            permission_types: vec![SnsNeuronPermissionValue::from_code(7)],
+            permission_types: vec![7],
         }],
         disburse_maturity_in_progress: vec![SnsMaturityDisbursementRow {
             timestamp_of_disbursement_seconds: 1_700_000_200,
@@ -2610,8 +2632,6 @@ fn sample_sns_neuron_detail() -> SnsNeuronDetail {
                 alias: Some("lead".to_string()),
             }],
         }]),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::Violated,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
     }
 }
 
@@ -2638,15 +2658,12 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         created_timestamp_seconds: 1_700_000_000,
         maturity_e8s_equivalent: 10_000_000,
         staked_maturity_e8s_equivalent: Some(5_000_000),
-        combined_maturity_e8s_equivalent: 15_000_000,
         auto_stake_maturity: Some(true),
         permissions: vec![SnsNeuronPermissionRow {
             principal: Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()),
-            permission_types: vec![SnsNeuronPermissionValue::from_code(4)],
+            permission_types: vec![4],
         }],
         disburse_maturity_in_progress: Vec::new(),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
     };
     SnsRewardCheckpointReport {
         schema_version: 1,
@@ -2665,15 +2682,8 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         },
         data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: 1_700_086_400,
-        collection_started_at: "2023-11-15T22:13:20Z".to_string(),
         collection_completed_at_unix_secs: 1_700_086_401,
-        collection_completed_at: "2023-11-15T22:13:21Z".to_string(),
-        page_size: 100,
         page_count: 1,
-        row_count: 1,
-        unique_neuron_id_count: 1,
-        collection_row_ceiling: 10_000,
-        client_query_count: 9,
         collection_status: SnsRewardCollectionStatus::ApiExhaustedObserved,
         point_in_time_guaranteed: false,
         parameters_before: parameters.clone(),
@@ -2682,24 +2692,6 @@ fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
         reward_event_after: reward_event,
         running_version_before: running_version.clone(),
         running_version_after: running_version,
-        summary: SnsRewardCheckpointSummary {
-            aggregate_maturity_e8s_equivalent: 10_000_000,
-            aggregate_staked_maturity_e8s_equivalent: 5_000_000,
-            aggregate_combined_maturity_e8s_equivalent: 15_000_000,
-            permission_entry_count: 1,
-            unassessable_permission_code_count: 0,
-            pending_maturity_disbursement_count: 0,
-            auto_stake_maturity_enabled_count: 1,
-            auto_stake_maturity_disabled_count: 0,
-            auto_stake_maturity_unspecified_count: 0,
-            manage_principals_grantable: Some(true),
-            maturity_mint_conversion_observed_disabled:
-                SnsPolicyObservationStatus::ObservedSatisfied,
-            manual_maturity_staking_observed_disabled:
-                SnsPolicyObservationStatus::ObservedSatisfied,
-            maturity_conversion_policy_observed_status:
-                SnsPolicyObservationStatus::ObservedSatisfied,
-        },
 
         rows: vec![row],
     }
@@ -2712,9 +2704,7 @@ fn advance_reward_checkpoint(
 ) -> SnsRewardCheckpointReport {
     let mut after = before.clone();
     after.collection_started_at_unix_secs = 1_700_172_800;
-    after.collection_started_at = "2023-11-16T22:13:20Z".to_string();
     after.collection_completed_at_unix_secs = 1_700_172_801;
-    after.collection_completed_at = "2023-11-16T22:13:21Z".to_string();
     let mut event = before.reward_event_after.clone();
     event.actual_timestamp_seconds = 1_700_172_700;
     event.end_timestamp_seconds = Some(1_700_172_800);
@@ -2724,25 +2714,25 @@ fn advance_reward_checkpoint(
     after.reward_event_before = event.clone();
     after.reward_event_after = event;
     after.rows[0].maturity_e8s_equivalent += maturity_delta;
-    after.rows[0].combined_maturity_e8s_equivalent += maturity_delta;
-    after.summary.aggregate_maturity_e8s_equivalent += maturity_delta;
-    after.summary.aggregate_combined_maturity_e8s_equivalent += maturity_delta;
+    after.summary().unwrap().aggregate_maturity_e8s_equivalent += maturity_delta;
+    after
+        .summary()
+        .unwrap()
+        .aggregate_combined_maturity_e8s_equivalent += maturity_delta;
     after
 }
 
 fn clear_reward_checkpoint_rows(report: &mut SnsRewardCheckpointReport) {
     report.rows.clear();
-    report.row_count = 0;
-    report.unique_neuron_id_count = 0;
-    report.summary.aggregate_maturity_e8s_equivalent = 0;
-    report.summary.aggregate_staked_maturity_e8s_equivalent = 0;
-    report.summary.aggregate_combined_maturity_e8s_equivalent = 0;
-    report.summary.permission_entry_count = 0;
-    report.summary.unassessable_permission_code_count = 0;
-    report.summary.pending_maturity_disbursement_count = 0;
-    report.summary.auto_stake_maturity_enabled_count = 0;
-    report.summary.auto_stake_maturity_disabled_count = 0;
-    report.summary.auto_stake_maturity_unspecified_count = 0;
+    report.summary().unwrap().aggregate_maturity_e8s_equivalent = 0;
+    report
+        .summary()
+        .unwrap()
+        .aggregate_staked_maturity_e8s_equivalent = 0;
+    report
+        .summary()
+        .unwrap()
+        .aggregate_combined_maturity_e8s_equivalent = 0;
 }
 
 fn sample_sns_context() -> ic_query::sns::SnsReportContext {

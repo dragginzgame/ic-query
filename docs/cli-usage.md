@@ -623,8 +623,9 @@ queries and never reads or writes the complete neuron cache.
 
 `sns reward checkpoint` is a live API-exhausted observation, not a
 point-in-time proof. It strictly walks native 100-row neuron pages and retains
-each neuron's combined maturity, permissions, pending maturity disbursements,
-and auto-stake state. Complete nervous-system parameters, latest reward event,
+each neuron's raw unstaked/staked maturity components, permissions, pending
+maturity disbursements and auto-stake state. Combined maturity and summary
+statistics are derived from that evidence. Complete nervous-system parameters, latest reward event,
 and running SNS version responses bracket the walk. Any bracket change,
 duplicate or overlapping id, invalid cursor, missing exhaustion evidence, or
 parameter-derived collection-bound violation fails without emitting a

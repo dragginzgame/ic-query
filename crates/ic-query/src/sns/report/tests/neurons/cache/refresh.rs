@@ -64,7 +64,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(report.provenance.data_source().as_str(), "cache");
     assert_eq!(report.sort, "stake");
     assert_eq!(report.total_neuron_count, 3);
-    assert_eq!(report.neuron_count, 2);
+    assert_eq!(report.neurons.len(), 2);
     assert_eq!(report.requested_limit, 2);
 
     assert_eq!(report.owner_principal_id, None);

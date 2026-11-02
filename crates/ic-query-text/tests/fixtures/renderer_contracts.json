@@ -614,11 +614,9 @@
       "fetched_at": "2023-11-14T22:13:20Z",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "proposal_count": 1,
       "proposals": [
         {
           "action_text": "motion",
-          "ballot_count": 1,
           "ballots": [
             {
               "neuron_id": 1,
@@ -681,11 +679,9 @@
       "fetched_at": "2023-11-14T22:13:20Z",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "proposal_count": 2,
       "proposals": [
         {
           "action_text": "motion",
-          "ballot_count": 2,
           "ballots": [
             {
               "neuron_id": 1,
@@ -723,7 +719,6 @@
         },
         {
           "action_text": "motion",
-          "ballot_count": 2,
           "ballots": [
             {
               "neuron_id": 1,
@@ -791,11 +786,9 @@
       "fetched_at": "2023-11-14T22:13:20Z",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "proposal_count": 1,
       "proposals": [
         {
           "action_text": "motion",
-          "ballot_count": 2,
           "ballots": [
             {
               "neuron_id": 1,
@@ -863,11 +856,9 @@
       "fetched_at": "2023-11-14T22:13:20Z",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "proposal_count": 1,
       "proposals": [
         {
           "action_text": "motion",
-          "ballot_count": 2,
           "ballots": [
             {
               "neuron_id": 1,
@@ -937,7 +928,6 @@
       "network": "ic",
       "proposal": {
         "action_text": "motion",
-        "ballot_count": 1,
         "ballots": [
           {
             "neuron_id": 2,
@@ -992,7 +982,6 @@
       "network": "ic",
       "proposal": {
         "action_text": "motion",
-        "ballot_count": 2,
         "ballots": [
           {
             "neuron_id": 1,
@@ -1052,7 +1041,6 @@
       "network": "ic",
       "proposal": {
         "action_text": "motion",
-        "ballot_count": 2,
         "ballots": [
           {
             "neuron_id": 1,
@@ -1107,12 +1095,9 @@
     "renderer": "nns_registry_version_report_text",
     "report": {
       "certification": {
-        "certificate_bytes": 8,
         "certificate_hex": "cdcdcdcdcdcdcdcd",
-        "certificate_time": "2026-06-04T00:00:00Z",
         "certificate_time_nanos": 1780531200000000000,
         "certificate_verified": true,
-        "hash_tree_bytes": 4,
         "hash_tree_hex": "efefefef",
         "root_key_digest": "abababababababababababababababababababababababababababababababab"
       },
@@ -1133,15 +1118,12 @@
       "fetched_at": "2023-11-14T22:13:20Z",
       "fetched_by": "fixture",
       "network": "ic",
-      "node_count": 3,
       "registry_canister_id": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
       "registry_version": 42,
       "schema_version": 1,
       "source_endpoint": "https://icp-api.io",
-      "subnet_count": 2,
       "subnets": [
         {
-          "node_count": 2,
           "node_providers": [
             {
               "node_count": 1,
@@ -1156,7 +1138,6 @@
           "subnet_principal": "2cp6g-e6avf-5zi7y-q5o47-34uom-auqlr-wmqhf-ox5f5-d2zdx-vg4tz-iqe"
         },
         {
-          "node_count": 1,
           "node_providers": [
             {
               "node_count": 1,
@@ -1664,8 +1645,6 @@
             "function_id": 1
           }
         ],
-        "manual_maturity_staking_observed_disabled": "violated",
-        "maturity_mint_conversion_observed_disabled": "violated",
         "neuron": {
           "aging_since_timestamp_seconds": 1780272100,
           "auto_stake_maturity": true,
@@ -1686,30 +1665,12 @@
         "permissions": [
           {
             "permission_types": [
-              {
-                "code": 1,
-                "name": "configure_dissolve_state"
-              },
-              {
-                "code": 2,
-                "name": "manage_principals"
-              },
-              {
-                "code": 3,
-                "name": "submit_proposal"
-              },
-              {
-                "code": 4,
-                "name": "vote"
-              },
-              {
-                "code": 9,
-                "name": "stake_maturity"
-              },
-              {
-                "code": 10,
-                "name": "manage_voting_permission"
-              }
+              1,
+              2,
+              3,
+              4,
+              9,
+              10
             ],
             "principal": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
           }
@@ -1745,17 +1706,7 @@
   {
     "renderer": "sns_reward_checkpoint_report_text",
     "report": {
-      "aggregate_combined_maturity_e8s_equivalent": 330,
-      "aggregate_maturity_e8s_equivalent": 300,
-      "aggregate_staked_maturity_e8s_equivalent": 30,
-      "auto_stake_maturity_disabled_count": 1,
-      "auto_stake_maturity_enabled_count": 1,
-      "auto_stake_maturity_unspecified_count": 0,
-      "client_query_count": 9,
-      "collection_completed_at": "2026-11-02T16:52:22Z",
       "collection_completed_at_unix_secs": 1793638342,
-      "collection_row_ceiling": 200000,
-      "collection_started_at": "2026-06-04T00:00:00Z",
       "collection_started_at_unix_secs": 1780531200,
       "collection_status": "api_exhausted_observed",
       "data_source": "live",
@@ -1764,14 +1715,9 @@
       "id": 1,
       "index_canister_id": "bw4dl-smaaa-aaaaa-qaacq-cai",
       "ledger_canister_id": "bd3sg-teaaa-aaaaa-qaaba-cai",
-      "manage_principals_grantable": false,
-      "manual_maturity_staking_observed_disabled": "observed_satisfied",
-      "maturity_conversion_policy_observed_status": "observed_satisfied",
-      "maturity_mint_conversion_observed_disabled": "observed_satisfied",
       "name": "Fixture SNS",
       "network": "ic",
       "page_count": 1,
-      "page_size": 100,
       "parameters_after": {
         "automatically_advance_target_version": true,
         "custom_proposal_criticality": {
@@ -1862,8 +1808,6 @@
         },
         "wait_for_quiet_deadline_increase_seconds": 86400
       },
-      "pending_maturity_disbursement_count": 0,
-      "permission_entry_count": 2,
       "point_in_time_guaranteed": false,
       "reward_event_after": {
         "actual_timestamp_seconds": 1780531100,
@@ -1892,28 +1836,18 @@
         "total_available_e8s_equivalent": 1000
       },
       "root_canister_id": "be2us-64aaa-aaaaa-qaabq-cai",
-      "row_count": 2,
       "rows": [
         {
           "auto_stake_maturity": false,
-          "combined_maturity_e8s_equivalent": 110,
           "created_timestamp_seconds": 1700000001,
           "disburse_maturity_in_progress": [],
-          "manual_maturity_staking_observed_disabled": "observed_satisfied",
           "maturity_e8s_equivalent": 100,
-          "maturity_mint_conversion_observed_disabled": "observed_satisfied",
           "neuron_id": "0101010101010101010101010101010101010101010101010101010101010101",
           "permissions": [
             {
               "permission_types": [
-                {
-                  "code": 2,
-                  "name": "manage_principals"
-                },
-                {
-                  "code": 4,
-                  "name": "vote"
-                }
+                2,
+                4
               ],
               "principal": "be2us-64aaa-aaaaa-qaabq-cai"
             }
@@ -1922,24 +1856,15 @@
         },
         {
           "auto_stake_maturity": true,
-          "combined_maturity_e8s_equivalent": 220,
           "created_timestamp_seconds": 1700000002,
           "disburse_maturity_in_progress": [],
-          "manual_maturity_staking_observed_disabled": "observed_satisfied",
           "maturity_e8s_equivalent": 200,
-          "maturity_mint_conversion_observed_disabled": "observed_satisfied",
           "neuron_id": "0202020202020202020202020202020202020202020202020202020202020202",
           "permissions": [
             {
               "permission_types": [
-                {
-                  "code": 2,
-                  "name": "manage_principals"
-                },
-                {
-                  "code": 4,
-                  "name": "vote"
-                }
+                2,
+                4
               ],
               "principal": "be2us-64aaa-aaaaa-qaabq-cai"
             }
@@ -1996,9 +1921,7 @@
       "schema_version": 1,
       "sns_wasm_canister_id": "qaa6y-5yaaa-aaaaa-aaafa-cai",
       "source_endpoint": "https://icp-api.io",
-      "swap_canister_id": "br5f7-7uaaa-aaaaa-qaaca-cai",
-      "unassessable_permission_code_count": 0,
-      "unique_neuron_id_count": 2
+      "swap_canister_id": "br5f7-7uaaa-aaaaa-qaaca-cai"
     },
     "report_type": "ic_query::sns::report::model::reports::neurons::reward::SnsRewardCheckpointReport",
     "text": "network: ic\nsns_id: 1\nname: Fixture SNS\nroot_canister_id: be2us-64aaa-aaaaa-qaabq-cai\ngovernance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai\ncollection_status: api_exhausted_observed\npoint_in_time_guaranteed: no\ncollection_started_at: 2026-06-04T00:00:00Z\ncollection_completed_at: 2026-11-02T16:52:22Z\npage_count: 1\nrow_count: 2\ncollection_row_ceiling: 200000\nclient_query_count: 9\nreward_event_end_timestamp_seconds: 1780531200\nreward_event_round: 42\nreward_event_distributed: 0.00\naggregate_unstaked_maturity: 0.00\naggregate_staked_maturity: 0.00\naggregate_combined_maturity: 0.00\npermission_entry_count: 2\npending_maturity_disbursement_count: 0\nunassessable_permission_code_count: 0\nmanage_principals_grantable: no\nmaturity_mint_conversion_observed_disabled: observed_satisfied\nmanual_maturity_staking_observed_disabled: observed_satisfied\nmaturity_conversion_policy_observed_status: observed_satisfied\nsource_endpoint: https://icp-api.io"

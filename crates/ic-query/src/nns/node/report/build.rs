@@ -1,9 +1,7 @@
-use crate::nns::inventory::{
-    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
-};
+use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
-    NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsNodeHostError,
+    NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
     NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
     cache::{load_cached_nns_node_report, nns_node_cache_path},
     filters::filter_node_list_report,
@@ -15,7 +13,7 @@ use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_node_list_report(
     request: &NnsNodeListRequest,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
+) -> Result<NnsNodeListReport, NnsInventoryError> {
     build_nns_node_list_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -26,7 +24,7 @@ pub async fn build_nns_node_list_report(
 
 pub async fn build_nns_node_info_report(
     request: &NnsInventoryInfoRequest,
-) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
+) -> Result<NnsNodeInfoReport, NnsInventoryError> {
     build_nns_node_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -40,7 +38,7 @@ pub async fn build_nns_node_list_report_with_source_and_progress(
     request: &NnsNodeListRequest,
     source: &dyn NnsNodeSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeListReport, NnsNodeHostError> {
+) -> Result<NnsNodeListReport, NnsInventoryError> {
     let report = load_or_refresh_nns_inventory_report(
         &request.inventory,
         nns_node_cache_path(
@@ -64,7 +62,7 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeInfoReport, NnsNodeHostError> {
+) -> Result<NnsNodeInfoReport, NnsInventoryError> {
     let list_request = NnsNodeListRequest::new(
         request.cache.clone(),
         request.source_endpoint.clone(),
@@ -87,7 +85,7 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
 pub(super) fn resolve_node(
     report: &NnsNodeListReport,
     input: &str,
-) -> Result<(usize, String), NnsNodeHostError> {
+) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
         &report.nodes,
         |row| row.node_principal.as_str(),
@@ -95,10 +93,5 @@ pub(super) fn resolve_node(
         NnsInventoryInputKind::Principal,
         "node_principal",
     )
-    .map_err(|error| match error {
-        NnsInventoryResolveError::NotFound { input } => NnsNodeHostError::NodeNotFound { input },
-        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
-            NnsNodeHostError::AmbiguousNodePrefix { prefix, matches }
-        }
-    })
+    .map_err(|error| error.for_collection(super::COLLECTION))
 }

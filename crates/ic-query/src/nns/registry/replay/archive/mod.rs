@@ -250,7 +250,8 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
         )?;
 
         let report = batch.report();
-        let response_bytes = u64::try_from(report.response_bytes)
+        let summary = batch.summary();
+        let response_bytes = u64::try_from(summary.response_bytes)
             .map_err(|_| NnsCertifiedRegistryArchiveError::Accounting)?;
         let (_, applied_mutation_count) =
             validated_batch_prefix_counts(report, segment_target_version)?;
@@ -267,11 +268,11 @@ impl NnsCertifiedRegistryArchiveManifestBuilder {
                 segment_ordinal,
                 segment_target_version,
                 requested_version: report.requested_version,
-                first_version: report.first_version,
-                last_version: report.last_version,
+                first_version: summary.first_version,
+                last_version: summary.last_version,
                 applied_through_version: progress.through_version,
                 certified_latest_version: report.certified_latest_version,
-                query_call_count: report.query_call_count,
+                query_call_count: summary.query_call_count,
                 response_bytes,
                 applied_mutation_count,
                 report_bytes: report_encoding.bytes,

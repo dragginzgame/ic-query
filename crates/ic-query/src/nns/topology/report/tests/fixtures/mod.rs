@@ -7,9 +7,9 @@ mod subnet;
 
 use crate::{
     nns::{
-        NnsInventoryRefreshReport,
+        NnsInventoryError, NnsInventoryRefreshReport,
         data_center::NnsDataCenterListReport,
-        node::{NnsNodeHostError, NnsNodeListReport},
+        node::NnsNodeListReport,
         node_operator::NnsNodeOperatorListReport,
         node_provider::NnsNodeProviderListReport,
         topology::report::{
@@ -91,7 +91,8 @@ impl RecordingTopologySource {
         );
         self.calls.lock().unwrap().push(component);
         if self.fail_at == Some(component) {
-            return Err(NnsNodeHostError::InvalidSourceData {
+            return Err(NnsInventoryError::InvalidSourceData {
+                collection: crate::nns::NnsInventoryCollection::Node,
                 reason: component.to_string(),
             }
             .into());

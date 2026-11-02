@@ -35,7 +35,6 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
     provenance: ReportProvenance,
     proposals: Vec<SnsProposalRow>,
 ) -> SnsProposalsReport {
-    let proposal_count = proposals.len();
     SnsProposalsReport {
         provenance,
         schema_version: SNS_PROPOSALS_REPORT_SCHEMA_VERSION,
@@ -53,7 +52,6 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
             .direction_label(request.sort_direction)
             .to_string(),
 
-        proposal_count,
         proposals,
     }
 }

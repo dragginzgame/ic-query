@@ -32,10 +32,7 @@ pub use model::{
     CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
 };
 #[cfg(feature = "nns-host")]
-pub use model::{
-    MainnetDataCenterList, MainnetNodeList, MainnetNodeOperatorList, MainnetNodeProvider,
-    MainnetNodeProviderList,
-};
+pub use model::{MainnetNodeProvider, MainnetNodeProviderList};
 #[cfg(feature = "nns-topology-host")]
 pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,

@@ -105,7 +105,7 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     .expect("cache list");
 
     assert_eq!(list.schema_version, 1);
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(list.caches[0].valid().unwrap().id, 1);
     assert_eq!(list.caches[0].valid().unwrap().name, "Fixture SNS");
     assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
@@ -358,7 +358,7 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
         cache_root: root.to_path_buf(),
     })
     .expect("cache list");
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(
         list.caches[0].cache_status(),
         CacheValidationStatus::Invalid

@@ -46,12 +46,11 @@ fn registry_certification() -> NnsRegistryCertification {
     NnsRegistryCertification {
         certificate_verified: true,
         certificate_time_nanos: 1_700_000_000_000_000_000,
-        certificate_time: "2023-11-14T22:13:20Z".to_string(),
+
         root_key_digest: "ab".repeat(32),
         certificate_hex: "cd".repeat(8),
-        certificate_bytes: 8,
+
         hash_tree_hex: "ef".repeat(4),
-        hash_tree_bytes: 4,
     }
 }
 
@@ -67,8 +66,8 @@ mod host {
     use ic_query::nns::NnsGovernanceRefreshReport;
     use ic_query::nns::NnsGovernanceRefreshRequest;
     use ic_query::nns::NnsInventoryCacheRequest;
+    use ic_query::nns::NnsInventoryError;
     use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
-    use ic_query::nns::node::NnsNodeHostError;
     use ic_query::nns::node::NnsNodeListRequest;
     use ic_query::nns::node::build_nns_node_list_report;
     use ic_query::nns::proposals::NnsProposalHostError;
@@ -199,7 +198,7 @@ mod host {
     async fn render_application_nodes(
         cache_root: &Path,
         now_unix_secs: u64,
-    ) -> Result<String, NnsNodeHostError> {
+    ) -> Result<String, NnsInventoryError> {
         let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
         let request =
             NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
@@ -364,7 +363,7 @@ mod host {
     }
 
     fn accepts_nns_node_example(
-        _example: impl AsyncFn(&Path, u64) -> Result<String, NnsNodeHostError>,
+        _example: impl AsyncFn(&Path, u64) -> Result<String, NnsInventoryError>,
     ) {
     }
 

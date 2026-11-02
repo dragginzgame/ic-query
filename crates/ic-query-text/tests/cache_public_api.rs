@@ -52,8 +52,8 @@ fn public_cache_status_api_is_local_and_constructible() {
     assert_eq!(report.cache_root, cache_root.display().to_string());
     assert!(!report.cache_root_found);
     assert!(!report.family_validation_performed);
-    assert_eq!(report.cache_count, 0);
-    assert_eq!(report.refresh_lock_count, 0);
+    assert_eq!(report.caches.len(), 0);
+    assert_eq!(report.refresh_locks.len(), 0);
     assert_eq!(CacheRefreshLockStatus::Active.as_str(), "active");
     report.total_size_bytes = 1_372;
     report.refresh_lock_size_bytes = 1_024;

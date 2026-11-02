@@ -9,7 +9,7 @@ pub use report::{
 #[cfg(feature = "nns-host")]
 pub use report::{
     NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
-    NnsNodeProviderHostError, NnsNodeProviderSource, build_nns_node_provider_info_report,
+    NnsNodeProviderSource, build_nns_node_provider_info_report,
     build_nns_node_provider_info_report_with_source_and_progress,
     build_nns_node_provider_list_report,
     build_nns_node_provider_list_report_with_source_and_progress, nns_node_provider_cache_path,

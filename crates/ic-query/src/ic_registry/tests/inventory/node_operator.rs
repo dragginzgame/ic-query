@@ -2,7 +2,6 @@ use crate::ic_registry::tests::{fixtures::*, *};
 
 #[test]
 fn node_operator_list_follows_assigned_nodes_to_operator_records() {
-    let request = registry_fetch_request();
     let provider = Principal::self_authenticating(b"provider").to_text();
     let primary_operator = Principal::self_authenticating(b"operator-a").to_text();
     let secondary_operator = Principal::self_authenticating(b"operator-b").to_text();
@@ -54,17 +53,10 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
         data_center_records: BTreeMap::new(),
     };
 
-    let list = node_operator_list_from_inventory(&request, inventory, 42).expect("node operators");
+    let list = node_operator_list_from_inventory(inventory).expect("node operators");
 
-    assert_eq!(list.provenance.network, MAINNET_NETWORK);
-    assert_eq!(
-        list.provenance.registry_canister_id,
-        MAINNET_REGISTRY_CANISTER_ID
-    );
-    assert_eq!(list.provenance.registry_version, 42);
-    assert_eq!(list.node_operators.len(), 2);
+    assert_eq!(list.len(), 2);
     let primary_result = list
-        .node_operators
         .iter()
         .find(|operator| operator.node_operator_principal == primary_operator)
         .expect("primary operator");
@@ -73,7 +65,6 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
     assert_eq!(primary_result.data_center_id, "dc-a");
     assert_eq!(primary_result.node_count, Some(2));
     let secondary_result = list
-        .node_operators
         .iter()
         .find(|operator| operator.node_operator_principal == secondary_operator)
         .expect("secondary operator");

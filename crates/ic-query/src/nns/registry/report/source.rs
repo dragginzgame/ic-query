@@ -109,8 +109,6 @@ fn report_from_live_batch(
     request: &NnsCertifiedRegistryDeltaBatchRequest,
     batch: CertifiedRegistryDeltaBatch,
 ) -> Result<NnsCertifiedRegistryDeltaBatchReport, NnsRegistryHostError> {
-    let first_version = batch.versions.first().map(|row| row.version);
-    let last_version = batch.versions.last().map(|row| row.version);
     let versions = project_live_versions(batch.versions)?;
     let chunk_evidence = batch
         .chunk_evidence
@@ -125,43 +123,18 @@ fn report_from_live_batch(
             reason: "chunk query call count exceeds u64".to_string(),
         }
     })?;
-    let query_call_count = chunk_query_call_count.checked_add(1).ok_or_else(|| {
-        NnsRegistryHostError::InvalidSourceData {
-            reason: "query call count exceeds u64".to_string(),
-        }
-    })?;
-    let response_bytes = batch
-        .certified_response_bytes
-        .checked_add(batch.chunk_response_bytes)
-        .ok_or_else(|| NnsRegistryHostError::InvalidSourceData {
-            reason: "response byte count exceeds usize".to_string(),
-        })?;
-
     Ok(NnsCertifiedRegistryDeltaBatchReport {
         schema_version: NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: batch.requested_version,
         certified_latest_version: batch.certified_latest_version,
-        first_version,
-        last_version,
-        version_count: versions.len(),
-        mutation_count: batch.mutation_count,
-        precondition_count: batch.precondition_count,
-        inline_value_bytes: batch.inline_value_bytes,
-        chunk_value_bytes: batch.chunk_value_bytes,
-        value_bytes: batch.value_bytes,
-        chunk_reference_count: batch.chunk_reference_count,
-        chunk_evidence_bytes: batch.chunk_evidence_bytes,
-        more_available: batch.more_available,
         fetched_at: format_utc_timestamp_secs(request.now_unix_secs),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
-        query_call_count,
         chunk_query_call_count,
         certified_response_bytes: batch.certified_response_bytes,
         chunk_response_bytes: batch.chunk_response_bytes,
-        response_bytes,
         limits: nns_certified_registry_delta_limits(),
         versions,
         chunk_evidence,
@@ -199,13 +172,14 @@ fn project_live_versions(
 fn project_live_mutation(
     mutation: LiveCertifiedRegistryMutation,
 ) -> Result<NnsCertifiedRegistryMutation, NnsRegistryHostError> {
-    let mutation_kind = NnsCertifiedRegistryMutationKind::from_raw_type(mutation.mutation_type)
-        .ok_or_else(|| NnsRegistryHostError::InvalidSourceData {
+    NnsCertifiedRegistryMutationKind::from_raw_type(mutation.mutation_type).ok_or_else(|| {
+        NnsRegistryHostError::InvalidSourceData {
             reason: format!(
                 "live delta contains unsupported mutation type {}",
                 mutation.mutation_type
             ),
-        })?;
+        }
+    })?;
     let value_encoding = match mutation.value_encoding {
         CertifiedRegistryValueEncoding::Absent => NnsCertifiedRegistryValueEncoding::Absent,
         CertifiedRegistryValueEncoding::Inline => NnsCertifiedRegistryValueEncoding::Inline,
@@ -213,7 +187,6 @@ fn project_live_mutation(
     };
     Ok(NnsCertifiedRegistryMutation {
         mutation_type: mutation.mutation_type,
-        mutation_kind,
         key_hex: mutation.key_hex,
         value_encoding,
         chunk_sha256_hexes: mutation

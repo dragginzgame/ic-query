@@ -27,11 +27,11 @@ pub use error::NnsRegistryHostError;
 pub use model::{
     NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION, NnsCertifiedRegistryChunkEvidence,
     NnsCertifiedRegistryDeltaBatchReport, NnsCertifiedRegistryDeltaBatchRequest,
-    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaVersion,
-    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
-    NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
-    NnsRegistryInventoryProvenance, NnsRegistryVersionData, NnsRegistryVersionReport,
-    NnsRegistryVersionRequest,
+    NnsCertifiedRegistryDeltaLimits, NnsCertifiedRegistryDeltaSummary,
+    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
+    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
+    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryInventoryProvenance,
+    NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use source::{

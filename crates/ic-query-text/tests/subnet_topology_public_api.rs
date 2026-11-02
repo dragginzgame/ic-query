@@ -143,12 +143,9 @@ fn fixture_report(
         fetched_at: fetched_at.to_string(),
         source_endpoint: source_endpoint.to_string(),
         fetched_by: "fixture".to_string(),
-        subnet_count: 1,
-        node_count: 2,
         subnets: vec![NnsSubnetTopologyRow {
             subnet_principal: subnet,
             subnet_kind: SubnetKind::CloudEngine,
-            node_count: 2,
             node_providers: vec![NnsSubnetNodeProviderRow {
                 node_provider_principal: provider,
                 node_count: 2,

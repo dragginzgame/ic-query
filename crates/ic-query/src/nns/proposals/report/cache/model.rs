@@ -30,8 +30,6 @@ pub struct NnsProposalCacheListReport {
     pub network: String,
     /// Root directory selected for local snapshot inspection.
     pub cache_root: String,
-    /// Number of snapshot summaries returned by this inspection.
-    pub cache_count: usize,
     /// Local snapshot summaries discovered beneath the selected root.
     pub caches: Vec<NnsGovernanceCacheSummary>,
     /// Collection inspected by this proposal-only list operation.

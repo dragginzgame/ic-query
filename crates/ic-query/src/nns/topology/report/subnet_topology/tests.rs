@@ -17,12 +17,17 @@ fn report_validation_enforces_canonical_counts_and_order() {
     let report = fixture_report(42, "2023-11-14T22:13:20Z");
     report.validate().expect("valid report");
 
-    let mut mismatched = report.clone();
-    mismatched.subnets[0].node_count += 1;
-    assert!(matches!(
-        mismatched.validate().expect_err("count mismatch"),
-        NnsSubnetTopologyValidationError::SubnetNodeCountMismatch { .. }
-    ));
+    assert_eq!(report.node_count().unwrap(), 3);
+    let mut overflow = report.clone();
+    overflow.subnets[0].node_providers[0].node_count = u32::MAX;
+    assert_eq!(
+        overflow.node_count(),
+        Err(NnsSubnetTopologyValidationError::NodeCountOverflow)
+    );
+    assert_eq!(
+        overflow.validate(),
+        Err(NnsSubnetTopologyValidationError::NodeCountOverflow)
+    );
 
     let mut unordered = report;
     unordered.subnets.reverse();
@@ -234,13 +239,10 @@ fn fixture_report(registry_version: u64, fetched_at: &str) -> NnsSubnetTopologyR
         fetched_at: fetched_at.to_string(),
         source_endpoint: DEFAULT_NNS_SUBNET_TOPOLOGY_SOURCE_ENDPOINT.to_string(),
         fetched_by: "fixture".to_string(),
-        subnet_count: 2,
-        node_count: 3,
         subnets: vec![
             NnsSubnetTopologyRow {
                 subnet_principal: subnet_principals[0].clone(),
                 subnet_kind: SubnetKind::CloudEngine,
-                node_count: 2,
                 node_providers: vec![
                     NnsSubnetNodeProviderRow {
                         node_provider_principal: provider_principals[0].clone(),
@@ -255,7 +257,6 @@ fn fixture_report(registry_version: u64, fetched_at: &str) -> NnsSubnetTopologyR
             NnsSubnetTopologyRow {
                 subnet_principal: subnet_principals[1].clone(),
                 subnet_kind: SubnetKind::System,
-                node_count: 1,
                 node_providers: vec![NnsSubnetNodeProviderRow {
                     node_provider_principal: provider_principals[1].clone(),
                     node_count: 1,

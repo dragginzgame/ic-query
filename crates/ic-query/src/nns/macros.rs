@@ -1,41 +1,12 @@
 //! Code generation for structurally identical NNS leaf report mechanics.
 
 #[cfg(feature = "nns-host")]
-macro_rules! impl_nns_inventory_host_error {
-    ($host_error:ty, $component:expr $(,)?) => {
-        impl $crate::nns::inventory::NnsInventoryHostError for $host_error {
-            fn cache_refresh_reason(
-                self,
-                expected_path: std::path::PathBuf,
-            ) -> Result<$crate::cache_file::CacheRefreshReason, Self> {
-                match self {
-                    Self::Cache(error) => {
-                        $crate::cache_file::host_cache_refresh_reason(error, &expected_path)
-                            .map_err(Self::Cache)
-                    }
-                    error => Err(error),
-                }
-            }
-
-            fn invalid_cache(path: std::path::PathBuf, reason: String) -> Self {
-                Self::Cache($crate::HostCacheError::invalid_cache(
-                    $component, path, reason,
-                ))
-            }
-
-            fn invalid_source_data(reason: String) -> Self {
-                Self::InvalidSourceData { reason }
-            }
-        }
-    };
-}
-
-#[cfg(feature = "nns-host")]
 macro_rules! impl_nns_inventory_report {
     (
         $report:ty,
         $schema_version:expr,
         $item_name:literal,
+        $collection:expr,
         $count_field:ident,
         $rows_field:ident,
         $governance:expr
@@ -54,6 +25,7 @@ macro_rules! impl_nns_inventory_report {
 
         impl $crate::nns::inventory::NnsInventoryReport for $report {
             const SCHEMA_VERSION: u32 = $schema_version;
+            const COLLECTION: $crate::nns::NnsInventoryCollection = $collection;
             const ITEM_NAME: &'static str = $item_name;
 
             fn schema_version(&self) -> u32 {
@@ -108,7 +80,6 @@ macro_rules! nns_leaf_cache {
         $load_fn:ident,
         $cache_request:ty,
         $list_report:ty,
-        $host_error:ty,
         $component_dir:expr,
         $cache_file:expr,
         $schema_version:expr
@@ -128,7 +99,10 @@ macro_rules! nns_leaf_cache {
 
         pub(super) fn $load_fn(
             request: &$cache_request,
-        ) -> Result<$crate::cache_file::CachedJsonReport<$list_report>, $host_error> {
+        ) -> Result<
+            $crate::cache_file::CachedJsonReport<$list_report>,
+            $crate::nns::NnsInventoryError,
+        > {
             super::enforce_mainnet_network(&request.network)?;
             let cached = $crate::nns::leaf::load_nns_leaf_json_cache(
                 request,
@@ -136,13 +110,21 @@ macro_rules! nns_leaf_cache {
                 $cache_file,
                 $schema_version,
             )
-            .map_err(<$host_error as From<$crate::HostCacheError>>::from)?;
+            .map_err(|source| $crate::nns::NnsInventoryError::Cache {
+                collection:
+                    <$list_report as $crate::nns::inventory::NnsInventoryReport>::COLLECTION,
+                source,
+            })?;
             <$list_report as $crate::nns::inventory::NnsInventoryReport>::validate(&cached.report)
-                .map_err(|reason| {
-                    <$host_error as $crate::nns::inventory::NnsInventoryHostError>::invalid_cache(
+                .map_err(|reason| $crate::nns::NnsInventoryError::Cache {
+                    collection:
+                        <$list_report as $crate::nns::inventory::NnsInventoryReport>::COLLECTION,
+                    source: $crate::HostCacheError::invalid_cache(
+                        <$list_report as $crate::nns::inventory::NnsInventoryReport>::COLLECTION
+                            .as_str(),
                         cached.path.clone(),
                         reason,
-                    )
+                    ),
                 })?;
             Ok(cached)
         }
@@ -162,6 +144,16 @@ macro_rules! nns_leaf_cache {
 }
 
 macro_rules! impl_nns_mainnet_network_enforcer {
+    ($error:ident, $collection:expr) => {
+        fn enforce_mainnet_network(network: &str) -> Result<(), $error> {
+            crate::network::enforce_mainnet_network_with(network, |network| {
+                $error::UnsupportedNetwork {
+                    collection: $collection,
+                    network,
+                }
+            })
+        }
+    };
     ($error:ident) => {
         fn enforce_mainnet_network(network: &str) -> Result<(), $error> {
             crate::network::enforce_mainnet_network_with(network, |network| {

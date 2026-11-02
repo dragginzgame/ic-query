@@ -259,7 +259,7 @@ fn provenance_fixture() -> ProvenanceFixture {
         Vec::new(),
     );
     second.certification.certificate_time_nanos = (NOW - 60) * 1_000_000_000;
-    second.certification.certificate_time = format_utc_timestamp_secs(NOW - 60);
+
     ProvenanceFixture {
         limits,
         first_request,
@@ -621,57 +621,32 @@ fn report_versions(
     certified_latest_version: u64,
     versions: Vec<NnsCertifiedRegistryDeltaVersion>,
 ) -> NnsCertifiedRegistryDeltaBatchReport {
-    let inline_value_bytes = versions
-        .iter()
-        .flat_map(|version| &version.mutations)
-        .filter_map(|mutation| mutation.value_hex.as_ref())
-        .map(|value| value.len() / 2)
-        .sum();
-    let mutation_count = versions.iter().map(|version| version.mutations.len()).sum();
-    let precondition_count = versions
-        .iter()
-        .map(|version| version.preconditions.len())
-        .sum();
-    let first_version = versions.first().map(|version| version.version);
-    let last_version = versions.last().map(|version| version.version);
     NnsCertifiedRegistryDeltaBatchReport {
         schema_version: 1,
         network: MAINNET_NETWORK.to_string(),
         registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
         requested_version: request.requested_version,
         certified_latest_version,
-        first_version,
-        last_version,
-        version_count: versions.len(),
-        mutation_count,
-        precondition_count,
-        inline_value_bytes,
-        chunk_value_bytes: 0,
-        value_bytes: inline_value_bytes,
-        chunk_reference_count: 0,
-        chunk_evidence_bytes: 0,
-        more_available: last_version.unwrap_or(request.requested_version)
-            < certified_latest_version,
+
         fetched_at: format_utc_timestamp_secs(NOW),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
-        query_call_count: 1,
+
         chunk_query_call_count: 0,
         certified_response_bytes: 64,
         chunk_response_bytes: 0,
-        response_bytes: 64,
+
         limits: limits(),
         versions,
         chunk_evidence: Vec::new(),
         certification: NnsRegistryCertification {
             certificate_verified: true,
             certificate_time_nanos: NOW * 1_000_000_000,
-            certificate_time: format_utc_timestamp_secs(NOW),
+
             root_key_digest: "ab".repeat(32),
             certificate_hex: "cd".repeat(8),
-            certificate_bytes: 8,
+
             hash_tree_hex: "ef".repeat(4),
-            hash_tree_bytes: 4,
         },
     }
 }
@@ -700,7 +675,7 @@ fn mutation(
             NnsCertifiedRegistryMutationKind::Delete => 2,
             NnsCertifiedRegistryMutationKind::Upsert => 4,
         },
-        mutation_kind: kind,
+
         key_hex: crate::hex::hex_bytes(key),
         value_encoding: if value.is_some() {
             NnsCertifiedRegistryValueEncoding::Inline

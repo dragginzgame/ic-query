@@ -69,9 +69,10 @@ and returned page cursors retain their canonical newest-first requirements.
 ICRC publication validates caller-supplied collection rows, index identity,
 page evidence, the requested page cap, and final cursor before building the
 snapshot. It constructs and validates completeness once through the shared
-validator, then moves that evidence into the snapshot. Request identity and
-newest/oldest ids are constructed from the validated inputs without a second
-row-validation pass. Publication and stored-snapshot
+validator, then moves that evidence into the snapshot. Newest/oldest collected
+ids are derived from canonical snapshot rows for list, refresh and status views;
+snapshots do not store a second copy of those bounds. The index API's oldest-id
+observation remains separate source evidence. Publication and stored-snapshot
 loading share the canonical ordered timestamp check; disk reads retain full
 snapshot identity, completeness, index, and row validation.
 
@@ -430,6 +431,11 @@ Observed Dashboard node-status refresh moves validated rows and provenance into
 the complete snapshot envelope, retaining the computed count summary for its
 refresh report. Publication does not clone the row collection. Cache reads and
 public snapshot projections retain their independent validation boundaries.
+The public snapshot retains raw rows and observation metadata only; each status
+view derives its snapshot totals. Exact Subnet topology similarly retains provider
+membership counts and derives higher totals with checked arithmetic. The 0.88
+topology shape rejects former stored totals and requires explicit cache refresh
+after preserving required evidence.
 
 The shared NNS inventory boundary validates fixed canister identities, schema,
 timestamps, endpoints, and declared row counts. Custom-source evidence is
@@ -684,10 +690,12 @@ SNS neuron/proposal rows and ballots likewise retain only native timestamps,
 without stored UTC display strings. Rendering derives text from those values.
 Preserve required snapshots and coordinate timestamp consumers before explicit
 refresh; rejected cache evidence is never rewritten or removed automatically.
-Reward checkpoint files retain flat aggregates and policy observations. Loading
-validates every value against checked recomputation from raw brackets and neuron
-evidence. Historical observations are not discarded or replaced by recollection;
-strict unknown-field and duplicate-field admission remains unchanged.
+Reward checkpoints retain raw brackets and neuron evidence. Summary totals, row
+policy observations, counts and UTC labels are computed from that evidence. The
+0.88 schema-1 hard cut rejects checkpoints containing the former derived fields;
+retain historical files and coordinate their consumers before adoption. Readers
+never migrate or rewrite them, and later collection cannot replace an earlier
+observation. Strict unknown-field and duplicate-field admission remains in force.
 
 Joined SNS catalog rows store the native lifecycle value or a bounded query
 error, without a second stored lifecycle label. Unknown fields are rejected

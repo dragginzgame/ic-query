@@ -28,7 +28,7 @@ pub(in crate::sns::report) fn sns_neurons_report_from_rows(
 
         sort: request.collection.sort_label().to_string(),
         total_neuron_count,
-        neuron_count: neurons.len(),
+
         neurons,
     }
 }

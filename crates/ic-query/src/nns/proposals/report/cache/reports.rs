@@ -129,7 +129,7 @@ pub fn build_nns_proposal_cache_list_report(
         network: status.network,
         collection: status.collection,
         cache_root: status.cache_root,
-        cache_count: caches.len(),
+
         caches,
         refresh_attempt_path: status.refresh_attempt_path,
         latest_attempt: status.latest_attempt,

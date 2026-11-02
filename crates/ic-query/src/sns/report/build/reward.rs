@@ -11,9 +11,9 @@ use crate::sns::report::{
     live::LiveSnsSource,
     lookup::resolve_sns_lookup,
     model::reports::neurons::reward::{
-        recompute_reward_checkpoint_summary, reward_checkpoint_bracket_mismatch,
-        reward_checkpoint_neuron_ceiling, validate_sns_reward_checkpoint_parameter_evidence,
-        validate_sns_reward_event_evidence, validate_sns_reward_running_version_evidence,
+        reward_checkpoint_bracket_mismatch, reward_checkpoint_neuron_ceiling,
+        validate_sns_reward_checkpoint_parameter_evidence, validate_sns_reward_event_evidence,
+        validate_sns_reward_running_version_evidence,
     },
 };
 use crate::{
@@ -23,7 +23,6 @@ use crate::{
         SnsRewardCollectionStatus,
     },
 };
-use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Build one live API-exhausted observed SNS reward checkpoint.
@@ -84,15 +83,6 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
     let completed_at = checkpoint_completion_time(request.lookup.now_unix_secs)?;
     let page_count = collection.page_count();
     let rows = collection.into_rows();
-    let summary = recompute_reward_checkpoint_summary(&parameters_before, &rows)
-        .map_err(invalid_checkpoint)?;
-    let client_query_count =
-        page_count
-            .checked_add(8)
-            .ok_or(SnsHostError::RewardCheckpointArithmetic {
-                field: "client_query_count",
-            })?;
-    let row_count = rows.len();
     let report = SnsRewardCheckpointReport {
         schema_version: SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION,
         network: lookup.fetch_request.network,
@@ -104,15 +94,8 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         canisters: lookup.sns.canisters,
         data_source: ReportDataSource::Live,
         collection_started_at_unix_secs: request.lookup.now_unix_secs,
-        collection_started_at: format_utc_timestamp_secs(request.lookup.now_unix_secs),
         collection_completed_at_unix_secs: completed_at,
-        collection_completed_at: format_utc_timestamp_secs(completed_at),
-        page_size: crate::sns::report::SNS_REWARD_CHECKPOINT_PAGE_SIZE,
         page_count,
-        row_count,
-        unique_neuron_id_count: row_count,
-        collection_row_ceiling,
-        client_query_count,
         collection_status: SnsRewardCollectionStatus::ApiExhaustedObserved,
         point_in_time_guaranteed: false,
         parameters_before,
@@ -121,15 +104,14 @@ pub async fn build_sns_reward_checkpoint_report_with_source(
         reward_event_after,
         running_version_before,
         running_version_after,
-        summary,
         rows,
     };
-    report
-        .validate_collected_evidence()
-        .map_err(|error| SnsHostError::InvalidSourceData {
+    crate::sns::validate_sns_reward_checkpoint_report(&report).map_err(|error| {
+        SnsHostError::InvalidSourceData {
             capability: "SNS reward checkpoint",
             reason: error.reason,
-        })?;
+        }
+    })?;
     Ok(report)
 }
 

@@ -423,9 +423,13 @@ SNS custom sources return the existing domain models directly:
 neuron/proposal listings plus proposal pages return vectors of their row type.
 There are no single-payload source result wrappers. `MainnetSnsNeuronPage` retains
 its rows and native cursor for complete refreshes. Builders still validate source
-identity, row limits, derived evidence and pagination before report assembly or
-cache publication; these Rust source-signature changes do not alter report JSON
-or persisted snapshots.
+identity, row limits, raw evidence and pagination before report assembly or
+cache publication. Exact details and reward checkpoints retain integer permission
+codes directly; derive names with `sns_neuron_permission_name(code)` and exact-detail
+policy results with `detail.derived_policy_observations()`. Returned row counts come
+from their vectors. These JSON and persisted-shape changes require the consumer
+coordination and evidence preservation described in the
+[0.88 hard-cut notes](../releases/query/0.88.md).
 
 For a native embedder that needs only the live/cache Subnet catalog API, use
 the narrower feature:
@@ -1559,7 +1563,7 @@ use std::path::Path;
 
 use ic_query::nns::NnsInventoryCacheRequest;
 use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
-use ic_query::nns::node::NnsNodeHostError;
+use ic_query::nns::NnsInventoryError;
 use ic_query::nns::node::NnsNodeListRequest;
 use ic_query::nns::node::build_nns_node_list_report;
 use ic_query_text::nns::node::nns_node_list_report_text;
@@ -1568,7 +1572,7 @@ use ic_query::subnet_catalog::SubnetKind;
 async fn render_application_nodes(
     cache_root: &Path,
     now_unix_secs: u64,
-) -> Result<String, NnsNodeHostError> {
+) -> Result<String, NnsInventoryError> {
     let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
     let request =
         NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
@@ -1862,13 +1866,17 @@ time or zero ballot time displays `-`. JSON retains Unix seconds rather than
 stored display strings. Update consumers and preserve needed evidence before
 explicitly refreshing affected complete snapshots; schemas remain 1.
 
-SNS reward checkpoint aggregates and policy observations live in
-`report.summary: SnsRewardCheckpointSummary`. Rust callers update field access
-and struct literals to use that record; JSON fields remain at the top level.
-Restored reports recompute the summary from raw parameters and neuron rows,
-then compare it with the stored record. Strict file decoding and schema 1 are
-unchanged. Historical files remain current evidence; recollection is not a
-substitute for an earlier observation.
+SNS reward checkpoints retain raw parameter/event/version brackets, neuron evidence,
+collection timestamps and the observed page count. Use `report.summary()?` for
+checked `SnsRewardCheckpointSummary` calculations and `report.row_count()`,
+`report.client_query_count()` and `report.collection_row_ceiling()` for derived
+metadata. Text computes UTC labels from the retained Unix timestamps. These values
+are no longer independently stored in checkpoint JSON.
+
+The 0.88 schema-1 hard cut rejects former checkpoint shapes. Preserve historical
+files and coordinate consumers before adopting it; new collection cannot recreate
+an earlier observation. Readers never migrate or rewrite those files. See the
+[Query 0.88 consumer actions](../releases/query/0.88.md).
 
 Reward checkpoints and their diff references carry all five canister identities
 through `canisters: MainnetSnsCanisters`. Update Rust field access and literals;

@@ -118,11 +118,6 @@ impl RegistryChunkBudget {
     }
 
     #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) const fn reconstructed_value_bytes(&self) -> usize {
-        self.reconstructed_value_bytes
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
     pub(in crate::ic_registry) fn into_chunk_evidence(self) -> Vec<CertifiedRegistryChunkEvidence> {
         self.cache
             .into_iter()

@@ -23,6 +23,7 @@ impl_nns_inventory_report!(
     NnsNodeProviderListReport,
     super::super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
     "node_provider",
+    super::super::COLLECTION,
     node_provider_count,
     node_providers,
     |report: &NnsNodeProviderListReport| Some(report.governance_canister_id.clone()),

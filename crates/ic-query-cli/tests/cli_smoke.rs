@@ -1035,13 +1035,13 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
     assert_success(&sns_proposals);
     let sns_proposals: serde_json::Value =
         serde_json::from_str(&stdout_text(&sns_proposals)).expect("sns proposals cache list json");
-    assert_eq!(sns_proposals["cache_count"], 0);
+    assert_eq!(sns_proposals["caches"].as_array().unwrap().len(), 0);
 
     let sns_neurons = run_icq_in_root(&root, &["sns", "neuron", "cache", "list", "--json"]);
     assert_success(&sns_neurons);
     let sns_neurons: serde_json::Value =
         serde_json::from_str(&stdout_text(&sns_neurons)).expect("sns neurons cache list json");
-    assert_eq!(sns_neurons["cache_count"], 0);
+    assert_eq!(sns_neurons["caches"].as_array().unwrap().len(), 0);
 
     let _ = fs::remove_dir_all(root);
 }

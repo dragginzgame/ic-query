@@ -143,7 +143,7 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     })
     .expect("proposal cache list");
 
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(list.caches[0].valid().unwrap().id, 1);
     assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error(), None);
@@ -250,7 +250,7 @@ async fn sns_cache_list_and_status_reject_malformed_attempts() {
     ));
     fs::remove_file(attempt_path).unwrap();
     let list = build_sns_proposals_cache_list_report(&request).unwrap();
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
     assert!(list.caches[0].latest_attempt.is_none());
     fs::remove_dir_all(root).unwrap();

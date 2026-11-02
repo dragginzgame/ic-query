@@ -1,5 +1,5 @@
 use super::NnsInventoryCacheRequest;
-use super::NnsNodeHostError;
+use super::NnsInventoryError;
 use super::NnsNodeListFilters;
 use super::NnsNodeListReport;
 use super::NnsNodeListRequest;
@@ -78,7 +78,10 @@ async fn node_authority_refusal_never_announces_or_calls_a_source() {
     .expect_err("managed authority refusal");
     assert!(matches!(
         error,
-        NnsNodeHostError::Cache(crate::HostCacheError::Operation { .. })
+        NnsInventoryError::Cache {
+            collection: crate::nns::NnsInventoryCollection::Node,
+            source: crate::HostCacheError::Operation { .. }
+        }
     ));
     assert_eq!(events, Vec::<crate::QueryProgressEvent>::new());
     let _ = fs::remove_dir_all(cache.cache_root);
@@ -100,7 +103,7 @@ async fn live_node_source_rejects_non_mainnet_before_agent_construction() {
 
     assert!(matches!(
         error,
-        NnsNodeHostError::UnsupportedNetwork { network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::Node, network } if network == "local"
     ));
 }
 
@@ -154,7 +157,10 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
     let error = load_cached_nns_node_report(&cache).expect_err("cache-only load is strict");
     assert!(matches!(
         error,
-        NnsNodeHostError::Cache(crate::HostCacheError::InvalidCache { .. })
+        NnsInventoryError::Cache {
+            collection: crate::nns::NnsInventoryCollection::Node,
+            source: crate::HostCacheError::InvalidCache { .. }
+        }
     ));
 
     let report = build_nns_node_list_report_with_source_and_progress(
@@ -196,7 +202,7 @@ async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     .expect_err("invalid source is rejected before publication");
 
     assert!(
-        matches!(error, NnsNodeHostError::InvalidSourceData { reason } if reason.contains("node_count"))
+        matches!(error, NnsInventoryError::InvalidSourceData { reason, .. } if reason.contains("node_count"))
     );
     assert_eq!(
         fs::read_to_string(path).expect("preserved invalid cache"),
@@ -349,7 +355,7 @@ impl NnsNodeSource for InvalidNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsInventoryError>> {
         Box::pin(async move {
             let mut report = node_report_fixture();
             report.provenance.fetched_at.clone_from(&request.fetched_at);
@@ -367,7 +373,7 @@ impl NnsNodeSource for FixtureNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsInventoryError>> {
         Box::pin(async move {
             let nodes = self.nodes.clone();
             Ok(NnsNodeListReport {

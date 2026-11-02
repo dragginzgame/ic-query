@@ -1,6 +1,6 @@
 use super::{fixtures::*, *};
+use crate::nns::NnsInventoryError;
 use crate::nns::NnsInventoryListRequest;
-use crate::nns::node::NnsNodeHostError;
 
 #[tokio::test(flavor = "current_thread")]
 #[expect(
@@ -120,7 +120,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
                 .expect_err("source failure must propagate");
             assert!(matches!(
                 error,
-                NnsTopologyHostError::Node(NnsNodeHostError::InvalidSourceData { reason })
+                NnsTopologyHostError::Inventory(NnsInventoryError::InvalidSourceData { reason, .. })
                     if reason == *component
             ));
             assert_eq!(*source.calls.lock().unwrap(), expected[..=index]);

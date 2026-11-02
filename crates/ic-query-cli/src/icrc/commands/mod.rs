@@ -105,14 +105,6 @@ fn principal_arg(id: &'static str, help: &'static str) -> clap::Arg {
         .help(help)
 }
 
-fn subaccount_arg(id: &'static str, help: &'static str) -> clap::Arg {
-    value_arg(id)
-        .long(id)
-        .value_name("hex")
-        .value_parser(subaccount_hex_value_parser())
-        .help(help)
-}
-
 fn principal_text_value_parser() -> ValueParser {
     ValueParser::new(|value: &str| {
         Principal::from_text(value)

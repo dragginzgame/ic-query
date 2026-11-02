@@ -69,7 +69,7 @@ async fn node_provider_list_rejects_local_network() {
     .expect_err("local rejected");
 
     assert!(
-        matches!(err, NnsNodeProviderHostError::UnsupportedNetwork { network } if network == "local")
+        matches!(err, NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::NodeProvider, network } if network == "local")
     );
 }
 

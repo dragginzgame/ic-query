@@ -84,8 +84,8 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
 
         Ok(IcNodeStatusReport {
             observation: snapshot.observation.clone(),
-            snapshot_node_count: snapshot.node_count,
-            counts: snapshot.counts.clone(),
+            snapshot_node_count: snapshot.nodes.len(),
+            counts: node_status_group_counts(snapshot.nodes.iter()),
             include_all: view.include_all,
             requested_target: view.target.clone(),
             resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
@@ -124,8 +124,12 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
 
         Ok(IcSubnetStatusReport {
             observation: snapshot.observation.clone(),
-            snapshot_node_count: snapshot.node_count,
-            assigned_node_count: snapshot.counts.assignment_statuses.assigned.total,
+            snapshot_node_count: snapshot.nodes.len(),
+            assigned_node_count: snapshot
+                .nodes
+                .iter()
+                .filter(|node| node.subnet_id.is_some())
+                .count(),
             subnet_count,
             attention_subnet_count,
             include_all: view.include_all,
@@ -187,7 +191,7 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
 
         Ok(IcNodeProviderStatusReport {
             observation: snapshot.observation.clone(),
-            snapshot_node_count: snapshot.node_count,
+            snapshot_node_count: snapshot.nodes.len(),
             provider_count,
             attention_provider_count,
             unassigned_up_vs_assigned_up_provider_counts: up_comparisons,
@@ -270,24 +274,7 @@ fn validate_snapshot(snapshot: &IcNodeStatusSnapshot) -> Result<(), IcNodeStatus
         .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
     validate_default_node_scope(&snapshot.nodes)
         .map_err(|reason| IcNodeStatusProjectionError::InvalidSnapshot { reason })?;
-    if snapshot.node_count != snapshot.nodes.len() {
-        return invalid_snapshot(format!(
-            "node_count is {}, actual row count is {}",
-            snapshot.node_count,
-            snapshot.nodes.len()
-        ));
-    }
-    let counts = node_status_group_counts(snapshot.nodes.iter());
-    if snapshot.counts != counts {
-        return invalid_snapshot("counts do not match raw node rows");
-    }
     Ok(())
-}
-
-fn invalid_snapshot<T>(reason: impl Into<String>) -> Result<T, IcNodeStatusProjectionError> {
-    Err(IcNodeStatusProjectionError::InvalidSnapshot {
-        reason: reason.into(),
-    })
 }
 
 struct TargetResolution {

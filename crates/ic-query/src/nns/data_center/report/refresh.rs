@@ -1,5 +1,5 @@
 use super::{
-    NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE, NnsDataCenterHostError,
+    NNS_DATA_CENTER_CACHE_DIR, NNS_DATA_CENTER_CACHE_FILE, NnsInventoryError,
     NnsInventoryRefreshRequest, source::NnsDataCenterSource,
 };
 use crate::nns::NnsInventoryRefreshReport;
@@ -7,14 +7,14 @@ use crate::nns::{LiveNnsSource, inventory::refresh_nns_inventory_cache};
 
 pub async fn refresh_nns_data_center_report(
     request: &NnsInventoryRefreshRequest,
-) -> Result<NnsInventoryRefreshReport, NnsDataCenterHostError> {
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError> {
     refresh_nns_data_center_report_with_source(request, &LiveNnsSource::default()).await
 }
 
 pub async fn refresh_nns_data_center_report_with_source(
     request: &NnsInventoryRefreshRequest,
     source: &dyn NnsDataCenterSource,
-) -> Result<NnsInventoryRefreshReport, NnsDataCenterHostError> {
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError> {
     super::enforce_mainnet_network(&request.cache.network)?;
     refresh_nns_inventory_cache(
         request,

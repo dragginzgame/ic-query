@@ -233,7 +233,7 @@ pub fn nns_neuron_list_report_text(
             "point_in_time_guaranteed: {}",
             yes_no(report.point_in_time_guaranteed)
         ),
-        format!("returned_neuron_count: {}", report.returned_neuron_count),
+        format!("returned_neuron_count: {}", report.neurons.len()),
         format!("verbose: {}", yes_no(options.verbose)),
     ]);
     if let Some(cache_path) = report.provenance.cache_path() {

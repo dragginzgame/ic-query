@@ -131,28 +131,12 @@ pub(in crate::sns::report) fn validate_reward_checkpoint_row(
             row.neuron_id
         )));
     }
-    let combined =
-        row.checked_combined_maturity()
-            .ok_or(SnsHostError::RewardCheckpointArithmetic {
-                field: "combined_maturity_e8s_equivalent",
-            })?;
-    if row.combined_maturity_e8s_equivalent != combined {
-        return Err(invalid(format!(
-            "neuron {} combined maturity does not match raw components",
-            row.neuron_id
-        )));
-    }
+    row.checked_combined_maturity()
+        .ok_or(SnsHostError::RewardCheckpointArithmetic {
+            field: "combined_maturity_e8s_equivalent",
+        })?;
     validate_neuron_permissions(&row.permissions, false).map_err(invalid)?;
     validate_maturity_disbursements(&row.disburse_maturity_in_progress).map_err(invalid)?;
-    let (mint, staking) = row.derived_policy_observations();
-    if row.maturity_mint_conversion_observed_disabled != mint
-        || row.manual_maturity_staking_observed_disabled != staking
-    {
-        return Err(invalid(format!(
-            "neuron {} policy observations do not match raw evidence",
-            row.neuron_id
-        )));
-    }
     Ok(())
 }
 

@@ -158,7 +158,6 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
             (proposal.title, proposal.summary, proposal.url, action_text)
         },
     );
-    let ballot_count = info.ballots.len();
     let ballots = nns_proposal_ballot_rows(info.ballots);
     NnsProposalRow {
         proposal_id: info.id.map(|id| id.id),
@@ -187,7 +186,6 @@ pub(in crate::nns::proposals::report) fn nns_proposal_row_from_info(
             no: tally.no,
             total: tally.total,
         }),
-        ballot_count,
         ballots,
     }
 }

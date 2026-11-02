@@ -115,7 +115,6 @@ use ic_query::ic::IcMetricSource;
 use ic_query::ic::IcMetricSourceData;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::IcNetworkSource;
-use ic_query::ic::IcNodeAssignmentStatusCounts;
 use ic_query::ic::IcNodeCountComparison;
 use ic_query::ic::IcNodeProviderRewardHistoryObservation;
 use ic_query::ic::IcNodeProviderRewardHistoryQuery;
@@ -131,8 +130,6 @@ use ic_query::ic::IcNodeProviderRewardRow;
 use ic_query::ic::IcNodeProviderRewardSource;
 use ic_query::ic::IcNodeProviderRewardXdrConversionRate;
 use ic_query::ic::IcNodeProviderStatusReport;
-use ic_query::ic::IcNodeStatusCounts;
-use ic_query::ic::IcNodeStatusGroupCounts;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::IcNodeStatusHostError;
 use ic_query::ic::IcNodeStatusObservation;
@@ -1151,8 +1148,15 @@ async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders(
         .await
         .expect("custom node-status source snapshot");
 
-    assert_eq!(snapshot.node_count, 1);
-    assert_eq!(snapshot.counts.statuses.down, 1);
+    assert_eq!(snapshot.nodes.len(), 1);
+    assert_eq!(
+        ic_node_status_report_from_snapshot(&snapshot, &IcNodeStatusView::default())
+            .unwrap()
+            .counts
+            .statuses
+            .down,
+        1
+    );
 
     let parse_error =
         serde_json::from_str::<serde_json::Value>("{").expect_err("malformed public cache fixture");
@@ -1630,28 +1634,6 @@ fn public_node_status_snapshot() -> IcNodeStatusSnapshot {
             scope: IcNodeStatusScope::DashboardMainnetDefault,
             cloud_engine_nodes_included: false,
             cache: None,
-        },
-        node_count: 1,
-        counts: IcNodeStatusGroupCounts {
-            statuses: IcNodeStatusCounts {
-                total: 1,
-                up: 0,
-                down: 1,
-                disabled: 0,
-                degraded: 0,
-                unknown: 0,
-            },
-            assignment_statuses: IcNodeAssignmentStatusCounts {
-                assigned: IcNodeStatusCounts {
-                    total: 1,
-                    up: 0,
-                    down: 1,
-                    disabled: 0,
-                    degraded: 0,
-                    unknown: 0,
-                },
-                ..IcNodeAssignmentStatusCounts::default()
-            },
         },
         nodes: vec![public_node_status_row()],
     }

@@ -95,12 +95,12 @@ pub(super) fn validate_certification(
     validate_evidence_hex(
         "certificate_hex",
         &certification.certificate_hex,
-        certification.certificate_bytes,
+        certification.certificate_bytes(),
     )?;
     validate_evidence_hex(
         "hash_tree_hex",
         &certification.hash_tree_hex,
-        certification.hash_tree_bytes,
+        certification.hash_tree_bytes(),
     )?;
     if !is_lowercase_hex_32_bytes(&certification.root_key_digest) {
         return Err(invalid_source_data(
@@ -108,12 +108,6 @@ pub(super) fn validate_certification(
         ));
     }
 
-    let certificate_time_secs = certification.certificate_time_nanos / 1_000_000_000;
-    if certification.certificate_time != format_utc_timestamp_secs(certificate_time_secs) {
-        return Err(invalid_source_data(
-            "certificate_time does not match certificate_time_nanos",
-        ));
-    }
     validate_certificate_time(now_unix_secs, certification.certificate_time_nanos).map_err(
         |error| {
             invalid_source_data(match error {

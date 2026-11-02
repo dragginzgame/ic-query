@@ -1,10 +1,8 @@
-use crate::nns::inventory::{
-    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
-};
+use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
-    NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    NnsNodeOperatorHostError, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
+    NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
+    NnsInventoryListRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
     cache::{load_cached_nns_node_operator_report, nns_node_operator_cache_path},
     refresh::refresh_nns_node_operator_report_with_source,
     source::NnsNodeOperatorSource,
@@ -14,7 +12,7 @@ use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_node_operator_list_report(
     request: &NnsInventoryListRequest,
-) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
+) -> Result<NnsNodeOperatorListReport, NnsInventoryError> {
     build_nns_node_operator_list_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -25,7 +23,7 @@ pub async fn build_nns_node_operator_list_report(
 
 pub async fn build_nns_node_operator_info_report(
     request: &NnsInventoryInfoRequest,
-) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
+) -> Result<NnsNodeOperatorInfoReport, NnsInventoryError> {
     build_nns_node_operator_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -39,7 +37,7 @@ pub async fn build_nns_node_operator_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
     source: &dyn NnsNodeOperatorSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError> {
+) -> Result<NnsNodeOperatorListReport, NnsInventoryError> {
     load_or_refresh_nns_inventory_report(
         request,
         nns_node_operator_cache_path(&request.cache.cache_root, &request.cache.network),
@@ -59,7 +57,7 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeOperatorSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeOperatorInfoReport, NnsNodeOperatorHostError> {
+) -> Result<NnsNodeOperatorInfoReport, NnsInventoryError> {
     let list_request = request.to_list_request();
     let mut report = build_nns_node_operator_list_report_with_source_and_progress(
         &list_request,
@@ -81,7 +79,7 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
 pub(super) fn resolve_node_operator(
     report: &NnsNodeOperatorListReport,
     input: &str,
-) -> Result<(usize, String), NnsNodeOperatorHostError> {
+) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
         &report.node_operators,
         |row| row.node_operator_principal.as_str(),
@@ -89,12 +87,5 @@ pub(super) fn resolve_node_operator(
         NnsInventoryInputKind::Principal,
         "node_operator_principal",
     )
-    .map_err(|error| match error {
-        NnsInventoryResolveError::NotFound { input } => {
-            NnsNodeOperatorHostError::NodeOperatorNotFound { input }
-        }
-        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
-            NnsNodeOperatorHostError::AmbiguousNodeOperatorPrefix { prefix, matches }
-        }
-    })
+    .map_err(|error| error.for_collection(super::COLLECTION))
 }

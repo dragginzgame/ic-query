@@ -471,7 +471,7 @@ async fn replay_session_provenance_digests_are_deterministic_and_domain_stable()
 
     assert_eq!(
         crate::hex::hex_bytes(&evidence_digest),
-        "fb83ca5413b43fde6e1f318dac081d501af33663a0d9411720549aebee71c009"
+        "58fe3aeec7b9038e20de2e2fdd998c23fd4789987c94d1d3abb936fa0de51881"
     );
     assert_eq!(
         crate::hex::hex_bytes(&state_digest),

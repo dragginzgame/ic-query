@@ -128,7 +128,7 @@ where
         schema_version: 1,
         network: request.network.clone(),
         cache_root: network_cache_root,
-        cache_count: caches.len(),
+
         caches,
     })
 }

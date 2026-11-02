@@ -126,8 +126,6 @@ fn aggregate_status_views_keep_snapshot_totals_when_selecting_rows() {
     snapshot
         .nodes
         .sort_unstable_by(|left, right| left.node_id.cmp(&right.node_id));
-    snapshot.node_count = snapshot.nodes.len();
-    snapshot.counts = node_status_group_counts(snapshot.nodes.iter());
     let all = IcNodeStatusView::attention().with_all(true);
     let all_subnets = ic_subnet_status_report_from_snapshot(&snapshot, &all).expect("all Subnets");
     let all_providers =
@@ -403,7 +401,7 @@ async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
         load_or_refresh_stale_ic_node_status_snapshot_with_source(&request, &source, &mut progress)
             .await
             .expect("missing cache refreshes");
-    assert_eq!(initial.node_count, 1);
+    assert_eq!(initial.nodes.len(), 1);
     assert_eq!((*source.calls.lock().unwrap()), 1);
 
     let fresh_request = refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS);
@@ -482,7 +480,7 @@ async fn malformed_cache_recovers_while_strict_load_remains_typed() {
     )
     .await
     .expect("read-through policy repairs malformed cache");
-    assert_eq!(recovered.node_count, 1);
+    assert_eq!(recovered.nodes.len(), 1);
     assert_eq!((*source.calls.lock().unwrap()), 1);
 
     fs::remove_dir_all(root).expect("remove fixture cache");
@@ -531,7 +529,7 @@ async fn noncanonical_cache_order_is_invalid_and_read_through_repairs_it() {
     )
     .await
     .expect("read-through repairs noncanonical cache ordering");
-    assert_eq!(repaired.node_count, 1);
+    assert_eq!(repaired.nodes.len(), 1);
     assert_eq!((*repair_source.calls.lock().unwrap()), 1);
 
     fs::remove_dir_all(root).expect("remove fixture cache");
@@ -589,7 +587,7 @@ async fn invalid_cached_provenance_is_strictly_rejected_and_read_through_refresh
         .await
         .expect("read-through refreshes invalid observation");
         assert_eq!((*repair_source.calls.lock().unwrap()), 1);
-        assert_eq!(repaired.node_count, 1);
+        assert_eq!(repaired.nodes.len(), 1);
         assert!(!repaired.observation.source.certified);
         assert!(!repaired.observation.source.point_in_time_guaranteed);
         assert!(
@@ -638,7 +636,8 @@ async fn forced_refresh_reports_atomic_replacement() {
     assert_eq!(
         load_cached_ic_node_status_snapshot(&request.cache, request.now_unix_secs)
             .expect("strictly load replacement")
-            .node_count,
+            .nodes
+            .len(),
         1
     );
 
@@ -673,8 +672,16 @@ async fn custom_source_rows_are_sorted_and_preserve_unknown_status() {
         .expect("valid custom snapshot");
 
     assert_eq!(snapshot.nodes[0].node_id, "aaaaa-aa");
-    assert_eq!(snapshot.counts.statuses.unknown, 1);
-    assert_eq!(snapshot.counts.statuses.up, 1);
+    assert_eq!(
+        node_status_group_counts(snapshot.nodes.iter())
+            .statuses
+            .unknown,
+        1
+    );
+    assert_eq!(
+        node_status_group_counts(snapshot.nodes.iter()).statuses.up,
+        1
+    );
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -835,7 +842,6 @@ fn fixture_snapshot() -> IcNodeStatusSnapshot {
         ),
     ];
     nodes.sort_unstable_by(|left, right| left.node_id.cmp(&right.node_id));
-    let counts = node_status_group_counts(nodes.iter());
     IcNodeStatusSnapshot {
         observation: IcNodeStatusObservation {
             source: IcDashboardReportProvenance {
@@ -852,8 +858,6 @@ fn fixture_snapshot() -> IcNodeStatusSnapshot {
             cloud_engine_nodes_included: false,
             cache: None,
         },
-        node_count: 3,
-        counts,
         nodes,
     }
 }

@@ -207,7 +207,7 @@ pub fn nns_proposal_list_report_text(
         format!("sort_direction: {}", report.sort_direction),
         format!("result_scope: {}", report.result_scope),
         format!("verbose: {}", yes_no(options.verbose)),
-        format!("proposal_count: {}", report.proposal_count),
+        format!("proposal_count: {}", report.proposals.len()),
     ]);
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
     if !report.proposals.is_empty() {
@@ -288,7 +288,7 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
     let mut lines = vec![
         format!("network: {}", terminal_text(&report.network)),
         format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("cache_count: {}", report.cache_count),
+        format!("cache_count: {}", report.caches.len()),
     ];
     if !report.caches.is_empty() {
         lines.push(String::new());
@@ -394,7 +394,7 @@ fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>
             "total_potential_voting_power: {}",
             optional_u64_text(proposal.total_potential_voting_power)
         ),
-        format!("ballot_count: {}", proposal.ballot_count),
+        format!("ballot_count: {}", proposal.ballots.len()),
         format!(
             "latest_tally_yes: {}",
             tally.map_or_else(|| "-".to_string(), |tally| tally.yes.to_string())

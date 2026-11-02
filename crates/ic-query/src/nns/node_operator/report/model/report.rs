@@ -22,6 +22,7 @@ impl_nns_inventory_report!(
     NnsNodeOperatorListReport,
     super::super::NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
     "node_operator",
+    super::super::COLLECTION,
     node_operator_count,
     node_operators,
     |_report: &NnsNodeOperatorListReport| None,

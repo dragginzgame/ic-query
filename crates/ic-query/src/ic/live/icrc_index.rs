@@ -11,7 +11,6 @@ use crate::ic::{
     IcIcrcHolderSourceRow, IcIcrcIndexSource, IcSourceRequest, source,
 };
 use serde::Deserialize as SerdeDeserialize;
-use serde_json::Value as JsonValue;
 use url::Url;
 
 impl IcIcrcIndexSource for LiveIcSource {
@@ -25,7 +24,7 @@ impl IcIcrcIndexSource for LiveIcSource {
             let query = source::normalized_account_list_query(query)?;
             let ledger_canister_id =
                 source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-            let wire: CursorPage<Account> = self
+            let wire: CursorPage<IcIcrcAccountSourceRow> = self
                 .fetch_live(account_list_url(
                     &request.endpoint,
                     &ledger_canister_id,
@@ -38,7 +37,7 @@ impl IcIcrcIndexSource for LiveIcSource {
                 query,
                 previous_cursor: wire.previous_cursor,
                 next_cursor: wire.next_cursor,
-                rows: wire.data.into_iter().map(account_source_row).collect(),
+                rows: wire.data,
             })
         })
     }
@@ -53,7 +52,7 @@ impl IcIcrcIndexSource for LiveIcSource {
             source::validate_account_id(account_id)?;
             let ledger_canister_id =
                 source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-            let wire: Account = self
+            let wire: IcIcrcAccountSourceRow = self
                 .fetch_live(account_info_url(
                     &request.endpoint,
                     &ledger_canister_id,
@@ -62,7 +61,7 @@ impl IcIcrcIndexSource for LiveIcSource {
                 .await?;
             Ok(IcIcrcAccountInfoSourceData {
                 source: request.clone(),
-                account: account_source_row(wire),
+                account: wire,
             })
         })
     }
@@ -77,7 +76,7 @@ impl IcIcrcIndexSource for LiveIcSource {
             source::validate_holder_list_query(query)?;
             let ledger_canister_id =
                 source::canonical_request_principal("ledger_canister_id", ledger_canister_id)?;
-            let wire: CursorPage<Holder> = self
+            let wire: CursorPage<IcIcrcHolderSourceRow> = self
                 .fetch_live(holder_list_url(
                     &request.endpoint,
                     &ledger_canister_id,
@@ -90,21 +89,7 @@ impl IcIcrcIndexSource for LiveIcSource {
                 query: query.clone(),
                 previous_cursor: wire.previous_cursor,
                 next_cursor: wire.next_cursor,
-                rows: wire
-                    .data
-                    .into_iter()
-                    .map(|row| IcIcrcHolderSourceRow {
-                        principal: row.principal,
-                        balance_base_units: row.balance,
-                        total_transactions: row.total_transactions,
-                        created_at_unix_nanos: row.created_timestamp,
-                        ledger_canister_id: row.ledger_canister_id,
-                        latest_transaction_index: row.latest_transaction_index,
-                        percentage: row.percentage,
-                        value_usd: row.value_usd,
-                        dashboard_updated_at: row.updated_at,
-                    })
-                    .collect(),
+                rows: wire.data,
             })
         })
     }
@@ -173,57 +158,11 @@ fn append_page_query(
     pairs.append_pair("sort_by", sort_by);
 }
 
-fn account_source_row(row: Account) -> IcIcrcAccountSourceRow {
-    IcIcrcAccountSourceRow {
-        account_id: row.id,
-        owner: row.owner,
-        subaccount: row.subaccount,
-        balance_base_units: row.balance,
-        total_transactions: row.total_transactions,
-        created_at_unix_nanos: row.created_timestamp,
-        ledger_canister_id: row.ledger_canister_id,
-        latest_transaction_index: row.latest_transaction_index,
-        dashboard_updated_at: row.updated_at,
-        active_fee_collector: row.active_fee_collector,
-        fee_collector_block_ranges: row.fee_collector_block_ranges,
-    }
-}
-
 #[derive(SerdeDeserialize)]
 struct CursorPage<Row> {
     data: Vec<Row>,
     next_cursor: Option<String>,
     previous_cursor: Option<String>,
-}
-
-#[derive(SerdeDeserialize)]
-struct Account {
-    id: String,
-    owner: String,
-    subaccount: String,
-    balance: String,
-    total_transactions: u64,
-    created_timestamp: u64,
-    ledger_canister_id: String,
-    latest_transaction_index: u64,
-    updated_at: String,
-    #[serde(default)]
-    active_fee_collector: bool,
-    #[serde(default)]
-    fee_collector_block_ranges: Vec<Vec<JsonValue>>,
-}
-
-#[derive(SerdeDeserialize)]
-struct Holder {
-    principal: String,
-    balance: String,
-    total_transactions: u64,
-    created_timestamp: u64,
-    ledger_canister_id: String,
-    latest_transaction_index: u64,
-    percentage: JsonValue,
-    value_usd: JsonValue,
-    updated_at: String,
 }
 
 #[cfg(test)]
@@ -235,6 +174,40 @@ mod tests {
     };
 
     const LEDGER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
+
+    #[test]
+    fn index_wire_records_preserve_raw_fields_and_optional_fee_defaults() {
+        let value = serde_json::json!({
+            "id": "opaque-account", "owner": "aaaaa-aa", "subaccount": "00",
+            "balance": "18446744073709551616", "total_transactions": 7,
+            "created_timestamp": u64::MAX, "ledger_canister_id": LEDGER,
+            "latest_transaction_index": 8, "updated_at": "source-time"
+        });
+        let account: IcIcrcAccountSourceRow = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(account.account_id, "opaque-account");
+        assert_eq!(account.balance_base_units, "18446744073709551616");
+        assert_eq!(account.created_at_unix_nanos, u64::MAX);
+        assert_eq!(account.dashboard_updated_at, "source-time");
+        assert!(!account.active_fee_collector);
+        assert_eq!(
+            account.fee_collector_block_ranges,
+            Vec::<Vec<serde_json::Value>>::new()
+        );
+        let mut missing = value;
+        missing.as_object_mut().unwrap().remove("owner");
+        assert!(serde_json::from_value::<IcIcrcAccountSourceRow>(missing).is_err());
+        let holder: IcIcrcHolderSourceRow = serde_json::from_value(serde_json::json!({
+            "principal": "aaaaa-aa", "balance": "123", "total_transactions": 7,
+            "created_timestamp": u64::MAX, "ledger_canister_id": LEDGER,
+            "latest_transaction_index": 8, "percentage": "12.5", "value_usd": null,
+            "updated_at": "source-time"
+        }))
+        .unwrap();
+        assert_eq!(holder.balance_base_units, "123");
+        assert_eq!(holder.created_at_unix_nanos, u64::MAX);
+        assert_eq!(holder.percentage, serde_json::json!("12.5"));
+        assert!(holder.value_usd.is_null());
+    }
 
     #[test]
     fn account_list_url_preserves_owner_cursor_limit_and_sort() {

@@ -1,10 +1,8 @@
-use crate::nns::inventory::{
-    NnsInventoryInputKind, NnsInventoryResolveError, resolve_nns_inventory_row,
-};
+use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
-    NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    NnsNodeProviderHostError, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
+    NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
+    NnsInventoryListRequest, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
     cache::{load_cached_nns_node_provider_report, nns_node_provider_cache_path},
     refresh::refresh_nns_node_provider_report_with_source,
     source::NnsNodeProviderSource,
@@ -14,7 +12,7 @@ use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_node_provider_list_report(
     request: &NnsInventoryListRequest,
-) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
+) -> Result<NnsNodeProviderListReport, NnsInventoryError> {
     build_nns_node_provider_list_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -25,7 +23,7 @@ pub async fn build_nns_node_provider_list_report(
 
 pub async fn build_nns_node_provider_info_report(
     request: &NnsInventoryInfoRequest,
-) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
+) -> Result<NnsNodeProviderInfoReport, NnsInventoryError> {
     build_nns_node_provider_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
@@ -39,7 +37,7 @@ pub async fn build_nns_node_provider_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
     source: &dyn NnsNodeProviderSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeProviderListReport, NnsNodeProviderHostError> {
+) -> Result<NnsNodeProviderListReport, NnsInventoryError> {
     load_or_refresh_nns_inventory_report(
         request,
         nns_node_provider_cache_path(&request.cache.cache_root, &request.cache.network),
@@ -59,7 +57,7 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
     source: &dyn NnsNodeProviderSource,
     progress: &mut dyn QueryProgress,
-) -> Result<NnsNodeProviderInfoReport, NnsNodeProviderHostError> {
+) -> Result<NnsNodeProviderInfoReport, NnsInventoryError> {
     let list_request = request.to_list_request();
     let mut report = build_nns_node_provider_list_report_with_source_and_progress(
         &list_request,
@@ -82,7 +80,7 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
 pub(super) fn resolve_node_provider(
     report: &NnsNodeProviderListReport,
     input: &str,
-) -> Result<(usize, String), NnsNodeProviderHostError> {
+) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
         &report.node_providers,
         |row| row.node_provider_principal.as_str(),
@@ -90,12 +88,5 @@ pub(super) fn resolve_node_provider(
         NnsInventoryInputKind::Principal,
         "node_provider_principal",
     )
-    .map_err(|error| match error {
-        NnsInventoryResolveError::NotFound { input } => {
-            NnsNodeProviderHostError::NodeProviderNotFound { input }
-        }
-        NnsInventoryResolveError::Ambiguous { prefix, matches } => {
-            NnsNodeProviderHostError::AmbiguousNodeProviderPrefix { prefix, matches }
-        }
-    })
+    .map_err(|error| error.for_collection(super::COLLECTION))
 }

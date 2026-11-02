@@ -52,6 +52,5 @@ pub struct SnsProposalsReport {
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: ReportProvenance,
-    pub proposal_count: usize,
     pub proposals: Vec<SnsProposalRow>,
 }

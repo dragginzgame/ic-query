@@ -25,14 +25,14 @@ fn status_lists_history_transcripts_and_locks_without_reading_their_payload() {
     let now = parse_utc_timestamp_secs("2026-10-02T00:00:00Z").unwrap();
     let report =
         build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("history inventory");
-    assert_eq!(report.cache_count, 1);
+    assert_eq!(report.caches.len(), 1);
     let row = &report.caches[0];
     assert_eq!(row.component, "nns/registry-history");
     assert_eq!(row.header_status, CacheHeaderStatus::Readable);
     assert_eq!(row.age_status, CacheAgeStatus::Unmanaged);
     assert_eq!(row.recovery_policy, CacheRecoveryPolicy::Explicit);
     assert_eq!(row.schema_version, Some(1));
-    assert_eq!(report.refresh_lock_count, 1);
+    assert_eq!(report.refresh_locks.len(), 1);
     assert_eq!(report.refresh_locks[0].component, "nns/registry-history");
     assert!(!report.family_validation_performed);
     let _ = fs::remove_dir_all(root);
@@ -50,7 +50,7 @@ fn status_preserves_header_failures_before_an_unread_payload() {
     ] {
         write_cache(&root, &history, contents);
         let report = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
-        assert_eq!(report.cache_count, 1);
+        assert_eq!(report.caches.len(), 1);
         assert_eq!(report.caches[0].header_status, CacheHeaderStatus::Invalid);
         assert!(report.caches[0].inspection_error.is_some());
     }
@@ -83,7 +83,7 @@ fn status_bounds_registered_files_while_allowing_large_unread_history_payloads()
     }
     let now = parse_utc_timestamp_secs("2026-10-02T00:00:00Z").unwrap();
     let report = build_cache_status_report(&CacheStatusRequest::new(&root, now)).unwrap();
-    assert_eq!(report.cache_count, 2);
+    assert_eq!(report.caches.len(), 2);
     for row in &report.caches {
         assert_eq!(row.size_bytes, size_bytes);
         if row.component == "nns/registry-history" {
@@ -136,7 +136,7 @@ fn status_separates_header_age_and_recovery_evidence_without_attempts() {
     let report =
         build_cache_status_report(&CacheStatusRequest::new(&root, now)).expect("cache status");
 
-    assert_eq!(report.cache_count, 5);
+    assert_eq!(report.caches.len(), 5);
     assert!(!report.family_validation_performed);
     assert_eq!(report.readable_header_count, 4);
     assert_eq!(report.invalid_header_count, 1);
@@ -212,7 +212,7 @@ fn status_keeps_header_identity_when_age_is_unavailable() {
         write_cache(&root, &root.join(&relative), &contents.to_string());
     }
     let report = build_cache_status_report(&CacheStatusRequest::new(&root, now)).unwrap();
-    assert_eq!(report.cache_count, 5);
+    assert_eq!(report.caches.len(), 5);
     for row in &report.caches {
         assert_eq!(row.header_status, CacheHeaderStatus::Readable);
         assert_eq!(row.schema_version, Some(1));
@@ -269,7 +269,7 @@ fn status_reports_active_available_and_invalid_coordination_files() {
     let file = ic_host_fs::durable::open_existing_regular_lock_file(&active_lock).unwrap();
     ic_host_fs::durable::try_lock_exclusive(&file).unwrap();
     let report = build_cache_status_report(&CacheStatusRequest::new(&root, 0)).unwrap();
-    assert_eq!(report.refresh_lock_count, 3);
+    assert_eq!(report.refresh_locks.len(), 3);
     assert_eq!(report.active_refresh_lock_count, 1);
     assert_eq!(report.available_refresh_lock_count, 1);
     assert_eq!(report.invalid_refresh_lock_count, 1);

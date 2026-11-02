@@ -1,4 +1,6 @@
 #[cfg(feature = "nns-host")]
+use crate::nns::NnsInventoryError;
+#[cfg(feature = "nns-host")]
 mod build;
 #[cfg(feature = "nns-host")]
 mod cache;
@@ -31,8 +33,6 @@ pub use refresh::{refresh_nns_node_report, refresh_nns_node_report_with_source};
 #[cfg(feature = "nns-host")]
 pub use source::NnsNodeSource;
 
-#[cfg(feature = "nns-host")]
-pub use model::NnsNodeHostError;
 pub use model::{
     NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
 };
@@ -49,7 +49,10 @@ const NNS_NODE_CACHE_DIR: &str = "node";
 const NNS_NODE_CACHE_FILE: &str = "nodes.json";
 
 #[cfg(feature = "nns-host")]
-impl_nns_mainnet_network_enforcer!(NnsNodeHostError);
+impl_nns_mainnet_network_enforcer!(NnsInventoryError, COLLECTION);
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
+
+#[cfg(feature = "nns-host")]
+const COLLECTION: crate::nns::NnsInventoryCollection = crate::nns::NnsInventoryCollection::Node;

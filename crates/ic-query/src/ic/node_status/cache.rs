@@ -189,19 +189,17 @@ pub async fn refresh_ic_node_status_snapshot_with_source(
         },
         |error| IcNodeStatusHostError::from(HostCacheError::operation(CACHE_COMPONENT, error)),
         async |replaced_existing_snapshot| {
-            let IcNodeStatusSnapshot {
-                observation,
-                nodes,
-                node_count,
-                counts,
-            } = build_ic_node_status_snapshot_with_source(
-                &crate::ic::IcDashboardRequest::new(
-                    &request.source_endpoint,
-                    request.now_unix_secs,
-                ),
-                source,
-            )
-            .await?;
+            let IcNodeStatusSnapshot { observation, nodes } =
+                build_ic_node_status_snapshot_with_source(
+                    &crate::ic::IcDashboardRequest::new(
+                        &request.source_endpoint,
+                        request.now_unix_secs,
+                    ),
+                    source,
+                )
+                .await?;
+            let node_count = nodes.len();
+            let counts = node_status_group_counts(nodes.iter());
             let cache = cache_from_observation(observation, nodes);
             write_managed_json_pretty_atomically(
                 &request.cache.cache_root,
@@ -401,12 +399,7 @@ fn snapshot_from_cache(
     });
     let nodes = cache.data.nodes;
     Ok(LoadedNodeStatusSnapshot {
-        snapshot: IcNodeStatusSnapshot {
-            observation,
-            node_count: nodes.len(),
-            counts: node_status_group_counts(nodes.iter()),
-            nodes,
-        },
+        snapshot: IcNodeStatusSnapshot { observation, nodes },
         fetched_at_unix_secs,
     })
 }

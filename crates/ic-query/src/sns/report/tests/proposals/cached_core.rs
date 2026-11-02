@@ -133,7 +133,7 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     .await
     .expect("auto refresh proposals cache");
 
-    assert_eq!(first.proposal_count, 1);
+    assert_eq!(first.proposals.len(), 1);
     assert_eq!(first.proposals[0].proposal_id, 42);
     assert_eq!(first.provenance.data_source().as_str(), "cache");
     assert_eq!(first.provenance.cache_complete(), Some(true));
@@ -160,7 +160,7 @@ async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     .await
     .expect("cached proposals report");
 
-    assert_eq!(second.proposal_count, 1);
+    assert_eq!(second.proposals.len(), 1);
     assert_eq!(second.proposals[0].proposal_id, 42);
     assert_eq!(
         second.context.instance.source_endpoint,

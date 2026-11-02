@@ -283,7 +283,7 @@ async fn nns_proposal_failed_refresh_preserves_page_progress() {
     let list = build_nns_proposal_cache_list_report(&cache_request).expect("failed attempt list");
     let status =
         build_nns_proposal_cache_status_report(&cache_request).expect("failed attempt status");
-    assert_eq!(list.cache_count, 0);
+    assert_eq!(list.caches.len(), 0);
     assert_eq!(list.latest_attempt, status.latest_attempt);
     assert_eq!(
         list.latest_attempt
@@ -392,7 +392,7 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         list.collection,
         crate::nns::NnsGovernanceCollection::Proposals
     );
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
     assert_eq!(list.caches[0].cache_error(), None);
     assert_eq!(list.caches[0].valid().unwrap().row_count, 3);
@@ -452,7 +452,7 @@ fn nns_proposal_cache_status_reports_missing_cache() {
         cache_root: root.clone(),
     })
     .expect("cache list");
-    assert_eq!(list.cache_count, 0);
+    assert_eq!(list.caches.len(), 0);
     assert_eq!(list.caches, Vec::new());
 
     let _ = fs::remove_dir_all(root);
@@ -527,7 +527,7 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
             invalid_snapshot
         );
         let list = build_nns_proposal_cache_list_report(&request).expect("absent attempt list");
-        assert_eq!(list.cache_count, 1);
+        assert_eq!(list.caches.len(), 1);
         assert_eq!(list.caches.first(), status.cache.as_ref());
         assert_eq!(list.latest_attempt, status.latest_attempt);
     }
@@ -587,7 +587,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     assert_eq!(report.sort, "title");
     assert_eq!(report.sort_direction, "asc");
     assert_eq!(report.result_scope.as_str(), "complete-cache");
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(report.proposals[0].proposal_id, Some(1));
     assert_eq!(json["query_filter"], "PrOpOsAl 1");
     assert_eq!(json["result_scope"], "complete-cache");
@@ -600,7 +600,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         .expect("cache lookup")
         .expect("cached list report");
     assert_eq!(report.proposals[0].proposal_id, Some(2));
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(report.requested_limit, 1);
     assert_eq!(report.before_proposal_id, Some(3));
 
@@ -609,7 +609,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         .expect("cache lookup")
         .expect("cached list report");
     assert_eq!(report.proposals[0].proposal_id, Some(1));
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
 }
 
 #[test]
@@ -1044,7 +1044,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
         cache_root: root.to_path_buf(),
     })
     .expect("cache list");
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(
         list.caches[0].cache_status(),
         CacheValidationStatus::Invalid

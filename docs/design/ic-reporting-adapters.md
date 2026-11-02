@@ -627,6 +627,17 @@ batches are never followed implicitly. The shared ordinary `get_value` path
 uses the same bounded chunk reconstruction without inheriting certified
 assurance.
 
+Registry batches retain raw versions, mutations, chunk evidence and observed
+transport accounting. Their validator returns one checked derived summary; sealed
+authenticated batches bind that summary to an immutable report for replay and
+archive accounting. Mutation kinds derive from raw discriminants, and Text derives
+certificate UTC labels and evidence lengths. Source/restored-input quotas and
+raw-certificate reauthentication remain independent boundaries. The
+[0.88 hard cut](../../releases/query/0.88.md) replaces retained report shapes and
+their canonical byte identities. Preserve former archive objects, manifests and
+commitments unchanged; retire their capture roots from current consumers before
+selecting a new root. Current readers do not convert historical evidence.
+
 ## Current Follow-Up Flows
 
 - NNS exact topology follows Subnet membership through nodes and operators to
@@ -695,17 +706,19 @@ assurance.
   validated before the walk; ending evidence must equal it in full. Final
   checkpoint validation retains the checks against collection completion
   time, and restored reports are independently validated.
-  `SnsRewardCheckpointReport.summary` owns the aggregate and policy fields through
-  `SnsRewardCheckpointSummary`, flattened into the existing strict schema-1 JSON.
-  Both checkpoints and diff references carry `MainnetSnsCanisters` through
-  `canisters`, also flattened into their current strict JSON.
-  The collector moves its computed summary into the report; restored reports
-  independently recompute and compare the whole record.
+  `SnsRewardCheckpointReport::summary()` derives checked aggregates and policy
+  observations from those raw brackets and rows. Counts, collection ceilings and
+  human UTC labels are derived rather than stored alongside their inputs.
+  Checkpoints and diff references retain `MainnetSnsCanisters` through flattened
+  `canisters` identities. The [0.88 hard cut](../../releases/query/0.88.md) requires
+  explicit consumer updates and preservation of earlier checkpoint evidence.
   The portable neuron model owns permission and pending-disbursement checks
   shared by source admission and restored checkpoints. Exact detail still
   requires permission principals; checkpoints preserve missing principals and
   unknown codes as unassessable evidence. Each trust boundary runs those rules
-  independently.
+  independently. Both retain integer permission codes directly; Text derives
+  permission names. Exact detail derives its policy observations from permissions
+  and pending disbursements instead of storing independently editable results.
   Local diff projection treats checkpoints as untrusted, recomputes their raw
   policy and maturity evidence, and reports an allocation only after exact
   immediate-event reconciliation.

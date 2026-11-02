@@ -54,7 +54,7 @@ async fn topology_refresh_stops_at_the_first_source_failure() {
             .await
             .expect_err("source failure");
         assert!(
-            matches!(error, NnsTopologyHostError::Node(crate::nns::node::NnsNodeHostError::InvalidSourceData { reason }) if reason == *component)
+            matches!(error, NnsTopologyHostError::Inventory(crate::nns::NnsInventoryError::InvalidSourceData { reason, .. }) if reason == *component)
         );
         assert_eq!(*source.calls.lock().unwrap(), components[..=index]);
     }
@@ -87,21 +87,19 @@ async fn topology_refresh_rejects_mismatched_component_collections() {
             .await
             .expect_err("collection mismatch");
         let rejected_collection = match error {
-            NnsTopologyHostError::Node(crate::nns::node::NnsNodeHostError::InvalidSourceData {
+            NnsTopologyHostError::Inventory(crate::nns::NnsInventoryError::InvalidSourceData {
+                collection,
                 ..
-            }) => "nodes",
-            NnsTopologyHostError::NodeProvider(
-                crate::nns::node_provider::NnsNodeProviderHostError::InvalidSourceData { .. },
-            ) => "node_providers",
-            NnsTopologyHostError::NodeOperator(
-                crate::nns::node_operator::NnsNodeOperatorHostError::InvalidSourceData { .. },
-            ) => "node_operators",
-            NnsTopologyHostError::DataCenter(
-                crate::nns::data_center::NnsDataCenterHostError::InvalidSourceData { .. },
-            ) => "data_centers",
+            }) => collection,
             other => panic!("unexpected refresh failure: {other}"),
         };
-        assert_eq!(rejected_collection, *component);
+        let expected = [
+            crate::nns::NnsInventoryCollection::Node,
+            crate::nns::NnsInventoryCollection::NodeProvider,
+            crate::nns::NnsInventoryCollection::NodeOperator,
+            crate::nns::NnsInventoryCollection::DataCenter,
+        ][index - 1];
+        assert_eq!(rejected_collection, expected);
         assert_eq!(*source.calls.lock().unwrap(), components[..=index]);
     }
 }

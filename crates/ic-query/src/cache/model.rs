@@ -245,8 +245,6 @@ pub struct CacheStatusReport {
     pub truncated: bool,
     /// Whether the generic inventory performed family-specific semantic validation.
     pub family_validation_performed: bool,
-    /// Number of cache rows returned.
-    pub cache_count: usize,
     /// Number of caches with readable generic headers.
     pub readable_header_count: usize,
     /// Number of caches with unreadable or malformed generic headers.
@@ -263,8 +261,6 @@ pub struct CacheStatusReport {
     pub total_size_bytes: u64,
     /// Canonically path-ordered cache rows.
     pub caches: Vec<CacheStatusRow>,
-    /// Number of refresh-lock rows returned.
-    pub refresh_lock_count: usize,
     /// Number of coordination files held by a refreshing process.
     pub active_refresh_lock_count: usize,
     /// Number of currently unlocked coordination files.

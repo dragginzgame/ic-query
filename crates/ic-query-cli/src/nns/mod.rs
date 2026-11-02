@@ -23,12 +23,9 @@ use crate::{
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::ic::IcHostError;
 use ic_query::ic::IcNodeStatusHostError;
-use ic_query::nns::data_center::NnsDataCenterHostError;
+use ic_query::nns::NnsInventoryError;
 use ic_query::nns::governance::NnsGovernanceError;
 use ic_query::nns::neuron::NnsNeuronHostError;
-use ic_query::nns::node::NnsNodeHostError;
-use ic_query::nns::node_operator::NnsNodeOperatorHostError;
-use ic_query::nns::node_provider::NnsNodeProviderHostError;
 use ic_query::nns::proposals::NnsProposalHostError;
 use ic_query::nns::registry::NnsRegistryHostError;
 use ic_query::nns::topology::NnsTopologyHostError;
@@ -54,17 +51,13 @@ pub enum NnsCommandError {
         source: Box<SubnetCatalogHostError>,
     },
     #[error(transparent)]
-    DataCenterHost(#[from] NnsDataCenterHostError),
+    InventoryHost(#[from] NnsInventoryError),
     #[error(transparent)]
     Governance(#[from] NnsGovernanceError),
-    #[error(transparent)]
-    NodeHost(#[from] NnsNodeHostError),
+
     #[error(transparent)]
     NeuronHost(#[from] NnsNeuronHostError),
-    #[error(transparent)]
-    NodeProviderHost(#[from] NnsNodeProviderHostError),
-    #[error(transparent)]
-    NodeOperatorHost(#[from] NnsNodeOperatorHostError),
+
     #[error(transparent)]
     ProposalHost(#[from] NnsProposalHostError),
     #[error(transparent)]

@@ -67,7 +67,7 @@ fn token_options_parse_through_clap() {
     );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
     assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
 }
 
@@ -80,7 +80,7 @@ fn capabilities_options_parse_through_clap() {
     );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn balance_options_parse_through_clap_and_normalize_subaccount() {
     assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.account_owner, ACCOUNT_OWNER);
     assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
-    assert_eq!(options.ledger.format, OutputFormat::Json);
+    assert_eq!(options.ledger.format(), OutputFormat::Json);
 }
 
 #[test]
@@ -235,7 +235,7 @@ fn index_options_parse_through_clap() {
     );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
 }
 
 #[test]
@@ -268,7 +268,7 @@ fn block_types_options_parse_through_clap() {
     );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
 }
 
 #[test]
@@ -293,7 +293,7 @@ fn tip_certificate_options_parse_through_clap() {
     );
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
 }
 
 #[test]
@@ -416,7 +416,7 @@ fn analytics_indexed_count_options_reuse_the_shared_ledger_target() {
         );
 
         assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
-        assert_eq!(options.format, OutputFormat::Json);
+        assert_eq!(options.format(), OutputFormat::Json);
         assert_eq!(options.source_endpoint, "https://example.com/api/v2");
     }
 }

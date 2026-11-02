@@ -33,11 +33,11 @@ impl SnsNeuronSource for NoCallSnsNeuronSource {
     }
 }
 
-struct InvalidPolicySnsNeuronSource;
+struct InvalidPermissionSnsNeuronSource;
 
-delegate_sns_discovery!(InvalidPolicySnsNeuronSource);
+delegate_sns_discovery!(InvalidPermissionSnsNeuronSource);
 
-impl SnsNeuronSource for InvalidPolicySnsNeuronSource {
+impl SnsNeuronSource for InvalidPermissionSnsNeuronSource {
     fn fetch_sns_neuron<'a>(
         &'a self,
         _request: &'a CollectionSourceRequest,
@@ -46,8 +46,8 @@ impl SnsNeuronSource for InvalidPolicySnsNeuronSource {
     ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>> {
         Box::pin(async move {
             let mut neuron = fixture_sns_neuron();
-            neuron.maturity_mint_conversion_observed_disabled =
-                SnsPolicyObservationStatus::ObservedSatisfied;
+            let code = neuron.permissions[0].permission_types[0];
+            neuron.permissions[0].permission_types.push(code);
             Ok(neuron)
         })
     }
@@ -69,17 +69,17 @@ async fn exact_neuron_detail_preserves_native_permission_and_disbursement_eviden
     assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.data_source.as_str(), "live");
     assert_eq!(report.detail.neuron.neuron_id, NEURON_A);
-    assert_eq!(report.detail.permissions[0].permission_types[4].code, 9);
+    assert_eq!(report.detail.permissions[0].permission_types[4], 9);
     assert_eq!(
-        report.detail.permissions[0].permission_types[4].name,
+        sns_neuron_permission_name(report.detail.permissions[0].permission_types[4]),
         "stake_maturity"
     );
     assert_eq!(
-        report.detail.maturity_mint_conversion_observed_disabled,
+        report.detail.derived_policy_observations().0,
         SnsPolicyObservationStatus::Violated
     );
     assert_eq!(
-        report.detail.manual_maturity_staking_observed_disabled,
+        report.detail.derived_policy_observations().1,
         SnsPolicyObservationStatus::Violated
     );
     let destination = report.detail.disburse_maturity_in_progress[0]
@@ -124,19 +124,19 @@ async fn exact_neuron_detail_rejects_invalid_input_before_source_calls() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn exact_neuron_detail_recomputes_custom_source_policy_observations() {
+async fn exact_neuron_detail_rejects_duplicate_custom_source_permission_codes() {
     let error = build_sns_neuron_detail_report_with_source(
         &neuron_request("1"),
-        &InvalidPolicySnsNeuronSource,
+        &InvalidPermissionSnsNeuronSource,
     )
     .await
-    .expect_err("tampered derived status rejected");
+    .expect_err("duplicate permission rejected");
 
     assert!(matches!(
         error,
         SnsHostError::InvalidSourceData {
             capability: "SNS neuron detail",
             reason,
-        } if reason.contains("does not match raw evidence")
+        } if reason.contains("duplicate permission code")
     ));
 }

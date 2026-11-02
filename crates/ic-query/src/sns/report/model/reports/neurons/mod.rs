@@ -13,7 +13,7 @@ mod row;
 
 pub use detail::{
     SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
-    SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow, SnsNeuronPermissionValue,
+    SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
     SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus, sns_neuron_permission_name,
 };
 pub use diff::{

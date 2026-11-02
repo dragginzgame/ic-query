@@ -50,32 +50,6 @@ impl SnsPolicyObservationStatus {
 }
 
 ///
-/// SnsNeuronPermissionValue
-///
-/// Raw SNS Governance permission code with its current native label.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SnsNeuronPermissionValue {
-    /// Raw integer permission code returned by Governance.
-    pub code: i32,
-    /// Current native permission label, or `unknown` for an unrecognized code.
-    pub name: String,
-}
-
-impl SnsNeuronPermissionValue {
-    /// Construct one permission value from its raw Governance code.
-    #[must_use]
-    pub fn from_code(code: i32) -> Self {
-        Self {
-            code,
-            name: sns_neuron_permission_name(code).to_string(),
-        }
-    }
-}
-
-///
 /// SnsNeuronPermissionRow
 ///
 /// Permissions held by one principal on an SNS neuron.
@@ -86,8 +60,8 @@ impl SnsNeuronPermissionValue {
 pub struct SnsNeuronPermissionRow {
     /// Canonical principal text when Governance supplied the permission holder.
     pub principal: Option<String>,
-    /// Raw permission codes and current native labels.
-    pub permission_types: Vec<SnsNeuronPermissionValue>,
+    /// Raw Governance permission codes, including unrecognized values.
+    pub permission_types: Vec<i32>,
 }
 
 ///
@@ -190,10 +164,6 @@ pub struct SnsNeuronDetail {
     pub followees: Vec<SnsNeuronFolloweesRow>,
     /// Topic-based followees when the native optional collection is present.
     pub topic_followees: Option<Vec<SnsNeuronTopicFolloweesRow>>,
-    /// Observed status for disabling maturity mint conversions through permissions 7 and 8.
-    pub maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus,
-    /// Observed status for disabling manual maturity staking through permission 9.
-    pub manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus,
 }
 
 impl SnsNeuronDetail {
@@ -229,7 +199,7 @@ pub(in crate::sns::report) fn neuron_policy_observations(
             mint = mint.combine(SnsPolicyObservationStatus::Unassessable);
             staking = staking.combine(SnsPolicyObservationStatus::Unassessable);
         }
-        for code in permission.permission_types.iter().map(|value| value.code) {
+        for code in permission.permission_types.iter().copied() {
             let (code_mint, code_staking) = permission_code_policy_observations(code);
             mint = mint.combine(code_mint);
             staking = staking.combine(code_staking);
@@ -326,19 +296,10 @@ pub(in crate::sns::report) fn validate_neuron_permissions(
             None => "missing principal",
         };
         let mut codes = HashSet::new();
-        for value in &permission.permission_types {
-            if value.name != sns_neuron_permission_name(value.code) {
+        for code in &permission.permission_types {
+            if !codes.insert(*code) {
                 return Err(format!(
-                    "permission code {} has label {}, expected {}",
-                    value.code,
-                    value.name,
-                    sns_neuron_permission_name(value.code)
-                ));
-            }
-            if !codes.insert(value.code) {
-                return Err(format!(
-                    "{principal} contains duplicate permission code {}",
-                    value.code
+                    "{principal} contains duplicate permission code {code}"
                 ));
             }
         }
@@ -419,15 +380,11 @@ mod tests {
             },
             permissions: vec![SnsNeuronPermissionRow {
                 principal: Some("aaaaa-aa".to_string()),
-                permission_types: vec![SnsNeuronPermissionValue::from_code(11)],
+                permission_types: vec![11],
             }],
             disburse_maturity_in_progress: Vec::new(),
             followees: Vec::new(),
             topic_followees: None,
-            maturity_mint_conversion_observed_disabled:
-                SnsPolicyObservationStatus::ObservedSatisfied,
-            manual_maturity_staking_observed_disabled:
-                SnsPolicyObservationStatus::ObservedSatisfied,
         };
 
         assert_eq!(
@@ -438,9 +395,7 @@ mod tests {
             )
         );
 
-        detail.permissions[0]
-            .permission_types
-            .push(SnsNeuronPermissionValue::from_code(7));
+        detail.permissions[0].permission_types.push(7);
         assert_eq!(
             detail.derived_policy_observations(),
             (

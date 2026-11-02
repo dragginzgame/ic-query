@@ -7,24 +7,20 @@ use crate::sns::report::tests::*;
 async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries() {
     let mut row = fixture_reward_row(1);
     row.disburse_maturity_in_progress = fixture_sns_neuron().disburse_maturity_in_progress;
-    let (mint, staking) = row.derived_policy_observations();
-    row.maturity_mint_conversion_observed_disabled = mint;
-    row.manual_maturity_staking_observed_disabled = staking;
     let valid = build_sns_reward_checkpoint_report_with_source(
         &reward_checkpoint_request("1"),
         &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
     )
     .await
     .expect("valid variable evidence");
-    let mutations: [fn(&mut SnsRewardCheckpointRow); 8] = [
+    let mutations: [fn(&mut SnsRewardCheckpointRow); 7] = [
         |row| row.permissions[0].principal = Some("invalid".to_string()),
         |row| row.permissions[0].principal = Some(ROOT_A.to_uppercase()),
         |row| row.permissions.push(row.permissions[0].clone()),
         |row| {
-            let permission = row.permissions[0].permission_types[0].clone();
+            let permission = row.permissions[0].permission_types[0];
             row.permissions[0].permission_types.push(permission);
         },
-        |row| row.permissions[0].permission_types[0].name = "incorrect".to_string(),
         |row| {
             row.disburse_maturity_in_progress[0]
                 .account_to_disburse_to
@@ -65,9 +61,6 @@ async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries
         let mut neuron = fixture_sns_neuron();
         neuron.permissions = row.permissions.clone();
         neuron.disburse_maturity_in_progress = row.disburse_maturity_in_progress.clone();
-        let (mint, staking) = neuron.derived_policy_observations();
-        neuron.maturity_mint_conversion_observed_disabled = mint;
-        neuron.manual_maturity_staking_observed_disabled = staking;
         assert!(matches!(
             validate_mainnet_sns_neuron(&neuron, &neuron.neuron.neuron_id),
             Err(SnsHostError::InvalidSourceData {
@@ -81,13 +74,8 @@ async fn neuron_evidence_is_rejected_at_live_detail_page_and_restored_boundaries
 #[tokio::test(flavor = "current_thread")]
 async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requires_principals() {
     let mut row = fixture_reward_row(1);
-    row.permissions[0].permission_types = [0, 11, -1]
-        .map(SnsNeuronPermissionValue::from_code)
-        .to_vec();
+    row.permissions[0].permission_types = vec![0, 11, -1, i32::MIN, i32::MAX];
     row.permissions[0].principal = None;
-    let (mint, staking) = row.derived_policy_observations();
-    row.maturity_mint_conversion_observed_disabled = mint;
-    row.manual_maturity_staking_observed_disabled = staking;
     let report = build_sns_reward_checkpoint_report_with_source(
         &reward_checkpoint_request("1"),
         &FixtureSnsRewardSource::new(vec![fixture_reward_page(vec![row], None)]),
@@ -95,8 +83,17 @@ async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requir
     .await
     .expect("checkpoint preserves incomplete and unknown evidence");
     validate_sns_reward_checkpoint_report(&report).expect("restored evidence remains valid");
+    let restored: SnsRewardCheckpointReport =
+        serde_json::from_value(serde_json::to_value(&report).unwrap()).unwrap();
     assert_eq!(
-        report.summary.maturity_conversion_policy_observed_status,
+        restored.rows[0].permissions[0].permission_types,
+        [0, 11, -1, i32::MIN, i32::MAX]
+    );
+    assert_eq!(
+        report
+            .summary()
+            .unwrap()
+            .maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::Unassessable,
     );
     let mut neuron = fixture_sns_neuron();
@@ -107,11 +104,8 @@ async fn checkpoint_retains_unassessable_permission_evidence_while_detail_requir
             if reason.contains("principal is missing")
     ));
     neuron.permissions[0].principal = Some(ROOT_A.to_string());
-    let (mint, staking) = neuron.derived_policy_observations();
-    neuron.maturity_mint_conversion_observed_disabled = mint;
-    neuron.manual_maturity_staking_observed_disabled = staking;
     validate_mainnet_sns_neuron(&neuron, &neuron.neuron.neuron_id)
-        .expect("detail preserves unknown permission codes with canonical labels");
+        .expect("detail preserves unknown permission codes");
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -138,13 +132,24 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
         ]
     );
     assert_eq!(report.page_count, 1);
-    assert_eq!(report.row_count, 2);
-    assert_eq!(report.unique_neuron_id_count, 2);
-    assert_eq!(report.client_query_count, 9);
-    assert_eq!(report.summary.aggregate_maturity_e8s_equivalent, 300);
-    assert_eq!(report.summary.aggregate_staked_maturity_e8s_equivalent, 30);
+    assert_eq!(report.row_count(), 2);
+    assert_eq!(report.client_query_count().unwrap(), 9);
     assert_eq!(
-        report.summary.aggregate_combined_maturity_e8s_equivalent,
+        report.summary().unwrap().aggregate_maturity_e8s_equivalent,
+        300
+    );
+    assert_eq!(
+        report
+            .summary()
+            .unwrap()
+            .aggregate_staked_maturity_e8s_equivalent,
+        30
+    );
+    assert_eq!(
+        report
+            .summary()
+            .unwrap()
+            .aggregate_combined_maturity_e8s_equivalent,
         330
     );
     assert_eq!(
@@ -153,14 +158,17 @@ async fn reward_checkpoint_collects_stable_brackets_and_exhausted_rows_in_order(
     );
     assert!(!report.point_in_time_guaranteed);
     assert_eq!(
-        report.summary.maturity_conversion_policy_observed_status,
+        report
+            .summary()
+            .unwrap()
+            .maturity_conversion_policy_observed_status,
         SnsPolicyObservationStatus::ObservedSatisfied
     );
 
     validate_sns_reward_checkpoint_report(&report)
         .expect("collected report satisfies strict import validation");
     let mut restored = report;
-    restored.summary.aggregate_combined_maturity_e8s_equivalent += 1;
+    restored.rows[0].maturity_e8s_equivalent = u64::MAX;
     assert!(validate_sns_reward_checkpoint_report(&restored).is_err());
 }
 
@@ -365,9 +373,7 @@ fn reward_checkpoint_collection_rejects_rows_after_exhaustion() {
 fn reward_row_policy_fails_closed_but_preserves_known_violations() {
     let mut row = fixture_reward_row(1);
     row.permissions[0].principal = None;
-    row.permissions[0]
-        .permission_types
-        .push(SnsNeuronPermissionValue::from_code(11));
+    row.permissions[0].permission_types.push(11);
     let observations = row.derived_policy_observations();
     assert_eq!(
         observations,
@@ -377,11 +383,7 @@ fn reward_row_policy_fails_closed_but_preserves_known_violations() {
         )
     );
 
-    row.permissions[0]
-        .permission_types
-        .push(SnsNeuronPermissionValue::from_code(7));
-    row.maturity_mint_conversion_observed_disabled = SnsPolicyObservationStatus::Violated;
-    row.manual_maturity_staking_observed_disabled = SnsPolicyObservationStatus::Unassessable;
+    row.permissions[0].permission_types.push(7);
     assert_eq!(
         row.derived_policy_observations().0,
         SnsPolicyObservationStatus::Violated

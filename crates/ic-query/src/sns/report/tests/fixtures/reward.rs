@@ -145,28 +145,18 @@ pub(in crate::sns::report::tests) const fn fixture_reward_page(
 }
 
 pub(in crate::sns::report::tests) fn fixture_reward_row(seed: u8) -> SnsRewardCheckpointRow {
-    let mut row = SnsRewardCheckpointRow {
+    SnsRewardCheckpointRow {
         neuron_id: format!("{seed:02x}").repeat(32),
         created_timestamp_seconds: 1_700_000_000 + u64::from(seed),
         maturity_e8s_equivalent: u64::from(seed) * 100,
         staked_maturity_e8s_equivalent: Some(u64::from(seed) * 10),
-        combined_maturity_e8s_equivalent: u64::from(seed) * 110,
         auto_stake_maturity: Some(seed.is_multiple_of(2)),
         permissions: vec![SnsNeuronPermissionRow {
             principal: Some(ROOT_A.to_string()),
-            permission_types: vec![
-                SnsNeuronPermissionValue::from_code(2),
-                SnsNeuronPermissionValue::from_code(4),
-            ],
+            permission_types: vec![2, 4],
         }],
         disburse_maturity_in_progress: Vec::new(),
-        maturity_mint_conversion_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-        manual_maturity_staking_observed_disabled: SnsPolicyObservationStatus::ObservedSatisfied,
-    };
-    let (mint, staking) = row.derived_policy_observations();
-    row.maturity_mint_conversion_observed_disabled = mint;
-    row.manual_maturity_staking_observed_disabled = staking;
-    row
+    }
 }
 
 fn fixture_reward_event() -> SnsRewardEvent {

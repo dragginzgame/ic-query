@@ -1,4 +1,6 @@
 #[cfg(feature = "nns-host")]
+use crate::nns::NnsInventoryError;
+#[cfg(feature = "nns-host")]
 mod build;
 #[cfg(feature = "nns-host")]
 mod cache;
@@ -29,8 +31,6 @@ pub use refresh::{refresh_nns_node_operator_report, refresh_nns_node_operator_re
 #[cfg(feature = "nns-host")]
 pub use source::NnsNodeOperatorSource;
 
-#[cfg(feature = "nns-host")]
-pub use model::NnsNodeOperatorHostError;
 pub use model::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow};
 
 pub const DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT: &str = "https://icp-api.io";
@@ -45,7 +45,11 @@ const NNS_NODE_OPERATOR_CACHE_DIR: &str = "node-operator";
 const NNS_NODE_OPERATOR_CACHE_FILE: &str = "operators.json";
 
 #[cfg(feature = "nns-host")]
-impl_nns_mainnet_network_enforcer!(NnsNodeOperatorHostError);
+impl_nns_mainnet_network_enforcer!(NnsInventoryError, COLLECTION);
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;
+
+#[cfg(feature = "nns-host")]
+const COLLECTION: crate::nns::NnsInventoryCollection =
+    crate::nns::NnsInventoryCollection::NodeOperator;

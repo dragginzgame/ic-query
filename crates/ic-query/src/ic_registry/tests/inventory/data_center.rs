@@ -33,7 +33,6 @@ fn data_center_counts_preserve_distinct_providers_and_empty_location_rules() {
 
 #[test]
 fn data_center_list_aggregates_registry_relations() {
-    let request = registry_fetch_request();
     let provider_a = Principal::self_authenticating(b"provider-a").to_text();
     let provider_b = Principal::self_authenticating(b"provider-b").to_text();
     let operator_a = Principal::self_authenticating(b"operator-a").to_text();
@@ -97,16 +96,15 @@ fn data_center_list_aggregates_registry_relations() {
         )]),
     };
 
-    let list = data_center_list_from_inventory(&request, inventory, 42).expect("data centers");
+    let list = data_center_list_from_inventory(inventory).expect("data centers");
 
-    assert_eq!(list.provenance.registry_version, 42);
-    assert_eq!(list.data_centers.len(), 1);
-    assert_eq!(list.data_centers[0].data_center_id, "dc-a");
-    assert_eq!(list.data_centers[0].region, "eu-west");
-    assert_eq!(list.data_centers[0].owner, "example owner");
-    assert_eq!(list.data_centers[0].latitude, Some(48.8566));
-    assert_eq!(list.data_centers[0].longitude, Some(2.3522));
-    assert_eq!(list.data_centers[0].node_operator_count, 2);
-    assert_eq!(list.data_centers[0].node_provider_count, 2);
-    assert_eq!(list.data_centers[0].node_count, 3);
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].data_center_id, "dc-a");
+    assert_eq!(list[0].region, "eu-west");
+    assert_eq!(list[0].owner, "example owner");
+    assert_eq!(list[0].latitude, Some(48.8566));
+    assert_eq!(list[0].longitude, Some(2.3522));
+    assert_eq!(list[0].node_operator_count, 2);
+    assert_eq!(list[0].node_provider_count, 2);
+    assert_eq!(list[0].node_count, 3);
 }

@@ -78,23 +78,18 @@ pub struct NnsRegistryVersionReport {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsRegistryCertification {
     /// Whether the certificate and version witness were authenticated.
     pub certificate_verified: bool,
     /// Certificate time in raw nanoseconds since the Unix epoch.
     pub certificate_time_nanos: u64,
-    /// Certificate time formatted at UTC second precision.
-    pub certificate_time: String,
     /// SHA-256 digest of the trusted DER-encoded root key.
     pub root_key_digest: String,
     /// CBOR system certificate encoded as lowercase hexadecimal.
     pub certificate_hex: String,
-    /// Raw certificate length in bytes.
-    pub certificate_bytes: usize,
     /// Protobuf mixed hash-tree witness encoded as lowercase hexadecimal.
     pub hash_tree_hex: String,
-    /// Encoded mixed hash-tree witness length in bytes.
-    pub hash_tree_bytes: usize,
 }
 
 ///
@@ -140,6 +135,7 @@ impl NnsCertifiedRegistryDeltaBatchRequest {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsCertifiedRegistryDeltaBatchReport {
     /// Report schema version.
     pub schema_version: u32,
@@ -151,44 +147,18 @@ pub struct NnsCertifiedRegistryDeltaBatchReport {
     pub requested_version: u64,
     /// Latest Registry version authenticated by the same response.
     pub certified_latest_version: u64,
-    /// First visible contiguous delta version, when any.
-    pub first_version: Option<u64>,
-    /// Last visible contiguous delta version, when any.
-    pub last_version: Option<u64>,
-    /// Number of visible Registry versions.
-    pub version_count: usize,
-    /// Number of mutations across all visible versions.
-    pub mutation_count: usize,
-    /// Number of preconditions across all visible versions.
-    pub precondition_count: usize,
-    /// Complete inline value bytes across all visible mutations.
-    pub inline_value_bytes: usize,
-    /// Complete reconstructed bytes for chunk-referenced values.
-    pub chunk_value_bytes: usize,
-    /// Complete inline and reconstructed value bytes.
-    pub value_bytes: usize,
-    /// Number of certified chunk references across all visible mutations.
-    pub chunk_reference_count: usize,
-    /// Complete bytes retained once per unique content-addressed chunk.
-    pub chunk_evidence_bytes: usize,
-    /// Whether later certified versions require another explicit request.
-    pub more_available: bool,
     /// Caller collection time.
     pub fetched_at: String,
     /// Exact replica endpoint used by the source.
     pub source_endpoint: String,
     /// Collector identity.
     pub fetched_by: String,
-    /// Number of Registry queries made for this batch.
-    pub query_call_count: u64,
     /// Number of content-addressed `get_chunk` queries made for this batch.
     pub chunk_query_call_count: u64,
     /// Encoded certified delta response size returned by the replica.
     pub certified_response_bytes: usize,
     /// Encoded `get_chunk` response bytes returned by the replica.
     pub chunk_response_bytes: usize,
-    /// Total encoded response bytes returned across every Registry query.
-    pub response_bytes: usize,
     /// Resource ceilings applied while validating the batch.
     pub limits: NnsCertifiedRegistryDeltaLimits,
     /// Ordered contiguous Registry versions.
@@ -270,11 +240,10 @@ pub struct NnsCertifiedRegistryDeltaVersion {
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsCertifiedRegistryMutation {
     /// Raw upstream protobuf mutation discriminant.
     pub mutation_type: i32,
-    /// Supported meaning of the raw discriminant.
-    pub mutation_kind: NnsCertifiedRegistryMutationKind,
     /// Raw Registry key bytes as lowercase hexadecimal.
     pub key_hex: String,
     /// Original certified representation of this mutation's value.
@@ -324,18 +293,10 @@ pub enum NnsCertifiedRegistryMutationKind {
     Upsert,
 }
 
-#[cfg(feature = "certified-subnet-catalog-host")]
 impl NnsCertifiedRegistryMutationKind {
-    pub(super) const fn raw_type(self) -> i32 {
-        match self {
-            Self::Insert => 0,
-            Self::Update => 1,
-            Self::Delete => 2,
-            Self::Upsert => 4,
-        }
-    }
-
-    pub(super) const fn from_raw_type(value: i32) -> Option<Self> {
+    /// Interpret a supported raw Registry mutation code.
+    #[must_use]
+    pub const fn from_raw_type(value: i32) -> Option<Self> {
         match value {
             0 => Some(Self::Insert),
             1 => Some(Self::Update),
@@ -373,4 +334,62 @@ pub struct NnsRegistryVersionData {
     pub provenance: NnsRegistryInventoryProvenance,
     /// Authenticated evidence for the certified latest version.
     pub certification: NnsRegistryCertification,
+}
+
+impl NnsRegistryCertification {
+    /// Return the decoded length of canonical certificate hex evidence.
+    #[must_use]
+    pub const fn certificate_bytes(&self) -> usize {
+        self.certificate_hex.len() / 2
+    }
+
+    /// Return the decoded length of canonical mixed-tree hex evidence.
+    #[must_use]
+    pub const fn hash_tree_bytes(&self) -> usize {
+        self.hash_tree_hex.len() / 2
+    }
+}
+
+impl NnsCertifiedRegistryMutation {
+    /// Interpret the raw operation without discarding unsupported discriminants.
+    #[must_use]
+    pub const fn mutation_kind(&self) -> Option<NnsCertifiedRegistryMutationKind> {
+        NnsCertifiedRegistryMutationKind::from_raw_type(self.mutation_type)
+    }
+}
+
+///
+/// NnsCertifiedRegistryDeltaSummary
+///
+/// Checked projections of one batch's raw versions, values and query observations.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct NnsCertifiedRegistryDeltaSummary {
+    /// First visible contiguous Registry version, when present.
+    pub first_version: Option<u64>,
+    /// Last visible contiguous Registry version, when present.
+    pub last_version: Option<u64>,
+    /// Number of visible Registry versions.
+    pub version_count: usize,
+    /// Number of visible mutations.
+    pub mutation_count: usize,
+    /// Number of visible preconditions.
+    pub precondition_count: usize,
+    /// Total inline value bytes.
+    pub inline_value_bytes: usize,
+    /// Total reconstructed chunked value bytes.
+    pub chunk_value_bytes: usize,
+    /// Total inline and reconstructed value bytes.
+    pub value_bytes: usize,
+    /// Number of ordered chunk references, including repeated references.
+    pub chunk_reference_count: usize,
+    /// Bytes retained once per unique chunk.
+    pub chunk_evidence_bytes: usize,
+    /// Whether later certified versions need another explicit request.
+    pub more_available: bool,
+    /// Certified query plus observed chunk queries.
+    pub query_call_count: u64,
+    /// Total observed encoded response bytes.
+    pub response_bytes: usize,
 }

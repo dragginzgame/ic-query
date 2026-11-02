@@ -46,7 +46,7 @@ pub use neurons::SnsNeuronsReport;
 pub use neurons::{
     SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
-    SnsNeuronPermissionValue, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
+    SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
     SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
     SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
     SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,

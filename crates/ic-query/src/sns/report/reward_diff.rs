@@ -275,15 +275,15 @@ fn join_matched_row(
             ),
         ));
     }
-    let delta = i128::from(after.combined_maturity_e8s_equivalent)
-        - i128::from(before.combined_maturity_e8s_equivalent);
+    let delta = i128::from(combined_maturity(after)) - i128::from(combined_maturity(before));
     if delta < 0 {
         reasons.push(reason(
             SnsRewardDiffInvalidReasonKind::NegativeMaturityDelta,
             Some(&before.neuron_id),
             format!(
                 "combined maturity changed from {} to {}",
-                before.combined_maturity_e8s_equivalent, after.combined_maturity_e8s_equivalent
+                combined_maturity(before),
+                combined_maturity(after)
             ),
         ));
     }
@@ -303,7 +303,7 @@ fn join_missing_after_row(
         &before.neuron_id,
         Some(before),
         None,
-        -i128::from(before.combined_maturity_e8s_equivalent),
+        -i128::from(combined_maturity(before)),
     )
 }
 
@@ -334,7 +334,7 @@ fn join_new_row(
         &after.neuron_id,
         None,
         Some(after),
-        i128::from(after.combined_maturity_e8s_equivalent),
+        i128::from(combined_maturity(after)),
     )
 }
 
@@ -355,12 +355,18 @@ fn row_from_pair(
     }
 }
 
-const fn neuron_evidence(row: &SnsRewardCheckpointRow) -> crate::sns::SnsRewardDiffNeuronEvidence {
+fn combined_maturity(row: &SnsRewardCheckpointRow) -> u64 {
+    row.checked_combined_maturity()
+        .expect("reward diff rows passed checked checkpoint admission")
+}
+
+fn neuron_evidence(row: &SnsRewardCheckpointRow) -> crate::sns::SnsRewardDiffNeuronEvidence {
+    let (mint, staking) = row.derived_policy_observations();
     crate::sns::SnsRewardDiffNeuronEvidence {
-        combined_maturity_e8s_equivalent: row.combined_maturity_e8s_equivalent,
+        combined_maturity_e8s_equivalent: combined_maturity(row),
         created_timestamp_seconds: row.created_timestamp_seconds,
-        maturity_mint_conversion_observed_disabled: row.maturity_mint_conversion_observed_disabled,
-        manual_maturity_staking_observed_disabled: row.manual_maturity_staking_observed_disabled,
+        maturity_mint_conversion_observed_disabled: mint,
+        manual_maturity_staking_observed_disabled: staking,
         pending_maturity_disbursement_count: row.disburse_maturity_in_progress.len(),
     }
 }

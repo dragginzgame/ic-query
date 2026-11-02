@@ -139,15 +139,10 @@ pub(super) fn authenticate_registry_response(
         hash_tree,
         certification: crate::nns::registry::NnsRegistryCertification {
             certificate_verified: true,
-            certificate_time: ic_host_text::timestamp::format_utc_timestamp_secs(
-                certificate_time_nanos / 1_000_000_000,
-            ),
             certificate_time_nanos,
             root_key_digest: Sha256Digest::compute(&agent.read_root_key()).to_string(),
             certificate_hex: hex_bytes(&response.certificate),
-            certificate_bytes: response.certificate.len(),
             hash_tree_hex: hex_bytes(&encoded_hash_tree),
-            hash_tree_bytes: encoded_hash_tree.len(),
         },
     })
 }

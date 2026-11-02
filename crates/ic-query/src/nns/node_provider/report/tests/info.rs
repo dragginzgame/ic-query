@@ -83,7 +83,7 @@ fn node_provider_info_rejects_ambiguous_prefix() {
 
     assert!(matches!(
         err,
-        NnsNodeProviderHostError::AmbiguousNodeProviderPrefix { prefix, matches }
+        NnsInventoryError::AmbiguousPrefix { prefix, matches, .. }
             if prefix == "r" && matches.len() == 2
     ));
 }

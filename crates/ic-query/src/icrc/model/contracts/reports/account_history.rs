@@ -102,10 +102,6 @@ pub struct IcrcAccountTransactionSnapshot {
     pub token_symbol: String,
     /// Ledger token decimals used for text rendering.
     pub decimals: u8,
-    /// Highest collected transaction id.
-    pub newest_transaction_id: Option<String>,
-    /// Lowest collected transaction id.
-    pub oldest_transaction_id: Option<String>,
     /// Complete-collection evidence.
     pub completeness: CacheCollectionCompleteness,
     /// Canonical newest-first account transactions.
@@ -168,8 +164,6 @@ pub struct IcrcAccountTransactionListReport {
     pub sort: String,
     /// Total rows in the complete cache.
     pub total_transaction_count: usize,
-    /// Rows returned by this view.
-    pub returned_transaction_count: usize,
     /// Highest transaction id in the complete cache.
     pub newest_transaction_id: Option<String>,
     /// Lowest transaction id in the complete cache.

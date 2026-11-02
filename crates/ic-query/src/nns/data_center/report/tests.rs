@@ -1,8 +1,8 @@
-use super::NnsDataCenterHostError;
 use super::NnsDataCenterListReport;
 use super::NnsDataCenterRow;
 use super::NnsDataCenterSource;
 use super::NnsInventoryCacheRequest;
+use super::NnsInventoryError;
 use super::NnsInventoryListRequest;
 use super::build_nns_data_center_list_report_with_source_and_progress;
 use super::resolve_data_center;
@@ -28,7 +28,7 @@ async fn live_data_center_source_rejects_non_mainnet_before_agent_construction()
 
     assert!(matches!(
         error,
-        NnsDataCenterHostError::UnsupportedNetwork { network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::DataCenter, network } if network == "local"
     ));
 }
 
@@ -125,8 +125,7 @@ impl NnsDataCenterSource for FixtureDataCenterSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsInventoryError>> {
         Box::pin(async move {
             let data_centers = self.data_centers.clone();
             Ok(NnsDataCenterListReport {

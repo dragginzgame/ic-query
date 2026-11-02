@@ -44,8 +44,6 @@ pub struct NnsProposalListReport {
     pub sort_direction: String,
     /// Whether filtering and sorting cover a fetched page or a complete collection.
     pub result_scope: ReportResultScope,
-    /// Number of proposal rows returned in this report.
-    pub proposal_count: usize,
     /// Proposal rows in the selected result order.
     pub proposals: Vec<NnsProposalRow>,
 }
@@ -115,8 +113,6 @@ pub struct NnsProposalRow {
     pub total_potential_voting_power: Option<u64>,
     /// Most recent vote tally, when supplied by Governance.
     pub latest_tally: Option<NnsProposalTally>,
-    /// Number of ballot rows returned by Governance.
-    pub ballot_count: usize,
     /// Ballots returned by Governance, ordered by neuron id.
     pub ballots: Vec<NnsProposalBallotRow>,
 }

@@ -45,7 +45,7 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
         cache_root: root.to_path_buf(),
     })
     .expect("proposal cache list");
-    assert_eq!(list.cache_count, 1);
+    assert_eq!(list.caches.len(), 1);
     assert_eq!(
         list.caches[0].cache_status(),
         CacheValidationStatus::Invalid

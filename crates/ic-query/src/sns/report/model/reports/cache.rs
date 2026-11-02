@@ -19,7 +19,6 @@ pub struct SnsCacheListReport {
     pub schema_version: u32,
     pub network: String,
     pub cache_root: String,
-    pub cache_count: usize,
     pub caches: Vec<SnsCacheSummary>,
 }
 

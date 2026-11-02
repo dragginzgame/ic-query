@@ -45,10 +45,11 @@ pub use report::{
     DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT, NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
     NnsCertifiedRegistryChunkEvidence, NnsCertifiedRegistryDeltaBatchReport,
     NnsCertifiedRegistryDeltaBatchRequest, NnsCertifiedRegistryDeltaLimits,
-    NnsCertifiedRegistryDeltaVersion, NnsCertifiedRegistryMutation,
-    NnsCertifiedRegistryMutationKind, NnsCertifiedRegistryPrecondition,
-    NnsCertifiedRegistryValueEncoding, NnsRegistryCertification, NnsRegistryInventoryProvenance,
-    NnsRegistryVersionData, NnsRegistryVersionReport, NnsRegistryVersionRequest,
+    NnsCertifiedRegistryDeltaSummary, NnsCertifiedRegistryDeltaVersion,
+    NnsCertifiedRegistryMutation, NnsCertifiedRegistryMutationKind,
+    NnsCertifiedRegistryPrecondition, NnsCertifiedRegistryValueEncoding, NnsRegistryCertification,
+    NnsRegistryInventoryProvenance, NnsRegistryVersionData, NnsRegistryVersionReport,
+    NnsRegistryVersionRequest,
 };
 #[cfg(feature = "certified-subnet-catalog-host")]
 pub use report::{

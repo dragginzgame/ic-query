@@ -12,9 +12,9 @@ use ic_query_text::nns::nns_inventory_refresh_report_text;
 use std::future::Future;
 
 #[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT;
+use ic_query::nns::NnsInventoryError;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::NnsDataCenterHostError;
+use ic_query::nns::data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT;
 use ic_query::nns::data_center::NnsDataCenterInfoReport;
 use ic_query::nns::data_center::NnsDataCenterListReport;
 use ic_query::nns::data_center::NnsDataCenterRow;
@@ -102,8 +102,6 @@ use ic_query::nns::neuron::nns_neuron_refresh_lock_path;
 use ic_query::nns::neuron::validate_nns_neuron_distribution_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::NnsNodeHostError;
 use ic_query::nns::node::NnsNodeInfoReport;
 use ic_query::nns::node::NnsNodeListReport;
 use ic_query::nns::node::NnsNodeListRequest;
@@ -128,8 +126,6 @@ use ic_query::nns::node::refresh_nns_node_report;
 use ic_query::nns::node::refresh_nns_node_report_with_source;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::NnsNodeOperatorHostError;
 use ic_query::nns::node_operator::NnsNodeOperatorInfoReport;
 use ic_query::nns::node_operator::NnsNodeOperatorListReport;
 use ic_query::nns::node_operator::NnsNodeOperatorRow;
@@ -153,8 +149,6 @@ use ic_query::nns::node_operator::refresh_nns_node_operator_report;
 use ic_query::nns::node_operator::refresh_nns_node_operator_report_with_source;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::NnsNodeProviderHostError;
 use ic_query::nns::node_provider::NnsNodeProviderInfoReport;
 use ic_query::nns::node_provider::NnsNodeProviderListReport;
 use ic_query::nns::node_provider::NnsNodeProviderRow;
@@ -294,6 +288,7 @@ use ic_query::nns::registry::NnsCertifiedRegistryDeltaSource;
 use ic_query::nns::registry::NnsCertifiedRegistryDeltaSourceFuture;
 use ic_query::nns::registry::NnsCertifiedRegistryDeltaVersion;
 use ic_query::nns::registry::NnsCertifiedRegistryMutation;
+#[cfg(feature = "nns-host")]
 use ic_query::nns::registry::NnsCertifiedRegistryMutationKind;
 use ic_query::nns::registry::NnsCertifiedRegistryValueEncoding;
 #[cfg(feature = "nns-host")]
@@ -600,7 +595,7 @@ async fn public_nns_proposal_portable_api_accepts_custom_source() {
         .expect("portable proposal detail source");
 
     assert_eq!(NNS_PROPOSAL_MAX_PAGE_SIZE, 100);
-    assert_eq!(report.proposal_count, 1);
+    assert_eq!(report.proposals.len(), 1);
     assert_eq!(
         report.context.source,
         governance_fixture_provenance(&request.governance)
@@ -665,7 +660,7 @@ async fn public_nns_proposal_collection_state_resumes_until_api_exhaustion() {
     .await
     .expect("final proposal collection page");
 
-    assert_eq!(second.page.proposal_count, 1);
+    assert_eq!(second.page.proposals.len(), 1);
     assert_eq!(
         second.state.status(),
         NnsGovernanceCollectionStatus::Complete
@@ -1022,7 +1017,6 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
         next_start_neuron_id: None,
         total_neuron_count: None,
         point_in_time_guaranteed: false,
-        returned_neuron_count: 1,
 
         neurons: vec![row.clone()],
     };
@@ -1145,7 +1139,7 @@ async fn public_nns_neuron_collection_state_resumes_until_api_exhaustion() {
     .await
     .expect("final neuron collection page");
 
-    assert_eq!(second.page.returned_neuron_count, 1);
+    assert_eq!(second.page.neurons.len(), 1);
     assert_eq!(
         second.state.status(),
         NnsGovernanceCollectionStatus::Complete
@@ -1537,19 +1531,15 @@ fn public_certified_registry_delta_models_preserve_raw_evidence() {
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["requested_version"], 41);
     assert_eq!(json["versions"][0]["mutations"][0]["mutation_type"], 4);
-    assert_eq!(
-        json["versions"][0]["mutations"][0]["mutation_kind"],
-        "upsert"
-    );
     assert_eq!(json["versions"][0]["mutations"][0]["key_hex"], "61");
     assert_eq!(
         json["versions"][0]["mutations"][0]["value_encoding"],
         "inline"
     );
-    assert_eq!(json["chunk_reference_count"], 0);
-    assert_eq!(json["chunk_evidence_bytes"], 0);
     assert_eq!(json["chunk_evidence"], serde_json::json!([]));
-    assert_eq!(json["query_call_count"], 1);
+    assert_eq!(json["chunk_query_call_count"], 0);
+    assert_eq!(json["certified_response_bytes"], 64);
+    assert_eq!(json["chunk_response_bytes"], 0);
 }
 
 #[cfg(feature = "nns-host")]
@@ -1824,7 +1814,11 @@ fn public_certified_registry_delta_async_api_accepts_custom_sources() {
         ))
         .expect("public certified delta API");
 
-    assert_eq!(report.first_version, Some(42));
+    assert_eq!(report.summary().unwrap().first_version, Some(42));
+    assert_eq!(
+        report.versions[0].mutations[0].mutation_kind(),
+        Some(NnsCertifiedRegistryMutationKind::Upsert)
+    );
 }
 
 #[cfg(feature = "nns-host")]
@@ -1837,15 +1831,12 @@ fn public_certified_registry_validator_preserves_committed_same_key_delete_conte
         .mutations
         .push(NnsCertifiedRegistryMutation {
             mutation_type: 2,
-            mutation_kind: NnsCertifiedRegistryMutationKind::Delete,
+
             key_hex: "61".to_string(),
             value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
             chunk_sha256_hexes: Vec::new(),
             value_hex: Some("63".to_string()),
         });
-    report.mutation_count = 2;
-    report.inline_value_bytes = 2;
-    report.value_bytes = 2;
 
     validate_nns_certified_registry_delta_batch(&request, &report)
         .expect("public validator preserves ordered committed rows and ignored delete content");
@@ -1859,9 +1850,7 @@ fn public_replay_session_exposes_complete_provenance_commitments() {
         NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 0, 1_700_000_000);
     let mut report = public_certified_delta_report(&request);
     report.certified_latest_version = 1;
-    report.first_version = Some(1);
-    report.last_version = Some(1);
-    report.more_available = false;
+
     report.versions[0].version = 1;
     let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
         1,
@@ -2168,32 +2157,22 @@ fn public_certified_delta_report(
         registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
         requested_version: request.requested_version,
         certified_latest_version: 42,
-        first_version: Some(42),
-        last_version: Some(42),
-        version_count: 1,
-        mutation_count: 1,
-        precondition_count: 0,
-        inline_value_bytes: 1,
-        chunk_value_bytes: 0,
-        value_bytes: 1,
-        chunk_reference_count: 0,
-        chunk_evidence_bytes: 0,
-        more_available: false,
+
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
         source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
-        query_call_count: 1,
+
         chunk_query_call_count: 0,
         certified_response_bytes: 64,
         chunk_response_bytes: 0,
-        response_bytes: 64,
+
         limits: public_certified_delta_limits(),
         versions: vec![NnsCertifiedRegistryDeltaVersion {
             version: 42,
             timestamp_nanoseconds: 1_700_000_000_000_000_000,
             mutations: vec![NnsCertifiedRegistryMutation {
                 mutation_type: 4,
-                mutation_kind: NnsCertifiedRegistryMutationKind::Upsert,
+
                 key_hex: "61".to_string(),
                 value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
                 chunk_sha256_hexes: Vec::new(),
@@ -2261,12 +2240,11 @@ fn public_registry_certification() -> NnsRegistryCertification {
     NnsRegistryCertification {
         certificate_verified: true,
         certificate_time_nanos: 1_700_000_000_000_000_000,
-        certificate_time: "2023-11-14T22:13:20Z".to_string(),
+
         root_key_digest: "ab".repeat(32),
         certificate_hex: "cd".repeat(8),
-        certificate_bytes: 8,
+
         hash_tree_hex: "ef".repeat(4),
-        hash_tree_bytes: 4,
     }
 }
 
@@ -2707,7 +2685,7 @@ impl NnsNodeSource for FixtureNnsNodeSource {
     fn fetch_node_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeListReport, NnsNodeHostError>> {
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeListReport, NnsInventoryError>> {
         Box::pin(async move {
             assert_inventory_source_request(
                 &request.network,
@@ -2736,7 +2714,7 @@ impl NnsDataCenterSource for FixtureNnsDataCenterSource {
     fn fetch_data_center_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsDataCenterHostError>>
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsInventoryError>>
     {
         Box::pin(async move {
             assert_inventory_source_request(
@@ -2766,10 +2744,8 @@ impl NnsNodeProviderSource for FixtureNnsNodeProviderSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<NnsNodeProviderListReport, NnsNodeProviderHostError>,
-    > {
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>>
+    {
         Box::pin(async move {
             assert_inventory_source_request(
                 &request.network,
@@ -2798,10 +2774,8 @@ impl NnsNodeOperatorSource for FixtureNnsNodeOperatorSource {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>,
-    > {
+    ) -> ic_query::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsInventoryError>>
+    {
         Box::pin(async move {
             assert_inventory_source_request(
                 &request.network,
@@ -2872,7 +2846,6 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
             .to_string(),
         result_scope: ReportResultScope::CompleteCache,
 
-        proposal_count: 1,
         proposals: vec![proposal.clone()],
     };
 
@@ -3241,7 +3214,7 @@ async fn public_topology_refresh_rejects_mismatched_inventory_scope_before_next_
             .await
             .expect_err("wrong inventory scope");
         assert!(
-            matches!(error, NnsTopologyHostError::Node(NnsNodeHostError::InvalidSourceData { reason }) if reason.contains("collection"))
+            matches!(error, NnsTopologyHostError::Inventory(NnsInventoryError::InvalidSourceData { reason, .. }) if reason.contains("collection"))
         );
     }
 }
@@ -3591,10 +3564,10 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 
     assert_eq!(cache_list_request.cache_root(), root.as_path());
     assert_eq!(cache_status_request.cache_root(), root.as_path());
-    assert_eq!(cache_list.cache_count, 1);
+    assert_eq!(cache_list.caches.len(), 1);
     assert!(cache_status.found);
     assert_eq!(proposal_list.provenance.data_source().as_str(), "cache");
-    assert_eq!(proposal_list.proposal_count, 1);
+    assert_eq!(proposal_list.proposals.len(), 1);
     assert_eq!(cached_detail.provenance.data_source().as_str(), "cache");
     assert_eq!(cached_detail.proposal_id, 132_411);
     assert!(nns_proposal_cache_path(&root, "ic").is_file());
@@ -3653,7 +3626,7 @@ async fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
         .await
         .expect("proposal refresh report");
 
-    assert_eq!(list.proposal_count, 1);
+    assert_eq!(list.proposals.len(), 1);
     assert_eq!(list.provenance.data_source().as_str(), "live");
     assert_eq!(detail.proposal_id, 132_411);
     assert_eq!(detail.proposal.title.as_deref(), Some("Upgrade subnet"));
@@ -4404,7 +4377,7 @@ fn sample_nns_proposal_row() -> NnsProposalRow {
             no: 100_000_000,
             total: 1_000_000_000,
         }),
-        ballot_count: 1,
+
         ballots: vec![NnsProposalBallotRow {
             neuron_id: 12_345,
             vote: 1,

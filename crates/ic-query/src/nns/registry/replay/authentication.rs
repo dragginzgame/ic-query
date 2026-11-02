@@ -35,7 +35,8 @@ impl NnsAuthenticatedRegistryReplayBuilder {
         &mut self,
         batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
-        self.session.apply_prevalidated_batch(batch.report())
+        self.session
+            .apply_prevalidated_batch(batch.report(), batch.summary())
     }
 
     pub(super) fn apply_extension_batch(
@@ -43,7 +44,7 @@ impl NnsAuthenticatedRegistryReplayBuilder {
         batch: &NnsAuthenticatedRegistryDeltaBatch<'_>,
     ) -> Result<NnsRegistryReplayProgress, NnsRegistryReplayError> {
         self.session
-            .apply_prevalidated_extension_batch(batch.report())
+            .apply_prevalidated_extension_batch(batch.report(), batch.summary())
     }
 
     pub(super) fn from_authenticated_session(

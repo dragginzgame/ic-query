@@ -1,6 +1,6 @@
 use super::NnsInventoryCacheRequest;
+use super::NnsInventoryError;
 use super::NnsInventoryListRequest;
-use super::NnsNodeOperatorHostError;
 use super::NnsNodeOperatorListReport;
 use super::NnsNodeOperatorRow;
 use super::NnsNodeOperatorSource;
@@ -28,7 +28,7 @@ async fn live_node_operator_source_rejects_non_mainnet_before_agent_construction
 
     assert!(matches!(
         error,
-        NnsNodeOperatorHostError::UnsupportedNetwork { network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::NodeOperator, network } if network == "local"
     ));
 }
 
@@ -125,8 +125,7 @@ impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
     fn fetch_node_operator_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsNodeOperatorHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsInventoryError>> {
         Box::pin(async move {
             let node_operators = self.node_operators.clone();
             Ok(NnsNodeOperatorListReport {

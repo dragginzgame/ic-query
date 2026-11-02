@@ -55,7 +55,7 @@ async fn sns_neurons_resolves_list_id_and_renders_governance_neurons() {
     assert_eq!(report.requested_limit, 10);
     assert_eq!(report.owner_principal_id.as_deref(), Some(GOVERNANCE_A));
     assert_eq!(report.total_neuron_count, 1);
-    assert_eq!(report.neuron_count, 1);
+    assert_eq!(report.neurons.len(), 1);
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert!(report.provenance.cache_path().is_none());
     assert!(report.provenance.cache_complete().is_none());

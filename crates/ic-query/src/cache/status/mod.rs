@@ -66,7 +66,7 @@ pub fn build_cache_status_report(
         scan_limit: CACHE_STATUS_SCAN_LIMIT,
         truncated: inventory.truncated,
         family_validation_performed: false,
-        cache_count: caches.len(),
+
         readable_header_count: count_cache_header_status(&caches, CacheHeaderStatus::Readable),
         invalid_header_count: count_cache_header_status(&caches, CacheHeaderStatus::Invalid),
         fresh_count: count_cache_age_status(&caches, CacheAgeStatus::Fresh),
@@ -75,7 +75,7 @@ pub fn build_cache_status_report(
         unknown_age_count: count_cache_age_status(&caches, CacheAgeStatus::Unknown),
         total_size_bytes: caches.iter().map(|row| row.size_bytes).sum(),
         caches,
-        refresh_lock_count: refresh_locks.len(),
+
         active_refresh_lock_count: count_refresh_lock_status(
             &refresh_locks,
             CacheRefreshLockStatus::Active,

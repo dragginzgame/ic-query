@@ -60,7 +60,6 @@ fn report_from_mainnet_topology(
         .map(|subnet| NnsSubnetTopologyRow {
             subnet_principal: subnet.subnet_principal,
             subnet_kind: subnet.subnet_kind,
-            node_count: subnet.node_count,
             node_providers: subnet
                 .node_providers
                 .into_iter()
@@ -79,11 +78,6 @@ fn report_from_mainnet_topology(
         fetched_at: topology.fetched_at,
         source_endpoint: topology.source_endpoint,
         fetched_by: topology.fetched_by,
-        subnet_count: subnets.len(),
-        node_count: subnets
-            .iter()
-            .map(|subnet| u64::from(subnet.node_count))
-            .sum(),
         subnets,
     };
     report.validate()?;

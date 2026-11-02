@@ -1,5 +1,5 @@
 use crate::ic_registry::{
-    MainnetNodeList, MainnetRegistryFetchRequest, RegistryFetchError,
+    RegistryFetchError,
     projection::subnet_kind_from_registry,
     relations::{
         RegistryRelationInventory, ResolvedNodeRelation, node_subnet_assignments_from_records,
@@ -11,10 +11,8 @@ use ic_host_tools::registry::proto::SubnetRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_list_from_inventory(
-    request: &MainnetRegistryFetchRequest,
     inventory: RegistryRelationInventory,
-    registry_version: u64,
-) -> Result<MainnetNodeList, RegistryFetchError> {
+) -> Result<Vec<NnsNodeRow>, RegistryFetchError> {
     let node_subnets = node_subnet_assignments_from_records(&inventory.subnet_records)?;
     let node_relations = resolved_node_relations(
         &inventory.node_principals,
@@ -32,10 +30,7 @@ pub(in crate::ic_registry) fn node_list_from_inventory(
             )
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(MainnetNodeList {
-        provenance: request.inventory_provenance(registry_version),
-        nodes,
-    })
+    Ok(nodes)
 }
 
 fn node_from_relation(

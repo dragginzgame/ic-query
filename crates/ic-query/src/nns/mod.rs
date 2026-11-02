@@ -9,6 +9,10 @@ pub mod governance;
 mod governance_query;
 #[cfg(feature = "nns-host")]
 pub(crate) mod inventory;
+#[cfg(feature = "nns-host")]
+mod inventory_error;
+#[cfg(feature = "nns-host")]
+pub use inventory_error::{NnsInventoryCollection, NnsInventoryError};
 mod inventory_request;
 #[cfg(feature = "nns-host")]
 mod leaf;

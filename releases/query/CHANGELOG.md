@@ -5,6 +5,30 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.88.0]
+
+### ⚠️ Breaking
+
+- Replace the four Registry inventory error types with `NnsInventoryError` and
+  typed `NnsInventoryCollection` context, including topology failures.
+- Store raw SNS reward-checkpoint evidence once. Derive summaries, policy findings,
+  counters and UTC labels; preserve historical files and coordinate consumers
+  before adopting the replaced schema-1 format.
+- Derive exact SNS neuron policy findings and permission labels, returned-vector
+  counts, NNS ballot counts and ICRC snapshot bounds. Permission JSON carries raw
+  integer codes; preserve affected retained files before adopting the new shapes.
+- Derive Dashboard snapshot totals and exact Subnet topology totals from rows.
+  Derive Registry summaries, certification display metadata and mutation kinds
+  from raw evidence; coordinate consumers and preserve earlier authenticated
+  archives before switching capture roots.
+
+### 🧹 Cleanup
+
+- Decode Dashboard account and holder records directly into raw source DTOs.
+  Pass Registry inventory rows/provenance directly to report construction.
+
+Details and consumer actions: [0.88 notes](0.88.md).
+
 ## [0.87.0] - 2026-11-02
 
 ### ⚠️ Breaking

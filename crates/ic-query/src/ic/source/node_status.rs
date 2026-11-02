@@ -8,9 +8,7 @@ use super::{invalid_source, invalid_source_value, report_provenance, validate_pr
 use crate::ic::{
     IcHostError, IcNodeStatusObservation, IcNodeStatusScope, IcNodeStatusSnapshot,
     IcNodeStatusSourceData, IcSourceRequest,
-    node_status::{
-        canonicalize_node_status_rows, node_status_group_counts, validate_default_node_scope,
-    },
+    node_status::{canonicalize_node_status_rows, validate_default_node_scope},
 };
 
 ///
@@ -45,7 +43,6 @@ pub(in crate::ic) fn node_status_snapshot_from_source(
     }
     canonicalize_node_status_rows(&mut source.nodes).map_err(invalid_source_value)?;
     validate_default_node_scope(&source.nodes).map_err(invalid_source_value)?;
-    let counts = node_status_group_counts(source.nodes.iter());
 
     Ok(IcNodeStatusSnapshot {
         observation: IcNodeStatusObservation {
@@ -54,8 +51,6 @@ pub(in crate::ic) fn node_status_snapshot_from_source(
             cloud_engine_nodes_included: source.cloud_engine_nodes_included,
             cache: None,
         },
-        node_count: source.nodes.len(),
-        counts,
         nodes: source.nodes,
     })
 }

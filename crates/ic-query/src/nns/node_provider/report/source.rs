@@ -1,6 +1,6 @@
 use super::{
-    NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION, NnsNodeProviderHostError,
-    NnsNodeProviderListReport, NnsNodeProviderRow,
+    NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsNodeProviderListReport,
+    NnsNodeProviderRow,
 };
 use crate::report::CollectionSourceRequest;
 use crate::{
@@ -18,21 +18,28 @@ pub trait NnsNodeProviderSource: Sync {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>>;
 }
 
 impl NnsNodeProviderSource for LiveNnsSource {
     fn fetch_node_provider_list_report<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsNodeProviderHostError>>
-    {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
         Box::pin(async move {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
-                NnsNodeProviderHostError::UnsupportedNetwork { network }
+                NnsInventoryError::UnsupportedNetwork {
+                    collection: super::COLLECTION,
+                    network,
+                }
             })?;
             Ok(node_provider_report_from_list(
-                fetch_mainnet_node_provider_list(&fetch_request).await?,
+                fetch_mainnet_node_provider_list(&fetch_request)
+                    .await
+                    .map_err(|source| NnsInventoryError::Registry {
+                        collection: super::COLLECTION,
+                        source,
+                    })?,
             ))
         })
     }

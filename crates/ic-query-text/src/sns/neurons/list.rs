@@ -37,7 +37,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOp
     lines.extend([
         format!("sort: {}", report.sort),
         format!("total_neuron_count: {}", report.total_neuron_count),
-        format!("neuron_count: {}", report.neuron_count),
+        format!("neuron_count: {}", report.neurons.len()),
     ]);
     lines.extend(crate::sns::common::sns_collection_lines(&report.context));
     if !report.neurons.is_empty() {

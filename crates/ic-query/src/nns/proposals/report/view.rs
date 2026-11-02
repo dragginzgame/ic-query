@@ -139,7 +139,7 @@ pub(in crate::nns::proposals::report) fn sort_nns_proposal_rows(
             ReportSortKey::OptionalU64(|proposal| proposal.total_potential_voting_power)
         }
         NnsProposalListSort::Ballots => {
-            ReportSortKey::OptionalU64(|proposal| Some(proposal.ballot_count as u64))
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.ballots.len() as u64))
         }
         NnsProposalListSort::RejectCost => {
             ReportSortKey::OptionalU64(|proposal| Some(proposal.reject_cost_e8s))

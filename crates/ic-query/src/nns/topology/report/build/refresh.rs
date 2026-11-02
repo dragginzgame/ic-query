@@ -1,9 +1,5 @@
 use crate::nns::{
-    LiveNnsSource, NnsInventoryRefreshReport,
-    data_center::NnsDataCenterHostError,
-    node::NnsNodeHostError,
-    node_operator::NnsNodeOperatorHostError,
-    node_provider::NnsNodeProviderHostError,
+    LiveNnsSource, NnsInventoryError, NnsInventoryRefreshReport,
     topology::report::{
         NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION, NnsTopologyHostError, NnsTopologyRefreshReport,
         NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRefreshSource,
@@ -26,17 +22,33 @@ pub async fn refresh_nns_topology_report_with_source(
 
     let subnet_report = source.refresh_subnet_catalog_report(request).await?;
     let node_report = source.refresh_node_report(request).await?;
-    validate_inventory_refresh_collection(&node_report, "nodes")
-        .map_err(|reason| NnsNodeHostError::InvalidSourceData { reason })?;
+    validate_inventory_refresh_collection(&node_report, "nodes").map_err(|reason| {
+        NnsInventoryError::InvalidSourceData {
+            collection: crate::nns::NnsInventoryCollection::Node,
+            reason,
+        }
+    })?;
     let node_provider_report = source.refresh_node_provider_report(request).await?;
-    validate_inventory_refresh_collection(&node_provider_report, "node_providers")
-        .map_err(|reason| NnsNodeProviderHostError::InvalidSourceData { reason })?;
+    validate_inventory_refresh_collection(&node_provider_report, "node_providers").map_err(
+        |reason| NnsInventoryError::InvalidSourceData {
+            collection: crate::nns::NnsInventoryCollection::NodeProvider,
+            reason,
+        },
+    )?;
     let node_operator_report = source.refresh_node_operator_report(request).await?;
-    validate_inventory_refresh_collection(&node_operator_report, "node_operators")
-        .map_err(|reason| NnsNodeOperatorHostError::InvalidSourceData { reason })?;
+    validate_inventory_refresh_collection(&node_operator_report, "node_operators").map_err(
+        |reason| NnsInventoryError::InvalidSourceData {
+            collection: crate::nns::NnsInventoryCollection::NodeOperator,
+            reason,
+        },
+    )?;
     let data_center_report = source.refresh_data_center_report(request).await?;
-    validate_inventory_refresh_collection(&data_center_report, "data_centers")
-        .map_err(|reason| NnsDataCenterHostError::InvalidSourceData { reason })?;
+    validate_inventory_refresh_collection(&data_center_report, "data_centers").map_err(
+        |reason| NnsInventoryError::InvalidSourceData {
+            collection: crate::nns::NnsInventoryCollection::DataCenter,
+            reason,
+        },
+    )?;
 
     let components = vec![
         refresh_row_from_subnet_report(subnet_report),
