@@ -457,7 +457,7 @@ only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-w
 Platform owns required external Candid decoding; the private probe and native
 callers use Wire. Query selects Platform 0.18.0, Types 0.17.0 and Runtime 0.18.0.
 Testkit 0.80 shares those identities and retains its private arithmetic-only
-Metrics 0.26 dependency; Query selects Metrics 0.27 with defaults disabled. The private
+Metrics 0.26 dependency; Query owns its report arithmetic without Metrics. The private
 fixture selects the independent `ic-platform-pocket-ic` 0.18 client directly,
 matching Testkit's extension traits and management DTO 0.11 identity. External
 Candid/PocketIC Principal bytes retain their explicit boundary, and the probe

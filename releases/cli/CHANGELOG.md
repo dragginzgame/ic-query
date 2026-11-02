@@ -25,8 +25,8 @@ Baseline version: `0.85.0`.
 
 ### ⬆️ Dependencies
 
-- Adopt Build/Text 0.74, Foundation 0.74.1, Platform 0.18 and arithmetic-only
-  Metrics 0.27.0 through the shared root catalog. Development fixtures adopt Wire
+- Adopt Build/Text 0.74, Foundation 0.74.1 and Platform 0.18 through the shared
+  root catalog. Query owns report arithmetic without Metrics. Development fixtures adopt Wire
   0.15.0 with unchanged protocol bytes and budgets. Keep the full CI gate and use
   Shared Tooling 0.27.27 for independent release selection.
 

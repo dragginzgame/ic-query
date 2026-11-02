@@ -1,5 +1,9 @@
 [
   {
+    "dependency": "ic-metrics",
+    "allowed_packages": []
+  },
+  {
     "dependency": "ic-platform-macros",
     "allowed_packages": []
   },

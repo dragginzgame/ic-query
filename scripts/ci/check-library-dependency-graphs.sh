@@ -182,7 +182,7 @@ check_tree_absent() {
   local label="$1"
   shift
   # Exclude development-only codecs/executors, stable memory and scoped tempfiles.
-  local -a rules=(--forbid ic-wire --forbid futures --forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
+  local -a rules=(--forbid ic-metrics --forbid ic-wire --forbid futures --forbid ic-stable-structures --forbid ic-cdk --forbid ic-cdk-macros --forbid-feature ic-host-fs/temporary-file)
   while [[ "$#" -gt 0 && "$1" != "--" ]]; do
     if [[ "$1" == */* ]]; then
       rules+=(--forbid-feature "$1")

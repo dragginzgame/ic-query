@@ -84,7 +84,6 @@ ic-host-fs = { workspace = true, optional = true, features = ["capability"] }
 ic-host-http = { workspace = true, optional = true }
 ic-host-text.workspace = true
 ic-host-tools = { workspace = true, optional = true }
-ic-metrics.workspace = true
 ic-platform.workspace = true
 prost = { workspace = true, optional = true }
 reqwest = { workspace = true, features = [

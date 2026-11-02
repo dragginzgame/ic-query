@@ -188,5 +188,7 @@ qualification remains distinct from source review or Linux-only evidence.
   original reply evidence when replacing subprocess calls.
 - This is a read-only metadata query CLI. Do not add mutation behavior unless
   the maintainer explicitly changes the project scope.
+- Report percentage arithmetic and neuron-distribution statistics are Query-owned
+  code, not instrumentation. Do not add a direct Metrics dependency for them.
 - Keep network endpoints explicit in command options and reports. Do not hide
   live network calls behind commands that look cache-only.

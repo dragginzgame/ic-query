@@ -211,6 +211,32 @@ fn checked_distribution_accounting_rejects_overflow() {
 }
 
 #[test]
+fn distribution_totals_distinguish_missing_zero_and_overflow() {
+    let mut values = DistributionTotals::default();
+    record_distribution(&mut values, None, "count", "total").unwrap();
+    assert_eq!((values.count, values.total), (0, 0));
+    record_distribution(&mut values, Some(0), "count", "total").unwrap();
+    assert_eq!((values.count, values.total), (1, 0));
+    record_distribution(&mut values, Some(u64::MAX), "count", "total").unwrap();
+    assert_eq!((values.count, values.total), (2, u64::MAX));
+    assert!(matches!(
+        record_distribution(&mut values, Some(1), "count", "total"),
+        Err(NnsNeuronDistributionError::AccountingOverflow { field: "total" })
+    ));
+    assert_eq!((values.count, values.total), (2, u64::MAX));
+
+    values.count = u64::MAX;
+    record_distribution(&mut values, None, "count", "total").unwrap();
+    for value in [0, 1] {
+        assert!(matches!(
+            record_distribution(&mut values, Some(value), "count", "total"),
+            Err(NnsNeuronDistributionError::AccountingOverflow { field: "count" })
+        ));
+        assert_eq!((values.count, values.total), (u64::MAX, u64::MAX));
+    }
+}
+
+#[test]
 fn serialized_distribution_round_trips_and_text_separates_sections() {
     let report = fixture_distribution_report();
     let encoded = serde_json::to_vec(&report).expect("serialize distribution");

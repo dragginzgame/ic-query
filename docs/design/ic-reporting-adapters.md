@@ -44,7 +44,6 @@ Dependencies own the reusable mechanisms beneath that policy:
 | Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
 | Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
 | Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
-| Measurement arithmetic | `ic-metrics` | Report-specific interpretation and display policy |
 | Developer tooling implementation | Reviewed Shared Tooling snapshot | Local Make/CI wiring, selected catalogs, release adapters and product qualification |
 
 Shared report records preserve flattened JSON while giving Rust callers one owner
@@ -85,13 +84,14 @@ The Governance smoke example is contributor tooling, not a library transport or
 a second deployment framework. ICP remains at its managed-runtime/deployment
 boundary; canister calls use `ic-agent` and typed Candid directly.
 
-Metrics 0.27.0 keeps arithmetic and validated Serde transport available without
-native Wire metadata. Query disables defaults because its checked measurement
-and percentage arithmetic is private implementation detail. Dashboard observations
-and Governance metric payloads retain their source-specific report contracts.
+Query owns report statistics directly: topology percentages use exact integer
+rounding and neuron distributions use checked native counts and sums. These are
+report calculations, not instrumentation; Query has no direct Metrics dependency.
+Dashboard observations and Governance metric payloads retain their source-specific
+report contracts.
 Production native, portable and canister graphs exclude Wire; development probes
-and fixtures select Wire's core codec explicitly. Metrics is published from the
-IC Observability workspace. Arithmetic behavior and report formats are unchanged.
+and fixtures select Wire's core codec explicitly. Arithmetic behavior and report
+formats are unchanged.
 
 The private Registry adapter consumes Host's published protobuf projections and
 routing-shard checks directly. The `subnet-catalog-host` feature enables this
@@ -107,16 +107,15 @@ Query selects published packages through one root catalog and lockfile with
 minimum and development Rust 1.99.1.
 
 Current production selections are Platform 0.18.0, canonical Types 0.17.0,
-Runtime 0.18.0, arithmetic-only Metrics 0.27.0, Foundation 0.74.1, Text 0.74.0
+Runtime 0.18.0, Foundation 0.74.1, Text 0.74.0
 and Host Tools 0.78.0. Build 0.74.0 is development tooling. Query and Host Tools
-share the current Platform/Types identities; no Metrics types cross Query's
-public boundary. Wire 0.15.0 remains development-only, selecting its core codec
+share the current Platform/Types identities. Wire 0.15.0 remains development-only, selecting its core codec
 with unchanged protocol bytes and budgets.
 Query selects neither Wire's `platform-types` schemas nor its endpoint integration.
 
 Testkit 0.80.0 shares the current Platform, Types, Runtime and Foundation
-identities. Its native implementation retains arithmetic-only Metrics 0.26; Query
-selects Metrics 0.27 without native Wire metadata. Those arithmetic types do not
+identities. Its native implementation retains arithmetic-only Metrics 0.26.
+Query does not consume Metrics, and those supplier-owned arithmetic types do not
 cross the fixture boundary. The unpublished native fixture selects the
 independent `ic-platform-pocket-ic` 0.18 client directly, matching Testkit's
 extension traits; required Candid fixture protocols still use Platform 0.18.

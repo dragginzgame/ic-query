@@ -4,8 +4,6 @@
 //! Does not own: report construction, text tables, or consistency checks.
 //! Boundary: centralizes percentage math for capacity and coverage reports.
 
-use ic_metrics::checked_scaled_ratio_nearest;
-
 /// Format known and unknown relationship counts as a nearest-tenth percentage.
 #[must_use]
 pub fn coverage_percent_text(known: usize, unknown: usize) -> String {
@@ -21,9 +19,12 @@ pub fn coverage_percent_text(known: usize, unknown: usize) -> String {
 /// Format a ratio as a nearest-tenth percentage, preserving unavailable totals.
 #[must_use]
 pub fn ratio_percent_text(numerator: u64, denominator: u64) -> String {
-    let Ok(tenths) = checked_scaled_ratio_nearest(u128::from(numerator), denominator, 1000) else {
+    if denominator == 0 {
         return "-".to_string();
-    };
+    }
+    // u64 inputs leave room in u128 for scaling and rounding exact halves upward.
+    let denominator = u128::from(denominator);
+    let tenths = (u128::from(numerator) * 1000 + denominator / 2) / denominator;
     format!("{}.{:01}%", tenths / 10, tenths % 10)
 }
 
@@ -37,10 +38,15 @@ mod tests {
             (0, 0, "-"),
             (0, 1, "0.0%"),
             (1, 16, "6.3%"),
+            (1, 2001, "0.0%"),
+            (1, 2000, "0.1%"),
+            (1, 1999, "0.1%"),
             (1, 3, "33.3%"),
             (2, 3, "66.7%"),
             (3, 2, "150.0%"),
             (u64::MAX, u64::MAX, "100.0%"),
+            (u64::MAX - 1, u64::MAX, "100.0%"),
+            (u64::MAX, u64::MAX - 1, "100.0%"),
             (u64::MAX, 1, "1844674407370955161500.0%"),
         ] {
             assert_eq!(ratio_percent_text(numerator, denominator), expected);

@@ -1075,7 +1075,19 @@ for dependency in ic-platform ic-platform-macros ic-platform-runtime ic-platform
     || fail 'the canister graph lost its runtime ownership diagnostic'
 done
 
-# Production reports use arithmetic-only Metrics; Wire belongs to development fixtures.
+# Production report arithmetic stays local; codecs belong to development fixtures.
+for scope in cli host wasm canister; do
+  if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
+    FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE=ic-metrics \
+    TRACE_FILE="${feature_boundary_case}/trace" \
+    bash "${repo_root}/scripts/ci/check-library-feature-boundaries.sh" \
+      >"${feature_boundary_case}/metrics-refusal.log" 2>&1; then
+    fail "the $scope production graph accepted Metrics"
+  fi
+  grep -Fq 'forbidden ic-metrics:' "${feature_boundary_case}/metrics-refusal.log" \
+    || fail "the $scope production graph lost its Metrics diagnostic"
+done
+
 for scope in cli host wasm canister; do
   if TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE="$scope" FEATURE_TREE_LINE=ic-wire \

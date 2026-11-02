@@ -26,10 +26,13 @@ Baseline version: `0.85.0`.
   source/cache admission and raw evidence. Independent release metadata keeps
   presentation-only releases from republishing Query. Release fixtures select
   their own groups explicitly under inherited runner arguments.
+- Own percentage rounding and neuron-distribution counts and sums locally,
+  preserving numeric results, optional coverage and overflow diagnostics. Remove
+  Query's direct Metrics dependency; Testkit's private dependency remains upstream.
 
 ### ⬆️ Dependencies
 
-- Adopt Foundation 0.74.1, Host Tools 0.78, Metrics 0.27.0 and Testkit 0.80 with
+- Adopt Foundation 0.74.1, Host Tools 0.78 and Testkit 0.80 with
   its matching PocketIC 0.18 client. Development probes and fixtures adopt Wire
   0.15.0, retaining existing protocol bytes and budgets.
 - Adopt Shared Tooling 0.27.27 and its existing release-group support, preserving
