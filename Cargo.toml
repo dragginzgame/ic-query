@@ -21,8 +21,8 @@ repository = "https://github.com/dragginzgame/ic-query"
 [workspace.dependencies]
 # Query
 # Changelog : releases/query/CHANGELOG.md
-ic-query = { path = "crates/ic-query", version = "0.87.0", default-features = false }
-ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.87.0" }
+ic-query = { path = "crates/ic-query", version = "0.88.0", default-features = false }
+ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.88.0" }
 
 # CLI and text presentation
 # Changelog : releases/cli/CHANGELOG.md
