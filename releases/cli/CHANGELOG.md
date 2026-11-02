@@ -31,6 +31,8 @@ Baseline version: `0.85.0`.
   root catalog. Query owns report arithmetic without Metrics. Development fixtures adopt Wire
   0.15.0 with unchanged protocol bytes and budgets. Keep the full CI gate and use
   Shared Tooling 0.27.27 for independent release selection.
+- Select Testkit 0.80.1 and Runtime/macros/guard 0.18.1 in the lockfile. Testkit
+  removes its private Metrics dependency, leaving the workspace Metrics-free.
 
 Details: [0.86 notes](0.86.md).
 

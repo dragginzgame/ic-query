@@ -455,9 +455,9 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query selects Platform 0.18.0, Types 0.17.0 and Runtime 0.18.0.
-Testkit 0.80 shares those identities and retains its private arithmetic-only
-Metrics 0.26 dependency; Query owns its report arithmetic without Metrics. The private
+callers use Wire. Query selects Platform 0.18.0, Types 0.17.0 and Runtime 0.18.1.
+Testkit 0.80.1 shares those identities and removes its private Metrics dependency;
+Query owns its report arithmetic without Metrics. The private
 fixture selects the independent `ic-platform-pocket-ic` 0.18 client directly,
 matching Testkit's extension traits and management DTO 0.11 identity. External
 Candid/PocketIC Principal bytes retain their explicit boundary, and the probe

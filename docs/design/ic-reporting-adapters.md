@@ -107,16 +107,15 @@ Query selects published packages through one root catalog and lockfile with
 minimum and development Rust 1.99.1.
 
 Current production selections are Platform 0.18.0, canonical Types 0.17.0,
-Runtime 0.18.0, Foundation 0.74.1, Text 0.74.0
+Runtime 0.18.1, Foundation 0.74.1, Text 0.74.0
 and Host Tools 0.78.0. Build 0.74.0 is development tooling. Query and Host Tools
 share the current Platform/Types identities. Wire 0.15.0 remains development-only, selecting its core codec
 with unchanged protocol bytes and budgets.
 Query selects neither Wire's `platform-types` schemas nor its endpoint integration.
 
-Testkit 0.80.0 shares the current Platform, Types, Runtime and Foundation
-identities. Its native implementation retains arithmetic-only Metrics 0.26.
-Query does not consume Metrics, and those supplier-owned arithmetic types do not
-cross the fixture boundary. The unpublished native fixture selects the
+Testkit 0.80.1 shares the current Platform, Types, Runtime and Foundation
+identities and removes its private Metrics dependency. The complete workspace
+lockfile is Metrics-free. The unpublished native fixture selects the
 independent `ic-platform-pocket-ic` 0.18 client directly, matching Testkit's
 extension traits; required Candid fixture protocols still use Platform 0.18.
 The client selects management DTOs 0.11 and retains the PocketIC 16.1.0 server
