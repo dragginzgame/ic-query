@@ -57,11 +57,16 @@ RELEASE_PREVIOUS="$(bash scripts/ci/cargo-release-group.sh version "$RELEASE_GRO
 RELEASE_VERSION="$(bash scripts/ci/next-release-version.sh "$RELEASE_PREVIOUS" "$RELEASE_KIND")"
 detail="releases/$RELEASE_GROUP/${RELEASE_VERSION%.*}.md"
 ledger="releases/$RELEASE_GROUP/CHANGELOG.md"
+printf '# Changelog\n\n## [%s]\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > "$ledger"
+printf '# Detailed changelog\n\n## %s\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > "$detail"
+# The disposable candidate can start a new minor after either group advances.
+jq --arg group "$RELEASE_GROUP" --arg detail "$detail" \
+  '.groups |= map(if .name == $group then .metadata_files = [$detail] else . end)' \
+  ci/cargo-release-groups.json > "$work_dir/group-policy"
+mv "$work_dir/group-policy" ci/cargo-release-groups.json
 bash scripts/ci/cargo-release-group.sh files "$RELEASE_GROUP" > "$work_dir/release-files"
 payloads=()
 while IFS= read -r -d '' path; do payloads+=("$path"); done < "$work_dir/release-files"
-printf '# Changelog\n\n## [%s]\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > "$ledger"
-printf '# Detailed changelog\n\n## %s\n\n- Reviewed fixture change.\n' "$RELEASE_VERSION" > "$detail"
 printf 'Reviewed examples:\nic-query = { version = "%s", default-features = false }\nic-query = ">=0.40, <1"\nHistorical example: 0.40.\n' "${RELEASE_VERSION%.*}" > README.md
 printf 'Library usage is maintained through source review.\n' > docs/library-usage.md
 cp README.md "$work_dir/reviewed-readme"

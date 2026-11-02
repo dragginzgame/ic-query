@@ -22,6 +22,8 @@ Baseline version: `0.85.0`.
 
 - Use library-owned SNS/ICRC choices and move report presentation to one owner.
   CLI arguments, process IO, progress and terminal policy remain in the CLI.
+- Keep metadata fixtures independent of the groups' current versions and notes
+  paths, so full CI continues to qualify each group after the other advances.
 
 ### ⬆️ Dependencies
 
