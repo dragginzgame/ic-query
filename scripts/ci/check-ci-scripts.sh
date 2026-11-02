@@ -443,7 +443,7 @@ for failure in cargo parser malformed missing-group unknown-group; do
       YQ="$selected_parser"
       RELEASE_GROUP="$selected_group"
       case "$boundary" in
-        make) PATH="$version_fake_path" "$make_bin" --no-print-directory -s version ;;
+        make) PATH="$version_fake_path" "$make_bin" --no-print-directory -s version RELEASE_GROUP="$selected_group" ;;
         tag) PATH="$version_fake_path" bash "$repo_root/scripts/release/check-tag-at-head.sh" ;;
         publish) PATH="$version_fake_path" bash "$repo_root/scripts/release/publish-workspace.sh" ;;
         preflight) PATH="$version_fake_path" RELEASE_PREVIOUS=0.1.2 RELEASE_VERSION=0.1.3 RELEASE_DATE=2026-10-06 \

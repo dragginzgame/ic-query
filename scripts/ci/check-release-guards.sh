@@ -359,9 +359,9 @@ LOCK
 }
 run_release() {
   if [[ "$1" == resume ]]; then
-    "$REAL_MAKE" --no-print-directory release-resume "VERSION=$2" > output 2>&1
+    "$REAL_MAKE" --no-print-directory release-resume RELEASE_GROUP=query "VERSION=$2" > output 2>&1
   else
-    "$REAL_MAKE" --no-print-directory "release-$1" > output 2>&1
+    "$REAL_MAKE" --no-print-directory "release-$1" RELEASE_GROUP=query > output 2>&1
   fi
 }
 expect_failure() { if run_release "$@"; then fail "unexpected successful $*"; fi; }

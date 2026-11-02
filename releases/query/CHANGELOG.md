@@ -24,7 +24,8 @@ Baseline version: `0.85.0`.
 
 - Derive continuation status, consolidate option vocabularies and retain explicit
   source/cache admission and raw evidence. Independent release metadata keeps
-  presentation-only releases from republishing Query.
+  presentation-only releases from republishing Query. Release fixtures select
+  their own groups explicitly under inherited runner arguments.
 
 ### ⬆️ Dependencies
 
