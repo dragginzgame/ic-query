@@ -1,5 +1,13 @@
 # AGENTS.md
 
+For scope, delegated delivery, validation, compiler support and reporting, use
+[Shared policy at e84252f](https://github.com/dragginzgame/shared-tooling/blob/e84252f5740bacd708359580455ea2b6fd67df38/DRAGGINZGAME.md)
+and its revision-bound references over older snapshot or local-guide wording.
+This includes Rust 1.99.1 as minimum and pinned development/release compiler;
+check local declarations and qualification before claiming adoption is complete.
+Product-specific safeguards and scoped permissions below remain binding.
+This policy reference does not refresh executable snapshots.
+
 This file is normative for automated coding agents working in this repository.
 Apply the shared baseline and the explicit local exceptions below; code and habit
 do not override them.
@@ -11,13 +19,9 @@ Apply the local [engineering baseline](DRAGGINZGAME.md) first.
 and selected tooling identities; this overlay no longer inherits the historical
 upstream AGENTS.md as a separate policy baseline.
 
-Preserve these standing maintainer exceptions and their local scope:
-
-- Release execution, version bumps and release refs remain maintainer-only,
-  as described below; contribution PR authority is separate.
-- Public-metadata schemas remain `1`, with breaking shapes replaced through
-  the local hard-cut contract. Identify explicit resets and coordinate consumers;
-  no exception authorizes deleting caller evidence or ignoring external obligations.
+Public-metadata schemas remain `1` under the local hard-cut contract. Identify
+explicit resets and coordinate consumers; never discard caller evidence or
+external obligations merely to change a schema.
 
 Tool setup and local extension targets follow [local setup](docs/local-setup.md);
 release adapters follow [the local release workflow](docs/release-workflow.md).
@@ -35,22 +39,14 @@ Policy adoption does not activate hooks, schedules, installers or release comman
   inspection follows the shared baseline and explicit user exclusions; never
   edit outside this repository.
 
-## Git And Release Boundaries
+## Delivery and qualification
 
-- Ordinary fixes and continuation prepare working-tree changes only. An explicit
-  commit request authorizes a scoped local commit; an explicit PR request includes
-  its topic branch, scoped commits, branch push and PR creation/update under
-  [the contribution rules](rules/contributions.md). PR delivery does not authorize
-  merging, direct integration-branch pushes or rewriting shared history.
-- Automated agents must never run release/version-bump targets or scripts,
-  create release tags, or push release refs, including `make release-patch`,
-  `make release-minor`, `make release-major`, `make release-resume`, and the
-  `release-prepare-version` adapter. Isolated fixtures may prepare Git indexes
-  and trees and simulate release effects with command stubs; they must never
-  create real commits, tags or pushes, or change this repository's package
-  metadata or index.
-- The maintainer handles version bumps, releases, release commits/tags and
-  release pushes. Contribution authority does not override this release boundary.
+The maintainer's current delegated-delivery policy supersedes older agent-release
+bans in this file and `docs/release-workflow.md`. An explicit scoped release
+request includes the existing runner's required Git and metadata effects;
+ordinary implementation, readiness and PR requests retain their narrower scope.
+Release fixtures use simulated effects and do not grant authority over the real
+repository. Preserve Query's native host matrix and release/registry checks.
 
 ## Pre-1.0 Compatibility
 
@@ -69,20 +65,8 @@ Policy adoption does not activate hooks, schedules, installers or release comman
   dedicated hard-cut change, not as precedent for another version bump. New
   versioned contracts start and remain at `1` until the package reaches 1.0;
   this rule governs contract/schema identifiers, not Cargo package releases.
-- Before `1.0.0`, every breaking change is a hard cut. Do not preserve old
-  behavior through compatibility shims, CLI or Serde aliases, deprecated
-  wrappers or re-exports, dual parsers, fallback readers, legacy schema
-  branches, or automatic migrations.
-- Delete replaced surfaces and the redundant implementation they supported in
-  the same change. Historical changelogs may describe removed behavior, but
-  they do not justify keeping compatibility code.
-- Do not add or retain anti-resurrection tests whose only purpose is proving
-  that a removed command, field, schema, alias, wrapper, or behavior remains
-  unavailable. Test the current supported contract and generic invalid input,
-  not historical forms.
-- Ordinary internal Rust type aliases that name a current shared type are not
-  compatibility aliases. They remain subject to the normal ownership and
-  redundancy rules in this file.
+- Apply the shared hard-cut contract to replaced APIs and readers. Ordinary type
+  aliases naming a current shared type are not compatibility shims.
 
 ## Changelog
 
@@ -120,6 +104,8 @@ Policy adoption does not activate hooks, schedules, installers or release comman
   separate visual sections too.
 - Cache keys describe collected data, not views. Sorts, limits, and text
   verbosity are view options and must not change complete snapshot identity.
+- Keep missing-cache, refresh-progress, partial-failure, lock-contention and
+  invalid-coordination behavior explicit; expose only complete snapshots.
 
 ## Style
 
@@ -188,7 +174,7 @@ qualification remains distinct from source review or Linux-only evidence.
   Platform's `cdk` feature and entrypoint generator; do not declare Candid, CDK
   or either macro package directly. Native Testkit fixtures use Platform for
   required external Candid protocols and Wire for owned RPCs. Preserve the published
-  runtime semantics and Platform 0.17's canonical Runtime 0.17.1 executor/ic0
+  runtime semantics and the selected canonical Runtime executor/IC0
   identities; align canister runtime consumers on that Runtime owner without
   a second executor.
 
@@ -203,12 +189,3 @@ qualification remains distinct from source review or Linux-only evidence.
   the maintainer explicitly changes the project scope.
 - Keep network endpoints explicit in command options and reports. Do not hide
   live network calls behind commands that look cache-only.
-
-## Checklist
-
-- Preserve dirty worktree state; do not revert user changes. Inspect relevant
-  files before editing.
-- Keep text output readable and JSON output stable/raw.
-- Keep cache refresh behavior explicit: missing cache, refresh progress,
-  partial failure, lock contention, invalid coordination files, and complete
-  snapshots should be visible.
