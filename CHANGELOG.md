@@ -25,6 +25,9 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 ### 🧹 Cleanup
 
+- Keep the README focused on installation and first use; move detailed command,
+  evidence and Rust API material into linked references.
+
 - Share Governance continuation metadata and proposal vocabulary, simplify CLI
   inventory dispatch, and consolidate observation budgets, Registry text fields
   and IC query test fixtures. Preserve protocol-specific decoding and independent
@@ -34,6 +37,11 @@ crate follows [Semantic Versioning](https://semver.org/).
 
 - Adopt Shared Tooling 0.27.26. Cargo-tool reuse tracks relevant native build
   inputs, and setup records current tool requirements for each checkout.
+
+### ⬆️ Dependencies
+
+- Adopt arithmetic-only Metrics 0.26.0, aligned with Query's Rust 1.99.1 floor.
+  Report calculations and formats are unchanged.
 
 Detailed release notes: [docs/changelog/0.85.md](docs/changelog/0.85.md)
 

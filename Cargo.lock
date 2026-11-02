@@ -1709,6 +1709,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-metrics"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcf4b14637c36d28c3ebe9cf2601b2a498e8be9fc67b173e36923c81dc2fdfed"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "ic-platform"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1823,7 +1832,7 @@ dependencies = [
  "ic-host-process",
  "ic-host-text",
  "ic-host-tools",
- "ic-metrics",
+ "ic-metrics 0.26.0",
  "ic-platform",
  "ic-wire",
  "prost",
@@ -1880,7 +1889,7 @@ dependencies = [
  "ic-host-artifacts",
  "ic-host-fs",
  "ic-host-process",
- "ic-metrics",
+ "ic-metrics 0.25.1",
  "ic-platform",
  "libc",
  "thiserror 2.0.21",

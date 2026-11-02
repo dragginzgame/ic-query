@@ -34,6 +34,8 @@ historical release material.
 | [Project README](../README.md) | Installation, quick start, supported reporting, and trust model |
 | [CLI Usage](cli-usage.md) | Current command hierarchy, target identity, and collection modes |
 | [Library Usage](library-usage.md) | Rust feature boundary, adapters, builders, caches, and examples |
+| [Command and evidence reference](command-reference.md) | Command gallery, evidence guarantees and cache behavior |
+| [Rust API reference](rust-api-reference.md) | Features, reusable builders and collection contracts |
 | [Governance canister smoke tests](canister-smoke.md) | ICP CLI 1.6.0 build, local NNS execution, receipts, and bundles |
 | [Roadmap to 1.0](roadmap/1.0.md) | Coverage estimates, prioritized workstreams, and the 1.0 completion bar |
 | [Changelog](../CHANGELOG.md) | Concise release ledger |

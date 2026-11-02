@@ -34,7 +34,7 @@ ic-host-fs = { version = "0.73.6", default-features = false }
 ic-host-http = { version = "0.73.6", default-features = false }
 ic-host-text = "0.73.6"
 ic-host-tools = { version = "0.77.0", default-features = false }
-ic-metrics = { version = "0.25.1", default-features = false }
+ic-metrics = { version = "0.26.0", default-features = false }
 ic-platform = { version = "0.17.0", default-features = false, features = ["candid"] }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
