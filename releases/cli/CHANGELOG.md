@@ -7,7 +7,7 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
-## [0.86.0]
+## [0.86.0] - 2026-11-02
 
 ### ⚠️ Breaking
 
