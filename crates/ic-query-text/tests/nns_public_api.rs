@@ -996,8 +996,7 @@ fn run_ready<T>(future: impl Future<Output = T>) -> T {
 #[test]
 fn public_nns_neuron_api_is_constructible_and_renderable() {
     let request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 25)
-        .with_exclusive_start_neuron_id(10)
-        .with_verbose(true);
+        .with_exclusive_start_neuron_id(10);
     assert_eq!(request.limit, 25);
     assert_eq!(request.exclusive_start_neuron_id, Some(10));
     assert_eq!(NNS_NEURON_MAX_PAGE_SIZE, 300);
@@ -1017,18 +1016,26 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
     );
     let report = ic_query::nns::neuron::NnsNeuronListReport {
         context: governance_report_context(&request.governance),
-        cache_path: None,
-        from_cache: false,
+        provenance: ic_query::report::ReportProvenance::Live,
         requested_limit: request.limit,
         exclusive_start_neuron_id: request.exclusive_start_neuron_id,
         next_start_neuron_id: None,
         total_neuron_count: None,
         point_in_time_guaranteed: false,
         returned_neuron_count: 1,
-        verbose: request.verbose,
+
         neurons: vec![row.clone()],
     };
-    assert!(nns_neuron_list_report_text(&report).contains("Neuron 11"));
+    assert!(
+        nns_neuron_list_report_text(
+            &report,
+            ic_query_text::TextOptions {
+                verbose: true,
+                show_ballots: false
+            }
+        )
+        .contains("Neuron 11")
+    );
     let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
     assert_eq!(report_json["schema_version"], 1);
     assert_eq!(report_json["source"]["source_transport"], "replica_query");
@@ -1046,9 +1053,8 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
 
     let info = ic_query::nns::neuron::NnsNeuronInfoReport {
         context: governance_report_context(&request.governance),
-        cache_path: None,
-        from_cache: false,
-        verbose: true,
+        provenance: ic_query::report::ReportProvenance::Live,
+
         neuron: row,
     };
     assert!(nns_neuron_info_report_text(&info).contains("neuron_id: 11"));
@@ -2839,8 +2845,7 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         .with_proposer_neuron_id(12_345)
         .with_query("subnet")
         .with_sort(NnsProposalListSort::TallyTime)
-        .with_sort_direction(SortDirection::Desc)
-        .with_verbose(true);
+        .with_sort_direction(SortDirection::Desc);
 
     assert_eq!(request.status.as_str(), "executed");
     assert_eq!(request.reward_status.as_str(), "settled");
@@ -2866,13 +2871,19 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
             .direction_label(request.sort_direction)
             .to_string(),
         result_scope: ReportResultScope::CompleteCache,
-        verbose: request.verbose,
+
         proposal_count: 1,
         proposals: vec![proposal.clone()],
     };
 
     let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
-    let list_text = nns_proposal_list_report_text(&list_report);
+    let list_text = nns_proposal_list_report_text(
+        &list_report,
+        ic_query_text::TextOptions {
+            verbose: true,
+            show_ballots: true,
+        },
+    );
 
     assert_eq!(list_json["proposals"][0]["topic"], 4);
     assert_eq!(list_json["proposals"][0]["status"], 4);
@@ -2884,18 +2895,22 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert!(list_text.contains("title: Upgrade subnet"));
 
     let detail_request =
-        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
-            .with_show_ballots(true);
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
     let detail_report = NnsProposalReport {
         provenance: ic_query::report::ReportProvenance::Live,
         context: governance_report_context(&detail_request.governance),
         proposal_id: detail_request.proposal_id,
-        show_ballots: detail_request.show_ballots,
-        verbose: detail_request.verbose,
+
         proposal,
     };
 
-    let detail_text = nns_proposal_report_text(&detail_report);
+    let detail_text = nns_proposal_report_text(
+        &detail_report,
+        ic_query_text::TextOptions {
+            verbose: true,
+            show_ballots: true,
+        },
+    );
 
     assert!(detail_text.contains("proposal_id: 132411"));
     assert!(detail_text.contains("show_ballots: yes"));
@@ -3552,8 +3567,7 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
         .with_sort(NnsProposalListSort::TallyTime)
         .with_sort_direction(SortDirection::Desc);
     let detail_request =
-        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411)
-            .with_show_ballots(true);
+        NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
     let refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
@@ -4298,7 +4312,7 @@ fn sample_nns_proposal_refresh_report(root: &Path) -> NnsGovernanceRefreshReport
         network: "ic".to_string(),
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         row_count: 1,
-        collection: "proposals".to_string(),
+        collection: ic_query::nns::NnsGovernanceCollection::Proposals,
         point_in_time_guaranteed: false,
         page_size: 100,
         page_count: 1,

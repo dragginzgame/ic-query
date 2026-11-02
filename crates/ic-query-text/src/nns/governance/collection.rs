@@ -13,7 +13,7 @@ pub fn nns_governance_refresh_report_text(report: &NnsGovernanceRefreshReport) -
     [
         format!("network: {}", terminal_text(&report.network)),
         format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("collection: {}", terminal_text(&report.collection)),
+        format!("collection: {}", report.collection.as_str()),
         format!("row_count: {}", report.row_count),
         format!("wrote_cache: {}", yes_no(report.wrote_cache)),
         format!("page_size: {}", report.page_size),
@@ -53,7 +53,7 @@ pub fn nns_governance_refresh_report_text(report: &NnsGovernanceRefreshReport) -
 pub fn nns_governance_cache_status_report_text(report: &NnsGovernanceCacheStatusReport) -> String {
     let mut lines = vec![
         format!("network: {}", terminal_text(&report.network)),
-        format!("collection: {}", terminal_text(&report.collection)),
+        format!("collection: {}", report.collection.as_str()),
         format!("cache_root: {}", terminal_text(&report.cache_root)),
         format!("found: {}", yes_no(report.found)),
         format!(
@@ -66,35 +66,33 @@ pub fn nns_governance_cache_status_report_text(report: &NnsGovernanceCacheStatus
         ),
     ];
     if let Some(cache) = report.cache.as_ref() {
-        lines.extend([
-            format!("governance_canister_id: {}", cache.governance_canister_id),
-            format!("cache_status: {}", cache.cache_status),
-            format!("cache_path: {}", terminal_text(&cache.cache_path)),
-            format!(
-                "cache_error: {}",
-                terminal_text(cache.cache_error.as_deref().unwrap_or("-"))
-            ),
-            format!("complete: {}", yes_no(cache.complete)),
-            format!(
-                "point_in_time_guaranteed: {}",
-                yes_no(cache.point_in_time_guaranteed)
-            ),
-            format!("row_count: {}", cache.row_count),
-            format!("page_count: {}", cache.page_count),
-            format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
-        ]);
+        lines.push(format!("cache_status: {}", cache.cache_status()));
+        lines.push(format!("cache_path: {}", terminal_text(&cache.cache_path)));
+        if let Some(error) = cache.cache_error() {
+            lines.push(format!("cache_error: {}", terminal_text(error)));
+        }
+        if let Some(data) = cache.valid() {
+            lines.extend([
+                format!("governance_canister_id: {}", data.governance_canister_id),
+                "complete: yes".to_string(),
+                format!(
+                    "point_in_time_guaranteed: {}",
+                    yes_no(data.point_in_time_guaranteed)
+                ),
+                format!("row_count: {}", data.row_count),
+                format!("page_count: {}", data.page_count),
+                format!("page_size: {}", data.page_size),
+                format!("fetched_at: {}", terminal_text(&data.fetched_at)),
+                format!("source_endpoint: {}", terminal_text(&data.source_endpoint)),
+            ]);
+        }
     }
     if report.cache.is_none() {
-        let command = match report.collection.as_str() {
-            "neurons" => Some("neuron"),
-            "proposals" => Some("proposal"),
-            _ => None,
+        let command = match report.collection {
+            ic_query::nns::NnsGovernanceCollection::Neurons => "neuron",
+            ic_query::nns::NnsGovernanceCollection::Proposals => "proposal",
         };
-        if let Some(command) = command {
-            lines.push(format!("refresh_hint: icq nns {command} refresh"));
-        }
+        lines.push(format!("refresh_hint: icq nns {command} refresh"));
     }
     lines.extend(attempt_lines(report.latest_attempt.as_ref()));
     lines.join("\n")

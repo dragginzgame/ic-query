@@ -6,8 +6,8 @@
 
 use super::common::clean_optional_text;
 use crate::sns::report::{
-    SnsHostError, SnsProposalBallotRow, SnsProposalDecisionState, SnsProposalFailureReason,
-    SnsProposalRow, SnsProposalTally, hex_bytes,
+    SnsHostError, SnsProposalBallotRow, SnsProposalFailureReason, SnsProposalRow, SnsProposalTally,
+    hex_bytes,
     live::types::{SnsGovernanceBallot, SnsGovernanceProposalData, SnsTopic},
 };
 
@@ -15,7 +15,6 @@ use crate::sns::report::{
 pub(in crate::sns::report::live) fn sns_proposal_row(
     proposal: SnsGovernanceProposalData,
 ) -> Result<SnsProposalRow, SnsHostError> {
-    let decision_state = proposal_decision_state(&proposal);
     let proposal_id = proposal
         .id
         .as_ref()
@@ -27,7 +26,6 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         .into_iter()
         .map(sns_proposal_ballot_row)
         .collect::<Vec<_>>();
-    let ballot_count = ballots.len();
     Ok(SnsProposalRow {
         proposal_id,
         action_id: proposal.action,
@@ -35,7 +33,6 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
         title: proposal_fields.title,
         summary: proposal_fields.summary,
         url: clean_optional_text(Some(proposal_fields.url)),
-        decision_state,
         status: Some(proposal.status),
         topic: proposal
             .topic
@@ -60,7 +57,6 @@ pub(in crate::sns::report::live) fn sns_proposal_row(
             no: tally.no,
             total: tally.total,
         }),
-        ballot_count,
         ballots,
         payload_text_rendering: proposal
             .payload_text_rendering
@@ -79,18 +75,6 @@ pub(super) const fn sns_topic_text(topic: SnsTopic) -> &'static str {
         SnsTopic::Governance => "governance",
         SnsTopic::TreasuryAssetManagement => "treasury-asset-management",
         SnsTopic::CriticalDappOperations => "critical-dapp-operations",
-    }
-}
-
-const fn proposal_decision_state(proposal: &SnsGovernanceProposalData) -> SnsProposalDecisionState {
-    if proposal.failed_timestamp_seconds > 0 {
-        SnsProposalDecisionState::Failed
-    } else if proposal.executed_timestamp_seconds > 0 {
-        SnsProposalDecisionState::Executed
-    } else if proposal.decided_timestamp_seconds > 0 {
-        SnsProposalDecisionState::Decided
-    } else {
-        SnsProposalDecisionState::Open
     }
 }
 

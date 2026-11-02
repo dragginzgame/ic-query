@@ -99,8 +99,6 @@ pub struct NnsNeuronListRequest {
     pub limit: u32,
     /// Exclusive lower neuron-id bound.
     pub exclusive_start_neuron_id: Option<u64>,
-    /// Whether text output should include expanded metadata.
-    pub verbose: bool,
 }
 
 impl NnsNeuronListRequest {
@@ -111,7 +109,6 @@ impl NnsNeuronListRequest {
             governance,
             limit,
             exclusive_start_neuron_id: None,
-            verbose: false,
         }
     }
 
@@ -119,13 +116,6 @@ impl NnsNeuronListRequest {
     #[must_use]
     pub const fn with_exclusive_start_neuron_id(mut self, neuron_id: u64) -> Self {
         self.exclusive_start_neuron_id = Some(neuron_id);
-        self
-    }
-
-    /// Select compact or expanded text rendering.
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
         self
     }
 }
@@ -142,8 +132,6 @@ pub struct NnsNeuronInfoRequest {
     pub governance: NnsGovernanceRequest,
     /// Governance neuron identifier.
     pub neuron_id: u64,
-    /// Whether text output should include expanded metadata.
-    pub verbose: bool,
 }
 
 impl NnsNeuronInfoRequest {
@@ -153,15 +141,7 @@ impl NnsNeuronInfoRequest {
         Self {
             governance,
             neuron_id,
-            verbose: false,
         }
-    }
-
-    /// Select compact or expanded text rendering.
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
-        self
     }
 }
 
@@ -176,10 +156,9 @@ pub struct NnsNeuronListReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]
     pub context: NnsGovernanceReportContext,
-    /// Cache path when the page came from a complete snapshot.
-    pub cache_path: Option<String>,
-    /// Whether rows came from a complete local snapshot.
-    pub from_cache: bool,
+    /// Live acquisition or complete-cache origin.
+    #[serde(flatten)]
+    pub provenance: crate::report::ReportProvenance,
     /// Requested page limit.
     pub requested_limit: u32,
     /// Exclusive lower neuron-id bound.
@@ -192,8 +171,6 @@ pub struct NnsNeuronListReport {
     pub point_in_time_guaranteed: bool,
     /// Number of rows returned in this view.
     pub returned_neuron_count: usize,
-    /// Whether verbose text rendering was requested.
-    pub verbose: bool,
     /// Canonically ascending neuron rows.
     pub neurons: Vec<NnsNeuronRow>,
 }
@@ -209,12 +186,9 @@ pub struct NnsNeuronInfoReport {
     /// Shared Governance authority and transport provenance.
     #[serde(flatten)]
     pub context: NnsGovernanceReportContext,
-    /// Cache path when the row came from a complete snapshot.
-    pub cache_path: Option<String>,
-    /// Whether the row came from a complete local snapshot.
-    pub from_cache: bool,
-    /// Whether verbose text rendering was requested.
-    pub verbose: bool,
+    /// Live acquisition or complete-cache origin.
+    #[serde(flatten)]
+    pub provenance: crate::report::ReportProvenance,
     /// Public Governance neuron view.
     pub neuron: NnsNeuronRow,
 }

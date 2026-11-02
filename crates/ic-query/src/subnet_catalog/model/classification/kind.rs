@@ -24,16 +24,34 @@ pub enum SubnetKind {
     Unknown,
 }
 
+pub(in crate::subnet_catalog) const REGISTRY_SUBNET_KINDS: &[(i32, SubnetKind)] = &[
+    (0, SubnetKind::Unknown),
+    (1, SubnetKind::Application),
+    (2, SubnetKind::System),
+    (4, SubnetKind::Application),
+    (5, SubnetKind::CloudEngine),
+];
+
 impl SubnetKind {
+    #[cfg(feature = "subnet-catalog-host")]
+    pub(in crate::subnet_catalog) const ALL: [Self; 4] = [
+        Self::Application,
+        Self::CloudEngine,
+        Self::System,
+        Self::Unknown,
+    ];
     /// Convert one raw Registry `SubnetType` numeric discriminant.
     #[must_use]
     pub const fn from_registry_subnet_type(raw_subnet_type: i32) -> Self {
-        match raw_subnet_type {
-            1 | 4 => Self::Application,
-            2 => Self::System,
-            5 => Self::CloudEngine,
-            _ => Self::Unknown,
+        let mut index = 0;
+        while index < REGISTRY_SUBNET_KINDS.len() {
+            let (raw, kind) = REGISTRY_SUBNET_KINDS[index];
+            if raw == raw_subnet_type {
+                return kind;
+            }
+            index += 1;
         }
+        Self::Unknown
     }
 
     /// Returns the stable snake_case value used in CLI filters and text output.

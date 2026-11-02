@@ -24,7 +24,10 @@ use ic_query::sns::SnsProposalsReport;
 
 #[must_use]
 /// Render the SNS proposals report as human-facing text.
-pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
+pub fn sns_proposals_report_text(
+    report: &SnsProposalsReport,
+    options: crate::TextOptions,
+) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
         format!("requested_limit: {}", report.requested_limit),
@@ -45,7 +48,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
         ),
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
-        format!("verbose: {}", yes_no(report.verbose)),
+        format!("verbose: {}", yes_no(options.verbose)),
     ]);
     push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend([format!("proposal_count: {}", report.proposal_count)]);
@@ -61,9 +64,9 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
                     [
                         proposal.proposal_id.to_string(),
                         sns_proposal_action_label(proposal.action_id).into_owned(),
-                        proposal.decision_state.as_str().to_string(),
+                        proposal.decision_state().as_str().to_string(),
                         format_utc_timestamp_secs(proposal.proposal_creation_timestamp_seconds),
-                        proposal_title_for_list(proposal, report.verbose),
+                        proposal_title_for_list(proposal, options.verbose),
                     ]
                 })
                 .collect::<Vec<_>>(),
@@ -77,7 +80,7 @@ pub fn sns_proposals_report_text(report: &SnsProposalsReport) -> String {
             REPORT_TABLE_OPTIONS,
         ));
     }
-    if report.verbose && !report.proposals.is_empty() {
+    if options.verbose && !report.proposals.is_empty() {
         lines.push(String::new());
         lines.push("proposal_details:".to_string());
         for proposal in &report.proposals {

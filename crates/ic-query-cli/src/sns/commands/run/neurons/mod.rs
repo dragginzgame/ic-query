@@ -60,7 +60,7 @@ fn run_sns_neuron_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCo
 }
 
 async fn run_sns_neuron_info(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
-    let (format, request) = neuron_request(matches, network, current_unix_secs()?);
+    let (format, request) = neuron_request(matches, network, current_unix_secs()?)?;
     let report = build_sns_neuron_detail_report(&request).await?;
     write_text_or_json(format, &report, sns_neuron_detail_report_text)
 }
@@ -69,5 +69,7 @@ async fn run_sns_neuron_list(matches: &ArgMatches, network: &str) -> Result<(), 
     let (format, request) =
         neurons_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let report = build_sns_neurons_report(&request).await?;
-    write_text_or_json(format, &report, sns_neurons_report_text)
+    write_text_or_json(format, &report, |report| {
+        sns_neurons_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }

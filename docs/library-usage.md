@@ -1599,7 +1599,7 @@ async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<Strin
         DEFAULT_SNS_SOURCE_ENDPOINT,
         now_unix_secs,
         sns_input,
-    ))
+    )?)
     .with_time_window_seconds(90 * 24 * 60 * 60);
 
     let report = build_sns_metrics_report(&request).await?;
@@ -1630,7 +1630,7 @@ async fn collect_reward_checkpoint(
         DEFAULT_SNS_SOURCE_ENDPOINT,
         now_unix_secs,
         sns_input,
-    ));
+    )?);
     build_sns_reward_checkpoint_report(&request).await
 }
 ```
@@ -1700,7 +1700,7 @@ async fn render_recent_sns_proposals(
             DEFAULT_SNS_SOURCE_ENDPOINT,
             now_unix_secs,
             sns_input,
-        ),
+        )?,
         25,
     )
     .with_cache_root(cache_root)
@@ -1708,7 +1708,7 @@ async fn render_recent_sns_proposals(
     .with_sort_direction(ic_query::report::SortDirection::Desc);
 
     let report = build_sns_proposals_report(&request).await?;
-    Ok(sns_proposals_report_text(&report))
+    Ok(sns_proposals_report_text(&report, ic_query_text::TextOptions::default()))
 }
 
 async fn render_cached_sns_neurons(
@@ -1722,14 +1722,14 @@ async fn render_cached_sns_neurons(
             DEFAULT_SNS_SOURCE_ENDPOINT,
             now_unix_secs,
             sns_input,
-        ),
+        )?,
         500,
         cache_root,
         SnsNeuronsCacheSort::Stake,
     );
 
     let report = build_sns_neurons_report(&request).await?;
-    Ok(sns_neurons_report_text(&report))
+    Ok(sns_neurons_report_text(&report, ic_query_text::TextOptions::default()))
 }
 ```
 

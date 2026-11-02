@@ -49,7 +49,12 @@ async fn load_or_refresh_sns_proposals_cache(
         load_sns_cache_for_root::<SnsProposalsCacheCollection>(
             cache_root,
             &request.lookup.network,
-            &request.lookup.input,
+            request
+                .lookup
+                .root_canister_id()
+                .ok_or_else(|| SnsHostError::InvalidLookup {
+                    input: request.lookup.input().to_string(),
+                })?,
         )
     };
     load_or_refresh_cache(
@@ -101,7 +106,7 @@ fn sns_proposals_report_from_cache(
         .proposals
         .into_iter()
         .filter(|proposal| proposal_matches_before(proposal, request.before_proposal_id))
-        .filter(|proposal| proposal_matches_status(proposal, request.status))
+        .filter(|proposal| proposal_matches_status(proposal, request.status()))
         .filter(|proposal| proposal_matches_topic(proposal, request.topic))
         .collect::<Vec<_>>();
     apply_sns_proposal_view(&mut proposals, request);

@@ -20,7 +20,12 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     let (cache_path, mut cache) = load_sns_cache_for_root::<SnsNeuronsCacheCollection>(
         cache_root,
         &request.lookup.network,
-        &request.lookup.input,
+        request
+            .lookup
+            .root_canister_id()
+            .ok_or_else(|| SnsHostError::InvalidLookup {
+                input: request.lookup.input().to_string(),
+            })?,
     )?;
     sort_sns_neurons(&mut cache.data.neurons, sort);
     let total_neuron_count = cache.data.neurons.len();

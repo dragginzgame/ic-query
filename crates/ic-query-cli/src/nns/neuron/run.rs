@@ -52,7 +52,9 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
         &LiveNnsSource::default(),
     )
     .await?;
-    write_text_or_json(format, &report, nns_neuron_list_report_text)
+    write_text_or_json(format, &report, |report| {
+        nns_neuron_list_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

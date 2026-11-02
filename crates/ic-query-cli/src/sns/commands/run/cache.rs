@@ -29,7 +29,7 @@ pub(super) async fn run_snapshot_refresh(
     ) -> Result<SnsSnapshotRefreshReport, SnsHostError>,
 ) -> Result<(), SnsCommandError> {
     let (format, request) =
-        snapshot_refresh_request(matches, network, cache_root()?, current_unix_secs()?);
+        snapshot_refresh_request(matches, network, cache_root()?, current_unix_secs()?)?;
     let report = refresh(&request, &mut StderrQueryProgress::new()).await?;
     write_text_or_json(format, &report, sns_snapshot_refresh_report_text)
 }

@@ -44,7 +44,9 @@ async fn run_sns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let (format, request) =
         proposal_request(matches, network, current_unix_secs()?, || Ok(cache_root()?))?;
     let report = build_sns_proposal_report(&request).await?;
-    write_text_or_json(format, &report, sns_proposal_report_text)
+    write_text_or_json(format, &report, |report| {
+        sns_proposal_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
 async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
@@ -57,7 +59,9 @@ async fn run_sns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
         &mut progress,
     )
     .await?;
-    write_text_or_json(format, &report, sns_proposals_report_text)
+    write_text_or_json(format, &report, |report| {
+        sns_proposals_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
 fn run_sns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {

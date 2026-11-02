@@ -4,20 +4,20 @@ use super::*;
 fn sns_neurons_rejects_invalid_clap_values() {
     for neuron_id in ["01", &"AB".repeat(32), &"gg".repeat(32)] {
         assert!(matches!(
-            parse_test_options(sns_neuron_info_command(), &["1", neuron_id], |m, n| {
+            parse_fallible_test_options(sns_neuron_info_command(), &["1", neuron_id], |m, n| {
                 neuron_request(m, n, 1_780_531_200)
             },),
             Err(SnsCommandError::Usage(_))
         ));
     }
     assert!(matches!(
-        parse_test_options(sns_info_command(), &["not-a-principal"], |m, n| {
+        parse_fallible_test_options(sns_info_command(), &["not-a-principal"], |m, n| {
             lookup_request(m, n, 1_780_531_200)
         },),
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        parse_test_options(sns_token_command(), &["0"], |m, n| lookup_request(
+        parse_fallible_test_options(sns_token_command(), &["0"], |m, n| lookup_request(
             m,
             n,
             1_780_531_200
@@ -69,7 +69,7 @@ fn sns_neurons_rejects_invalid_clap_values() {
         Err(SnsCommandError::Usage(_))
     ));
     assert!(matches!(
-        parse_test_options(
+        parse_fallible_test_options(
             sns_neuron_refresh_command(),
             &["1", "--page-size", "0"],
             |m, n| snapshot_refresh_request(
@@ -147,9 +147,11 @@ fn sns_proposals_reject_invalid_clap_values() {
 fn sns_metrics_rejects_invalid_or_excessive_windows() {
     for value in ["0", "1.5h", "366d"] {
         assert!(matches!(
-            parse_test_options(sns_metrics_command(), &["1", "--window", value], |m, n| {
-                metrics_request(m, n, 1_780_531_200)
-            },),
+            parse_fallible_test_options(
+                sns_metrics_command(),
+                &["1", "--window", value],
+                |m, n| { metrics_request(m, n, 1_780_531_200) },
+            ),
             Err(SnsCommandError::Usage(_))
         ));
     }

@@ -17,8 +17,8 @@ use crate::text_value::yes_no;
 
 #[must_use]
 /// Render the SNS list report as human-facing text.
-pub fn sns_list_report_text(report: &SnsListReport) -> String {
-    sns_list_report_text_with_metadata_style(report, |status, _| status.to_string())
+pub fn sns_list_report_text(report: &SnsListReport, options: crate::TextOptions) -> String {
+    sns_list_report_text_with_metadata_style(report, options, |status, _| status.to_string())
 }
 
 /// Render an SNS list with caller-selected styling for its metadata status cells.
@@ -29,6 +29,7 @@ pub fn sns_list_report_text(report: &SnsListReport) -> String {
 #[must_use]
 pub fn sns_list_report_text_with_metadata_style(
     report: &SnsListReport,
+    options: crate::TextOptions,
     mut style: impl FnMut(&str, bool) -> String,
 ) -> String {
     let mut lines = Vec::new();
@@ -74,11 +75,11 @@ pub fn sns_list_report_text_with_metadata_style(
                     [
                         sns.id.to_string(),
                         sns.name.clone(),
-                        principal_for_list(&sns.canisters.root_canister_id, report.verbose),
-                        principal_for_list(&sns.canisters.governance_canister_id, report.verbose),
-                        principal_for_list(&sns.canisters.ledger_canister_id, report.verbose),
-                        principal_for_list(&sns.canisters.swap_canister_id, report.verbose),
-                        principal_for_list(&sns.canisters.index_canister_id, report.verbose),
+                        principal_for_list(&sns.canisters.root_canister_id, options.verbose),
+                        principal_for_list(&sns.canisters.governance_canister_id, options.verbose),
+                        principal_for_list(&sns.canisters.ledger_canister_id, options.verbose),
+                        principal_for_list(&sns.canisters.swap_canister_id, options.verbose),
+                        principal_for_list(&sns.canisters.index_canister_id, options.verbose),
                         lifecycle_status(
                             sns_swap_lifecycle_name(sns.lifecycle.value()),
                             sns.lifecycle.error(),

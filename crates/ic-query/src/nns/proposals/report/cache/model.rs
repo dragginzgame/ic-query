@@ -35,7 +35,7 @@ pub struct NnsProposalCacheListReport {
     /// Local snapshot summaries discovered beneath the selected root.
     pub caches: Vec<NnsGovernanceCacheSummary>,
     /// Collection inspected by this proposal-only list operation.
-    pub collection: String,
+    pub collection: crate::nns::governance::NnsGovernanceCollection,
     /// Expected refresh-attempt sidecar path.
     pub refresh_attempt_path: String,
     /// Latest readable attempt for this single expected snapshot.

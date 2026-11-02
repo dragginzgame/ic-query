@@ -67,7 +67,7 @@ pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
             )
             .await?;
             context.publish(
-                "proposals",
+                crate::nns::NnsGovernanceCollection::Proposals,
                 NNS_PROPOSAL_FETCHED_BY,
                 publication_progress,
                 data,

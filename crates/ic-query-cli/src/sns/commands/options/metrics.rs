@@ -11,10 +11,10 @@ pub(in crate::sns::commands) fn metrics_request(
     matches: &ArgMatches,
     network: &str,
     now_unix_secs: u64,
-) -> (OutputFormat, SnsMetricsRequest) {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
-    (
+) -> Result<(OutputFormat, SnsMetricsRequest), crate::sns::commands::SnsCommandError> {
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    Ok((
         format,
         SnsMetricsRequest::new(lookup).with_time_window_seconds(required_typed(matches, "window")),
-    )
+    ))
 }

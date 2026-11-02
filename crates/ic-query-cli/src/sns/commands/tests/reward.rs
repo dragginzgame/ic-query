@@ -3,7 +3,7 @@ use crate::cli::clap::render_help;
 
 #[test]
 fn sns_reward_checkpoint_options_preserve_live_controls() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_reward_checkpoint_command(),
         &[
             "1",
@@ -17,7 +17,7 @@ fn sns_reward_checkpoint_options_preserve_live_controls() {
     )
     .expect("reward checkpoint options");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.max_pages, Some(7));
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
@@ -71,7 +71,7 @@ fn sns_reward_diff_options_preserve_local_paths_and_format() {
 #[test]
 fn sns_reward_checkpoint_rejects_zero_page_cap() {
     assert!(matches!(
-        parse_test_options(
+        parse_fallible_test_options(
             sns_reward_checkpoint_command(),
             &["1", "--max-pages", "0"],
             |m, n| reward_checkpoint_request(m, n, 1_780_531_200),

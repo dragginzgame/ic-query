@@ -1,7 +1,10 @@
 //! Replay report values and exact output captured before the crate extraction.
 #![cfg(feature = "host")]
 
-use ic_query_text::cloud_engine;
+use ic_query_text::cloud_engine::{
+    cloud_engine_list_report_text, cloud_engine_operator_report_text,
+    cloud_engine_prices_report_text,
+};
 use ic_query_text::nns::data_center;
 use ic_query_text::nns::neuron;
 use ic_query_text::nns::node;
@@ -21,22 +24,26 @@ fn preserves_existing_report_text() {
     for fixture in fixtures {
         let renderer = fixture["renderer"].as_str().unwrap();
         let report = &fixture["report"];
-        let actual = render_report(renderer, report);
+        let options = ic_query_text::TextOptions {
+            verbose: fixture["options"]["verbose"].as_bool().unwrap_or(false),
+            show_ballots: fixture["options"]["show_ballots"]
+                .as_bool()
+                .unwrap_or(false),
+        };
+        let actual = render_report(renderer, report, options);
         assert_eq!(actual, fixture["text"].as_str().unwrap(), "{renderer}");
     }
 }
 
-fn render_report(renderer: &str, report: &serde_json::Value) -> String {
+fn render_report(
+    renderer: &str,
+    report: &serde_json::Value,
+    options: ic_query_text::TextOptions,
+) -> String {
     match renderer {
-        "cloud_engine_list_report_text" => {
-            render(cloud_engine::cloud_engine_list_report_text, report)
-        }
-        "cloud_engine_operator_report_text" => {
-            render(cloud_engine::cloud_engine_operator_report_text, report)
-        }
-        "cloud_engine_prices_report_text" => {
-            render(cloud_engine::cloud_engine_prices_report_text, report)
-        }
+        "cloud_engine_list_report_text" => render(cloud_engine_list_report_text, report),
+        "cloud_engine_operator_report_text" => render(cloud_engine_operator_report_text, report),
+        "cloud_engine_prices_report_text" => render(cloud_engine_prices_report_text, report),
         "cmc_cycles_report_text" => render(cmc::cmc_cycles_report_text, report),
         "cmc_xdr_report_text" => render(cmc::cmc_xdr_report_text, report),
         "nns_data_center_list_report_text" => {
@@ -73,8 +80,14 @@ fn render_report(renderer: &str, report: &serde_json::Value) -> String {
         "nns_proposal_activity_report_text" => {
             render(proposals::nns_proposal_activity_report_text, report)
         }
-        "nns_proposal_list_report_text" => render(proposals::nns_proposal_list_report_text, report),
-        "nns_proposal_report_text" => render(proposals::nns_proposal_report_text, report),
+        "nns_proposal_list_report_text" => render(
+            |report| proposals::nns_proposal_list_report_text(report, options),
+            report,
+        ),
+        "nns_proposal_report_text" => render(
+            |report| proposals::nns_proposal_report_text(report, options),
+            report,
+        ),
         "nns_registry_version_report_text" => {
             render(registry::nns_registry_version_report_text, report)
         }
@@ -125,7 +138,7 @@ fn render_report(renderer: &str, report: &serde_json::Value) -> String {
 }
 
 fn render<Report: serde::de::DeserializeOwned>(
-    renderer: fn(&Report) -> String,
+    renderer: impl FnOnce(&Report) -> String,
     value: &serde_json::Value,
 ) -> String {
     renderer(&serde_json::from_value(value.clone()).unwrap())

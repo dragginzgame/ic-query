@@ -22,7 +22,12 @@ pub(in crate::sns::report) fn build_sns_proposal_report_from_cache(
     let (cache_path, cache) = match load_sns_cache_for_root::<SnsProposalsCacheCollection>(
         cache_root,
         &request.lookup.network,
-        &request.lookup.input,
+        request
+            .lookup
+            .root_canister_id()
+            .ok_or_else(|| SnsHostError::InvalidLookup {
+                input: request.lookup.input().to_string(),
+            })?,
     ) {
         Ok(cache) => cache,
         Err(SnsHostError::MissingProposalsCache { .. }) => return Ok(None),

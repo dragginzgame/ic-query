@@ -204,10 +204,16 @@ fn distribution_table(
 
 /// Render one public NNS neuron-index page.
 #[must_use]
-pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
+pub fn nns_neuron_list_report_text(
+    report: &NnsNeuronListReport,
+    options: crate::TextOptions,
+) -> String {
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
-        format!("from_cache: {}", yes_no(report.from_cache)),
+        format!(
+            "from_cache: {}",
+            yes_no(report.provenance.cache_path().is_some())
+        ),
         format!("requested_limit: {}", report.requested_limit),
         format!(
             "exclusive_start_neuron_id: {}",
@@ -228,16 +234,16 @@ pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
             yes_no(report.point_in_time_guaranteed)
         ),
         format!("returned_neuron_count: {}", report.returned_neuron_count),
-        format!("verbose: {}", yes_no(report.verbose)),
+        format!("verbose: {}", yes_no(options.verbose)),
     ]);
-    if let Some(cache_path) = report.cache_path.as_deref() {
+    if let Some(cache_path) = report.provenance.cache_path() {
         lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     if !report.neurons.is_empty() {
         lines.push(String::new());
         lines.push(neuron_table(&report.neurons));
     }
-    if report.verbose {
+    if options.verbose {
         for neuron in &report.neurons {
             lines.push(String::new());
             lines.extend(neuron_detail_lines(neuron));
@@ -250,8 +256,11 @@ pub fn nns_neuron_list_report_text(report: &NnsNeuronListReport) -> String {
 #[must_use]
 pub fn nns_neuron_info_report_text(report: &NnsNeuronInfoReport) -> String {
     let mut lines = governance_context_lines(&report.context);
-    lines.extend([format!("from_cache: {}", yes_no(report.from_cache))]);
-    if let Some(cache_path) = report.cache_path.as_deref() {
+    lines.extend([format!(
+        "from_cache: {}",
+        yes_no(report.provenance.cache_path().is_some())
+    )]);
+    if let Some(cache_path) = report.provenance.cache_path() {
         lines.push(format!("cache_path: {}", terminal_text(cache_path)));
     }
     lines.push(String::new());

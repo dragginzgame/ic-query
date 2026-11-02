@@ -12,10 +12,7 @@ use crate::{
     nns::{
         NnsCommandError, OutputFormat,
         leaf::NnsCommonOptions,
-        proposals::values::{
-            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            NNS_PROPOSAL_VERBOSE_FLAG,
-        },
+        proposals::values::{NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG},
     },
 };
 use clap::ArgMatches;
@@ -78,7 +75,6 @@ pub(in crate::nns) fn proposal_list_request(
             query: string_option(matches, "query"),
             sort,
             sort_direction,
-            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         },
     ))
 }
@@ -95,8 +91,6 @@ pub(in crate::nns) fn proposal_info_request(
         NnsProposalRequest {
             governance,
             proposal_id: required_typed(matches, NNS_PROPOSAL_ID_ARG),
-            show_ballots: matches.get_flag(NNS_PROPOSAL_BALLOTS_FLAG),
-            verbose: matches.get_flag(NNS_PROPOSAL_VERBOSE_FLAG),
         },
     )
 }

@@ -2,14 +2,14 @@ use super::*;
 
 #[test]
 fn sns_info_parses_input_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_info_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         |m, n| lookup_request(m, n, 1_780_531_200),
     )
     .expect("parse info");
 
-    assert_eq!(options.input, "1");
+    assert_eq!(options.input(), "1");
     assert_eq!(options.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
@@ -18,7 +18,7 @@ fn sns_info_parses_input_and_json_format() {
 
 #[test]
 fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_metrics_command(),
         &[
             "1",
@@ -32,7 +32,7 @@ fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
     )
     .expect("parse metrics");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
@@ -41,7 +41,7 @@ fn sns_metrics_parses_bounded_window_and_shared_lookup_options() {
 
 #[test]
 fn sns_metrics_uses_the_default_thirty_day_window() {
-    let (_, options) = parse_test_options(sns_metrics_command(), &["1"], |m, n| {
+    let (_, options) = parse_fallible_test_options(sns_metrics_command(), &["1"], |m, n| {
         metrics_request(m, n, 1_780_531_200)
     })
     .expect("parse metrics");
@@ -51,14 +51,14 @@ fn sns_metrics_uses_the_default_thirty_day_window() {
 
 #[test]
 fn sns_token_parses_input_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_token_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         |m, n| lookup_request(m, n, 1_780_531_200),
     )
     .expect("parse token");
 
-    assert_eq!(options.input, "1");
+    assert_eq!(options.input(), "1");
     assert_eq!(options.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
@@ -67,14 +67,14 @@ fn sns_token_parses_input_and_json_format() {
 
 #[test]
 fn sns_parameters_parses_input_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_parameters_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         |m, n| lookup_request(m, n, 1_780_531_200),
     )
     .expect("parse parameters");
 
-    assert_eq!(options.input, "1");
+    assert_eq!(options.input(), "1");
     assert_eq!(options.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
@@ -83,14 +83,14 @@ fn sns_parameters_parses_input_and_json_format() {
 
 #[test]
 fn sns_swap_parses_input_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_swap_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         |m, n| lookup_request(m, n, 1_780_531_200),
     )
     .expect("parse swap");
 
-    assert_eq!(options.input, "1");
+    assert_eq!(options.input(), "1");
     assert_eq!(options.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");
@@ -99,14 +99,14 @@ fn sns_swap_parses_input_and_json_format() {
 
 #[test]
 fn sns_upgrade_parses_input_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_upgrade_command(),
         &["1", "--json", "--source-endpoint", "https://icp-api.io"],
         |m, n| lookup_request(m, n, 1_780_531_200),
     )
     .expect("parse upgrade");
 
-    assert_eq!(options.input, "1");
+    assert_eq!(options.input(), "1");
     assert_eq!(options.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://icp-api.io");

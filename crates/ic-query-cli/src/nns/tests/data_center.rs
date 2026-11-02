@@ -16,7 +16,6 @@ fn data_center_list_parses_defaults_and_json_format() {
         defaults.common.source_endpoint,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT
     );
-    assert!(!defaults.verbose);
 
     let options = parse_test_options(
         leaf_list_command(&DATA_CENTER_SPEC, DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT),
@@ -32,7 +31,6 @@ fn data_center_list_parses_defaults_and_json_format() {
 
     assert_eq!(options.common.format, OutputFormat::Json);
     assert_eq!(options.common.source_endpoint, "https://icp-api.io");
-    assert!(options.verbose);
 }
 
 #[test]

@@ -26,8 +26,9 @@ pub(crate) const MAINNET_GOVERNANCE_CANISTER_ID: &str = "rrkah-fqaaa-aaaaa-aaaaq
 
 #[cfg(feature = "nns-host")]
 pub use governance::collection::{
-    NnsGovernanceCacheRequest, NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary,
-    NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest,
+    NnsGovernanceCacheAdmission, NnsGovernanceCacheRequest, NnsGovernanceCacheStatusReport,
+    NnsGovernanceCacheSummary, NnsGovernanceRefreshReport, NnsGovernanceRefreshRequest,
+    NnsGovernanceValidCacheSummary,
 };
 #[cfg(feature = "nns-host")]
 pub use inventory::NnsInventoryRefreshReport;
@@ -38,3 +39,5 @@ pub use inventory_request::{
 };
 #[cfg(feature = "subnet-catalog-host")]
 pub use source::LiveNnsSource;
+
+pub use governance::NnsGovernanceCollection;

@@ -42,24 +42,20 @@ pub(in crate::sns::commands) fn proposals_request(
         },
     )
     .map_err(SnsCommandError::Usage)?;
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
-    Ok((
-        format,
-        SnsProposalsRequest {
-            lookup,
-            limit: required_typed(matches, "limit"),
-            before_proposal_id: typed_option(matches, "before"),
-            status,
-            topic: required_typed::<SnsProposalTopicFilter>(matches, "topic"),
-            eligibility: required_typed::<SnsProposalEligibilityFilter>(matches, "eligible"),
-            proposer_neuron_id: string_option(matches, "proposer"),
-            query: string_option(matches, "query"),
-            sort,
-            sort_direction,
-            cache_root: Some(cache_root()?),
-            verbose: matches.get_flag("verbose"),
-        },
-    ))
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    let mut request = SnsProposalsRequest::new(lookup, required_typed(matches, "limit"))
+        .with_cache_root(cache_root()?)
+        .with_status(status)?
+        .with_topic(required_typed::<SnsProposalTopicFilter>(matches, "topic"))
+        .with_eligibility(required_typed::<SnsProposalEligibilityFilter>(
+            matches, "eligible",
+        ))
+        .with_sort(sort)
+        .with_sort_direction(sort_direction);
+    request.before_proposal_id = typed_option(matches, "before");
+    request.proposer_neuron_id = string_option(matches, "proposer");
+    request.query = string_option(matches, "query");
+    Ok((format, request))
 }
 
 pub(in crate::sns::commands) fn proposal_request(
@@ -68,9 +64,9 @@ pub(in crate::sns::commands) fn proposal_request(
     now_unix_secs: u64,
     cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
 ) -> Result<(OutputFormat, SnsProposalRequest), SnsCommandError> {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
-    let cache_root = ic_platform::candid::contract::Principal::from_text(&lookup.input)
-        .ok()
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    let cache_root = lookup
+        .root_canister_id()
         .map(|_| cache_root())
         .transpose()?;
     Ok((
@@ -79,8 +75,6 @@ pub(in crate::sns::commands) fn proposal_request(
             lookup,
             proposal_id: required_typed(matches, "proposal-id"),
             cache_root,
-            verbose: matches.get_flag("verbose"),
-            show_ballots: matches.get_flag("ballots"),
         },
     ))
 }

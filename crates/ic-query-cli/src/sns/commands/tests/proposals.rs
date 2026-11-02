@@ -44,20 +44,19 @@ fn sns_proposals_parses_filters_and_json_format() {
     ])
     .expect("parse proposals");
 
-    assert_eq!(options.lookup.input, "be2us-64aaa-aaaaa-qaabq-cai");
+    assert_eq!(options.lookup.input(), "be2us-64aaa-aaaaa-qaabq-cai");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
     assert_eq!(options.limit, 50);
     assert_eq!(options.before_proposal_id, Some(100));
-    assert_eq!(options.status, SnsProposalStatusFilter::Decided);
+    assert_eq!(options.status(), SnsProposalStatusFilter::Decided);
     assert_eq!(options.topic, SnsProposalTopicFilter::Governance);
     assert_eq!(options.eligibility, SnsProposalEligibilityFilter::Yes);
     assert_eq!(options.proposer_neuron_id.as_deref(), Some("00010203"));
     assert_eq!(options.query.as_deref(), Some("treasury"));
     assert_eq!(options.sort, SnsProposalsSort::Decided);
     assert_eq!(options.sort_direction, SortDirection::Asc);
-    assert!(options.verbose);
 }
 
 #[test]
@@ -184,18 +183,16 @@ fn sns_proposal_parses_id_and_json_format() {
     )
     .expect("parse proposal");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
     assert_eq!(options.proposal_id, 42);
-    assert!(options.show_ballots);
-    assert!(options.verbose);
 }
 
 #[test]
 fn sns_proposals_refresh_parses_page_controls() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_proposal_refresh_command(),
         &[
             "1",
@@ -218,7 +215,7 @@ fn sns_proposals_refresh_parses_page_controls() {
     )
     .expect("parse proposals refresh");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");

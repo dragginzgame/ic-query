@@ -59,7 +59,9 @@ async fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
         &LiveNnsSource::default(),
     )
     .await?;
-    write_text_or_json(format, &report, nns_proposal_list_report_text)
+    write_text_or_json(format, &report, |report| {
+        nns_proposal_list_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
 async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
@@ -70,7 +72,9 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
         &LiveNnsSource::default(),
     )
     .await?;
-    write_text_or_json(format, &report, nns_proposal_report_text)
+    write_text_or_json(format, &report, |report| {
+        nns_proposal_report_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
 fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {

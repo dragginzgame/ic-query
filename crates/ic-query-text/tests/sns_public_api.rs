@@ -106,7 +106,6 @@ use ic_query::sns::SnsParamsSource;
 use ic_query::sns::SnsPendingUpgrade;
 use ic_query::sns::SnsPolicyObservationStatus;
 use ic_query::sns::SnsProposalBallotRow;
-use ic_query::sns::SnsProposalDecisionState;
 use ic_query::sns::SnsProposalEligibilityFilter;
 use ic_query::sns::SnsProposalFailureReason;
 use ic_query::sns::SnsProposalReport;
@@ -306,68 +305,64 @@ type SnsBuilder<Request, Report> =
 
 #[test]
 fn public_sns_request_constructors_set_expected_fields() {
-    let list = SnsListRequest::new("ic", "https://icp-api.io", 1_700_000_000)
-        .with_verbose(true)
-        .with_sort(SnsListSort::Name);
+    let list =
+        SnsListRequest::new("ic", "https://icp-api.io", 1_700_000_000).with_sort(SnsListSort::Name);
     assert_eq!(list.network, "ic");
     assert_eq!(list.sort, SnsListSort::Name);
-    assert!(list.verbose);
 
-    let lookup = SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1");
-    assert_eq!(lookup.input, "1");
+    let lookup = SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+        .expect("valid SNS selector");
+    assert_eq!(lookup.input(), "1");
     let token = SnsLookupRequest::new(
         "ic",
         "https://icp-api.io",
         1_700_000_000,
         "be2us-64aaa-aaaaa-qaabq-cai",
-    );
+    )
+    .expect("valid SNS selector");
     assert_eq!(token.source_endpoint, "https://icp-api.io");
 
-    let metrics = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
-        "ic",
-        "https://icp-api.io",
-        1_700_000_000,
-        "1",
-    ))
+    let metrics = SnsMetricsRequest::new(
+        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+            .expect("valid SNS selector"),
+    )
     .with_time_window_seconds(86_400);
     assert_eq!(metrics.time_window_seconds, 86_400);
     assert_eq!(DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, 30 * 86_400);
     assert_eq!(MAX_SNS_METRICS_TIME_WINDOW_SECONDS, 365 * 86_400);
 
     let proposal = SnsProposalRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         42,
-    )
-    .with_verbose(true)
-    .with_show_ballots(true);
+    );
     assert_eq!(proposal.proposal_id, 42);
-    assert!(proposal.verbose);
-    assert!(proposal.show_ballots);
+
     assert!(proposal.cache_root.is_none());
 
     let proposals = SnsProposalsRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         25,
     )
     .with_before_proposal_id(100)
     .with_status(SnsProposalStatusFilter::Open)
+    .unwrap()
     .with_topic(SnsProposalTopicFilter::Governance)
     .with_eligibility(SnsProposalEligibilityFilter::Yes)
     .with_proposer_neuron_id("010203")
     .with_query("upgrade")
     .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(SortDirection::Asc)
-    .with_verbose(true);
+    .with_sort_direction(SortDirection::Asc);
     assert_eq!(proposals.limit, 25);
     assert_eq!(proposals.before_proposal_id, Some(100));
-    assert_eq!(proposals.status, SnsProposalStatusFilter::Open);
+    assert_eq!(proposals.status(), SnsProposalStatusFilter::Open);
     assert_eq!(proposals.topic, SnsProposalTopicFilter::Governance);
     assert_eq!(proposals.eligibility, SnsProposalEligibilityFilter::Yes);
     assert_eq!(proposals.proposer_neuron_id.as_deref(), Some("010203"));
     assert_eq!(proposals.query.as_deref(), Some("upgrade"));
     assert_eq!(proposals.sort, SnsProposalsSort::Created);
     assert_eq!(proposals.sort_direction, SortDirection::Asc);
-    assert!(proposals.verbose);
 }
 
 #[test]
@@ -785,7 +780,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         source_endpoint: "https://icp-api.io".to_string(),
         now_unix_secs: 1_700_000_000,
         all_lifecycles: false,
-        verbose: false,
+
         sort: SnsListSort::Id,
     };
 
@@ -794,13 +789,13 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     let mut report = SnsListReport {
         provenance: ic_query::report::ReportProvenance::Live,
         schema_version: 1,
-        network: request.network,
+        network: request.network.clone(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
         all_lifecycles: request.all_lifecycles,
-        verbose: request.verbose,
+
         sort: request.sort.as_str().to_string(),
         catalog_sns_count: 0,
         excluded_sns_count: 0,
@@ -810,7 +805,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         sns_instances: Vec::new(),
     };
 
-    let text = sns_list_report_text(&report);
+    let text = sns_list_report_text(&report, ic_query_text::TextOptions::default());
 
     assert!(text.contains("network: ic"));
     assert!(text.contains("sns_count: 0"));
@@ -834,13 +829,16 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     report.sns_count = 2;
     report.catalog_sns_count = 2;
     report.metadata_error_count = 1;
-    let plain = sns_list_report_text(&report);
+    let plain = sns_list_report_text(&report, ic_query_text::TextOptions::default());
     let mut statuses = Vec::new();
-    let styled =
-        ic_query_text::sns::sns_list_report_text_with_metadata_style(&report, |status, failed| {
+    let styled = ic_query_text::sns::sns_list_report_text_with_metadata_style(
+        &report,
+        ic_query_text::TextOptions::default(),
+        |status, failed| {
             statuses.push((status.to_string(), failed));
             format!("\u{1b}[{}m{status}\u{1b}[0m", if failed { 31 } else { 32 })
-        });
+        },
+    );
     assert_eq!(
         statuses,
         [("error".to_string(), true), ("ok".to_string(), false)]
@@ -855,19 +853,20 @@ fn public_sns_list_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_info_api_is_constructible_and_renderable() {
-    let request = SnsLookupRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        input: "1".to_string(),
-    };
+    let request = SnsLookupRequest::new(
+        "ic".to_string(),
+        "https://icp-api.io".to_string(),
+        1_700_000_000,
+        "1".to_string(),
+    )
+    .expect("valid SNS selector");
 
     let report = SnsInfoReport {
         schema_version: 1,
-        network: request.network,
+        network: request.network.clone(),
         sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
         fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint,
+        source_endpoint: request.source_endpoint.clone(),
         fetched_by: "ic-query".to_string(),
         id: 1,
         name: "Example SNS".to_string(),
@@ -892,7 +891,7 @@ fn public_sns_info_api_is_constructible_and_renderable() {
         serde_json::from_value(identity).expect("read canonical identity");
     assert_eq!(decoded, report.canisters);
 
-    assert_eq!(request.input, "1");
+    assert_eq!(request.input().to_string(), "1");
 
     let text = sns_info_report_text(&report);
 
@@ -1025,20 +1024,21 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_token_api_is_constructible_and_renderable() {
-    let request = SnsLookupRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        input: "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
-    };
+    let request = SnsLookupRequest::new(
+        "ic".to_string(),
+        "https://icp-api.io".to_string(),
+        1_700_000_000,
+        "be2us-64aaa-aaaaa-qaabq-cai".to_string(),
+    )
+    .expect("valid SNS selector");
 
     let report = SnsTokenReport {
         schema_version: 1,
         context: ic_query::sns::SnsInstanceContext {
-            network: request.network,
+            network: request.network.clone(),
             fetched_at: "2023-11-14T22:13:20Z".to_string(),
-            source_endpoint: request.source_endpoint,
-            root_canister_id: request.input,
+            source_endpoint: request.source_endpoint.clone(),
+            root_canister_id: request.input().to_string(),
             ..sample_sns_context().instance
         },
         ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
@@ -1079,18 +1079,19 @@ fn public_sns_token_api_is_constructible_and_renderable() {
 
 #[test]
 fn public_sns_params_api_is_constructible_and_renderable() {
-    let request = SnsLookupRequest {
-        network: "ic".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        now_unix_secs: 1_700_000_000,
-        input: "1".to_string(),
-    };
+    let request = SnsLookupRequest::new(
+        "ic".to_string(),
+        "https://icp-api.io".to_string(),
+        1_700_000_000,
+        "1".to_string(),
+    )
+    .expect("valid SNS selector");
 
     let report = SnsParamsReport {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             instance: ic_query::sns::SnsInstanceContext {
-                network: request.network,
+                network: request.network.clone(),
                 source_endpoint: request.source_endpoint,
                 ..sample_sns_context().instance
             },
@@ -1239,25 +1240,20 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
 
 #[test]
 fn public_sns_proposals_api_is_constructible_and_renderable() {
-    let request = SnsProposalsRequest {
-        lookup: ic_query::sns::SnsLookupRequest::new(
-            "ic".to_string(),
-            "https://icp-api.io".to_string(),
-            1_700_000_000,
-            "1".to_string(),
-        ),
-        limit: 10,
-        before_proposal_id: Some(100),
-        status: SnsProposalStatusFilter::Any,
-        topic: SnsProposalTopicFilter::Governance,
-        eligibility: SnsProposalEligibilityFilter::Yes,
-        proposer_neuron_id: Some("010203".to_string()),
-        query: Some("upgrade".to_string()),
-        sort: SnsProposalsSort::Created,
-        sort_direction: SortDirection::Desc,
-        cache_root: None,
-        verbose: true,
-    };
+    let request = SnsProposalsRequest::new(
+        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
+            .unwrap(),
+        10,
+    )
+    .with_before_proposal_id(100)
+    .with_status(SnsProposalStatusFilter::Any)
+    .unwrap()
+    .with_topic(SnsProposalTopicFilter::Governance)
+    .with_eligibility(SnsProposalEligibilityFilter::Yes)
+    .with_proposer_neuron_id("010203")
+    .with_query("upgrade")
+    .with_sort(SnsProposalsSort::Created)
+    .with_sort_direction(SortDirection::Desc);
 
     assert_eq!(request.sort.as_str(), "created");
     assert_eq!(request.topic.as_str(), "governance");
@@ -1267,8 +1263,8 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             instance: ic_query::sns::SnsInstanceContext {
-                network: request.lookup.network,
-                source_endpoint: request.lookup.source_endpoint,
+                network: request.lookup.network.clone(),
+                source_endpoint: request.lookup.source_endpoint.clone(),
                 ..sample_sns_context().instance
             },
             ..sample_sns_context()
@@ -1276,7 +1272,7 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
 
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
-        status_filter: request.status.as_str().to_string(),
+        status_filter: request.status().as_str().to_string(),
         topic_filter: request.topic.as_str().to_string(),
         eligibility_filter: request.eligibility.as_str().to_string(),
         proposer_filter: request.proposer_neuron_id,
@@ -1286,12 +1282,18 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
             .sort
             .direction_label(request.sort_direction)
             .to_string(),
-        verbose: request.verbose,
+
         proposal_count: 1,
         proposals: vec![sample_sns_proposal_row()],
     };
 
-    let text = sns_proposals_report_text(&report);
+    let text = sns_proposals_report_text(
+        &report,
+        ic_query_text::TextOptions {
+            verbose: true,
+            show_ballots: false,
+        },
+    );
     let json = serde_json::to_value(&report).expect("serialize SNS proposals report");
 
     assert!(text.contains("proposal_count: 1"));
@@ -1324,11 +1326,10 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
             "https://icp-api.io".to_string(),
             1_700_000_000,
             "1".to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         proposal_id: 42,
         cache_root: None,
-        verbose: false,
-        show_ballots: true,
     };
 
     let report = SnsProposalReport {
@@ -1336,20 +1337,25 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         schema_version: 1,
         context: ic_query::sns::SnsReportContext {
             instance: ic_query::sns::SnsInstanceContext {
-                network: request.lookup.network,
-                source_endpoint: request.lookup.source_endpoint,
+                network: request.lookup.network.clone(),
+                source_endpoint: request.lookup.source_endpoint.clone(),
                 ..sample_sns_context().instance
             },
             ..sample_sns_context()
         },
 
         proposal_id: request.proposal_id,
-        verbose: request.verbose,
-        show_ballots: request.show_ballots,
+
         proposal: sample_sns_proposal_row(),
     };
 
-    let text = sns_proposal_report_text(&report);
+    let text = sns_proposal_report_text(
+        &report,
+        ic_query_text::TextOptions {
+            verbose: false,
+            show_ballots: true,
+        },
+    );
     let json = serde_json::to_value(&report).expect("serialize SNS proposal report");
 
     assert!(text.contains("proposal_id: 42"));
@@ -1433,16 +1439,15 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
     assert_eq!(list.sns_count, 1);
     assert_eq!(list.sns_instances[0].id, 1);
 
-    let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+    let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+        .expect("valid SNS selector");
     let info = build_sns_info_report_with_source(&info_request, &source).await?;
     assert_eq!(info.canisters.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
 
-    let metrics_request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_700_000_000,
-        "1",
-    ));
+    let metrics_request = SnsMetricsRequest::new(
+        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector"),
+    );
     let metrics = build_sns_metrics_report_with_source(&metrics_request, &source).await?;
     assert_eq!(metrics.metrics.method, SnsCanisterMethod::GetMetrics);
     assert_eq!(metrics.treasury_metric_count, 1);
@@ -1456,12 +1461,14 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
         DEFAULT_SNS_SOURCE_ENDPOINT,
         1_700_000_000,
         SAMPLE_SNS_ROOT_CANISTER_ID,
-    );
+    )
+    .expect("valid SNS selector");
     let token = build_sns_token_report_with_source(&token_request, &source).await?;
     assert_eq!(token.token.token_symbol, "EXT");
 
     let params_request =
-        SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1");
+        SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector");
     let params = build_sns_params_report_with_source(&params_request, &source).await?;
     assert_eq!(
         params.parameters.neuron_minimum_stake_e8s,
@@ -1487,20 +1494,22 @@ async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsH
 async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result<(), SnsHostError> {
     let source = FixtureSnsSource;
     let detail_request = SnsProposalRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         42,
-    )
-    .with_show_ballots(true);
+    );
     let detail = build_sns_proposal_report_with_source(&detail_request, &source).await?;
     assert_eq!(detail.proposal.proposal_id, 42);
     assert_eq!(detail.provenance.data_source().as_str(), "live");
 
     let list_request = SnsProposalsRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         10,
     )
     .with_before_proposal_id(99)
     .with_status(SnsProposalStatusFilter::Open)
+    .unwrap()
     .with_topic(SnsProposalTopicFilter::Governance);
     let list =
         build_sns_proposals_report_with_source_and_progress(&list_request, &source, &mut |_| {})
@@ -1512,7 +1521,8 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
     let _ = fs::remove_dir_all(&cache_root);
     let refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root.clone(),
-        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         100,
     )
     .with_max_pages(Some(1));
@@ -1536,7 +1546,8 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
                 DEFAULT_SNS_SOURCE_ENDPOINT,
                 1_700_000_000,
                 "1",
-            ),
+            )
+            .expect("valid SNS selector"),
             SAMPLE_SNS_NEURON_ID,
         ),
         &source,
@@ -1552,7 +1563,8 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
                 DEFAULT_SNS_SOURCE_ENDPOINT,
                 1_700_000_000,
                 "1",
-            ),
+            )
+            .expect("valid SNS selector"),
             50,
             Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()),
         ),
@@ -1566,7 +1578,8 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
     let _ = fs::remove_dir_all(&cache_root);
     let refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root.clone(),
-        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1"),
+        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
+            .expect("valid SNS selector"),
         100,
     )
     .with_max_pages(Some(1));
@@ -1583,12 +1596,15 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
 #[tokio::test(flavor = "current_thread")]
 async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsHostError> {
     let report = build_sns_reward_checkpoint_report_with_source(
-        &SnsRewardCheckpointRequest::new(ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            1_700_000_000,
-            "1",
-        ))
+        &SnsRewardCheckpointRequest::new(
+            ic_query::sns::SnsLookupRequest::new(
+                "ic",
+                DEFAULT_SNS_SOURCE_ENDPOINT,
+                1_700_000_000,
+                "1",
+            )
+            .expect("valid SNS selector"),
+        )
         .with_max_pages(Some(1)),
         &FixtureSnsSource,
     )
@@ -1607,12 +1623,15 @@ async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<()
 #[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_neuron_request_constructor() {
-    let checkpoint = SnsRewardCheckpointRequest::new(ic_query::sns::SnsLookupRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_700_000_000,
-        SAMPLE_SNS_ROOT_CANISTER_ID,
-    ))
+    let checkpoint = SnsRewardCheckpointRequest::new(
+        ic_query::sns::SnsLookupRequest::new(
+            "ic",
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            1_700_000_000,
+            SAMPLE_SNS_ROOT_CANISTER_ID,
+        )
+        .expect("valid SNS selector"),
+    )
     .with_max_pages(Some(10));
     assert_eq!(checkpoint.max_pages, Some(10));
 
@@ -1622,7 +1641,8 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
             DEFAULT_SNS_SOURCE_ENDPOINT,
             1_700_000_000,
             SAMPLE_SNS_ROOT_CANISTER_ID,
-        ),
+        )
+        .expect("valid SNS selector"),
         SAMPLE_SNS_NEURON_ID,
     );
     assert_eq!(detail.neuron_id, SAMPLE_SNS_NEURON_ID);
@@ -1634,19 +1654,18 @@ fn public_sns_host_api_exposes_neuron_request_constructor() {
             DEFAULT_SNS_SOURCE_ENDPOINT,
             1_700_000_000,
             SAMPLE_SNS_ROOT_CANISTER_ID,
-        ),
+        )
+        .expect("valid SNS selector"),
         50,
         cache_root.clone(),
         SnsNeuronsCacheSort::Stake,
-    )
-    .with_verbose(true);
+    );
 
-    assert_eq!(request.lookup.input, SAMPLE_SNS_ROOT_CANISTER_ID);
+    assert_eq!(request.lookup.input(), SAMPLE_SNS_ROOT_CANISTER_ID);
     assert_eq!(request.limit, 50);
     assert!(
         matches!(&request.collection, ic_query::sns::SnsNeuronCollection::Cached { cache_root: root, sort: SnsNeuronsCacheSort::Stake } if root == &cache_root)
     );
-    assert!(request.verbose);
 }
 
 #[cfg(feature = "sns-host")]
@@ -1812,7 +1831,8 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
             DEFAULT_SNS_SOURCE_ENDPOINT,
             1_700_000_000,
             SAMPLE_SNS_ROOT_CANISTER_ID,
-        ),
+        )
+        .expect("valid SNS selector"),
         500,
     )
     .with_max_pages(Some(2));
@@ -1825,14 +1845,18 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
             DEFAULT_SNS_SOURCE_ENDPOINT,
             1_700_000_000,
             SAMPLE_SNS_ROOT_CANISTER_ID,
-        ),
+        )
+        .expect("valid SNS selector"),
         100,
     )
     .with_max_pages(Some(3));
     assert_eq!(proposals_refresh_request.max_pages, Some(3));
 
     let neurons_report = sample_sns_neurons_report();
-    assert!(sns_neurons_report_text(&neurons_report).contains("neuron_count: 1"));
+    assert!(
+        sns_neurons_report_text(&neurons_report, ic_query_text::TextOptions::default())
+            .contains("neuron_count: 1")
+    );
     let neurons_json = serde_json::to_value(&neurons_report).expect("serialize neurons report");
     assert_eq!(neurons_json["schema_version"], 1);
     assert_eq!(neurons_json["neurons"][0]["source_nns_neuron_id"], 42);
@@ -2450,7 +2474,7 @@ fn sample_sns_neurons_report() -> SnsNeuronsReport {
 
         requested_limit: 1,
         owner_principal_id: None,
-        verbose: false,
+
         sort: "api".to_string(),
         total_neuron_count: 1,
         neuron_count: 1,
@@ -2505,7 +2529,7 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
         title: "Upgrade SNS".to_string(),
         summary: "Upgrade the SNS controlled canister.".to_string(),
         url: Some("https://example.com/proposal/42".to_string()),
-        decision_state: SnsProposalDecisionState::Open,
+
         status: Some(1),
         topic: Some("governance".to_string()),
         reject_cost_e8s: 100_000_000,
@@ -2530,7 +2554,7 @@ fn sample_sns_proposal_row() -> SnsProposalRow {
             no: 10_000_000,
             total: 110_000_000,
         }),
-        ballot_count: 1,
+
         ballots: vec![SnsProposalBallotRow {
             neuron_id: "0102030405060708".to_string(),
             vote: 1,

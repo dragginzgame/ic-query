@@ -24,8 +24,6 @@ async fn nns_proposal_report_renders_detail() {
     let request = NnsProposalRequest {
         governance: proposal_governance_request(1_700_000_000),
         proposal_id: 101,
-        show_ballots: true,
-        verbose: true,
     };
 
     let report = build_nns_proposal_report_with_source(&request, &source)
@@ -40,8 +38,7 @@ async fn nns_proposal_report_renders_detail() {
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert!(report.provenance.cache_path().is_none());
     assert!(report.provenance.cache_complete().is_none());
-    assert!(report.show_ballots);
-    assert!(report.verbose);
+
     assert_eq!(report.proposal.title.as_deref(), Some("Bravo"));
     assert_eq!(report.proposal.ballots[0].neuron_id, 1);
     assert_eq!(
@@ -82,14 +79,11 @@ async fn nns_proposal_report_truncates_summary_without_verbose() {
     let request = NnsProposalRequest {
         governance: proposal_governance_request(1_700_000_000),
         proposal_id: 101,
-        show_ballots: false,
-        verbose: false,
     };
 
     let report = build_nns_proposal_report_with_source(&request, &source)
         .await
         .expect("build proposal report");
 
-    assert!(!report.verbose);
     assert_eq!(report.provenance.data_source().as_str(), "live");
 }

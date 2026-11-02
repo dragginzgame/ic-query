@@ -241,14 +241,13 @@ fn transaction_summary(transaction: &IcrcIndexTransaction) -> TransactionSummary
 }
 
 fn account_row(account: &LedgerAccount) -> IcrcAccountRow {
-    IcrcAccountRow {
-        owner: Some(account.owner.to_text()),
+    IcrcAccountRow::Structured {
+        owner: account.owner.to_text(),
         subaccount_hex: account
             .subaccount
             .as_ref()
             .map(<[u8; 32]>::as_slice)
             .map(hex_bytes),
-        account_identifier: None,
     }
 }
 

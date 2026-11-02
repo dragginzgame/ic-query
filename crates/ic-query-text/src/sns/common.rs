@@ -118,7 +118,7 @@ pub(super) fn neuron_id_text(value: &str, verbose: bool) -> String {
 #[cfg(feature = "sns-host")]
 pub(super) fn push_cache_error_lines(lines: &mut Vec<String>, caches: &[SnsCacheSummary]) {
     lines.extend(caches.iter().filter_map(|cache| {
-        cache.cache_error.as_deref().map(|error| {
+        cache.cache_error().map(|error| {
             format!(
                 "cache_error: {}: {}",
                 terminal_text(&cache.cache_path),

@@ -25,11 +25,49 @@ pub enum QueryProgressEvent {
     },
     /// Progress from a complete paged snapshot refresh.
     PagedRefresh {
-        /// Human-readable progress text owned by the refresh family.
-        text: String,
+        /// Collection identity and admitted counters, without presentation text.
+        progress: PagedQueryProgress,
         /// Current lifecycle state for the progress message.
         state: QueryProgressState,
     },
+}
+
+///
+/// QueryProgressCollection
+///
+/// Collection whose paging counters are being reported.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QueryProgressCollection {
+    /// Public NNS neuron index.
+    NnsNeurons,
+    /// NNS Governance proposals.
+    NnsProposals,
+    /// Complete SNS neuron collection.
+    SnsNeurons,
+    /// Complete SNS proposal collection.
+    SnsProposals,
+    /// Complete ledger/index account transaction history.
+    IcrcAccountTransactions,
+}
+
+///
+/// PagedQueryProgress
+///
+/// Admitted page and row counts with optional human target identity.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PagedQueryProgress {
+    /// Collection whose counters were admitted by its collector.
+    pub collection: QueryProgressCollection,
+    /// Optional observed target name, escaped by the presentation owner.
+    pub target: Option<String>,
+    /// Number of admitted source pages.
+    pub pages_fetched: u32,
+    /// Number of admitted retained rows.
+    pub rows_fetched: usize,
 }
 
 ///

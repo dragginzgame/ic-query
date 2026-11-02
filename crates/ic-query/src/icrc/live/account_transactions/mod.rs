@@ -23,7 +23,7 @@ pub(in crate::icrc) use self::request::{
 use super::fetch::{account_from_parts, live_query_context, query_token_display_fields};
 use crate::candid_call::query_no_args;
 use crate::{
-    QueryProgress, QueryProgressState,
+    QueryProgress,
     icrc::{
         ledger::{index_principal_error_text, principal_from_text, query_index_principal},
         model::{
@@ -186,12 +186,8 @@ impl PagedSnapshotRefresh for AccountTransactionRefresh<'_> {
 
     const PAGE_LIMIT_REASON: &'static str = "max pages reached before index exhaustion";
 
-    fn progress_text(&self) -> String {
-        self.state.progress_text()
-    }
-
-    fn progress_text_for_state(&self, _state: QueryProgressState) -> String {
-        self.state.progress_text()
+    fn progress(&self) -> crate::PagedQueryProgress {
+        self.state.progress()
     }
 
     fn max_pages_reached(&self) -> bool {

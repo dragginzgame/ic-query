@@ -42,7 +42,6 @@ pub(in crate::sns::report) fn validate_mainnet_sns_proposal(
     requested_proposal_id: u64,
 ) -> Result<(), SnsHostError> {
     let validator = SnsSourceValidator::new(PROPOSAL_CAPABILITY);
-    validate_sns_proposal_row(proposal).map_err(|reason| validator.invalid(reason))?;
     if proposal.proposal_id != requested_proposal_id {
         return Err(validator.invalid(format!(
             "returned proposal id {}, expected {requested_proposal_id}",
@@ -62,28 +61,15 @@ fn validate_sns_proposal_source_rows(
     validate_sns_proposal_rows(proposals).map_err(|reason| validator.invalid(reason))
 }
 
-/// Validate derived fields and proposal-id uniqueness within one row collection.
+/// Validate proposal-id uniqueness within one row collection.
 pub(in crate::sns::report) fn validate_sns_proposal_rows(
     proposals: &[SnsProposalRow],
 ) -> Result<(), String> {
     let mut proposal_ids = HashSet::new();
     for proposal in proposals {
-        validate_sns_proposal_row(proposal)?;
         if !proposal_ids.insert(proposal.proposal_id) {
             return Err(format!("duplicate proposal id {}", proposal.proposal_id));
         }
-    }
-    Ok(())
-}
-
-fn validate_sns_proposal_row(proposal: &SnsProposalRow) -> Result<(), String> {
-    if proposal.ballot_count != proposal.ballots.len() {
-        return Err(format!(
-            "proposal {} ballot_count {} does not match {} ballot rows",
-            proposal.proposal_id,
-            proposal.ballot_count,
-            proposal.ballots.len()
-        ));
     }
     Ok(())
 }

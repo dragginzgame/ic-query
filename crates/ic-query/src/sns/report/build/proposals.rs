@@ -10,8 +10,8 @@ use crate::{
     QueryProgress,
     progress::IgnoreQueryProgress,
     sns::report::{
-        SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalStatusFilter,
-        SnsProposalsReport, SnsProposalsRequest,
+        SnsHostError, SnsProposalReport, SnsProposalRequest, SnsProposalsReport,
+        SnsProposalsRequest,
         assemble::{sns_proposal_report_from_parts, sns_proposals_report_from_parts},
         enforce_mainnet_network,
         live::LiveSnsSource,
@@ -73,8 +73,8 @@ pub async fn build_sns_proposals_report_with_source_and_progress(
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsProposalsReport, SnsHostError> {
-    validate_sns_proposals_request(request)?;
-    if let Some(cache_root) = request.cache_root.as_ref() {
+    enforce_mainnet_network(&request.lookup.network)?;
+    if let crate::sns::SnsProposalCollection::Cached { cache_root } = request.collection() {
         return build_sns_proposals_report_from_cache_or_refresh(
             request, cache_root, source, progress,
         )
@@ -83,23 +83,13 @@ pub async fn build_sns_proposals_report_with_source_and_progress(
     build_sns_proposals_report_live(request, source).await
 }
 
-fn validate_sns_proposals_request(request: &SnsProposalsRequest) -> Result<(), SnsHostError> {
-    enforce_mainnet_network(&request.lookup.network)?;
-    if request.status == SnsProposalStatusFilter::Decided && request.cache_root.is_none() {
-        return Err(SnsHostError::UnsupportedProposalView {
-            reason: "`--status decided` requires a complete proposal cache".to_string(),
-        });
-    }
-    Ok(())
-}
-
 async fn build_sns_proposals_report_live(
     request: &SnsProposalsRequest,
     source: &dyn SnsProposalsSource,
 ) -> Result<SnsProposalsReport, SnsHostError> {
     let lookup = resolve_sns_lookup(&request.lookup, source).await?;
     let include_status = request
-        .status
+        .status()
         .governance_status_code()
         .into_iter()
         .collect::<Vec<_>>();

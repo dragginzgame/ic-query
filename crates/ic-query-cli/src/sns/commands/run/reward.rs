@@ -48,7 +48,7 @@ async fn run_sns_reward_checkpoint(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let (format, request) = reward_checkpoint_request(matches, network, current_unix_secs()?);
+    let (format, request) = reward_checkpoint_request(matches, network, current_unix_secs()?)?;
     let report = build_sns_reward_checkpoint_report(&request).await?;
     write_text_or_json(format, &report, sns_reward_checkpoint_report_text)
 }

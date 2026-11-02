@@ -19,7 +19,9 @@ then renders the requested view.
 Cache-backed requests address the root principal directly. Numeric list ids
 remain supported by live lookup and explicit refresh, but no local operation
 scans snapshots or attempt sidecars to reconstruct that id. Stored snapshots
-and attempt evidence remain schema 1 and need no reset.
+and attempt evidence remain schema 1. The 0.87 row hard cut removes stored
+derived lifecycle and ballot-count fields; preserve required evidence and refresh
+older proposal snapshots explicitly as described in the [consumer notes](../../releases/query/0.87.md).
 
 Manual commands remain available:
 
@@ -77,12 +79,17 @@ Snapshots outside the current schema and required field set are rejected. The
 reader does not detect, upgrade, or reinterpret predecessor shapes; refresh the
 collection explicitly to create a current snapshot.
 
-Proposal rows retain raw action and ballot-vote codes beside typed canonical
-classifications. Public sources, refresh pages, and cache loads all enforce
-that those pairs agree, that `ballot_count` equals the number of retained
-ballot rows, and that proposal ids are unique within the collection. A
-contradictory row is invalid source or cache evidence rather than a value the
-view layer repairs.
+Proposal rows retain raw action, status, ballot-vote and timestamp evidence.
+Lifecycle derives from positive failure, execution and decision timestamps, in
+that order, and ballot count derives from the retained vector. Neither derived
+fact is independently stored. Public sources, refresh pages and cache loads retain
+proposal-id uniqueness and strict current-shape admission. Unknown native values
+remain raw evidence; there is no repair of contradictory stored derived fields.
+
+Lookup requests parse numeric positions or principals once and retain the caller's
+original text. Proposal list requests carry explicit live or complete-cache
+acquisition; the `decided` filter is admitted only after cache acquisition is
+selected. Presentation flags belong to Text options rather than report requests.
 
 Live and cached proposal rows share eligibility, proposer, case-insensitive
 text matching and sorting in the view owner. Query normalization happens once

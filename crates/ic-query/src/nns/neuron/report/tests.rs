@@ -37,16 +37,20 @@ async fn cache_aware_neuron_builders_preserve_fallback_and_strict_cache_errors()
     let list = NnsNeuronListRequest::new(governance.clone(), 2);
     let info = NnsNeuronInfoRequest::new(governance.clone(), 2);
     assert!(
-        !build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource)
+        build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource)
             .await
             .unwrap()
-            .from_cache
+            .provenance
+            .cache_path()
+            .is_none()
     );
     assert!(
-        !build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource)
+        build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource)
             .await
             .unwrap()
-            .from_cache
+            .provenance
+            .cache_path()
+            .is_none()
     );
 
     refresh_nns_neuron_cache_with_source(
@@ -65,20 +69,24 @@ async fn cache_aware_neuron_builders_preserve_fallback_and_strict_cache_errors()
         build_nns_neuron_list_report_with_cache_and_source(&list, &root, &FixtureSource)
             .await
             .unwrap()
-            .from_cache
+            .provenance
+            .cache_path()
+            .is_some()
     );
     assert!(
         build_nns_neuron_info_report_with_cache_and_source(&info, &root, &FixtureSource)
             .await
             .unwrap()
-            .from_cache
+            .provenance
+            .cache_path()
+            .is_some()
     );
     let missing = NnsNeuronInfoRequest::new(governance, 999);
     let report =
         build_nns_neuron_info_report_with_cache_and_source(&missing, &root, &FixtureSource)
             .await
             .unwrap();
-    assert!(!report.from_cache);
+    assert!(report.provenance.cache_path().is_none());
     assert_eq!(report.neuron.neuron_id, 999);
 
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
@@ -347,8 +355,8 @@ async fn public_list_and_info_reports_preserve_governance_rows() {
         .await
         .expect("live list report");
 
-    assert!(!list.from_cache);
-    assert_eq!(list.cache_path, None);
+    assert!(list.provenance.cache_path().is_none());
+    assert_eq!(list.provenance.cache_path().map(str::to_string), None);
     assert_eq!(list.next_start_neuron_id, Some(2));
     assert_eq!(
         list.neurons
@@ -368,8 +376,8 @@ async fn public_list_and_info_reports_preserve_governance_rows() {
         .await
         .expect("live info report");
 
-    assert!(!info.from_cache);
-    assert_eq!(info.cache_path, None);
+    assert!(info.provenance.cache_path().is_none());
+    assert_eq!(info.provenance.cache_path().map(str::to_string), None);
     assert_eq!(info.neuron.neuron_id, 42);
     assert_eq!(
         info.neuron
@@ -498,7 +506,10 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         .expect("refresh complete neuron cache");
 
     assert_eq!(refresh.row_count, 3);
-    assert_eq!(refresh.collection, "neurons");
+    assert_eq!(
+        refresh.collection,
+        crate::nns::NnsGovernanceCollection::Neurons
+    );
     assert!(refresh.wrote_cache);
     assert_eq!(refresh.page_count, 2);
     assert!(refresh.complete);
@@ -530,8 +541,11 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     let list = build_nns_neuron_list_report_from_cache(&list_request, &root)
         .expect("load cached list")
         .expect("complete cache");
-    assert!(list.from_cache);
-    assert_eq!(list.cache_path, Some(path.display().to_string()));
+    assert!(list.provenance.cache_path().is_some());
+    assert_eq!(
+        list.provenance.cache_path().map(str::to_string),
+        Some(path.display().to_string())
+    );
     assert_eq!(list.total_neuron_count, Some(3));
     assert!(!list.point_in_time_guaranteed);
     assert_eq!(
@@ -547,8 +561,11 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     let info = build_nns_neuron_info_report_from_cache(&info_request, &root)
         .expect("load cached detail")
         .expect("cached neuron");
-    assert!(info.from_cache);
-    assert_eq!(info.cache_path, Some(path.display().to_string()));
+    assert!(info.provenance.cache_path().is_some());
+    assert_eq!(
+        info.provenance.cache_path().map(str::to_string),
+        Some(path.display().to_string())
+    );
     assert_eq!(info.neuron.neuron_id, 2);
 
     let status = build_nns_neuron_cache_status_report(&NnsGovernanceCacheRequest::new(
@@ -557,17 +574,20 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     ))
     .expect("cache status");
     assert!(status.found);
-    assert_eq!(status.collection, "neurons");
+    assert_eq!(
+        status.collection,
+        crate::nns::NnsGovernanceCollection::Neurons
+    );
     let summary = status.cache.as_ref().expect("cache summary");
     assert_eq!(
-        summary.governance_canister_id,
+        summary.valid().unwrap().governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert!(summary.complete);
-    assert!(!summary.point_in_time_guaranteed);
-    assert_eq!(summary.row_count, 3);
+    assert!(summary.valid().is_some());
+    assert!(!summary.valid().unwrap().point_in_time_guaranteed);
+    assert_eq!(summary.valid().unwrap().row_count, 3);
     assert_eq!(
-        status.cache.as_ref().expect("cache summary").cache_status,
+        status.cache.as_ref().expect("cache summary").cache_status(),
         CacheValidationStatus::Valid
     );
     assert_eq!(
@@ -657,7 +677,7 @@ async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
         ))
         .expect("cache status after rejected page");
         assert_eq!(
-            status.cache.expect("complete cache").cache_status,
+            status.cache.expect("complete cache").cache_status(),
             CacheValidationStatus::Valid
         );
         let attempt = status.latest_attempt.expect("failed attempt");
@@ -694,7 +714,7 @@ async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page()
     ))
     .expect("published cache status");
     assert_eq!(
-        status.cache.expect("complete cache").cache_status,
+        status.cache.expect("complete cache").cache_status(),
         CacheValidationStatus::Valid
     );
     let attempt = status.latest_attempt.expect("complete attempt");

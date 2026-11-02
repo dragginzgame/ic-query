@@ -106,13 +106,13 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
 
     assert_eq!(list.schema_version, 1);
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].id, 1);
-    assert_eq!(list.caches[0].name, "Fixture SNS");
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
-    assert_eq!(list.caches[0].cache_error, None);
-    assert_eq!(list.caches[0].row_count, 3);
-    assert_eq!(list.caches[0].page_count, 3);
-    assert!(list.caches[0].complete);
+    assert_eq!(list.caches[0].valid().unwrap().id, 1);
+    assert_eq!(list.caches[0].valid().unwrap().name, "Fixture SNS");
+    assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
+    assert_eq!(list.caches[0].cache_error(), None);
+    assert_eq!(list.caches[0].valid().unwrap().row_count, 3);
+    assert_eq!(list.caches[0].valid().unwrap().page_count, 3);
+    assert!(list.caches[0].valid().is_some());
     assert_eq!(
         list.caches[0]
             .latest_attempt
@@ -142,11 +142,22 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
             .as_ref()
     );
     assert_eq!(
-        status.cache.as_ref().expect("cache").cache_status.as_str(),
+        status
+            .cache
+            .as_ref()
+            .expect("cache")
+            .cache_status()
+            .as_str(),
         "ok"
     );
     assert_eq!(
-        status.cache.as_ref().expect("cache").root_canister_id,
+        status
+            .cache
+            .as_ref()
+            .expect("cache")
+            .valid()
+            .unwrap()
+            .root_canister_id,
         ROOT_A
     );
     assert_eq!(
@@ -335,11 +346,10 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
+    assert_eq!(cache.cache_status(), CacheValidationStatus::Invalid);
     assert!(
         cache
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 
@@ -349,11 +359,13 @@ fn assert_invalid_sns_neurons_cache_status(root: &std::path::Path, expected_erro
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
+    assert_eq!(
+        list.caches[0].cache_status(),
+        CacheValidationStatus::Invalid
+    );
     assert!(
         list.caches[0]
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 }

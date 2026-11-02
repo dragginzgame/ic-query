@@ -66,12 +66,13 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     type Complete = (NnsNeuronCacheRows, SnapshotRefreshProgress);
     type Error = NnsNeuronHostError;
 
-    fn progress_text(&self) -> String {
-        format!(
-            "refreshing NNS neurons: pages={} rows={}",
-            self.collection_state.pages_fetched(),
-            self.collection_state.neurons_fetched()
-        )
+    fn progress(&self) -> crate::PagedQueryProgress {
+        crate::PagedQueryProgress {
+            collection: crate::QueryProgressCollection::NnsNeurons,
+            target: None,
+            pages_fetched: self.collection_state.pages_fetched(),
+            rows_fetched: self.neurons.len(),
+        }
     }
 
     fn max_pages_reached(&self) -> bool {

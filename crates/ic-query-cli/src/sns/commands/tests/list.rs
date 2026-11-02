@@ -12,7 +12,6 @@ fn sns_list_parses_defaults_and_json_format() {
     assert_eq!(defaults.source_endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
     assert_eq!(defaults.sort, SnsListSort::Id);
     assert!(!defaults.all_lifecycles);
-    assert!(!defaults.verbose);
 
     let (format, options) = parse_test_options(
         sns_list_command(),
@@ -33,7 +32,6 @@ fn sns_list_parses_defaults_and_json_format() {
     assert_eq!(options.source_endpoint, "https://icp-api.io");
     assert_eq!(options.sort, SnsListSort::Name);
     assert!(options.all_lifecycles);
-    assert!(options.verbose);
 }
 
 #[test]

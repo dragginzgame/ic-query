@@ -19,7 +19,6 @@ pub struct SnsListRequest {
     pub now_unix_secs: u64,
     /// Whether to include SNS instances outside the normal visible lifecycle set.
     pub all_lifecycles: bool,
-    pub verbose: bool,
     pub sort: SnsListSort,
 }
 
@@ -35,15 +34,9 @@ impl SnsListRequest {
             source_endpoint: source_endpoint.into(),
             now_unix_secs,
             all_lifecycles: false,
-            verbose: false,
+
             sort: SnsListSort::default(),
         }
-    }
-
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
-        self
     }
 
     /// Sets whether the list view includes every lifecycle represented in the catalog.

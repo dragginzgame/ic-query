@@ -435,10 +435,9 @@ impl IcrcAccountTransactionPageSource for AccountTransactionsDataSource {
 }
 
 fn fixture_account_transaction_page() -> IcrcAccountTransactionPageData {
-    let account = IcrcAccountRow {
-        owner: Some(ACCOUNT_OWNER.to_string()),
+    let account = IcrcAccountRow::Structured {
+        owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: Some(LOWER_SUBACCOUNT_HEX.to_string()),
-        account_identifier: None,
     };
     IcrcAccountTransactionPageData {
         index_canister_id: INDEX_CANISTER_ID.to_string(),
@@ -454,10 +453,9 @@ fn fixture_account_transaction_page() -> IcrcAccountTransactionPageData {
             amount_base_units: Some("125000000".to_string()),
             fee_base_units: Some("10000".to_string()),
             from: Some(account),
-            to: Some(IcrcAccountRow {
-                owner: Some(INDEX_CANISTER_ID.to_string()),
+            to: Some(IcrcAccountRow::Structured {
+                owner: INDEX_CANISTER_ID.to_string(),
                 subaccount_hex: None,
-                account_identifier: None,
             }),
             spender: None,
             memo_hex: Some("aabb".to_string()),

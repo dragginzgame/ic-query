@@ -23,8 +23,7 @@ pub(in crate::sns::report) const fn sns_proposal_report_from_parts(
         schema_version: SNS_PROPOSAL_REPORT_SCHEMA_VERSION,
         context,
         proposal_id: request.proposal_id,
-        verbose: request.verbose,
-        show_ballots: request.show_ballots,
+
         proposal,
     }
 }
@@ -43,7 +42,7 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
         context,
         requested_limit: request.limit,
         before_proposal_id: request.before_proposal_id,
-        status_filter: request.status.as_str().to_string(),
+        status_filter: request.status().as_str().to_string(),
         topic_filter: request.topic.as_str().to_string(),
         eligibility_filter: request.eligibility.as_str().to_string(),
         proposer_filter: request.proposer_neuron_id.clone(),
@@ -53,7 +52,7 @@ pub(in crate::sns::report) fn sns_proposals_report_from_parts(
             .sort
             .direction_label(request.sort_direction)
             .to_string(),
-        verbose: request.verbose,
+
         proposal_count,
         proposals,
     }

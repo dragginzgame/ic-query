@@ -5,8 +5,8 @@ use crate::report::SortDirection;
 async fn sns_proposals_cached_sort_created_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Created;
@@ -57,8 +57,8 @@ async fn sns_proposals_cached_sort_created_orders_before_limit() {
 async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-created-asc");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Created;
@@ -112,8 +112,8 @@ async fn sns_proposals_cached_sort_created_ascending_orders_before_limit() {
 async fn sns_proposals_cached_sort_decided_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-decided");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Decided;
@@ -164,8 +164,8 @@ async fn sns_proposals_cached_sort_decided_orders_before_limit() {
 async fn sns_proposals_cached_sort_executed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-executed");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Executed;
@@ -216,8 +216,8 @@ async fn sns_proposals_cached_sort_executed_orders_before_limit() {
 async fn sns_proposals_cached_sort_failed_orders_before_limit() {
     let root = temp_dir("ic-query-sns-proposals-sort-failed");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Failed;
@@ -239,7 +239,7 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
             .iter()
             .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
-        vec![30, 10]
+        vec![30, 20]
     );
 
     let second = build_sns_proposals_report_with_source_and_progress(
@@ -258,7 +258,7 @@ async fn sns_proposals_cached_sort_failed_orders_before_limit() {
             .iter()
             .map(|proposal| proposal.proposal_id)
             .collect::<Vec<_>>(),
-        vec![30, 10]
+        vec![30, 20]
     );
 
     let _ = fs::remove_dir_all(root);

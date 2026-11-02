@@ -157,4 +157,7 @@ mod test_support;
     feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
-pub use progress::{QueryProgress, QueryProgressEvent, QueryProgressState};
+pub use progress::{
+    PagedQueryProgress, QueryProgress, QueryProgressCollection, QueryProgressEvent,
+    QueryProgressState,
+};

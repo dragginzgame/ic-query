@@ -18,7 +18,6 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     );
     assert_eq!(list.limit, 25);
     assert_eq!(list.exclusive_start_neuron_id, None);
-    assert!(!list.verbose);
 
     let max_page_size = NNS_NEURON_MAX_PAGE_SIZE.to_string();
     let (list_format, list) = parse_test_options(
@@ -36,7 +35,7 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     .expect("explicit list options");
     assert_eq!(list.limit, NNS_NEURON_MAX_PAGE_SIZE);
     assert_eq!(list.exclusive_start_neuron_id, Some(123));
-    assert!(list.verbose);
+
     assert_eq!(list_format, OutputFormat::Json);
 
     let (_, info) = parse_test_options(
@@ -46,7 +45,6 @@ fn nns_neuron_options_parse_defaults_and_explicit_values() {
     )
     .expect("info options");
     assert_eq!(info.neuron_id, 456);
-    assert!(info.verbose);
 
     let refresh = parse_test_options(
         neuron_refresh_command(),

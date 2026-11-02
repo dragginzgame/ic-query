@@ -73,12 +73,13 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     type Complete = (NnsProposalCacheRows, SnapshotRefreshProgress);
     type Error = NnsProposalHostError;
 
-    fn progress_text(&self) -> String {
-        format!(
-            "refreshing NNS proposals: pages={} rows={}",
-            self.collection_state.pages_fetched(),
-            self.collection_state.proposals_fetched()
-        )
+    fn progress(&self) -> crate::PagedQueryProgress {
+        crate::PagedQueryProgress {
+            collection: crate::QueryProgressCollection::NnsProposals,
+            target: None,
+            pages_fetched: self.collection_state.pages_fetched(),
+            rows_fetched: self.proposals.len(),
+        }
     }
 
     fn max_pages_reached(&self) -> bool {

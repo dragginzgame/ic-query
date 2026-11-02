@@ -19,7 +19,6 @@ use crate::{
             sns_snapshot_network_cache_dir,
         },
         enforce_mainnet_network,
-        lookup::parse_sns_root_canister_input,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
@@ -108,13 +107,13 @@ where
 pub(in crate::sns::report) fn load_sns_cache_for_root<Family>(
     cache_root: &Path,
     network: &str,
-    root_canister_id: &str,
+    root_canister_id: &ic_platform::candid::contract::Principal,
 ) -> Result<SnsStoredCacheWithPath<Family>, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
     enforce_mainnet_network(network)?;
-    let root_canister_id = parse_sns_root_canister_input(root_canister_id)?;
+    let root_canister_id = root_canister_id.to_text();
     let path =
         sns_snapshot_cache_paths::<Family>(cache_root, network, &root_canister_id).snapshot_path;
     let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None, None)?;

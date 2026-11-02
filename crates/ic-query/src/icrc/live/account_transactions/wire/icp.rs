@@ -276,10 +276,8 @@ impl Serialize for IcpIndexOperation {
 }
 
 fn account_identifier_row(account_identifier: &str) -> IcrcAccountRow {
-    IcrcAccountRow {
-        owner: None,
-        subaccount_hex: None,
-        account_identifier: Some(account_identifier.to_string()),
+    IcrcAccountRow::Legacy {
+        account_identifier: account_identifier.to_string(),
     }
 }
 
@@ -364,9 +362,10 @@ mod tests {
         assert_eq!(row.amount_base_units.as_deref(), Some("250"));
         assert_eq!(row.fee_base_units.as_deref(), Some("10"));
         assert_eq!(
-            row.from
-                .as_ref()
-                .and_then(|account| account.account_identifier.as_deref()),
+            row.from.as_ref().and_then(|account| match account {
+                IcrcAccountRow::Legacy { account_identifier } => Some(account_identifier.as_str()),
+                IcrcAccountRow::Structured { .. } => None,
+            }),
             Some("from-account")
         );
         assert_eq!(row.memo_hex.as_deref(), Some("0102"));

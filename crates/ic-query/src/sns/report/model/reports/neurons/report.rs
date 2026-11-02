@@ -23,7 +23,6 @@ pub struct SnsNeuronsReport {
     pub context: SnsReportContext,
     pub requested_limit: u32,
     pub owner_principal_id: Option<String>,
-    pub verbose: bool,
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: ReportProvenance,

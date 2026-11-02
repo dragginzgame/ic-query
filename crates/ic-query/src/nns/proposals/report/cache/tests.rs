@@ -350,7 +350,10 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         MAINNET_GOVERNANCE_CANISTER_ID
     );
     assert_eq!(report.row_count, 3);
-    assert_eq!(report.collection, "proposals");
+    assert_eq!(
+        report.collection,
+        crate::nns::NnsGovernanceCollection::Proposals
+    );
     assert!(!report.point_in_time_guaranteed);
     assert_eq!(report.page_count, 2);
     assert!(report.complete);
@@ -385,12 +388,15 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     })
     .expect("cache list");
 
-    assert_eq!(list.collection, "proposals");
+    assert_eq!(
+        list.collection,
+        crate::nns::NnsGovernanceCollection::Proposals
+    );
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
-    assert_eq!(list.caches[0].cache_error, None);
-    assert_eq!(list.caches[0].row_count, 3);
-    assert_eq!(list.caches[0].page_count, 2);
+    assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
+    assert_eq!(list.caches[0].cache_error(), None);
+    assert_eq!(list.caches[0].valid().unwrap().row_count, 3);
+    assert_eq!(list.caches[0].valid().unwrap().page_count, 2);
 
     let status = build_nns_proposal_cache_status_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -399,10 +405,8 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     .expect("cache status");
 
     assert!(status.found);
-    assert_eq!(
-        status.cache.as_ref().expect("cache").cache_status.as_str(),
-        "ok"
-    );
+    let summary = status.cache.as_ref().expect("validated summary");
+    assert_eq!(summary.cache_status().as_str(), "ok");
     assert_eq!(
         status
             .latest_attempt
@@ -413,15 +417,14 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     );
     assert_eq!(list.latest_attempt.as_ref(), status.latest_attempt.as_ref());
     assert_eq!(list.refresh_attempt_path, status.refresh_attempt_path);
-    assert_eq!(status.collection, "proposals");
-    assert_eq!(status.cache.as_ref(), list.caches.first());
-    let summary = status.cache.as_ref().expect("validated summary");
     assert_eq!(
-        summary.governance_canister_id,
-        MAINNET_GOVERNANCE_CANISTER_ID
+        status.collection,
+        crate::nns::NnsGovernanceCollection::Proposals
     );
-    assert!(summary.complete);
-    assert!(!summary.point_in_time_guaranteed);
+    assert_eq!(status.cache.as_ref(), list.caches.first());
+    let data = summary.valid().expect("valid cache metadata");
+    assert_eq!(data.governance_canister_id, MAINNET_GOVERNANCE_CANISTER_ID);
+    assert!(!data.point_in_time_guaranteed);
     let list_json = serde_json::to_value(&list).expect("list JSON");
     let status_json = serde_json::to_value(&status).expect("status JSON");
     assert_eq!(list_json["schema_version"], 1);
@@ -519,7 +522,7 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
                 .cache
                 .as_ref()
                 .expect("snapshot summary")
-                .cache_error
+                .cache_error()
                 .is_some(),
             invalid_snapshot
         );
@@ -559,7 +562,6 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
         query: Some("PrOpOsAl 1".to_string()),
         sort: NnsProposalListSort::Title,
         sort_direction: SortDirection::Asc,
-        verbose: false,
     };
     let report = build_nns_proposal_list_report_from_cache(&request, &root)
         .expect("cache lookup")
@@ -624,13 +626,10 @@ fn nns_proposal_cache_reads_only_fall_back_for_missing_snapshots() {
         query: None,
         sort: NnsProposalListSort::Api,
         sort_direction: SortDirection::Desc,
-        verbose: false,
     };
     let detail_request = NnsProposalRequest {
         governance: list_request.governance.clone(),
         proposal_id: 42,
-        show_ballots: false,
-        verbose: false,
     };
     let read_list = || build_nns_proposal_list_report_from_cache(&list_request, &root);
     let read_detail = || build_nns_proposal_report_from_cache(&detail_request, &root);
@@ -929,8 +928,6 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     let request = NnsProposalRequest {
         governance: proposal_governance_request(1_700_100_000),
         proposal_id: 2,
-        show_ballots: true,
-        verbose: false,
     };
     let report = build_nns_proposal_report_from_cache(&request, &root)
         .expect("cache lookup")
@@ -979,8 +976,6 @@ async fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_propos
         &NnsProposalRequest {
             governance: proposal_governance_request(1_700_100_000),
             proposal_id: 42,
-            show_ballots: false,
-            verbose: false,
         },
         &root,
     )
@@ -1016,18 +1011,31 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(status.collection, "proposals");
-    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
-    assert_eq!(cache.governance_canister_id, MAINNET_GOVERNANCE_CANISTER_ID);
-    assert!(!cache.complete);
-    assert!(!cache.point_in_time_guaranteed);
-    assert_eq!(cache.row_count, 0);
-    assert_eq!(cache.fetched_at, "");
-    assert_eq!(cache.source_endpoint, "");
+    assert_eq!(
+        status.collection,
+        crate::nns::NnsGovernanceCollection::Proposals
+    );
+    assert_eq!(cache.cache_status(), CacheValidationStatus::Invalid);
+    assert!(cache.valid().is_none());
+    let invalid = serde_json::to_value(cache).unwrap();
+    for field in [
+        "governance_canister_id",
+        "complete",
+        "point_in_time_guaranteed",
+        "row_count",
+        "page_count",
+        "page_size",
+        "fetched_at",
+        "source_endpoint",
+    ] {
+        assert!(
+            invalid.get(field).is_none(),
+            "invalid summary has no {field}"
+        );
+    }
     assert!(
         cache
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 
@@ -1037,11 +1045,13 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     })
     .expect("cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
+    assert_eq!(
+        list.caches[0].cache_status(),
+        CacheValidationStatus::Invalid
+    );
     assert!(
         list.caches[0]
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 }

@@ -78,8 +78,6 @@ pub struct SnsNeuronsRequest {
     pub limit: u32,
     /// Inputs specific to the selected acquisition route.
     pub collection: SnsNeuronCollection,
-    /// Include additional human-facing detail.
-    pub verbose: bool,
 }
 
 impl SnsNeuronsRequest {
@@ -94,7 +92,6 @@ impl SnsNeuronsRequest {
             lookup,
             limit,
             collection: SnsNeuronCollection::Live { owner_principal_id },
-            verbose: false,
         }
     }
 
@@ -113,14 +110,6 @@ impl SnsNeuronsRequest {
                 cache_root: cache_root.into(),
                 sort,
             },
-            verbose: false,
         }
-    }
-
-    /// Select detailed text rendering.
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
-        self
     }
 }

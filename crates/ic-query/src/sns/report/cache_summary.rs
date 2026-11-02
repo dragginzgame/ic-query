@@ -5,13 +5,13 @@
 //! Boundary: keeps common cache-summary fields and ordering consistent.
 
 use crate::{
-    cache::CacheValidationStatus,
     cache_file::ManagedReadBudget,
     snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
     sns::report::{
-        SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+        SnsCacheAdmission, SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
+        SnsValidCacheSummary,
         cache_attempt::read_sns_refresh_attempt_status_strict,
-        cache_paths::{sns_root_from_cache_path, sns_snapshot_network_cache_dir},
+        cache_paths::sns_snapshot_network_cache_dir,
         cache_storage::{
             SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheMetadata, SnsCacheStorageFamily,
             collect_sns_cache_paths, load_sns_cache_at, sns_cache_scan_limit_exceeded,
@@ -73,45 +73,34 @@ fn valid_sns_cache_summary<Data>(
 ) -> SnsCacheSummary {
     let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
-        id: cache.metadata.id,
-        name: cache.metadata.name,
-        root_canister_id: cache.metadata.root_canister_id,
-        governance_canister_id: cache.metadata.governance_canister_id,
-        cache_status: CacheValidationStatus::Valid,
-        cache_error: None,
-        complete: cache.completeness.is_api_exhausted(),
-        row_count: cache.completeness.row_count,
-        page_count: cache.completeness.page_count,
-        page_size: cache.completeness.page_size,
-        fetched_at: cache.fetched_at,
-        source_endpoint: cache.source_endpoint,
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
         latest_attempt: None,
+        admission: SnsCacheAdmission::Valid {
+            data: SnsValidCacheSummary {
+                id: cache.metadata.id,
+                name: cache.metadata.name,
+                root_canister_id: cache.metadata.root_canister_id,
+                governance_canister_id: cache.metadata.governance_canister_id,
+                row_count: cache.completeness.row_count,
+                page_count: cache.completeness.page_count,
+                page_size: cache.completeness.page_size,
+                fetched_at: cache.fetched_at,
+                source_endpoint: cache.source_endpoint,
+            },
+        },
     }
 }
 
 fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCacheSummary {
     let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
-        id: 0,
-        name: "-".to_string(),
-        root_canister_id: sns_root_from_cache_path(&cache_path).map_or_else(
-            || "-".to_string(),
-            |name| name.to_string_lossy().into_owned(),
-        ),
-        governance_canister_id: "-".to_string(),
-        cache_status: CacheValidationStatus::Invalid,
-        cache_error: Some(error.to_string()),
-        complete: false,
-        row_count: 0,
-        page_count: 0,
-        page_size: 0,
-        fetched_at: "-".to_string(),
-        source_endpoint: "-".to_string(),
         cache_path: cache_path.display().to_string(),
         refresh_attempt_path: attempt_path.display().to_string(),
         latest_attempt: None,
+        admission: SnsCacheAdmission::Invalid {
+            cache_error: error.to_string(),
+        },
     }
 }
 
@@ -147,17 +136,19 @@ where
 /// Sort SNS cache summaries by stable list id and root principal.
 fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
     caches.sort_by(|left, right| {
-        left.id
-            .cmp(&right.id)
-            .then_with(|| left.root_canister_id.cmp(&right.root_canister_id))
+        let left_id = left.valid().map(|data| data.id);
+        let right_id = right.valid().map(|data| data.id);
+        left_id
+            .cmp(&right_id)
+            .then_with(|| left.cache_path.cmp(&right.cache_path))
     });
 }
 
 #[cfg(test)]
 mod tests {
     use super::load_sns_cache_summaries;
+    use crate::cache::CacheValidationStatus;
     use crate::{
-        cache::CacheValidationStatus,
         cache_file::{ManagedReadBudget, write_managed_text_atomically},
         sns::report::{
             cache_storage::sns_cache_scan_limit_exceeded,
@@ -259,7 +250,7 @@ mod tests {
             &mut ManagedReadBudget::new(32),
         )
         .unwrap();
-        assert_eq!(summaries[0].cache_status, CacheValidationStatus::Invalid);
+        assert_eq!(summaries[0].cache_status(), CacheValidationStatus::Invalid);
         assert!(summaries[0].latest_attempt.is_none());
         std::fs::remove_dir_all(root).unwrap();
     }

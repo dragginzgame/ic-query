@@ -64,16 +64,21 @@ fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
                 .caches
                 .iter()
                 .map(|cache| {
-                    [
-                        cache.cache_status.to_string(),
-                        cache.id.to_string(),
-                        cache.name.clone(),
-                        short_principal(&cache.root_canister_id),
-                        yes_no(cache.complete).to_string(),
-                        cache.row_count.to_string(),
-                        cache.page_count.to_string(),
-                        cache.fetched_at.clone(),
-                    ]
+                    cache.valid().map_or_else(
+                        || ["invalid", "-", "-", "-", "-", "-", "-", "-"].map(str::to_string),
+                        |data| {
+                            [
+                                "ok".to_string(),
+                                data.id.to_string(),
+                                data.name.clone(),
+                                short_principal(&data.root_canister_id),
+                                "yes".to_string(),
+                                data.row_count.to_string(),
+                                data.page_count.to_string(),
+                                data.fetched_at.clone(),
+                            ]
+                        },
+                    )
                 })
                 .collect::<Vec<_>>(),
             &[
@@ -101,25 +106,27 @@ fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &
         format!("found: {}", yes_no(report.found)),
     ];
     if let Some(cache) = report.cache.as_ref() {
-        lines.extend([
-            format!("sns_id: {}", cache.id),
-            format!("name: {}", terminal_text(&cache.name)),
-            format!("root_canister_id: {}", cache.root_canister_id),
-            format!("governance_canister_id: {}", cache.governance_canister_id),
-            format!("cache_status: {}", cache.cache_status),
-            format!("complete: {}", yes_no(cache.complete)),
-            format!("row_count: {}", cache.row_count),
-            format!("page_count: {}", cache.page_count),
-            format!("page_size: {}", cache.page_size),
-            format!("fetched_at: {}", terminal_text(&cache.fetched_at)),
-            format!("source_endpoint: {}", terminal_text(&cache.source_endpoint)),
-            format!("cache_path: {}", terminal_text(&cache.cache_path)),
-            format!(
-                "refresh_attempt_path: {}",
-                terminal_text(&cache.refresh_attempt_path)
-            ),
-        ]);
-        if let Some(error) = cache.cache_error.as_ref() {
+        lines.push(format!("cache_status: {}", cache.cache_status()));
+        if let Some(data) = cache.valid() {
+            lines.extend([
+                format!("sns_id: {}", data.id),
+                format!("name: {}", terminal_text(&data.name)),
+                format!("root_canister_id: {}", data.root_canister_id),
+                format!("governance_canister_id: {}", data.governance_canister_id),
+                "complete: yes".to_string(),
+                format!("row_count: {}", data.row_count),
+                format!("page_count: {}", data.page_count),
+                format!("page_size: {}", data.page_size),
+                format!("fetched_at: {}", terminal_text(&data.fetched_at)),
+                format!("source_endpoint: {}", terminal_text(&data.source_endpoint)),
+            ]);
+        }
+        lines.push(format!("cache_path: {}", terminal_text(&cache.cache_path)));
+        lines.push(format!(
+            "refresh_attempt_path: {}",
+            terminal_text(&cache.refresh_attempt_path)
+        ));
+        if let Some(error) = cache.cache_error() {
             lines.push(format!("cache_error: {}", terminal_text(error)));
         }
     } else {

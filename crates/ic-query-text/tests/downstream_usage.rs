@@ -163,7 +163,12 @@ mod host {
         let mut events = Vec::new();
         let mut progress = |event| events.push(event);
         progress.report(QueryProgressEvent::PagedRefresh {
-            text: "refreshing".to_string(),
+            progress: ic_query::PagedQueryProgress {
+                collection: ic_query::QueryProgressCollection::NnsProposals,
+                target: None,
+                pages_fetched: 0,
+                rows_fetched: 0,
+            },
             state: QueryProgressState::Running,
         });
         assert_eq!(events.len(), 1);
@@ -237,7 +242,8 @@ mod host {
                 DEFAULT_SNS_SOURCE_ENDPOINT,
                 now_unix_secs,
                 sns_input,
-            ),
+            )
+            .expect("valid SNS selector"),
             25,
         )
         .with_cache_root(cache_root)
@@ -250,19 +256,25 @@ mod host {
             &mut |_| {},
         )
         .await?;
-        Ok(sns_proposals_report_text(&report))
+        Ok(sns_proposals_report_text(
+            &report,
+            ic_query_text::TextOptions::default(),
+        ))
     }
 
     async fn render_sns_metrics(
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
-        let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            now_unix_secs,
-            sns_input,
-        ))
+        let request = SnsMetricsRequest::new(
+            ic_query::sns::SnsLookupRequest::new(
+                "ic",
+                DEFAULT_SNS_SOURCE_ENDPOINT,
+                now_unix_secs,
+                sns_input,
+            )
+            .expect("valid SNS selector"),
+        )
         .with_time_window_seconds(90 * 24 * 60 * 60);
 
         let report = build_sns_metrics_report(&request).await?;
@@ -292,14 +304,18 @@ mod host {
                 DEFAULT_SNS_SOURCE_ENDPOINT,
                 now_unix_secs,
                 sns_input,
-            ),
+            )
+            .expect("valid SNS selector"),
             500,
             cache_root,
             SnsNeuronsCacheSort::Stake,
         );
 
         let report = build_sns_neurons_report(&request).await?;
-        Ok(sns_neurons_report_text(&report))
+        Ok(sns_neurons_report_text(
+            &report,
+            ic_query_text::TextOptions::default(),
+        ))
     }
 
     fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {

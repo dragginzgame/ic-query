@@ -33,11 +33,10 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     let cache = status.cache.as_ref().expect("cache summary");
 
     assert!(status.found);
-    assert_eq!(cache.cache_status, CacheValidationStatus::Invalid);
+    assert_eq!(cache.cache_status(), CacheValidationStatus::Invalid);
     assert!(
         cache
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 
@@ -47,11 +46,13 @@ fn assert_invalid_sns_proposals_cache_status(root: &std::path::Path, expected_er
     })
     .expect("proposal cache list");
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Invalid);
+    assert_eq!(
+        list.caches[0].cache_status(),
+        CacheValidationStatus::Invalid
+    );
     assert!(
         list.caches[0]
-            .cache_error
-            .as_ref()
+            .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );
 }
@@ -61,13 +62,10 @@ fn sns_proposal_rows_validate_counts_and_uniqueness() {
     let valid = fixture_proposal_row();
     assert!(validate_sns_proposal_rows(std::slice::from_ref(&valid)).is_ok());
 
-    let mut ballot_count_mismatch = valid.clone();
-    ballot_count_mismatch.ballot_count = 2;
-    assert!(
-        validate_sns_proposal_rows(&[ballot_count_mismatch])
-            .expect_err("ballot count mismatch")
-            .contains("ballot_count 2 does not match 1 ballot rows")
-    );
+    assert_eq!(valid.ballot_count(), valid.ballots.len());
+    let mut encoded = serde_json::to_value(&valid).unwrap();
+    encoded["ballot_count"] = serde_json::json!(2);
+    assert!(serde_json::from_value::<SnsProposalRow>(encoded).is_err());
 
     assert!(
         validate_sns_proposal_rows(&[valid.clone(), valid])
@@ -115,8 +113,8 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     created_at_secs: 1_700_000_100,
                     decided_at_secs: Some(1_700_001_100),
                     executed_at_secs: Some(1_700_002_300),
-                    failed_at_secs: Some(1_700_003_100),
-                    decision_state: SnsProposalDecisionState::Executed,
+                    failed_at_secs: None,
+
                     status: SNS_PROPOSAL_STATUS_EXECUTED_CODE,
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Zulu proposal",
@@ -135,7 +133,7 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     decided_at_secs: None,
                     executed_at_secs: None,
                     failed_at_secs: None,
-                    decision_state: SnsProposalDecisionState::Open,
+
                     status: SNS_PROPOSAL_STATUS_REJECTED_CODE,
                     topic: SnsProposalTopicFilter::TreasuryAssetManagement,
                     title: "Alpha proposal",
@@ -152,9 +150,9 @@ impl SnsProposalsSource for UnsortedSnsProposalsSource {
                     proposal_id: 30,
                     created_at_secs: 1_700_000_200,
                     decided_at_secs: Some(1_700_001_300),
-                    executed_at_secs: Some(1_700_002_100),
-                    failed_at_secs: Some(1_700_003_300),
-                    decision_state: SnsProposalDecisionState::Decided,
+                    executed_at_secs: None,
+                    failed_at_secs: None,
+
                     status: SNS_PROPOSAL_STATUS_ADOPTED_CODE,
                     topic: SnsProposalTopicFilter::Governance,
                     title: "Beta proposal",
@@ -187,8 +185,8 @@ async fn assert_cached_proposal_sort(
 ) {
     let root = temp_dir(&format!("ic-query-sns-proposals-sort-{}", sort.as_str()));
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = sort;
@@ -219,8 +217,8 @@ async fn assert_cached_status_filter(
         status.as_str()
     ));
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = status;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(status).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Id;
@@ -262,8 +260,8 @@ async fn assert_cached_eligibility_filter(
         eligibility.as_str()
     ));
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.eligibility = eligibility;
     request.before_proposal_id = None;
@@ -302,8 +300,8 @@ async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_propos
         "ic-query-sns-proposals-proposer-{proposer_neuron_id}"
     ));
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.proposer_neuron_id = Some(proposer_neuron_id.to_string());
     request.before_proposal_id = None;
@@ -340,8 +338,8 @@ async fn assert_cached_proposer_filter(proposer_neuron_id: &str, expected_propos
 async fn assert_cached_query_filter(query: &str, expected_proposal_ids: &[u64]) {
     let root = temp_dir(&format!("ic-query-sns-proposals-query-{query}"));
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.query = Some(query.to_string());
     request.before_proposal_id = None;
@@ -384,7 +382,7 @@ struct ProposalRowFixture {
     decided_at_secs: Option<u64>,
     executed_at_secs: Option<u64>,
     failed_at_secs: Option<u64>,
-    decision_state: SnsProposalDecisionState,
+
     status: i32,
     topic: SnsProposalTopicFilter,
     title: &'static str,
@@ -403,7 +401,7 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
     let ballot = base.ballots[0].clone();
     SnsProposalRow {
         proposal_id: fixture.proposal_id,
-        decision_state: fixture.decision_state,
+
         status: Some(fixture.status),
         topic: Some(fixture.topic.as_str().to_string()),
         title: fixture.title.to_string(),
@@ -414,7 +412,6 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
         executed_timestamp_seconds: fixture.executed_at_secs,
         failed_timestamp_seconds: fixture.failed_at_secs,
         reject_cost_e8s: fixture.reject_cost_e8s,
-        ballot_count: fixture.ballot_count,
         ballots: vec![ballot; fixture.ballot_count],
         reward_event_round: fixture.reward_event_round,
         reward_event_end_timestamp_seconds: fixture.reward_event_end_timestamp_seconds,
@@ -427,5 +424,35 @@ fn proposal_row_with_fixture(fixture: ProposalRowFixture) -> SnsProposalRow {
             total: fixture.tally.3,
         }),
         ..base
+    }
+}
+
+#[test]
+fn proposal_lifecycle_and_ballot_count_follow_retained_evidence() {
+    let mut row = fixture_proposal_row();
+    for (decided, executed, failed, expected) in [
+        (None, None, None, SnsProposalDecisionState::Open),
+        (Some(0), Some(0), Some(0), SnsProposalDecisionState::Open),
+        (Some(1), None, None, SnsProposalDecisionState::Decided),
+        (Some(1), Some(2), None, SnsProposalDecisionState::Executed),
+        (
+            Some(1),
+            Some(2),
+            Some(u64::MAX),
+            SnsProposalDecisionState::Failed,
+        ),
+    ] {
+        row.decided_timestamp_seconds = decided;
+        row.executed_timestamp_seconds = executed;
+        row.failed_timestamp_seconds = failed;
+        assert_eq!(row.decision_state(), expected);
+    }
+    row.ballots.clear();
+    assert_eq!(row.ballot_count(), 0);
+    for field in ["decision_state", "ballot_count"] {
+        let mut value = serde_json::to_value(&row).unwrap();
+        assert!(value.get(field).is_none());
+        value[field] = serde_json::json!(0);
+        assert!(serde_json::from_value::<SnsProposalRow>(value).is_err());
     }
 }

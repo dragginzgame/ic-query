@@ -55,18 +55,6 @@ pub(in crate::sns::report) struct SnsRefreshContext<'a> {
 }
 
 impl SnsRefreshContext<'_> {
-    pub(in crate::sns::report) fn progress_text(
-        self,
-        collection: &str,
-        page_count: u32,
-        row_count: usize,
-    ) -> String {
-        format!(
-            "refreshing SNS {collection} for {}: pages={page_count} rows={row_count}",
-            self.sns.name
-        )
-    }
-
     pub(in crate::sns::report) fn max_pages_reached(self, page_count: u32) -> bool {
         self.request
             .max_pages

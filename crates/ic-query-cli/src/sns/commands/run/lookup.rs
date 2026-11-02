@@ -21,7 +21,7 @@ pub(super) async fn run_sns_metrics(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), SnsCommandError> {
-    let (format, request) = metrics_request(matches, network, current_unix_secs()?);
+    let (format, request) = metrics_request(matches, network, current_unix_secs()?)?;
     let report = build_sns_metrics_report(&request).await?;
     write_text_or_json(format, &report, sns_metrics_report_text)
 }
@@ -35,7 +35,7 @@ pub(super) async fn run_sns_lookup<Report>(
 where
     Report: Serialize,
 {
-    let (format, request) = lookup_request(matches, network, current_unix_secs()?);
+    let (format, request) = lookup_request(matches, network, current_unix_secs()?)?;
     let report = build_report(&request).await?;
     write_text_or_json(format, &report, render_text)
 }

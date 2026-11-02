@@ -40,3 +40,17 @@ mod tests {
         );
     }
 }
+
+///
+/// TextOptions
+///
+/// Caller-selected detail and ballot visibility for human-facing report rendering.
+///
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct TextOptions {
+    /// Expand human-facing report detail.
+    pub verbose: bool,
+    /// Include retained proposal ballots in human-facing output.
+    pub show_ballots: bool,
+}

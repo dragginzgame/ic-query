@@ -333,6 +333,12 @@ cross-family status does not load or scan complete row arrays. Small
 age-managed files are fully JSON-parsed for syntax, but their family-specific
 semantic validators remain authoritative.
 
+SNS and NNS collection summaries distinguish admitted complete facts from invalid
+content. Invalid summaries retain path and original refusal evidence without
+inventing counts, identity, timestamps or endpoint values. Refresh-attempt evidence
+is independently admitted; it does not make invalid snapshot content valid. See
+[the 0.87 hard-cut actions](../../releases/query/0.87.md).
+
 SNS and NNS proposal cache-list summaries read refresh-attempt sidecars once
 on a best-effort basis. Their exact cache status reads the selected sidecar
 once through the strict reader and reuses that observation in both the snapshot
@@ -663,11 +669,15 @@ Retain any required existing snapshots or attempt evidence before explicitly
 refreshing the affected collection. Readers never migrate, rewrite or delete
 rejected files, and cache-only operations never fetch replacement data. Family
 validators still enforce row order, completeness, provenance and cache identity;
-view sorts and limits remain outside snapshot keys. ICRC account-history snapshot
-fields remain unchanged; its reader now enforces its declared fields directly.
+view sorts and limits remain outside snapshot keys. ICRC account-history rows use
+explicit structured or legacy account identity variants. Preserve required prior
+evidence before refreshing snapshots containing the replaced flat account shape;
+the reader enforces the current schema-1 contract directly.
 
 SNS proposal snapshots retain native action IDs and ballot vote codes without
-stored classifications. Labels are derived for text and views. Before replacing
+stored classifications. Proposal lifecycle and ballot count also derive from raw
+timestamps and retained ballots rather than being stored independently. Labels
+are derived for text and views. Before replacing
 older snapshots, preserve required evidence and coordinate raw-code consumers,
 then explicitly refresh; strict rows reject unknown fields and schemas remain 1.
 SNS neuron/proposal rows and ballots likewise retain only native timestamps,

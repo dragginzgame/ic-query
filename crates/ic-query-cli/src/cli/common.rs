@@ -17,6 +17,24 @@ use std::{
 use thiserror::Error as ThisError;
 
 pub const JSON_ARG: &str = "json";
+
+/// Keep display choices at the CLI/Text boundary rather than in collected reports.
+pub fn report_text_options(matches: &ArgMatches) -> ic_query_text::TextOptions {
+    ic_query_text::TextOptions {
+        verbose: matches
+            .try_get_one::<bool>("verbose")
+            .ok()
+            .flatten()
+            .copied()
+            .unwrap_or(false),
+        show_ballots: matches
+            .try_get_one::<bool>("ballots")
+            .ok()
+            .flatten()
+            .copied()
+            .unwrap_or(false),
+    }
+}
 pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
 pub const COLLECTION_MODE_CACHE_ONLY: &str =
     "Local cache inspection; does not make a network request.";
@@ -255,4 +273,33 @@ pub fn index_ceiling_arg(name: &'static str) -> clap::Arg {
         .long(name)
         .value_name("index")
         .value_parser(clap::value_parser!(u64))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn presentation_flags_are_independent_of_report_requests_and_json_selection() {
+        let command = clap::Command::new("fixture")
+            .arg(flag_arg("verbose").long("verbose"))
+            .arg(flag_arg("ballots").long("ballots"))
+            .arg(flag_arg("json").long("json"));
+        let defaults = command.clone().try_get_matches_from(["fixture"]).unwrap();
+        assert_eq!(
+            report_text_options(&defaults),
+            ic_query_text::TextOptions::default()
+        );
+        let matches = command
+            .try_get_matches_from(["fixture", "--verbose", "--ballots", "--json"])
+            .unwrap();
+        assert_eq!(output_format(&matches), OutputFormat::Json);
+        assert_eq!(
+            report_text_options(&matches),
+            ic_query_text::TextOptions {
+                verbose: true,
+                show_ballots: true
+            }
+        );
+    }
 }

@@ -54,7 +54,7 @@ pub(in crate::sns::report) fn sns_list_report_from_list(
         source_endpoint,
         fetched_by,
         all_lifecycles: request.all_lifecycles,
-        verbose: request.verbose,
+
         sort: request.sort.as_str().to_string(),
         catalog_sns_count,
         excluded_sns_count: catalog_sns_count.saturating_sub(sns_instances.len()),

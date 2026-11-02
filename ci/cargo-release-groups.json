@@ -15,7 +15,7 @@
         "ic-query-testkit"
       ],
       "metadata_files": [
-        "releases/query/0.86.md"
+        "releases/query/0.87.md"
       ]
     },
     {
@@ -32,7 +32,7 @@
         "ic-query-text"
       ],
       "metadata_files": [
-        "releases/cli/0.86.md"
+        "releases/cli/0.87.md"
       ]
     }
   ]

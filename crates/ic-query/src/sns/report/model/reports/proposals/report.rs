@@ -22,8 +22,6 @@ pub struct SnsProposalReport {
     #[serde(flatten)]
     pub context: SnsReportContext,
     pub proposal_id: u64,
-    pub verbose: bool,
-    pub show_ballots: bool,
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: ReportProvenance,
@@ -51,7 +49,6 @@ pub struct SnsProposalsReport {
     pub query_filter: Option<String>,
     pub sort: String,
     pub sort_direction: String,
-    pub verbose: bool,
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub provenance: ReportProvenance,

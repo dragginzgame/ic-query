@@ -438,14 +438,16 @@ fn optional_account_text(account: Option<&IcrcAccountRow>) -> String {
 }
 
 fn account_text(account: &IcrcAccountRow) -> String {
-    if let Some(account_identifier) = account.account_identifier.as_ref() {
-        return terminal_text(account_identifier).into_owned();
+    match account {
+        IcrcAccountRow::Legacy { account_identifier } => {
+            terminal_text(account_identifier).into_owned()
+        }
+        IcrcAccountRow::Structured {
+            owner,
+            subaccount_hex,
+        } => subaccount_hex.as_ref().map_or_else(
+            || terminal_text(owner).into_owned(),
+            |subaccount| format!("{}:{}", terminal_text(owner), terminal_text(subaccount)),
+        ),
     }
-    let Some(owner) = account.owner.as_ref() else {
-        return "-".to_string();
-    };
-    account.subaccount_hex.as_ref().map_or_else(
-        || terminal_text(owner).into_owned(),
-        |subaccount| format!("{}:{}", terminal_text(owner), terminal_text(subaccount)),
-    )
 }

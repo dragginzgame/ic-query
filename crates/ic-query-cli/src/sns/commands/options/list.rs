@@ -23,7 +23,7 @@ pub(in crate::sns::commands) fn list_request(
             source_endpoint: required_string(matches, "source-endpoint"),
             now_unix_secs,
             all_lifecycles: matches.get_flag("all"),
-            verbose: matches.get_flag("verbose"),
+
             sort: required_typed::<SnsListSort>(matches, "sort"),
         },
     )

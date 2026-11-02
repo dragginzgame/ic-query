@@ -61,7 +61,12 @@ async fn refresh_with_source_and_progress(
                 progress,
             )
             .await?;
-            context.publish("neurons", NNS_NEURON_FETCHED_BY, publication_progress, data)
+            context.publish(
+                crate::nns::NnsGovernanceCollection::Neurons,
+                NNS_NEURON_FETCHED_BY,
+                publication_progress,
+                data,
+            )
         },
     )
     .await

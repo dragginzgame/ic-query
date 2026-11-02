@@ -56,7 +56,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
         sort: SnsNeuronsCacheSort::Stake,
     };
     cached_request.limit = 2;
-    cached_request.verbose = true;
+
     let report = build_sns_neurons_report_with_source(&cached_request, &NoLiveSnsNeuronsSource)
         .await
         .expect("cached neurons report");
@@ -66,7 +66,7 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     assert_eq!(report.total_neuron_count, 3);
     assert_eq!(report.neuron_count, 2);
     assert_eq!(report.requested_limit, 2);
-    assert!(report.verbose);
+
     assert_eq!(report.owner_principal_id, None);
     assert_eq!(report.provenance.cache_complete(), Some(true));
     let report_json = serde_json::to_value(&report).expect("serialize cached report");

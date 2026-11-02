@@ -100,16 +100,13 @@ async fn sns_neurons_builder_rejects_noncanonical_custom_source_rows() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn sns_neurons_verbose_text_keeps_full_neuron_ids() {
+async fn sns_neurons_live_owner_filter_is_admitted() {
     let mut request = neurons_request("1");
     request.collection = crate::sns::SnsNeuronCollection::Live {
         owner_principal_id: Some(GOVERNANCE_A.to_string()),
     };
-    request.verbose = true;
 
-    let report = build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
+    build_sns_neurons_report_with_source(&request, &FixtureSnsNeuronsSource)
         .await
         .expect("sns neurons report");
-
-    assert!(report.verbose);
 }

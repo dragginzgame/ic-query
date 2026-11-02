@@ -23,7 +23,7 @@ use ic_query::sns::SnsNeuronsReport;
 
 #[must_use]
 /// Render the SNS neurons report as human-facing text.
-pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
+pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOptions) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
         format!("requested_limit: {}", report.requested_limit),
@@ -31,7 +31,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
             "owner_principal_id: {}",
             optional_text(report.owner_principal_id.as_ref())
         ),
-        format!("verbose: {}", yes_no(report.verbose)),
+        format!("verbose: {}", yes_no(options.verbose)),
     ]);
     push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend([
@@ -59,7 +59,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport) -> String {
                 .iter()
                 .map(|neuron| {
                     [
-                        neuron_id_text(&neuron.neuron_id, report.verbose),
+                        neuron_id_text(&neuron.neuron_id, options.verbose),
                         e8s_decimal_text(neuron.cached_neuron_stake_e8s),
                         e8s_decimal_text(neuron.neuron_fees_e8s),
                         e8s_decimal_text(neuron.maturity_e8s_equivalent),

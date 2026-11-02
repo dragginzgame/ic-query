@@ -41,7 +41,6 @@ async fn nns_proposal_list_report_filters_sorts_and_renders_rows() {
         query: None,
         sort: NnsProposalListSort::Title,
         sort_direction: SortDirection::Asc,
-        verbose: true,
     };
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)

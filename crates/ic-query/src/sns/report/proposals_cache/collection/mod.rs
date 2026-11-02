@@ -38,7 +38,8 @@ struct SnsProposalsRefreshPages<'a> {
 impl SnsCollectionPages for SnsProposalsRefreshPages<'_> {
     type Row = SnsProposalRow;
     type Cursor = u64;
-    const COLLECTION: &'static str = "proposals";
+    const PROGRESS_COLLECTION: crate::QueryProgressCollection =
+        crate::QueryProgressCollection::SnsProposals;
 
     fn fetch_next_page<'a>(
         &'a mut self,

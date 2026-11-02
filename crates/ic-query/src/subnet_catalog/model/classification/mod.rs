@@ -8,6 +8,8 @@ mod source;
 mod specialization;
 
 pub use geographic::GeographicScope;
+#[cfg(feature = "subnet-catalog-host")]
+pub(super) use kind::REGISTRY_SUBNET_KINDS;
 pub use kind::SubnetKind;
 pub use source::ClassificationSource;
 pub use specialization::SubnetSpecialization;

@@ -5,6 +5,26 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.87.0]
+
+### ⚠️ Breaking
+
+- Keep presentation options in Text, parse SNS selectors once, and explicitly
+  admit live versus cached proposal views. Update Rust callers and JSON consumers
+  for derived proposal facts, typed cache summaries, neuron provenance, ICRC
+  account identities and structured progress.
+- Preserve required historical evidence before explicitly refreshing SNS proposal
+  and ICRC account-history snapshots with replaced schema-1 row shapes. Other
+  snapshot formats, cache keys, collection budgets and refresh policies remain unchanged.
+
+### 🧹 Cleanup
+
+- Evaluate and fingerprint Subnet classification from the same typed policy data,
+  preserving the current digest. Retain independent source/cache validation and
+  original reply evidence.
+
+Details and consumer actions: [0.87 notes](0.87.md).
+
 ## [0.86.0] - 2026-11-02
 
 ### ⚠️ Breaking

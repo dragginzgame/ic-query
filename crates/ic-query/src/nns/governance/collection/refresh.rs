@@ -37,7 +37,7 @@ impl GovernanceSnapshotRefreshContext<'_> {
     /// Publish an admitted complete collection, then retain any attempt-finalization failure.
     pub(in crate::nns) fn publish<Data, Error>(
         &self,
-        collection: &'static str,
+        collection: crate::nns::governance::NnsGovernanceCollection,
         fetched_by: &'static str,
         progress: SnapshotRefreshProgress,
         data: Data,
@@ -87,6 +87,7 @@ impl GovernanceSnapshotRefreshContext<'_> {
         )?;
         Ok(NnsGovernanceRefreshReport::from_snapshot(
             &cache,
+            collection,
             self.paths,
             self.replaced_existing_cache,
             attempt_finalization_error,
@@ -181,7 +182,7 @@ mod tests {
                 replaced_existing_cache: false,
             };
             let result = context.publish::<_, HostCacheError>(
-                "proposals",
+                crate::nns::NnsGovernanceCollection::Proposals,
                 "fixture",
                 SnapshotRefreshProgress::new(2, 3, None),
                 serde_json::json!({"proposals": [1, 2, 3]}),

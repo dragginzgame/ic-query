@@ -161,7 +161,7 @@ pub fn build_nns_neuron_info_report_from_cache(
     };
     let provenance = cache_provenance(&path, &cache);
     let neuron = cache.data.neurons.swap_remove(index);
-    Ok(Some(info_report_from_row(request, provenance, neuron)))
+    Ok(Some(info_report_from_row(provenance, neuron)))
 }
 
 /// Inspect the expected complete neuron snapshot without making a live call.
@@ -172,7 +172,7 @@ pub fn build_nns_neuron_cache_status_report(
     let paths = nns_neuron_cache_paths(&request.cache_root, &request.network);
     build_governance_cache_status_report(
         request,
-        "neurons",
+        crate::nns::NnsGovernanceCollection::Neurons,
         NNS_NEURON_CACHE_COMPONENT,
         &paths,
         |file| match load_cache_at(

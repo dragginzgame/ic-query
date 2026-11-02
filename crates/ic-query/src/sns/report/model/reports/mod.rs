@@ -25,7 +25,10 @@ mod upgrade;
 #[cfg(feature = "sns-host")]
 pub use attempt::SnsRefreshAttemptStatus;
 #[cfg(feature = "sns-host")]
-pub use cache::{SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary};
+pub use cache::{
+    SnsCacheAdmission, SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary,
+    SnsValidCacheSummary,
+};
 pub use canisters::{
     MainnetSnsCanisterInventory, SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind,
     SnsCanisterHealthQueryGap, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow,

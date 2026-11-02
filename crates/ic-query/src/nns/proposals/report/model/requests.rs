@@ -39,8 +39,6 @@ pub struct NnsProposalListRequest {
     pub sort: NnsProposalListSort,
     /// Direction for local sorts; ignored when preserving API order.
     pub sort_direction: SortDirection,
-    /// Whether the text renderer includes expanded proposal fields.
-    pub verbose: bool,
 }
 
 impl NnsProposalListRequest {
@@ -58,7 +56,6 @@ impl NnsProposalListRequest {
             query: None,
             sort: NnsProposalListSort::default(),
             sort_direction: SortDirection::default(),
-            verbose: false,
         }
     }
 
@@ -121,13 +118,6 @@ impl NnsProposalListRequest {
         self.sort_direction = sort_direction;
         self
     }
-
-    /// Select compact or expanded human-facing text output.
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
-        self
-    }
 }
 
 ///
@@ -142,10 +132,6 @@ pub struct NnsProposalRequest {
     pub governance: NnsGovernanceRequest,
     /// Exact Governance proposal identifier to fetch.
     pub proposal_id: u64,
-    /// Whether the human-facing detail renderer displays ballot rows.
-    pub show_ballots: bool,
-    /// Whether the text renderer includes expanded proposal fields.
-    pub verbose: bool,
 }
 
 impl NnsProposalRequest {
@@ -155,22 +141,6 @@ impl NnsProposalRequest {
         Self {
             governance,
             proposal_id,
-            show_ballots: false,
-            verbose: false,
         }
-    }
-
-    /// Include or omit ballots in human-facing detail output.
-    #[must_use]
-    pub const fn with_show_ballots(mut self, show_ballots: bool) -> Self {
-        self.show_ballots = show_ballots;
-        self
-    }
-
-    /// Select compact or expanded human-facing text output.
-    #[must_use]
-    pub const fn with_verbose(mut self, verbose: bool) -> Self {
-        self.verbose = verbose;
-        self
     }
 }

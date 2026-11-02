@@ -51,7 +51,6 @@ async fn nns_proposal_list_report_sorts_by_reward_status_text() {
         query: None,
         sort: NnsProposalListSort::RewardStatus,
         sort_direction: SortDirection::Asc,
-        verbose: false,
     };
 
     let report = build_nns_proposal_list_report_with_source(&request, &source)

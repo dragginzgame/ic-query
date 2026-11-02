@@ -173,7 +173,6 @@ fn proposal_sort_request(sort: NnsProposalListSort) -> NnsProposalListRequest {
         query: None,
         sort,
         sort_direction: sort.default_direction(),
-        verbose: false,
     }
 }
 

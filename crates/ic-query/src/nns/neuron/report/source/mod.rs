@@ -129,7 +129,6 @@ pub async fn build_nns_neuron_info_report_with_source(
     }
     validate_neuron_rows(std::slice::from_ref(&data.value))?;
     Ok(info_report_from_row(
-        request,
         NnsNeuronReportProvenance::live(NnsGovernanceReportContext::from_source(
             &request.governance,
             data.provenance,
@@ -203,21 +202,22 @@ pub(super) fn list_report_from_rows(
             schema_version: NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
             ..provenance.context
         },
-        from_cache: provenance.cache_path.is_some(),
-        cache_path: provenance.cache_path,
+        provenance: provenance
+            .cache_path
+            .map_or(crate::report::ReportProvenance::Live, |cache_path| {
+                crate::report::ReportProvenance::Cache { cache_path }
+            }),
         requested_limit: request.limit,
         exclusive_start_neuron_id: request.exclusive_start_neuron_id,
         next_start_neuron_id,
         total_neuron_count,
         point_in_time_guaranteed: false,
         returned_neuron_count: neurons.len(),
-        verbose: request.verbose,
         neurons,
     }
 }
 
 pub(super) fn info_report_from_row(
-    request: &NnsNeuronInfoRequest,
     provenance: NnsNeuronReportProvenance,
     neuron: NnsNeuronRow,
 ) -> NnsNeuronInfoReport {
@@ -226,9 +226,11 @@ pub(super) fn info_report_from_row(
             schema_version: NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
             ..provenance.context
         },
-        from_cache: provenance.cache_path.is_some(),
-        cache_path: provenance.cache_path,
-        verbose: request.verbose,
+        provenance: provenance
+            .cache_path
+            .map_or(crate::report::ReportProvenance::Live, |cache_path| {
+                crate::report::ReportProvenance::Cache { cache_path }
+            }),
         neuron,
     }
 }

@@ -82,7 +82,6 @@ pub struct SnsProposalRow {
     pub title: String,
     pub summary: String,
     pub url: Option<String>,
-    pub decision_state: SnsProposalDecisionState,
     #[serde(deserialize_with = "deserialize_required_option")]
     pub status: Option<i32>,
     #[serde(deserialize_with = "deserialize_required_option")]
@@ -97,10 +96,31 @@ pub struct SnsProposalRow {
     pub reward_event_end_timestamp_seconds: Option<u64>,
     pub is_eligible_for_rewards: bool,
     pub latest_tally: Option<SnsProposalTally>,
-    pub ballot_count: usize,
     pub ballots: Vec<SnsProposalBallotRow>,
     pub payload_text_rendering: Option<String>,
     pub proposer_neuron_id: Option<String>,
+}
+
+impl SnsProposalRow {
+    /// Derive the lifecycle from raw Governance timestamps, with failure taking precedence.
+    #[must_use]
+    pub const fn decision_state(&self) -> SnsProposalDecisionState {
+        if matches!(self.failed_timestamp_seconds, Some(1..)) {
+            SnsProposalDecisionState::Failed
+        } else if matches!(self.executed_timestamp_seconds, Some(1..)) {
+            SnsProposalDecisionState::Executed
+        } else if matches!(self.decided_timestamp_seconds, Some(1..)) {
+            SnsProposalDecisionState::Decided
+        } else {
+            SnsProposalDecisionState::Open
+        }
+    }
+
+    /// Number of retained ballot rows.
+    #[must_use]
+    pub const fn ballot_count(&self) -> usize {
+        self.ballots.len()
+    }
 }
 
 fn deserialize_required_option<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>

@@ -8,7 +8,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
         .await
         .expect("refresh proposals cache");
     let mut request = proposal_request(ROOT_A);
-    request.cache_root = Some(root.clone());
+    request = request.with_cache_root(root.clone());
 
     let report = build_sns_proposal_report_with_source(&request, &NoLiveSnsProposalsSource)
         .await
@@ -33,7 +33,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     .unwrap();
     let detail_json = serde_json::to_value(&report).unwrap();
     let mut list_request = proposals_request(ROOT_A);
-    list_request.cache_root = Some(root.clone());
+    list_request = list_request.with_cache_root(root.clone());
     let list = build_sns_proposals_report_with_source_and_progress(
         &list_request,
         &NoLiveSnsProposalsSource,
@@ -95,7 +95,7 @@ async fn cached_proposal_reports_reject_non_mainnet_before_cache_lookup() {
 
     let mut list_request = proposals_request(ROOT_A);
     list_request.lookup.network = "local".to_string();
-    list_request.cache_root = Some(root.clone());
+    list_request = list_request.with_cache_root(root.clone());
     let list_error = build_sns_proposals_report_with_source_and_progress(
         &list_request,
         &NoLiveSnsProposalsSource,
@@ -119,8 +119,8 @@ async fn cached_proposal_reports_reject_non_mainnet_before_cache_lookup() {
 async fn sns_proposals_list_auto_refreshes_missing_cache_and_reuses_it() {
     let root = temp_dir("ic-query-sns-proposals-auto-cache");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = Some(99);
     request.limit = 5;

@@ -32,18 +32,20 @@ pub(super) use collection::{
 };
 #[cfg(feature = "nns-host")]
 pub use collection::{
-    NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary, NnsGovernanceRefreshReport,
+    NnsGovernanceCacheAdmission, NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary,
+    NnsGovernanceRefreshReport, NnsGovernanceValidCacheSummary,
 };
 pub use error::NnsGovernanceError;
 pub use model::{
-    NnsGovernanceAnalyticsContext, NnsGovernanceCollectionStatus, NnsGovernanceDecimal,
-    NnsGovernanceEconomics, NnsGovernanceEconomicsReport, NnsGovernanceExecutionAssurance,
-    NnsGovernanceMaturityModulation, NnsGovernanceMaturityModulationReport,
-    NnsGovernanceMetricBucket, NnsGovernanceMetrics, NnsGovernanceMetricsReport,
-    NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage, NnsGovernanceProposalId,
-    NnsGovernanceReportContext, NnsGovernanceRewardEvent, NnsGovernanceRewardEventReport,
-    NnsGovernanceSourceProvenance, NnsGovernanceVote, NnsNeuronsFundEconomics,
-    NnsNeuronsFundMatchedFundingCurveCoefficients, NnsVotingPowerEconomics,
+    NnsGovernanceAnalyticsContext, NnsGovernanceCollection, NnsGovernanceCollectionStatus,
+    NnsGovernanceDecimal, NnsGovernanceEconomics, NnsGovernanceEconomicsReport,
+    NnsGovernanceExecutionAssurance, NnsGovernanceMaturityModulation,
+    NnsGovernanceMaturityModulationReport, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
+    NnsGovernanceMetricsReport, NnsGovernanceNeuronSubsetMetrics, NnsGovernancePercentage,
+    NnsGovernanceProposalId, NnsGovernanceReportContext, NnsGovernanceRewardEvent,
+    NnsGovernanceRewardEventReport, NnsGovernanceSourceProvenance, NnsGovernanceVote,
+    NnsNeuronsFundEconomics, NnsNeuronsFundMatchedFundingCurveCoefficients,
+    NnsVotingPowerEconomics,
 };
 pub(in crate::nns) use model::{
     deserialize_code_label, native_code_classification, native_optional_code_classification,

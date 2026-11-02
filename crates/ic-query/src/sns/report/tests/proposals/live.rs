@@ -15,7 +15,7 @@ impl SnsProposalSource for InvalidSnsProposalSource {
     ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
-            proposal.ballot_count = 2;
+            proposal.proposal_id = 99;
             Ok(proposal)
         })
     }
@@ -50,8 +50,8 @@ impl SnsProposalsSource for InvalidSnsProposalsSource {
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>> {
         Box::pin(async move {
             let mut proposal = fixture_proposal_row();
-            proposal.ballot_count = 2;
-            Ok(vec![proposal])
+            proposal.proposal_id = 99;
+            Ok(vec![proposal.clone(), proposal])
         })
     }
 }
@@ -67,7 +67,7 @@ async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
         SnsHostError::InvalidSourceData {
             capability: "SNS proposal",
             reason,
-        } if reason.contains("ballot_count")
+        } if reason.contains("returned proposal id")
     ));
 
     let list_error = build_sns_proposals_report_with_source_and_progress(
@@ -101,7 +101,7 @@ async fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
         SnsHostError::InvalidSourceData {
             capability: "SNS proposal page",
             reason,
-        } if reason.contains("ballot_count")
+        } if reason.contains("duplicate proposal id")
     ));
     let _ = std::fs::remove_dir_all(root);
 }
@@ -120,14 +120,14 @@ async fn sns_proposal_resolves_list_id_and_renders_governance_proposal() {
     assert_eq!(report.context.instance.root_canister_id, ROOT_A);
     assert_eq!(report.context.governance_canister_id, GOVERNANCE_A);
     assert_eq!(report.proposal_id, 42);
-    assert!(report.show_ballots);
+
     assert_eq!(report.proposal.proposal_id, 42);
     assert_eq!(report.proposal.action_id, 1);
     assert_eq!(
-        report.proposal.decision_state,
+        report.proposal.decision_state(),
         SnsProposalDecisionState::Open
     );
-    assert_eq!(report.proposal.ballot_count, 1);
+    assert_eq!(report.proposal.ballot_count(), 1);
     assert_eq!(report.proposal.ballots[0].vote, 1);
     assert_eq!(report.provenance.data_source().as_str(), "live");
     assert_eq!(report.provenance.cache_path(), None);
@@ -178,7 +178,7 @@ async fn sns_proposals_resolves_list_id_and_renders_governance_proposals() {
     assert_eq!(report.proposals[0].proposal_id, 42);
     assert_eq!(report.proposals[0].action_id, 1);
     assert_eq!(
-        report.proposals[0].decision_state,
+        report.proposals[0].decision_state(),
         SnsProposalDecisionState::Open
     );
     assert_eq!(report.proposals[0].reject_cost_e8s, 100_000_000);
@@ -258,36 +258,10 @@ async fn sns_proposals_live_query_filter_applies_to_returned_rows() {
     assert_eq!(json["query_filter"], "FiXtUrE PrOpOsAl");
 }
 
-#[tokio::test(flavor = "current_thread")]
-async fn sns_proposals_status_decided_requires_cache_root() {
-    let mut request = proposals_request("1");
-    request.status = SnsProposalStatusFilter::Decided;
-    request.topic = SnsProposalTopicFilter::Governance;
-
-    let error = build_sns_proposals_report_with_source_and_progress(
-        &request,
-        &FixtureSnsProposalsSource,
-        &mut |_| {},
-    )
-    .await
-    .expect_err("decided without cache rejected");
-
-    assert!(matches!(
-        error,
-        SnsHostError::UnsupportedProposalView { .. }
-    ));
-
-    request.topic = SnsProposalTopicFilter::Any;
-    let error = build_sns_proposals_report_with_source_and_progress(
-        &request,
-        &FixtureSnsProposalsSource,
-        &mut |_| {},
-    )
-    .await
-    .expect_err("decided without cache rejected");
-
-    assert!(matches!(
-        error,
-        SnsHostError::UnsupportedProposalView { .. }
-    ));
+#[test]
+fn sns_proposals_status_decided_requires_cache_root() {
+    let error = proposals_request("1")
+        .with_status(SnsProposalStatusFilter::Decided)
+        .unwrap_err();
+    assert_eq!(error, crate::sns::SnsProposalViewError);
 }

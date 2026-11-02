@@ -4,8 +4,10 @@ use super::*;
 async fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-status-decided");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Decided;
+    request = request.with_cache_root(root.clone());
+    request = request
+        .with_status(SnsProposalStatusFilter::Decided)
+        .unwrap();
     request.topic = SnsProposalTopicFilter::Any;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Id;
@@ -38,7 +40,7 @@ async fn sns_proposals_cached_status_decided_filters_complete_snapshot() {
         second
             .proposals
             .iter()
-            .all(|proposal| proposal.decision_state == SnsProposalDecisionState::Decided)
+            .all(|proposal| proposal.decision_state() == SnsProposalDecisionState::Decided)
     );
 
     let _ = fs::remove_dir_all(root);
@@ -78,8 +80,8 @@ async fn sns_proposals_cached_query_filters_complete_snapshot() {
 async fn sns_proposals_cached_topic_filters_complete_snapshot() {
     let root = temp_dir("ic-query-sns-proposals-topic-governance");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Any;
+    request = request.with_cache_root(root.clone());
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
     request.topic = SnsProposalTopicFilter::Governance;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Id;
@@ -116,8 +118,10 @@ async fn sns_proposals_cached_topic_filters_complete_snapshot() {
 async fn sns_proposals_cached_decided_status_combines_with_topic_filter() {
     let root = temp_dir("ic-query-sns-proposals-topic-decided");
     let mut request = proposals_request(ROOT_A);
-    request.cache_root = Some(root.clone());
-    request.status = SnsProposalStatusFilter::Decided;
+    request = request.with_cache_root(root.clone());
+    request = request
+        .with_status(SnsProposalStatusFilter::Decided)
+        .unwrap();
     request.topic = SnsProposalTopicFilter::Governance;
     request.before_proposal_id = None;
     request.sort = SnsProposalsSort::Id;

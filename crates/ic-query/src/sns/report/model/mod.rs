@@ -39,12 +39,13 @@ pub use reports::{
 };
 #[cfg(feature = "sns-host")]
 pub use reports::{
-    SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsReport,
-    SnsRefreshAttemptStatus, SnsSnapshotRefreshReport,
+    SnsCacheAdmission, SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsReport,
+    SnsRefreshAttemptStatus, SnsSnapshotRefreshReport, SnsValidCacheSummary,
 };
 pub use requests::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,
-    SnsLookupRequest, SnsMetricsRequest, SnsProposalRequest, SnsProposalsRequest,
+    SnsLookupError, SnsLookupRequest, SnsMetricsRequest, SnsProposalCollection, SnsProposalRequest,
+    SnsProposalViewError, SnsProposalsRequest,
 };
 #[cfg(feature = "sns-host")]
 pub use requests::{

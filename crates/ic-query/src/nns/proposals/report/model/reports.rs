@@ -44,8 +44,6 @@ pub struct NnsProposalListReport {
     pub sort_direction: String,
     /// Whether filtering and sorting cover a fetched page or a complete collection.
     pub result_scope: ReportResultScope,
-    /// Whether the text renderer includes expanded proposal fields.
-    pub verbose: bool,
     /// Number of proposal rows returned in this report.
     pub proposal_count: usize,
     /// Proposal rows in the selected result order.
@@ -68,10 +66,6 @@ pub struct NnsProposalReport {
     pub provenance: ReportProvenance,
     /// Governance proposal identifier.
     pub proposal_id: u64,
-    /// Whether the human-facing detail renderer displays ballot rows.
-    pub show_ballots: bool,
-    /// Whether the text renderer includes expanded proposal fields.
-    pub verbose: bool,
     /// Exact proposal row returned for the requested identifier.
     pub proposal: NnsProposalRow,
 }

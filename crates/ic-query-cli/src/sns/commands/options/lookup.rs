@@ -19,16 +19,16 @@ pub(in crate::sns::commands) fn lookup_request(
     matches: &ArgMatches,
     network: &str,
     now_unix_secs: u64,
-) -> (OutputFormat, SnsLookupRequest) {
-    (
+) -> Result<(OutputFormat, SnsLookupRequest), crate::sns::commands::SnsCommandError> {
+    Ok((
         output_format(matches),
         SnsLookupRequest::new(
             network,
             required_string(matches, "source-endpoint"),
             now_unix_secs,
             required_string(matches, "input"),
-        ),
-    )
+        )?,
+    ))
 }
 
 pub(in crate::sns::commands) fn snapshot_refresh_request(
@@ -36,9 +36,9 @@ pub(in crate::sns::commands) fn snapshot_refresh_request(
     network: &str,
     cache_root: PathBuf,
     now_unix_secs: u64,
-) -> (OutputFormat, SnsSnapshotRefreshRequest) {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
-    (
+) -> Result<(OutputFormat, SnsSnapshotRefreshRequest), crate::sns::commands::SnsCommandError> {
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    Ok((
         format,
         SnsSnapshotRefreshRequest {
             lookup,
@@ -46,7 +46,7 @@ pub(in crate::sns::commands) fn snapshot_refresh_request(
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option(matches, "max-pages"),
         },
-    )
+    ))
 }
 
 pub(in crate::sns::commands) fn cache_status_request(

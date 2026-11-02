@@ -181,7 +181,10 @@ fn daily_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
 
 /// Render proposal rows and collection provenance as human-facing text.
 #[must_use]
-pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
+pub fn nns_proposal_list_report_text(
+    report: &NnsProposalListReport,
+    options: crate::TextOptions,
+) -> String {
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
         format!("requested_limit: {}", report.requested_limit),
@@ -203,7 +206,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
         format!("sort: {}", report.sort),
         format!("sort_direction: {}", report.sort_direction),
         format!("result_scope: {}", report.result_scope),
-        format!("verbose: {}", yes_no(report.verbose)),
+        format!("verbose: {}", yes_no(options.verbose)),
         format!("proposal_count: {}", report.proposal_count),
     ]);
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
@@ -238,7 +241,7 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
             REPORT_TABLE_OPTIONS,
         ));
     }
-    if report.verbose && !report.proposals.is_empty() {
+    if options.verbose && !report.proposals.is_empty() {
         lines.push(String::new());
         lines.push("proposal_details:".to_string());
         for proposal in &report.proposals {
@@ -250,23 +253,23 @@ pub fn nns_proposal_list_report_text(report: &NnsProposalListReport) -> String {
 
 /// Render one proposal, including requested details and ballots, as human-facing text.
 #[must_use]
-pub fn nns_proposal_report_text(report: &NnsProposalReport) -> String {
+pub fn nns_proposal_report_text(report: &NnsProposalReport, options: crate::TextOptions) -> String {
     let proposal = &report.proposal;
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
         format!("proposal_id: {}", report.proposal_id),
-        format!("show_ballots: {}", yes_no(report.show_ballots)),
-        format!("verbose: {}", yes_no(report.verbose)),
+        format!("show_ballots: {}", yes_no(options.show_ballots)),
+        format!("verbose: {}", yes_no(options.verbose)),
     ]);
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
     lines.push(String::new());
-    let detail_limit = if report.verbose {
+    let detail_limit = if options.verbose {
         None
     } else {
         Some(NNS_PROPOSAL_DETAIL_TEXT_LIMIT)
     };
     lines.extend(proposal_detail_lines(proposal, detail_limit));
-    if report.show_ballots {
+    if options.show_ballots {
         lines.push(String::new());
         lines.push("ballots:".to_string());
         if let Some(table) = proposal_ballot_table(&proposal.ballots) {
@@ -295,13 +298,18 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
                 .caches
                 .iter()
                 .map(|cache| {
-                    [
-                        cache.cache_status.to_string(),
-                        cache.governance_canister_id.clone(),
-                        cache.row_count.to_string(),
-                        cache.page_count.to_string(),
-                        cache.fetched_at.clone(),
-                    ]
+                    cache.valid().map_or_else(
+                        || ["invalid", "-", "-", "-", "-"].map(str::to_string),
+                        |data| {
+                            [
+                                "ok".to_string(),
+                                data.governance_canister_id.clone(),
+                                data.row_count.to_string(),
+                                data.page_count.to_string(),
+                                data.fetched_at.clone(),
+                            ]
+                        },
+                    )
                 })
                 .collect::<Vec<_>>(),
             &[
@@ -314,7 +322,7 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
             REPORT_TABLE_OPTIONS,
         ));
         for cache in &report.caches {
-            if let Some(error) = cache.cache_error.as_ref() {
+            if let Some(error) = cache.cache_error() {
                 lines.push(format!(
                     "cache_error: {}: {}",
                     terminal_text(&cache.cache_path),

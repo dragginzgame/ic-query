@@ -664,11 +664,14 @@
         "source_transport": "replica_query"
       },
       "status_filter": "executed",
-      "topic_filter": "governance",
-      "verbose": false
+      "topic_filter": "governance"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 1\nbefore_proposal_id: 3\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: PrOpOsAl 1\nsort: title\nsort_direction: asc\nresult_scope: complete-cache\nverbose: no\nproposal_count: 1\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-list-cache-301-136/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nID   TOPIC        STATUS     PROPOSED_AT            TITLE\n--   ----------   --------   --------------------   ----------\n 1   governance   executed   2023-11-14T22:13:21Z   Proposal 1"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 1\nbefore_proposal_id: 3\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: PrOpOsAl 1\nsort: title\nsort_direction: asc\nresult_scope: complete-cache\nverbose: no\nproposal_count: 1\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-list-cache-301-136/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nID   TOPIC        STATUS     PROPOSED_AT            TITLE\n--   ----------   --------   --------------------   ----------\n 1   governance   executed   2023-11-14T22:13:21Z   Proposal 1",
+    "options": {
+      "verbose": false,
+      "show_ballots": false
+    }
   },
   {
     "renderer": "nns_proposal_list_report_text",
@@ -771,11 +774,14 @@
         "source_transport": "replica_query"
       },
       "status_filter": "any",
-      "topic_filter": "any",
-      "verbose": false
+      "topic_filter": "any"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: 99\nquery_filter: -\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 2\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----------------\n103   governance   executed   2023-11-14T22:15:03Z   Proposer proposal\n101   governance   executed   2023-11-14T22:15:01Z   Proposer proposal"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: 99\nquery_filter: -\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 2\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----------------\n103   governance   executed   2023-11-14T22:15:03Z   Proposer proposal\n101   governance   executed   2023-11-14T22:15:01Z   Proposer proposal",
+    "options": {
+      "verbose": false,
+      "show_ballots": false
+    }
   },
   {
     "renderer": "nns_proposal_list_report_text",
@@ -840,11 +846,14 @@
         "source_transport": "replica_query"
       },
       "status_filter": "any",
-      "topic_filter": "any",
-      "verbose": false
+      "topic_filter": "any"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: -\nquery_filter: SuBnEt\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   --------------\n101   governance   executed   2023-11-14T22:15:01Z   Subnet upgrade"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: -\nquery_filter: SuBnEt\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   --------------\n101   governance   executed   2023-11-14T22:15:01Z   Subnet upgrade",
+    "options": {
+      "verbose": false,
+      "show_ballots": false
+    }
   },
   {
     "renderer": "nns_proposal_list_report_text",
@@ -909,11 +918,14 @@
         "source_transport": "replica_query"
       },
       "status_filter": "executed",
-      "topic_filter": "governance",
-      "verbose": true
+      "topic_filter": "governance"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: -\nsort: title\nsort_direction: asc\nresult_scope: bounded-live\nverbose: yes\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----\n101   governance   executed   2023-11-14T22:15:01Z   Bravo\n\nproposal_details:\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: -\nsort: title\nsort_direction: asc\nresult_scope: bounded-live\nverbose: yes\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----\n101   governance   executed   2023-11-14T22:15:01Z   Bravo\n\nproposal_details:\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary",
+    "options": {
+      "verbose": true,
+      "show_ballots": false
+    }
   },
   {
     "renderer": "nns_proposal_report_text",
@@ -958,16 +970,18 @@
       },
       "proposal_id": 2,
       "schema_version": 1,
-      "show_ballots": true,
       "source": {
         "endpoint": "https://icp-api.io",
         "fetched_by": "ic-query",
         "source_transport": "replica_query"
-      },
-      "verbose": false
+      }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 2\nshow_ballots: yes\nverbose: no\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-detail-cache-301-134/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nproposal_id: 2\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Proposal 2\nurl: https://dashboard.internetcomputer.org/proposal/2\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:22Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 1\nlatest_tally_yes: 2\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE   VOTING_POWER\n---------   ----   ------------\n        2   yes            0.00"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 2\nshow_ballots: yes\nverbose: no\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-detail-cache-301-134/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nproposal_id: 2\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Proposal 2\nurl: https://dashboard.internetcomputer.org/proposal/2\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:22Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 1\nlatest_tally_yes: 2\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE   VOTING_POWER\n---------   ----   ------------\n        2   yes            0.00",
+    "options": {
+      "verbose": false,
+      "show_ballots": true
+    }
   },
   {
     "renderer": "nns_proposal_report_text",
@@ -1016,16 +1030,18 @@
       },
       "proposal_id": 101,
       "schema_version": 1,
-      "show_ballots": true,
       "source": {
         "endpoint": "https://icp-api.io",
         "fetched_by": "ic-query",
         "source_transport": "replica_query"
-      },
-      "verbose": true
+      }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: yes\nverbose: yes\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:20Z\ndeadline_at: 1970-01-01T00:00:00Z\ndecided_at: -\nexecuted_at: 2023-11-14T22:13:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE          VOTING_POWER\n---------   -----------   ------------\n        1   yes                   0.00\n        2   unknown(99)           0.00"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: yes\nverbose: yes\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:20Z\ndeadline_at: 1970-01-01T00:00:00Z\ndecided_at: -\nexecuted_at: 2023-11-14T22:13:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE          VOTING_POWER\n---------   -----------   ------------\n        1   yes                   0.00\n        2   unknown(99)           0.00",
+    "options": {
+      "verbose": true,
+      "show_ballots": true
+    }
   },
   {
     "renderer": "nns_proposal_report_text",
@@ -1074,16 +1090,18 @@
       },
       "proposal_id": 101,
       "schema_version": 1,
-      "show_ballots": false,
       "source": {
         "endpoint": "https://icp-api.io",
         "fetched_by": "ic-query",
         "source_transport": "replica_query"
-      },
-      "verbose": false
+      }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: no\nverbose: no\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: no\nverbose: no\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
+    "options": {
+      "verbose": false,
+      "show_ballots": false
+    }
   },
   {
     "renderer": "nns_registry_version_report_text",

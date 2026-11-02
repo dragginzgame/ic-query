@@ -4,8 +4,10 @@
 //! Does not own: refresh orchestration, cache policy, or report construction.
 //! Boundary: owns terminal detection and stderr output for query progress.
 
+use ic_host_text::escape::terminal_text;
 use ic_host_text::progress::ProgressLine as ProgressFrames;
 use ic_query::QueryProgress;
+use ic_query::QueryProgressCollection;
 use ic_query::QueryProgressEvent;
 use ic_query::QueryProgressState;
 use std::io::{self, IsTerminal, Write};
@@ -76,7 +78,8 @@ impl QueryProgress for StderrQueryProgress {
                     path.display()
                 );
             }
-            QueryProgressEvent::PagedRefresh { text, state } => {
+            QueryProgressEvent::PagedRefresh { progress, state } => {
+                let text = paged_progress_text(&progress, state);
                 if state == QueryProgressState::Running {
                     self.update(&text);
                 } else {
@@ -90,5 +93,76 @@ impl QueryProgress for StderrQueryProgress {
 impl Drop for StderrQueryProgress {
     fn drop(&mut self) {
         self.clear();
+    }
+}
+
+fn paged_progress_text(
+    progress: &ic_query::PagedQueryProgress,
+    state: QueryProgressState,
+) -> String {
+    let collection = match progress.collection {
+        QueryProgressCollection::NnsNeurons => "NNS neurons",
+        QueryProgressCollection::NnsProposals => "NNS proposals",
+        QueryProgressCollection::SnsNeurons => "SNS neurons",
+        QueryProgressCollection::SnsProposals => "SNS proposals",
+        QueryProgressCollection::IcrcAccountTransactions => "ICRC account transactions",
+    };
+    let target = progress
+        .target
+        .as_deref()
+        .map_or_else(String::new, |target| {
+            format!(" for {}", terminal_text(target))
+        });
+    let mut text = format!(
+        "refreshing {collection}{target}: pages={} rows={}",
+        progress.pages_fetched, progress.rows_fetched
+    );
+    if progress.collection != QueryProgressCollection::IcrcAccountTransactions {
+        text.push_str(match state {
+            QueryProgressState::Running => "",
+            QueryProgressState::Complete => " complete",
+            QueryProgressState::Stopped => " stopped before completion",
+            QueryProgressState::Stalled => " stalled",
+            QueryProgressState::Failed => " failed",
+        });
+    }
+    text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn paging_text_has_one_lifecycle_owner_and_preserves_account_history_wording() {
+        let mut progress = ic_query::PagedQueryProgress {
+            collection: QueryProgressCollection::SnsNeurons,
+            target: Some("Example SNS".to_string()),
+            pages_fetched: 2,
+            rows_fetched: 3,
+        };
+        for (state, suffix) in [
+            (QueryProgressState::Running, ""),
+            (QueryProgressState::Complete, " complete"),
+            (QueryProgressState::Failed, " failed"),
+            (QueryProgressState::Stopped, " stopped before completion"),
+            (QueryProgressState::Stalled, " stalled"),
+        ] {
+            assert_eq!(
+                paged_progress_text(&progress, state),
+                format!("refreshing SNS neurons for Example SNS: pages=2 rows=3{suffix}")
+            );
+            let account = ic_query::PagedQueryProgress {
+                collection: QueryProgressCollection::IcrcAccountTransactions,
+                target: None,
+                ..progress.clone()
+            };
+            assert_eq!(
+                paged_progress_text(&account, state),
+                "refreshing ICRC account transactions: pages=2 rows=3"
+            );
+        }
+        progress.target = Some("unsafe\x1b[31m".to_string());
+        assert!(!paged_progress_text(&progress, QueryProgressState::Running).contains('\x1b'));
     }
 }

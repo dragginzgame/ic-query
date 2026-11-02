@@ -309,17 +309,24 @@ pub struct IcrcAccountTransactionRefreshAttemptStatus {
 ///
 /// IcrcAccountRow
 ///
-/// Serializable ICRC account identity used in account-transaction rows.
+/// Structured ledger account or legacy ICP account identifier in transaction rows.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-pub struct IcrcAccountRow {
-    /// ICRC account owner principal when the index uses structured accounts.
-    pub owner: Option<String>,
-    /// Optional 32-byte subaccount as lowercase hex.
-    pub subaccount_hex: Option<String>,
-    /// Legacy ICP account identifier when the index returns identifier text.
-    pub account_identifier: Option<String>,
+#[serde(tag = "account_kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum IcrcAccountRow {
+    /// ICRC ledger account identity.
+    Structured {
+        /// Account owner principal.
+        owner: String,
+        /// Optional 32-byte subaccount as lowercase hex.
+        subaccount_hex: Option<String>,
+    },
+    /// Legacy ICP account identifier retained exactly as returned by the index.
+    Legacy {
+        /// Legacy account identifier text.
+        account_identifier: String,
+    },
 }
 
 ///
@@ -356,4 +363,37 @@ pub struct IcrcAccountTransactionRow {
     pub expected_allowance_base_units: Option<String>,
     /// Lossless JSON projection of every typed transaction field returned by the index.
     pub raw_transaction: JsonValue,
+}
+
+#[cfg(test)]
+mod account_tests {
+    use super::IcrcAccountRow;
+    use serde_json::json;
+
+    #[test]
+    fn account_forms_round_trip_and_refuse_ambiguous_or_former_shapes() {
+        for account in [
+            IcrcAccountRow::Structured {
+                owner: "aaaaa-aa".to_string(),
+                subaccount_hex: None,
+            },
+            IcrcAccountRow::Legacy {
+                account_identifier: "original-index-identifier".to_string(),
+            },
+        ] {
+            let value = serde_json::to_value(&account).unwrap();
+            assert_eq!(
+                serde_json::from_value::<IcrcAccountRow>(value).unwrap(),
+                account
+            );
+        }
+        for value in [
+            json!({"owner":"aaaaa-aa", "subaccount_hex":null, "account_identifier":null}),
+            json!({"account_kind":"legacy", "account_identifier":"id", "owner":"aaaaa-aa"}),
+            json!({"account_kind":"structured", "subaccount_hex":null}),
+            json!({"account_kind":"structured", "owner":"aaaaa-aa", "account_identifier":"id"}),
+        ] {
+            assert!(serde_json::from_value::<IcrcAccountRow>(value).is_err());
+        }
+    }
 }

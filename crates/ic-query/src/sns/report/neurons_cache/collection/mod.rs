@@ -39,7 +39,8 @@ struct SnsNeuronsRefreshPages<'a> {
 impl SnsCollectionPages for SnsNeuronsRefreshPages<'_> {
     type Row = SnsNeuronRow;
     type Cursor = SnsNeuronId;
-    const COLLECTION: &'static str = "neurons";
+    const PROGRESS_COLLECTION: crate::QueryProgressCollection =
+        crate::QueryProgressCollection::SnsNeurons;
 
     fn fetch_next_page<'a>(
         &'a mut self,

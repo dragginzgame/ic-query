@@ -59,8 +59,10 @@ Request and restored-state collection timestamps must parse as valid UTC
 dates and times with second precision before another source call is admitted.
 After page admission, the next continuation is derived without repeating the
 incoming-state validator. Native list and detail report construction derives
-cache origin from the optional cache path; the public `from_cache` field remains
-available in both Rust reports and JSON.
+cache origin through shared `ReportProvenance`. Rust callers match live/cache
+origin or use its path accessor; JSON carries `data_source` and a cache-only
+`cache_path`, without a second `from_cache` boolean. Display detail belongs to
+Text options and is absent from report acquisition requests and JSON.
 
 Complete schema-1 proposal and neuron snapshots retain rows plus
 `collection_evidence`: the original requested source, page ceiling and start

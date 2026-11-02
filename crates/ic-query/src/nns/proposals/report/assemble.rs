@@ -45,7 +45,7 @@ pub(in crate::nns::proposals::report) fn nns_proposal_list_report_from_rows(
             .direction_label(request.sort_direction)
             .to_string(),
         result_scope,
-        verbose: request.verbose,
+
         proposal_count: proposals.len(),
         proposals,
     }
@@ -65,8 +65,7 @@ pub(in crate::nns::proposals::report) fn nns_proposal_report_from_row(
             ..context
         },
         proposal_id: request.proposal_id,
-        show_ballots: request.show_ballots,
-        verbose: request.verbose,
+
         proposal,
     }
 }

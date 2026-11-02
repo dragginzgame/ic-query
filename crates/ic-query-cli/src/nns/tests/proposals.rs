@@ -70,7 +70,6 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
         defaults.sort.direction_label(defaults.sort_direction),
         "none"
     );
-    assert!(!defaults.verbose);
 
     let (options_format, options) = parse_list_options(&[
         "--json",
@@ -116,7 +115,6 @@ fn nns_proposal_list_parses_defaults_and_json_format() {
     assert_eq!(options.topic.as_str(), "governance");
     assert_eq!(options.sort.as_str(), "title");
     assert_eq!(options.sort.direction_label(options.sort_direction), "asc");
-    assert!(options.verbose);
 
     let (_, grouped_options) = parse_list_options(&["--limit", "10", "--reward-status", "settled"])
         .expect("parse nns proposal list");
@@ -177,8 +175,6 @@ fn nns_proposal_parses_id_and_json_format() {
     assert_eq!(options_format, OutputFormat::Json);
     assert_eq!(replica_endpoint(&options.governance), "https://icp-api.io");
     assert_eq!(options.proposal_id, 132_411);
-    assert!(options.show_ballots);
-    assert!(options.verbose);
 
     let (_, grouped_options) = parse_test_options(
         nns_proposal_info_command(),
@@ -188,8 +184,6 @@ fn nns_proposal_parses_id_and_json_format() {
     .expect("parse nns proposal info");
 
     assert_eq!(grouped_options.proposal_id, 132_411);
-    assert!(grouped_options.show_ballots);
-    assert!(grouped_options.verbose);
 }
 
 #[test]

@@ -20,7 +20,7 @@ mod reward;
 #[cfg(feature = "sns-host")]
 pub use cache::{SnsCacheListRequest, SnsCacheStatusRequest};
 pub use list::SnsListRequest;
-pub use lookup::SnsLookupRequest;
+pub use lookup::{SnsLookupError, SnsLookupRequest};
 pub use metrics::{
     DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsMetricsRequest,
 };
@@ -30,7 +30,9 @@ pub(in crate::sns::report) use metrics::{
 };
 #[cfg(feature = "sns-host")]
 pub use neurons::{SnsNeuronCollection, SnsNeuronRequest, SnsNeuronsRequest};
-pub use proposals::{SnsProposalRequest, SnsProposalsRequest};
+pub use proposals::{
+    SnsProposalCollection, SnsProposalRequest, SnsProposalViewError, SnsProposalsRequest,
+};
 #[cfg(feature = "sns-host")]
 pub use refresh::SnsSnapshotRefreshRequest;
 #[cfg(feature = "sns-host")]

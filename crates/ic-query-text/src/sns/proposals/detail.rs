@@ -42,7 +42,7 @@ pub(super) fn proposal_detail_lines(
         format!("  action: {}", terminal_text(&action)),
         format!(
             "  decision_state: {}",
-            terminal_text(proposal.decision_state.as_str())
+            terminal_text(proposal.decision_state().as_str())
         ),
         format!("  topic: {}", optional_text(proposal.topic.as_ref())),
         format!("  title: {}", terminal_text(&proposal.title)),
@@ -76,7 +76,7 @@ pub(super) fn proposal_detail_lines(
             "  is_eligible_for_rewards: {}",
             yes_no(proposal.is_eligible_for_rewards)
         ),
-        format!("  ballot_count: {}", proposal.ballot_count),
+        format!("  ballot_count: {}", proposal.ballot_count()),
     ];
     if let Some(tally) = proposal.latest_tally.as_ref() {
         lines.extend([

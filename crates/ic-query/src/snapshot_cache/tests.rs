@@ -558,19 +558,19 @@ async fn paged_snapshot_refresh_runner_fetches_until_collection_exhaustion() {
         events,
         vec![
             QueryProgressEvent::PagedRefresh {
-                text: "fixture pages=0 rows=0".to_string(),
+                progress: fixture_progress(0, 0),
                 state: QueryProgressState::Running,
             },
             QueryProgressEvent::PagedRefresh {
-                text: "fixture pages=1 rows=1".to_string(),
+                progress: fixture_progress(1, 1),
                 state: QueryProgressState::Running,
             },
             QueryProgressEvent::PagedRefresh {
-                text: "fixture pages=2 rows=2".to_string(),
+                progress: fixture_progress(2, 2),
                 state: QueryProgressState::Running,
             },
             QueryProgressEvent::PagedRefresh {
-                text: "fixture pages=2 rows=2 complete".to_string(),
+                progress: fixture_progress(2, 2),
                 state: QueryProgressState::Complete,
             },
         ]
@@ -623,17 +623,12 @@ async fn paged_snapshot_refresh_rejects_nonterminal_page_without_admitted_rows()
 #[tokio::test(flavor = "current_thread")]
 async fn paged_refresh_reports_fetch_and_checkpoint_failures_without_completing() {
     for (pages, attempt_error, expected_error, expected_progress) in [
-        (
-            vec![],
-            None,
-            "no fixture page",
-            "fixture pages=0 rows=0 failed",
-        ),
+        (vec![], None, "no fixture page", (0, 0)),
         (
             vec![(vec!["a"], 1, None)],
             Some("checkpoint failed"),
             "checkpoint failed",
-            "fixture pages=1 rows=1 failed",
+            (1, 1),
         ),
     ] {
         let refresh = FixturePagedRefresh {
@@ -654,11 +649,11 @@ async fn paged_refresh_reports_fetch_and_checkpoint_failures_without_completing(
             events,
             [
                 QueryProgressEvent::PagedRefresh {
-                    text: "fixture pages=0 rows=0".to_string(),
+                    progress: fixture_progress(0, 0),
                     state: QueryProgressState::Running,
                 },
                 QueryProgressEvent::PagedRefresh {
-                    text: expected_progress.to_string(),
+                    progress: fixture_progress(expected_progress.0, expected_progress.1),
                     state: QueryProgressState::Failed,
                 },
             ]
@@ -910,12 +905,8 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
     type Complete = FixturePagedComplete;
     type Error = String;
 
-    fn progress_text(&self) -> String {
-        format!(
-            "fixture pages={} rows={}",
-            self.state.page_count(),
-            self.state.row_count()
-        )
+    fn progress(&self) -> crate::PagedQueryProgress {
+        fixture_progress(self.state.page_count(), self.state.row_count())
     }
 
     fn max_pages_reached(&self) -> bool {
@@ -961,5 +952,14 @@ impl PagedSnapshotRefresh for FixturePagedRefresh {
                 .rows,
             attempts: self.attempts.into_inner(),
         }
+    }
+}
+
+const fn fixture_progress(pages_fetched: u32, rows_fetched: usize) -> crate::PagedQueryProgress {
+    crate::PagedQueryProgress {
+        collection: crate::QueryProgressCollection::NnsProposals,
+        target: None,
+        pages_fetched,
+        rows_fetched,
     }
 }

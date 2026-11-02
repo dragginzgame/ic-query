@@ -22,7 +22,7 @@ use crate::{
 pub(super) trait SnsCollectionPages {
     type Row;
     type Cursor;
-    const COLLECTION: &'static str;
+    const PROGRESS_COLLECTION: crate::QueryProgressCollection;
 
     fn fetch_next_page<'a>(
         &'a mut self,
@@ -59,12 +59,13 @@ impl<Pages: SnsCollectionPages> PagedSnapshotRefresh for SnsCollectionRefresh<'_
     type Complete = CompletePagedCollection<Pages::Row>;
     type Error = SnsHostError;
 
-    fn progress_text(&self) -> String {
-        self.context.progress_text(
-            Pages::COLLECTION,
-            self.pages.page_count(),
-            self.pages.row_count(),
-        )
+    fn progress(&self) -> crate::PagedQueryProgress {
+        crate::PagedQueryProgress {
+            collection: Pages::PROGRESS_COLLECTION,
+            target: Some(self.context.sns.name.clone()),
+            pages_fetched: self.pages.page_count(),
+            rows_fetched: self.pages.row_count(),
+        }
     }
 
     fn max_pages_reached(&self) -> bool {

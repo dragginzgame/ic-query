@@ -1,62 +1,68 @@
 use super::NEURON_A;
-use crate::report::SortDirection;
 use crate::sns::report::tests::*;
 use std::path::Path;
 
-pub(in crate::sns::report::tests) fn list_request(verbose: bool) -> SnsListRequest {
+pub(in crate::sns::report::tests) fn list_request() -> SnsListRequest {
     SnsListRequest {
         network: MAINNET_NETWORK.to_string(),
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         all_lifecycles: false,
-        verbose,
+
         sort: SnsListSort::Id,
     }
 }
 
 pub(in crate::sns::report::tests) fn info_request(input: &str) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
-    }
+    SnsLookupRequest::new(
+        MAINNET_NETWORK.to_string(),
+        DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        1_780_531_200,
+        input.to_string(),
+    )
+    .expect("valid SNS selector")
 }
 
 pub(in crate::sns::report::tests) fn token_request(input: &str) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
-    }
+    SnsLookupRequest::new(
+        MAINNET_NETWORK.to_string(),
+        DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        1_780_531_200,
+        input.to_string(),
+    )
+    .expect("valid SNS selector")
 }
 
 pub(in crate::sns::report::tests) fn params_request(input: &str) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
-    }
+    SnsLookupRequest::new(
+        MAINNET_NETWORK.to_string(),
+        DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        1_780_531_200,
+        input.to_string(),
+    )
+    .expect("valid SNS selector")
 }
 
 pub(in crate::sns::report::tests) fn metrics_request(input: &str) -> SnsMetricsRequest {
-    SnsMetricsRequest::new(crate::sns::SnsLookupRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_780_531_200,
-        input,
-    ))
+    SnsMetricsRequest::new(
+        crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK,
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            1_780_531_200,
+            input,
+        )
+        .expect("valid SNS selector"),
+    )
 }
 
 pub(in crate::sns::report::tests) fn swap_request(input: &str) -> SnsLookupRequest {
-    SnsLookupRequest {
-        network: MAINNET_NETWORK.to_string(),
-        source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-        now_unix_secs: 1_780_531_200,
-        input: input.to_string(),
-    }
+    SnsLookupRequest::new(
+        MAINNET_NETWORK.to_string(),
+        DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
+        1_780_531_200,
+        input.to_string(),
+    )
+    .expect("valid SNS selector")
 }
 
 pub(in crate::sns::report::tests) fn upgrade_request(input: &str) -> SnsLookupRequest {
@@ -70,34 +76,19 @@ pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposa
             DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
             1_780_531_200,
             input.to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         proposal_id: 42,
         cache_root: None,
-        verbose: false,
-        show_ballots: true,
     }
 }
 
 pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsProposalsRequest {
-    SnsProposalsRequest {
-        lookup: crate::sns::SnsLookupRequest::new(
-            MAINNET_NETWORK.to_string(),
-            DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
-            1_780_531_200,
-            input.to_string(),
-        ),
-        limit: 10,
-        before_proposal_id: Some(99),
-        status: SnsProposalStatusFilter::Open,
-        topic: SnsProposalTopicFilter::Governance,
-        eligibility: SnsProposalEligibilityFilter::Any,
-        proposer_neuron_id: None,
-        query: None,
-        sort: SnsProposalsSort::Api,
-        sort_direction: SortDirection::Desc,
-        cache_root: None,
-        verbose: false,
-    }
+    SnsProposalsRequest::new(info_request(input), 10)
+        .with_before_proposal_id(99)
+        .with_status(SnsProposalStatusFilter::Open)
+        .unwrap()
+        .with_topic(SnsProposalTopicFilter::Governance)
 }
 
 pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
@@ -110,7 +101,8 @@ pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(
             DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
             1_780_531_200,
             "1".to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         cache_root: root.to_path_buf(),
         page_size: 100,
         max_pages,
@@ -124,12 +116,12 @@ pub(in crate::sns::report::tests) fn neurons_request(input: &str) -> SnsNeuronsR
             DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
             1_780_531_200,
             input.to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         limit: 10,
         collection: crate::sns::SnsNeuronCollection::Live {
             owner_principal_id: None,
         },
-        verbose: false,
     }
 }
 
@@ -140,7 +132,8 @@ pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronReq
             DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
             1_780_531_200,
             input.to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         neuron_id: NEURON_A.to_string(),
     }
 }
@@ -148,12 +141,15 @@ pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronReq
 pub(in crate::sns::report::tests) fn reward_checkpoint_request(
     input: &str,
 ) -> SnsRewardCheckpointRequest {
-    SnsRewardCheckpointRequest::new(crate::sns::SnsLookupRequest::new(
-        MAINNET_NETWORK,
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_780_531_200,
-        input,
-    ))
+    SnsRewardCheckpointRequest::new(
+        crate::sns::SnsLookupRequest::new(
+            MAINNET_NETWORK,
+            DEFAULT_SNS_SOURCE_ENDPOINT,
+            1_780_531_200,
+            input,
+        )
+        .expect("valid SNS selector"),
+    )
 }
 
 pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(
@@ -166,7 +162,8 @@ pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(
             DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
             1_780_531_200,
             "1".to_string(),
-        ),
+        )
+        .expect("valid SNS selector"),
         cache_root: root.to_path_buf(),
         page_size: 2,
         max_pages,

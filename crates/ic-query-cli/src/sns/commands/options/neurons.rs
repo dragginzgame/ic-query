@@ -20,12 +20,12 @@ pub(in crate::sns::commands) fn neuron_request(
     matches: &ArgMatches,
     network: &str,
     now_unix_secs: u64,
-) -> (OutputFormat, SnsNeuronRequest) {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
-    (
+) -> Result<(OutputFormat, SnsNeuronRequest), crate::sns::commands::SnsCommandError> {
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    Ok((
         format,
         SnsNeuronRequest::new(lookup, required_string(matches, "neuron-id")),
-    )
+    ))
 }
 
 pub(in crate::sns::commands) fn neurons_request(
@@ -34,7 +34,7 @@ pub(in crate::sns::commands) fn neurons_request(
     now_unix_secs: u64,
     cache_root: impl FnOnce() -> Result<PathBuf, SnsCommandError>,
 ) -> Result<(OutputFormat, SnsNeuronsRequest), SnsCommandError> {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs);
+    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
     let limit = required_typed(matches, "limit");
     let owner_principal_id =
         typed_option::<Principal>(matches, "owner").map(|principal| principal.to_text());
@@ -49,7 +49,7 @@ pub(in crate::sns::commands) fn neurons_request(
         if owner_principal_id.is_some() {
             return Err(SnsCommandError::Usage("`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string()));
         }
-        Principal::from_text(&lookup.input).map_err(|_| {
+        lookup.root_canister_id().ok_or_else(|| {
             SnsCommandError::Usage(
                 "cached neuron views require an SNS root canister principal".to_string(),
             )
@@ -63,5 +63,5 @@ pub(in crate::sns::commands) fn neurons_request(
         }
         SnsNeuronsRequest::live(lookup, limit, owner_principal_id)
     };
-    Ok((format, request.with_verbose(matches.get_flag("verbose"))))
+    Ok((format, request))
 }

@@ -44,15 +44,17 @@ pub(in crate::sns::report) fn proposal_matches_status(
 ) -> bool {
     match status {
         SnsProposalStatusFilter::Any => true,
-        SnsProposalStatusFilter::Open => proposal.decision_state == SnsProposalDecisionState::Open,
+        SnsProposalStatusFilter::Open => {
+            proposal.decision_state() == SnsProposalDecisionState::Open
+        }
         SnsProposalStatusFilter::Decided => {
-            proposal.decision_state == SnsProposalDecisionState::Decided
+            proposal.decision_state() == SnsProposalDecisionState::Decided
         }
         SnsProposalStatusFilter::Executed => {
-            proposal.decision_state == SnsProposalDecisionState::Executed
+            proposal.decision_state() == SnsProposalDecisionState::Executed
         }
         SnsProposalStatusFilter::Failed => {
-            proposal.decision_state == SnsProposalDecisionState::Failed
+            proposal.decision_state() == SnsProposalDecisionState::Failed
         }
         SnsProposalStatusFilter::Rejected => {
             proposal.status == Some(SNS_PROPOSAL_STATUS_REJECTED_CODE)
@@ -123,7 +125,7 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
         SnsProposalsSort::Api => return,
         SnsProposalsSort::Id => return proposals.sort_by(by_id),
         SnsProposalsSort::Status => {
-            return sort_by_key(proposals, direction, |proposal| proposal.decision_state);
+            return sort_by_key(proposals, direction, SnsProposalRow::decision_state);
         }
         SnsProposalsSort::Action => return sort_by_action(proposals, direction),
         SnsProposalsSort::Eligible => {
@@ -159,7 +161,7 @@ pub(in crate::sns::report) fn sort_sns_proposal_rows(
                 .map(|tally| tally.timestamp_seconds)
         }),
         SnsProposalsSort::Ballots => {
-            ReportSortKey::OptionalU64(|proposal| Some(proposal.ballot_count as u64))
+            ReportSortKey::OptionalU64(|proposal| Some(proposal.ballot_count() as u64))
         }
         SnsProposalsSort::RejectCost => {
             ReportSortKey::OptionalU64(|proposal| Some(proposal.reject_cost_e8s))

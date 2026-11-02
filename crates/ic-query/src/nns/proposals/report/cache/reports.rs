@@ -144,7 +144,7 @@ pub fn build_nns_proposal_cache_status_report(
     let paths = nns_proposal_cache_paths(&request.cache_root, &request.network);
     build_governance_cache_status_report(
         request,
-        "proposals",
+        crate::nns::NnsGovernanceCollection::Proposals,
         NNS_PROPOSAL_CACHE_COMPONENT,
         &paths,
         |file| {

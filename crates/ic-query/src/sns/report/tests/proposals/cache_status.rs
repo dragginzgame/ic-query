@@ -144,10 +144,10 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     .expect("proposal cache list");
 
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].id, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
-    assert_eq!(list.caches[0].cache_error, None);
-    assert_eq!(list.caches[0].row_count, 1);
+    assert_eq!(list.caches[0].valid().unwrap().id, 1);
+    assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
+    assert_eq!(list.caches[0].cache_error(), None);
+    assert_eq!(list.caches[0].valid().unwrap().row_count, 1);
 
     let status = build_sns_proposals_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -162,7 +162,12 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
         status.latest_attempt.as_ref()
     );
     assert_eq!(
-        status.cache.as_ref().expect("cache").cache_status.as_str(),
+        status
+            .cache
+            .as_ref()
+            .expect("cache")
+            .cache_status()
+            .as_str(),
         "ok"
     );
     assert_eq!(
@@ -246,7 +251,7 @@ async fn sns_cache_list_and_status_reject_malformed_attempts() {
     fs::remove_file(attempt_path).unwrap();
     let list = build_sns_proposals_cache_list_report(&request).unwrap();
     assert_eq!(list.cache_count, 1);
-    assert_eq!(list.caches[0].cache_status, CacheValidationStatus::Valid);
+    assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
     assert!(list.caches[0].latest_attempt.is_none());
     fs::remove_dir_all(root).unwrap();
 }
@@ -309,7 +314,7 @@ async fn sns_proposals_cache_status_rejects_inconsistent_proposal_evidence() {
             |cache: &mut serde_json::Value| {
                 cache["data"]["proposals"][0]["ballot_count"] = serde_json::json!(2);
             },
-            "ballot_count 2 does not match 1 ballot rows",
+            "unknown field `ballot_count`",
         ),
     ] {
         let root = temp_dir(&format!("ic-query-sns-proposals-status-{case}"));
@@ -432,7 +437,7 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
     for input in ["2", ROOT_B] {
         let root = temp_dir("ic-query-sns-second-position-refresh");
         let mut request = sns_proposals_refresh_request(&root, None);
-        request.lookup.input = input.to_string();
+        request.lookup = info_request(input);
         let refresh = refresh_sns_proposals_cache_with_source(&request, &SecondSnsProposalsSource)
             .await
             .expect("refresh second SNS");
@@ -459,7 +464,7 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
         assert_eq!(attempt["status"], "complete");
 
         let mut cached_request = proposals_request(ROOT_B);
-        cached_request.cache_root = Some(root.clone());
+        cached_request = cached_request.with_cache_root(root.clone());
         let report = build_sns_proposals_report_with_source_and_progress(
             &cached_request,
             &NoLiveSnsProposalsSource,

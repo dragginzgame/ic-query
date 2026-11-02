@@ -20,18 +20,7 @@ pub trait PagedSnapshotRefresh {
     /// Family diagnostic retained when a page ceiling prevents API exhaustion.
     const PAGE_LIMIT_REASON: &'static str = "max pages reached before API exhaustion";
 
-    fn progress_text(&self) -> String;
-    /// Format family-owned progress without changing the shared lifecycle state.
-    fn progress_text_for_state(&self, state: QueryProgressState) -> String {
-        let text = self.progress_text();
-        match state {
-            QueryProgressState::Running => text,
-            QueryProgressState::Stopped => format!("{text} stopped before completion"),
-            QueryProgressState::Failed => format!("{text} failed"),
-            QueryProgressState::Stalled => format!("{text} stalled"),
-            QueryProgressState::Complete => format!("{text} complete"),
-        }
-    }
+    fn progress(&self) -> crate::PagedQueryProgress;
 
     fn max_pages_reached(&self) -> bool;
     fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error;
@@ -94,7 +83,7 @@ fn report_progress(
     state: QueryProgressState,
 ) {
     progress.report(QueryProgressEvent::PagedRefresh {
-        text: refresh.progress_text_for_state(state),
+        progress: refresh.progress(),
         state,
     });
 }

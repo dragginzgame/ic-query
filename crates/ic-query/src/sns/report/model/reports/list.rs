@@ -27,7 +27,6 @@ pub struct SnsListReport {
     pub provenance: ReportProvenance,
     /// Whether the view includes SNS instances outside the normal visible lifecycle set.
     pub all_lifecycles: bool,
-    pub verbose: bool,
     pub sort: String,
     /// Number of SNS instances in the complete joined catalog before view filtering.
     pub catalog_sns_count: usize,

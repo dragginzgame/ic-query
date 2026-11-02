@@ -930,10 +930,9 @@ fn public_icrc_allowance_api_is_constructible_and_renderable_without_host() {
 
 #[test]
 fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
-    let account = IcrcAccountRow {
-        owner: Some(ACCOUNT_OWNER.to_string()),
+    let account = IcrcAccountRow::Structured {
+        owner: ACCOUNT_OWNER.to_string(),
         subaccount_hex: Some(SUBACCOUNT_HEX.to_string()),
-        account_identifier: None,
     };
     let report = IcrcAccountTransactionPageReport {
         provenance: ic_query::icrc::IcrcReportProvenance {
@@ -962,10 +961,9 @@ fn public_icrc_account_transaction_page_api_is_constructible_without_host() {
                 amount_base_units: Some("50000000".to_string()),
                 fee_base_units: Some("10000".to_string()),
                 from: Some(account),
-                to: Some(IcrcAccountRow {
-                    owner: Some(ARCHIVE_CANISTER_ID.to_string()),
+                to: Some(IcrcAccountRow::Structured {
+                    owner: ARCHIVE_CANISTER_ID.to_string(),
                     subaccount_hex: None,
-                    account_identifier: None,
                 }),
                 spender: None,
                 memo_hex: None,

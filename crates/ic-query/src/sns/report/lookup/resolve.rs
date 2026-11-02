@@ -5,7 +5,7 @@
 //! Boundary: resolves id/root against raw SNS-W inventory before targeted metadata enrichment.
 
 use crate::sns::report::MainnetSnsCanisters;
-use crate::sns::report::lookup::{model::SnsLookup, request::parse_sns_root_canister_input};
+use crate::sns::report::lookup::model::SnsLookup;
 use crate::sns::report::{
     SnsHostError, SnsLookupRequest, enforce_mainnet_network,
     source::{
@@ -27,7 +27,7 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
     );
     let mut inventory = source.fetch_sns_inventory(&fetch_request).await?;
     validate_mainnet_sns_inventory(&fetch_request, &inventory)?;
-    let index = resolve_sns(&inventory.sns_instances, &request.input)?;
+    let index = resolve_sns(&inventory.sns_instances, request)?;
     let metadata = source
         .fetch_sns_metadata(&fetch_request, &inventory.sns_instances[index..=index])
         .await?;
@@ -37,8 +37,11 @@ pub(in crate::sns::report) async fn resolve_sns_lookup(
     Ok(SnsLookup { fetch_request, sns })
 }
 
-fn resolve_sns(instances: &[MainnetSnsCanisters], input: &str) -> Result<usize, SnsHostError> {
-    if let Ok(id) = input.parse::<usize>() {
+fn resolve_sns(
+    instances: &[MainnetSnsCanisters],
+    request: &SnsLookupRequest,
+) -> Result<usize, SnsHostError> {
+    if let Some(id) = request.id() {
         return id
             .checked_sub(1)
             .filter(|index| *index < instances.len())
@@ -48,7 +51,10 @@ fn resolve_sns(instances: &[MainnetSnsCanisters], input: &str) -> Result<usize, 
             });
     }
 
-    let root_canister_id = parse_sns_root_canister_input(input)?;
+    let root_canister_id = request
+        .root_canister_id()
+        .expect("lookup constructors admit id or principal")
+        .to_text();
     instances
         .iter()
         .position(|sns| sns.root_canister_id == root_canister_id)

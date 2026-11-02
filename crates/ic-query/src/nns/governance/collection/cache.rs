@@ -10,7 +10,6 @@ use crate::{
         CacheCollectionCompleteness, CacheValidationStatus, validate_cache_collection_completeness,
     },
     cache_file::open_managed_file,
-    nns::MAINNET_GOVERNANCE_CANISTER_ID,
     snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
 };
 use serde::Serialize;
@@ -18,7 +17,7 @@ use std::{fs::File, path::Path};
 
 pub(in crate::nns) fn build_governance_cache_status_report<Error>(
     request: &NnsGovernanceCacheRequest,
-    collection: &str,
+    collection: crate::nns::governance::NnsGovernanceCollection,
     component: &'static str,
     paths: &SnapshotJsonPaths,
     summary: impl FnOnce(File) -> NnsGovernanceCacheSummary,
@@ -52,65 +51,115 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsGovernanceCacheSummary {
-    /// Expected Governance authority, or the identity admitted from a valid snapshot.
-    pub governance_canister_id: String,
-    /// Snapshot validation outcome.
-    pub cache_status: CacheValidationStatus,
-    /// Diagnostic for an invalid snapshot.
-    pub cache_error: Option<String>,
-    /// Whether API exhaustion established completeness.
-    pub complete: bool,
-    /// Whether every row describes one Governance instant.
-    pub point_in_time_guaranteed: bool,
-    /// Admitted row count.
-    pub row_count: usize,
-    /// Admitted page count.
-    pub page_count: u32,
-    /// Requested rows per collection page.
-    pub page_size: u32,
-    /// Collection timestamp from valid evidence; empty for invalid content.
-    pub fetched_at: String,
-    /// Collection endpoint from valid evidence; empty for invalid content.
-    pub source_endpoint: String,
-    /// Path of the inspected complete snapshot.
+    /// Path of the inspected snapshot, including invalid content.
     pub cache_path: String,
+    /// Admitted facts or original refusal evidence.
+    #[serde(flatten)]
+    pub admission: NnsGovernanceCacheAdmission,
+}
+
+///
+/// NnsGovernanceCacheAdmission
+///
+/// Complete Governance collection facts or its admission failure.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "cache_status", rename_all = "snake_case")]
+pub enum NnsGovernanceCacheAdmission {
+    /// An admitted complete collection.
+    Valid {
+        /// Admitted complete collection facts.
+        #[serde(flatten)]
+        data: NnsGovernanceValidCacheSummary,
+    },
+    /// Existing content that failed admission.
+    Invalid {
+        /// Original admission failure.
+        cache_error: String,
+    },
+}
+
+///
+/// NnsGovernanceValidCacheSummary
+///
+/// Collection facts read only from an admitted complete Governance snapshot.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct NnsGovernanceValidCacheSummary {
+    /// Admitted Governance principal.
+    pub governance_canister_id: String,
+    /// Source guarantee retained from the admitted snapshot.
+    pub point_in_time_guaranteed: bool,
+    /// Rows in the admitted complete collection.
+    pub row_count: usize,
+    /// Pages collected through API exhaustion.
+    pub page_count: u32,
+    /// Requested rows per source page.
+    pub page_size: u32,
+    /// Admitted collection timestamp.
+    pub fetched_at: String,
+    /// Explicit endpoint that supplied the admitted snapshot.
+    pub source_endpoint: String,
 }
 
 impl NnsGovernanceCacheSummary {
-    /// Project a complete snapshot after its family loader admitted identity, rows and completeness.
+    /// Return verified facts only after complete-snapshot admission.
+    #[must_use]
+    pub const fn valid(&self) -> Option<&NnsGovernanceValidCacheSummary> {
+        match &self.admission {
+            NnsGovernanceCacheAdmission::Valid { data } => Some(data),
+            NnsGovernanceCacheAdmission::Invalid { .. } => None,
+        }
+    }
+
+    /// Return the cache admission outcome.
+    #[must_use]
+    pub const fn cache_status(&self) -> CacheValidationStatus {
+        match self.admission {
+            NnsGovernanceCacheAdmission::Valid { .. } => CacheValidationStatus::Valid,
+            NnsGovernanceCacheAdmission::Invalid { .. } => CacheValidationStatus::Invalid,
+        }
+    }
+
+    /// Retain the original content refusal.
+    #[must_use]
+    pub fn cache_error(&self) -> Option<&str> {
+        match &self.admission {
+            NnsGovernanceCacheAdmission::Invalid { cache_error } => Some(cache_error),
+            NnsGovernanceCacheAdmission::Valid { .. } => None,
+        }
+    }
+
+    /// Project a snapshot after family identity, row and completeness admission.
     pub(in crate::nns) fn from_snapshot<Rows>(
         path: &Path,
         cache: &SnapshotEnvelope<NnsGovernanceCacheMetadata, Rows>,
     ) -> Self {
         Self {
-            governance_canister_id: cache.metadata.governance_canister_id.clone(),
-            cache_status: CacheValidationStatus::Valid,
-            cache_error: None,
-            complete: cache.completeness.is_api_exhausted(),
-            point_in_time_guaranteed: cache.completeness.point_in_time_guaranteed,
-            row_count: cache.completeness.row_count,
-            page_count: cache.completeness.page_count,
-            page_size: cache.completeness.page_size,
-            fetched_at: cache.fetched_at.clone(),
-            source_endpoint: cache.source_endpoint.clone(),
             cache_path: path.display().to_string(),
+            admission: NnsGovernanceCacheAdmission::Valid {
+                data: NnsGovernanceValidCacheSummary {
+                    governance_canister_id: cache.metadata.governance_canister_id.clone(),
+                    point_in_time_guaranteed: cache.completeness.point_in_time_guaranteed,
+                    row_count: cache.completeness.row_count,
+                    page_count: cache.completeness.page_count,
+                    page_size: cache.completeness.page_size,
+                    fetched_at: cache.fetched_at.clone(),
+                    source_endpoint: cache.source_endpoint.clone(),
+                },
+            },
         }
     }
 
     /// Retain refusal evidence without projecting unvalidated snapshot values.
     pub(in crate::nns) fn invalid(path: &Path, reason: String) -> Self {
         Self {
-            governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-            cache_status: CacheValidationStatus::Invalid,
-            cache_error: Some(reason),
-            complete: false,
-            point_in_time_guaranteed: false,
-            row_count: 0,
-            page_count: 0,
-            page_size: 0,
-            fetched_at: String::new(),
-            source_endpoint: String::new(),
             cache_path: path.display().to_string(),
+            admission: NnsGovernanceCacheAdmission::Invalid {
+                cache_error: reason,
+            },
         }
     }
 }
@@ -128,7 +177,7 @@ pub struct NnsGovernanceCacheStatusReport {
     /// Requested cache network namespace.
     pub network: String,
     /// Inspected collection, neurons or proposals.
-    pub collection: String,
+    pub collection: crate::nns::governance::NnsGovernanceCollection,
     /// Directory containing the expected snapshot.
     pub cache_root: String,
     /// Whether the expected snapshot exists, including invalid content.
@@ -147,7 +196,7 @@ impl NnsGovernanceCacheStatusReport {
     /// Assemble status from family-owned loading and attempt admission.
     pub(in crate::nns) fn from_cache(
         request: &NnsGovernanceCacheRequest,
-        collection: &str,
+        collection: crate::nns::governance::NnsGovernanceCollection,
         paths: &SnapshotJsonPaths,
         cache: Option<NnsGovernanceCacheSummary>,
         latest_attempt: Option<crate::cache::SnapshotRefreshAttemptStatus>,
@@ -155,7 +204,7 @@ impl NnsGovernanceCacheStatusReport {
         Self {
             schema_version: 1,
             network: request.network.clone(),
-            collection: collection.to_string(),
+            collection,
             cache_root: paths
                 .snapshot_path
                 .parent()

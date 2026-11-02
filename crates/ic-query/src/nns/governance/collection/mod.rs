@@ -6,7 +6,10 @@
 
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 mod cache;
-pub use cache::{NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary};
+pub use cache::{
+    NnsGovernanceCacheAdmission, NnsGovernanceCacheStatusReport, NnsGovernanceCacheSummary,
+    NnsGovernanceValidCacheSummary,
+};
 pub(in crate::nns) use cache::{
     build_governance_cache_status_report, validate_governance_cache_completeness,
 };
@@ -130,7 +133,7 @@ pub struct NnsGovernanceRefreshReport {
     /// Number of rows in the published collection.
     pub row_count: usize,
     /// Published collection, either neurons or proposals.
-    pub collection: String,
+    pub collection: crate::nns::governance::NnsGovernanceCollection,
     /// Whether the complete snapshot was published.
     pub wrote_cache: bool,
     /// Page size used for the walk.
@@ -163,6 +166,7 @@ impl NnsGovernanceRefreshReport {
     /// Project the snapshot only after its publication succeeded.
     pub(in crate::nns) fn from_snapshot<Rows>(
         cache: &SnapshotEnvelope<NnsGovernanceCacheMetadata, Rows>,
+        collection: crate::nns::governance::NnsGovernanceCollection,
         paths: &SnapshotJsonPaths,
         replaced_existing_cache: bool,
         attempt_finalization_error: Option<String>,
@@ -172,7 +176,7 @@ impl NnsGovernanceRefreshReport {
             network: cache.network.clone(),
             governance_canister_id: cache.metadata.governance_canister_id.clone(),
             row_count: cache.completeness.row_count,
-            collection: cache.collection.clone(),
+            collection,
             page_size: cache.completeness.page_size,
             page_count: cache.completeness.page_count,
             complete: cache.completeness.is_api_exhausted(),

@@ -30,6 +30,13 @@ Query has no presentation dependency or renderer compatibility re-exports.
 Text and CLI share one release group; Query and its unpublished fixture package
 share the other. Both groups retain full repository CI and one dependency graph.
 
+Human-facing detail and ballot visibility are caller-supplied `TextOptions`.
+Acquisition requests and typed/JSON reports do not store those display choices.
+Paged collectors emit collection identity, admitted counters, target and lifecycle
+state; the CLI owns progress wording and terminal escaping. NNS neuron reports
+share `ReportProvenance`, and Governance collection names use a typed identity.
+See the [0.87 consumer actions](../../releases/query/0.87.md).
+
 Dependencies own the reusable mechanisms beneath that policy:
 
 | Capability | Canonical dependency | Query integration that remains |

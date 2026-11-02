@@ -21,3 +21,5 @@ mod token_metadata_text;
 
 #[cfg(test)]
 mod tests;
+
+pub use report::TextOptions;

@@ -480,7 +480,11 @@ fn neuron_row(
 
 fn proposal_with_decision_state(decision_state: SnsProposalDecisionState) -> SnsProposalRow {
     SnsProposalRow {
-        decision_state,
+        failed_timestamp_seconds: (decision_state == SnsProposalDecisionState::Failed).then_some(1),
+        executed_timestamp_seconds: (decision_state == SnsProposalDecisionState::Executed)
+            .then_some(1),
+        decided_timestamp_seconds: (decision_state == SnsProposalDecisionState::Decided)
+            .then_some(1),
         ..proposal_row(1, 100)
     }
 }
@@ -538,7 +542,11 @@ fn proposal_with_decision_state_and_id(
 ) -> SnsProposalRow {
     SnsProposalRow {
         proposal_id,
-        decision_state,
+        failed_timestamp_seconds: (decision_state == SnsProposalDecisionState::Failed).then_some(1),
+        executed_timestamp_seconds: (decision_state == SnsProposalDecisionState::Executed)
+            .then_some(1),
+        decided_timestamp_seconds: (decision_state == SnsProposalDecisionState::Decided)
+            .then_some(1),
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -584,7 +592,14 @@ fn proposal_row_with_tally(
 
 fn proposal_row_with_ballot_count(proposal_id: u64, ballot_count: usize) -> SnsProposalRow {
     SnsProposalRow {
-        ballot_count,
+        ballots: (0..ballot_count)
+            .map(|index| crate::sns::SnsProposalBallotRow {
+                neuron_id: index.to_string(),
+                vote: 1,
+                cast_timestamp_seconds: 1,
+                voting_power: 1,
+            })
+            .collect(),
         ..proposal_row(proposal_id, 100)
     }
 }
@@ -647,7 +662,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
         title: String::new(),
         summary: String::new(),
         url: None,
-        decision_state: SnsProposalDecisionState::Open,
+
         status: None,
         topic: None,
         reject_cost_e8s: 0,
@@ -660,7 +675,7 @@ fn proposal_row(proposal_id: u64, created_at_secs: u64) -> SnsProposalRow {
         reward_event_end_timestamp_seconds: None,
         is_eligible_for_rewards: false,
         latest_tally: None,
-        ballot_count: 0,
+
         ballots: Vec::new(),
         payload_text_rendering: None,
         proposer_neuron_id: None,

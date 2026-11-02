@@ -24,7 +24,6 @@ pub(in crate::nns) fn neuron_list_request(
             governance,
             limit: required_typed(matches, "limit"),
             exclusive_start_neuron_id: typed_option(matches, "start-neuron-id"),
-            verbose: matches.get_flag("verbose"),
         },
     )
 }
@@ -38,7 +37,6 @@ pub(in crate::nns) fn neuron_info_request(
         NnsCommonOptions::from_matches(matches, network).into_governance_request(now_unix_secs);
     (
         format,
-        NnsNeuronInfoRequest::new(governance, required_typed(matches, "neuron-id"))
-            .with_verbose(matches.get_flag("verbose")),
+        NnsNeuronInfoRequest::new(governance, required_typed(matches, "neuron-id")),
     )
 }

@@ -265,3 +265,17 @@ pub enum SnsHostError {
         duplicate_role: String,
     },
 }
+
+impl From<super::SnsLookupError> for SnsHostError {
+    fn from(error: super::SnsLookupError) -> Self {
+        Self::InvalidLookup { input: error.input }
+    }
+}
+
+impl From<super::SnsProposalViewError> for SnsHostError {
+    fn from(error: super::SnsProposalViewError) -> Self {
+        Self::UnsupportedProposalView {
+            reason: error.to_string(),
+        }
+    }
+}

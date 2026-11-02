@@ -5,14 +5,14 @@ const NEURON_ID: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1
 
 #[test]
 fn sns_neuron_info_parses_exact_id_and_json_format() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_neuron_info_command(),
         &["1", NEURON_ID, "--json"],
         |m, n| neuron_request(m, n, 1_780_531_200),
     )
     .expect("parse neuron info");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.neuron_id, NEURON_ID);
 }
@@ -42,7 +42,7 @@ fn sns_neurons_parses_owner_limit_and_json_format() {
     )
     .expect("parse neurons");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");
@@ -59,7 +59,6 @@ fn sns_neurons_parses_owner_limit_and_json_format() {
         options.collection,
         ic_query::sns::SnsNeuronCollection::Live { .. }
     ));
-    assert!(options.verbose);
 }
 
 #[test]
@@ -81,7 +80,7 @@ fn sns_neurons_allows_large_limits_for_cached_sorts() {
     )
     .expect("parse cached neurons sort");
 
-    assert_eq!(options.lookup.input, "be2us-64aaa-aaaaa-qaabq-cai");
+    assert_eq!(options.lookup.input(), "be2us-64aaa-aaaaa-qaabq-cai");
     assert_eq!(options.limit, 500);
     assert!(matches!(
         options.collection,
@@ -94,7 +93,7 @@ fn sns_neurons_allows_large_limits_for_cached_sorts() {
 
 #[test]
 fn sns_neurons_refresh_parses_page_controls() {
-    let (format, options) = parse_test_options(
+    let (format, options) = parse_fallible_test_options(
         sns_neuron_refresh_command(),
         &[
             "1",
@@ -117,7 +116,7 @@ fn sns_neurons_refresh_parses_page_controls() {
     )
     .expect("parse neurons refresh");
 
-    assert_eq!(options.lookup.input, "1");
+    assert_eq!(options.lookup.input(), "1");
     assert_eq!(options.lookup.network, "ic");
     assert_eq!(format, OutputFormat::Json);
     assert_eq!(options.lookup.source_endpoint, "https://icp-api.io");

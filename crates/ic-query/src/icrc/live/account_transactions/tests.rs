@@ -1,4 +1,5 @@
 use super::*;
+use crate::QueryProgressState;
 use crate::icrc::live::test_support::replied_query_fixture;
 use crate::{QueryProgressEvent, icrc::IcrcAccountTransactionCacheRequest};
 use ic_platform::candid::contract::{CandidType, Nat};
@@ -111,21 +112,15 @@ async fn paging_preserves_empty_and_nonempty_exhaustion_and_progress_text() {
             events,
             [
                 QueryProgressEvent::PagedRefresh {
-                    text: "refreshing ICRC account transactions: pages=0 rows=0".to_string(),
+                    progress: account_progress(0, 0),
                     state: QueryProgressState::Running,
                 },
                 QueryProgressEvent::PagedRefresh {
-                    text: format!(
-                        "refreshing ICRC account transactions: pages=1 rows={}",
-                        ids.len()
-                    ),
+                    progress: account_progress(1, ids.len()),
                     state: QueryProgressState::Running,
                 },
                 QueryProgressEvent::PagedRefresh {
-                    text: format!(
-                        "refreshing ICRC account transactions: pages=1 rows={}",
-                        ids.len()
-                    ),
+                    progress: account_progress(1, ids.len()),
                     state: QueryProgressState::Complete,
                 },
             ]
@@ -144,8 +139,8 @@ async fn page_ceiling_retains_index_cursor_and_diagnostic_before_another_fetch()
     );
     assert!(
         matches!(events.last(), Some(QueryProgressEvent::PagedRefresh {
-        state: QueryProgressState::Stopped, text,
-    }) if text == "refreshing ICRC account transactions: pages=1 rows=1")
+        state: QueryProgressState::Stopped, progress,
+    }) if progress.pages_fetched == 1 && progress.rows_fetched == 1)
     );
 }
 
@@ -163,8 +158,8 @@ async fn invalid_pages_fail_before_advancing_collection_progress() {
     ));
     assert!(
         matches!(events.last(), Some(QueryProgressEvent::PagedRefresh {
-        state: QueryProgressState::Failed, text,
-    }) if text == "refreshing ICRC account transactions: pages=0 rows=0")
+        state: QueryProgressState::Failed, progress,
+    }) if progress.pages_fetched == 0 && progress.rows_fetched == 0)
     );
 }
 
@@ -190,7 +185,16 @@ async fn query_failures_retain_previously_accepted_progress_and_original_error()
     );
     assert!(
         matches!(events.last(), Some(QueryProgressEvent::PagedRefresh {
-        state: QueryProgressState::Failed, text,
-    }) if text == "refreshing ICRC account transactions: pages=1 rows=1")
+        state: QueryProgressState::Failed, progress,
+    }) if progress.pages_fetched == 1 && progress.rows_fetched == 1)
     );
+}
+
+fn account_progress(pages_fetched: u32, rows_fetched: usize) -> crate::PagedQueryProgress {
+    crate::PagedQueryProgress {
+        collection: crate::QueryProgressCollection::IcrcAccountTransactions,
+        target: None,
+        pages_fetched,
+        rows_fetched,
+    }
 }

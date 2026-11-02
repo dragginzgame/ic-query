@@ -17,6 +17,38 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::fmt;
 
 pub use classification::NnsGovernanceVote;
+
+///
+/// NnsGovernanceCollection
+///
+/// Supported complete Governance collections, independent of their lifecycle status.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NnsGovernanceCollection {
+    /// Public Governance neurons.
+    Neurons,
+    /// Governance proposals.
+    Proposals,
+}
+
+impl NnsGovernanceCollection {
+    /// Stable collection identity used by reports and snapshot paths.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Neurons => "neurons",
+            Self::Proposals => "proposals",
+        }
+    }
+}
+
+impl fmt::Display for NnsGovernanceCollection {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
 pub(in crate::nns) use classification::{
     deserialize_code_label, native_code_classification, native_optional_code_classification,
 };

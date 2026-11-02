@@ -131,12 +131,14 @@ async fn run_sns_list(matches: &ArgMatches, network: &str) -> Result<(), SnsComm
     let report =
         build_sns_list_report_from_cache_or_refresh(&request, &cache_root()?, &mut progress)
             .await?;
-    write_text_or_json(format, &report, sns_list_cli_text)
+    write_text_or_json(format, &report, |report| {
+        sns_list_cli_text(report, crate::cli::common::report_text_options(matches))
+    })
 }
 
-fn sns_list_cli_text(report: &SnsListReport) -> String {
+fn sns_list_cli_text(report: &SnsListReport, options: ic_query_text::TextOptions) -> String {
     let color = io::stdout().is_terminal() && env::var_os("NO_COLOR").is_none();
-    sns_list_report_text_with_metadata_style(report, |status, failed| {
+    sns_list_report_text_with_metadata_style(report, options, |status, failed| {
         if color {
             let color = if failed { ANSI_RED } else { ANSI_GREEN };
             format!("{color}{status}{ANSI_RESET}")

@@ -10,10 +10,9 @@ use std::sync::Mutex;
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_report_uses_names_and_compact_ids_by_default() {
-    let report =
-        build_sns_list_report_with_source(&list_request(false), &FixtureSnsDiscoverySource)
-            .await
-            .expect("sns list report");
+    let report = build_sns_list_report_with_source(&list_request(), &FixtureSnsDiscoverySource)
+        .await
+        .expect("sns list report");
 
     assert_eq!(report.schema_version, SNS_LIST_REPORT_SCHEMA_VERSION);
     assert_eq!(report.network, MAINNET_NETWORK);
@@ -22,7 +21,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert_eq!(report.catalog_sns_count, 1);
     assert_eq!(report.excluded_sns_count, 0);
     assert_eq!(report.sns_count, 1);
-    assert!(!report.verbose);
+
     assert_eq!(report.sort, "id");
     assert_eq!(report.sns_instances[0].id, 1);
     assert_eq!(report.sns_instances[0].name, "Fixture SNS");
@@ -50,7 +49,7 @@ async fn sns_list_catalog_refreshes_missing_and_stale_but_reuses_fresh_cache() {
     let root = temp_dir("ic-query-sns-catalog-policy");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
 
     let first = build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
@@ -99,7 +98,7 @@ async fn sns_list_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let root = temp_dir("ic-query-invalid-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
@@ -202,7 +201,7 @@ async fn sns_list_refreshes_invalid_catalog_content() {
         let root = temp_dir(&format!("ic-query-incompatible-sns-catalog-{case}"));
         let source = CountingDiscoverySource::default();
         let mut progress = crate::progress::IgnoreQueryProgress;
-        let request = list_request(false);
+        let request = list_request();
         build_sns_list_report_from_cache_or_refresh_with_source(
             &request,
             &root,
@@ -258,7 +257,7 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
     let root = temp_dir("ic-query-sns-catalog-views");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
@@ -279,7 +278,6 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
             let mut view = request.clone();
             view.all_lifecycles = all_lifecycles;
             view.sort = sort;
-            view.verbose = true;
             let live = build_sns_list_report_with_source(&view, &source)
                 .await
                 .expect("live view");
@@ -310,7 +308,7 @@ async fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
     let root = temp_dir("ic-query-sns-catalog-capacity");
     let source = UnsortedFixtureSnsDiscoverySource;
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
@@ -352,7 +350,7 @@ async fn sns_list_refreshes_future_dated_catalog() {
     let root = temp_dir("ic-query-future-sns-catalog");
     let source = CountingDiscoverySource::default();
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
@@ -397,7 +395,7 @@ async fn sns_list_refreshes_future_dated_catalog() {
 async fn failed_invalid_catalog_refresh_preserves_original_file() {
     let root = temp_dir("ic-query-failed-invalid-sns-catalog-refresh");
     let mut progress = crate::progress::IgnoreQueryProgress;
-    let request = list_request(false);
+    let request = list_request();
     build_sns_list_report_from_cache_or_refresh_with_source(
         &request,
         &root,
@@ -454,7 +452,7 @@ async fn sns_list_report_rejects_custom_inventory_provenance_and_identity_failur
     ] {
         let source = MutatingInventorySource(mutate);
         let errors = [
-            build_sns_list_report_with_source(&list_request(false), &source)
+            build_sns_list_report_with_source(&list_request(), &source)
                 .await
                 .expect_err("invalid custom SNS inventory must fail"),
             build_sns_info_report_with_source(&info_request("1"), &source)
@@ -489,7 +487,7 @@ async fn sns_list_report_rejects_inexact_metadata_results() {
     ] {
         let source = MutatingMetadataSource(mutate);
         for error in [
-            build_sns_list_report_with_source(&list_request(false), &source)
+            build_sns_list_report_with_source(&list_request(), &source)
                 .await
                 .expect_err("inexact catalog metadata must fail"),
             build_sns_info_report_with_source(&info_request("1"), &source)
@@ -520,12 +518,10 @@ async fn sns_list_report_rejects_inexact_lifecycle_results() {
         (empty_lifecycle_error, "lifecycle_error"),
         (untrimmed_lifecycle_error, "surrounding whitespace"),
     ] {
-        let error = build_sns_list_report_with_source(
-            &list_request(false),
-            &MutatingLifecycleSource(mutate),
-        )
-        .await
-        .expect_err("inexact custom SNS lifecycle must fail");
+        let error =
+            build_sns_list_report_with_source(&list_request(), &MutatingLifecycleSource(mutate))
+                .await
+                .expect_err("inexact custom SNS lifecycle must fail");
 
         assert!(matches!(
             error,
@@ -543,7 +539,7 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let source = MutatingLifecycleSource(|rows| {
         rows[0].outcome = Ok(99);
     });
-    let request = list_request(false).with_all_lifecycles(true);
+    let request = list_request().with_all_lifecycles(true);
     let live = build_sns_list_report_with_source(&request, &source)
         .await
         .expect("live unknown lifecycle");
@@ -589,11 +585,11 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
     let source = MutatingLifecycleSource(lifecycle_query_error);
-    let default_report = build_sns_list_report_with_source(&list_request(false), &source)
+    let default_report = build_sns_list_report_with_source(&list_request(), &source)
         .await
         .expect("default list with lifecycle error");
     let all_report =
-        build_sns_list_report_with_source(&list_request(false).with_all_lifecycles(true), &source)
+        build_sns_list_report_with_source(&list_request().with_all_lifecycles(true), &source)
             .await
             .expect("all list with lifecycle error");
 
@@ -607,15 +603,6 @@ async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
         all_report.sns_instances[0].lifecycle.error(),
         Some("get_lifecycle: query rejected")
     );
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn sns_list_report_verbose_text_keeps_full_ids() {
-    let report = build_sns_list_report_with_source(&list_request(true), &FixtureSnsDiscoverySource)
-        .await
-        .expect("sns list report");
-
-    assert!(report.verbose);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -645,7 +632,7 @@ async fn sns_info_resolves_root_principal() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_ids_follow_source_order() {
-    let request = list_request(false).with_all_lifecycles(true);
+    let request = list_request().with_all_lifecycles(true);
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsDiscoverySource)
         .await
         .expect("sns list report");
@@ -665,7 +652,7 @@ async fn sns_list_ids_follow_source_order() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_name_sort_keeps_stable_ids() {
-    let mut request = list_request(false);
+    let mut request = list_request();
     request.all_lifecycles = true;
     request.sort = SnsListSort::Name;
 
@@ -691,11 +678,11 @@ async fn sns_list_name_sort_keeps_stable_ids() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids() {
     let default_report =
-        build_sns_list_report_with_source(&list_request(false), &UnsortedFixtureSnsDiscoverySource)
+        build_sns_list_report_with_source(&list_request(), &UnsortedFixtureSnsDiscoverySource)
             .await
             .expect("default SNS list report");
     let all_report = build_sns_list_report_with_source(
-        &list_request(false).with_all_lifecycles(true),
+        &list_request().with_all_lifecycles(true),
         &UnsortedFixtureSnsDiscoverySource,
     )
     .await
@@ -719,12 +706,10 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_surfaces_metadata_fallbacks() {
-    let report = build_sns_list_report_with_source(
-        &list_request(true),
-        &MetadataErrorFixtureSnsDiscoverySource,
-    )
-    .await
-    .expect("sns list report");
+    let report =
+        build_sns_list_report_with_source(&list_request(), &MetadataErrorFixtureSnsDiscoverySource)
+            .await
+            .expect("sns list report");
 
     let info = build_sns_info_report_with_source(
         &info_request("1"),
@@ -779,7 +764,7 @@ async fn direct_lookup_enriches_only_the_resolved_sns() {
 async fn list_enriches_the_complete_inventory() {
     let source = RecordingDiscoverySource::default();
 
-    let report = build_sns_list_report_with_source(&list_request(false), &source)
+    let report = build_sns_list_report_with_source(&list_request(), &source)
         .await
         .expect("complete SNS list report");
 
@@ -852,7 +837,7 @@ async fn sns_list_rejects_local_network() {
         source_endpoint: DEFAULT_SNS_SOURCE_ENDPOINT.to_string(),
         now_unix_secs: 1_780_531_200,
         all_lifecycles: false,
-        verbose: false,
+
         sort: SnsListSort::Id,
     };
 

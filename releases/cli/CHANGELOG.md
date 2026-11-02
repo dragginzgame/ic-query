@@ -7,6 +7,22 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.87.0]
+
+### ⚠️ Breaking
+
+- Adopt Query 0.87's Rust and JSON contracts. Pass display options directly to
+  Text renderers; update script consumers and preserve required evidence before
+  refreshing changed SNS proposal and ICRC account-history snapshots.
+
+### 🧹 Cleanup
+
+- Preserve existing commands, flags and compact/expanded rendering while keeping
+  display choices out of collected reports. Format typed paging progress in one
+  CLI owner and omit invented metadata for invalid caches.
+
+Details and consumer actions: [0.87 notes](0.87.md).
+
 ## [0.86.0] - 2026-11-02
 
 ### ⚠️ Breaking
