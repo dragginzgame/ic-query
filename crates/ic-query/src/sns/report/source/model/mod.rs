@@ -9,7 +9,6 @@ pub(in crate::sns::report) mod list;
 mod metrics;
 mod neurons;
 mod proposals;
-mod reward;
 mod swap;
 mod token;
 mod upgrade;
@@ -37,10 +36,7 @@ pub(in crate::sns::report) use proposals::{
     validate_mainnet_sns_proposal, validate_mainnet_sns_proposal_page,
     validate_mainnet_sns_proposals, validate_sns_proposal_rows,
 };
-pub use reward::MainnetSnsRewardNeuronPage;
-pub(in crate::sns::report) use reward::{
-    SnsRewardCollectionState, validate_mainnet_sns_reward_neuron_page,
-};
+
 pub(in crate::sns::report) use swap::{
     SNS_SWAP_QUERY_COUNT, canonicalize_mainnet_sns_swap, sns_swap_component_method,
 };

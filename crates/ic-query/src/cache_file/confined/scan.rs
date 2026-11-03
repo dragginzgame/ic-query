@@ -1,6 +1,6 @@
 //! Module: cache_file::confined::scan
 //!
-//! Responsibility: bounded confined-cache discovery and regular-file removal.
+//! Responsibility: bounded confined-cache discovery.
 //! Does not own: cache schemas, path confinement, or atomic publication.
 //! Boundary: traverses capability-rooted directories without following symbolic links.
 
@@ -9,17 +9,17 @@ use super::CacheFileError;
 use super::capability_error;
 #[cfg(all(unix, feature = "host"))]
 use super::directory_options;
-#[cfg(all(unix, any(feature = "host", feature = "certified-subnet-catalog-host")))]
+#[cfg(all(unix, feature = "host"))]
 use super::open_managed_path_error;
 #[cfg(all(unix, feature = "sns-host"))]
 use super::validate_managed_file_mode;
 #[cfg(unix)]
 use super::{ConfinedCacheRoot, confinement_error};
-#[cfg(all(unix, any(feature = "host", feature = "certified-subnet-catalog-host")))]
+#[cfg(all(unix, feature = "host"))]
 use ic_host_fs::capability::CapabilityError;
 #[cfg(unix)]
 use ic_host_fs::capability::EntryKind;
-#[cfg(all(unix, any(feature = "certified-subnet-catalog-host", feature = "host")))]
+#[cfg(all(unix, feature = "host"))]
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -38,179 +38,6 @@ pub struct ManagedFileScan {
     pub paths: Vec<PathBuf>,
     /// Whether discovery reached its selected-file, visited-entry, or depth bound.
     pub truncated: bool,
-}
-
-///
-/// ManagedDirectoryFile
-///
-/// Validated regular file discovered directly beneath one managed directory.
-///
-
-#[cfg(feature = "certified-subnet-catalog-host")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ManagedDirectoryFile {
-    /// Confined display path beneath the caller-selected cache root.
-    pub path: PathBuf,
-    /// File length reported after opening and validating the regular file.
-    pub bytes: u64,
-}
-
-///
-/// ManagedDirectoryScan
-///
-/// Bounded exact-directory scan that never traverses child directories.
-///
-
-#[cfg(feature = "certified-subnet-catalog-host")]
-#[derive(Debug, Default, Eq, PartialEq)]
-pub struct ManagedDirectoryScan {
-    /// Canonically ordered validated regular files.
-    pub files: Vec<ManagedDirectoryFile>,
-    /// Whether another directory entry existed beyond the caller's ceiling.
-    pub truncated: bool,
-}
-
-///
-/// ManagedFileRemovalError
-///
-/// Confined removal failure that records whether unlinking completed before a sync error.
-///
-
-#[cfg(feature = "certified-subnet-catalog-host")]
-#[derive(Debug)]
-pub struct ManagedFileRemovalError {
-    /// Whether the file was unlinked before the failure occurred.
-    pub removed: bool,
-    /// Underlying confinement, removal, or directory-sync failure.
-    pub source: CacheFileError,
-}
-
-/// Scan only the regular files directly beneath one confined managed directory.
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub fn scan_managed_directory_files(
-    cache_root: &Path,
-    directory_path: &Path,
-    maximum_files: u64,
-) -> Result<ManagedDirectoryScan, CacheFileError> {
-    #[cfg(not(unix))]
-    {
-        let _ = (cache_root, directory_path, maximum_files);
-        Err(super::unsupported_platform())
-    }
-    #[cfg(unix)]
-    {
-        let Some(root) = ConfinedCacheRoot::open(cache_root, false)? else {
-            return Ok(ManagedDirectoryScan::default());
-        };
-        let probe_path = directory_path.join(".icq-directory-probe");
-        let Some(directory) = root.resolve_parent(&probe_path, false)? else {
-            return Ok(ManagedDirectoryScan::default());
-        };
-        let entries = directory
-            .entry
-            .parent()
-            .entries(usize::try_from(maximum_files).unwrap_or(usize::MAX))
-            .map_err(|error| capability_error(cache_root, error))?;
-        let mut scan = ManagedDirectoryScan::default();
-        for entry in entries {
-            let entry = match entry {
-                Ok(entry) => entry,
-                Err(CapabilityError::EntryLimit { .. }) => {
-                    scan.truncated = true;
-                    break;
-                }
-                Err(error) => return Err(capability_error(cache_root, error)),
-            };
-            let path = directory_path.join(&entry.name);
-            if entry.kind == EntryKind::SymbolicLink {
-                return Err(confinement_error(
-                    cache_root,
-                    &path,
-                    "managed directory entry is a symbolic link",
-                ));
-            }
-            if entry.kind != EntryKind::File {
-                return Err(confinement_error(
-                    cache_root,
-                    &path,
-                    "managed directory entry is not a regular file",
-                ));
-            }
-            let managed = root.resolve_parent(&path, false)?.ok_or_else(|| {
-                open_managed_path_error(
-                    cache_root,
-                    &path,
-                    io::Error::new(
-                        io::ErrorKind::NotFound,
-                        "managed directory entry disappeared during discovery",
-                    ),
-                )
-            })?;
-            let file = managed.open_regular_file()?.ok_or_else(|| {
-                open_managed_path_error(
-                    cache_root,
-                    &path,
-                    io::Error::new(
-                        io::ErrorKind::NotFound,
-                        "managed directory entry disappeared during discovery",
-                    ),
-                )
-            })?;
-            let bytes = file
-                .metadata()
-                .map_err(|source| open_managed_path_error(cache_root, &path, source))?
-                .len();
-            scan.files.push(ManagedDirectoryFile { path, bytes });
-        }
-        scan.files.sort_by(|left, right| left.path.cmp(&right.path));
-        Ok(scan)
-    }
-}
-
-/// Remove one confined regular file and synchronize its parent directory.
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub fn remove_managed_regular_file(
-    cache_root: &Path,
-    target_path: &Path,
-) -> Result<bool, ManagedFileRemovalError> {
-    #[cfg(not(unix))]
-    {
-        let _ = (cache_root, target_path);
-        Err(removal_not_completed(super::unsupported_platform()))
-    }
-    #[cfg(unix)]
-    {
-        let Some(root) =
-            ConfinedCacheRoot::open(cache_root, false).map_err(removal_not_completed)?
-        else {
-            return Ok(false);
-        };
-        let Some(target) = root
-            .resolve_parent(target_path, false)
-            .map_err(removal_not_completed)?
-        else {
-            return Ok(false);
-        };
-        let Some(file) = target.open_regular_file().map_err(removal_not_completed)? else {
-            return Ok(false);
-        };
-        drop(file);
-        target
-            .entry
-            .remove_file_and_sync()
-            .map_err(|error| ManagedFileRemovalError {
-                removed: error.removed,
-                source: capability_error(cache_root, error.source),
-            })
-    }
-}
-
-#[cfg(feature = "certified-subnet-catalog-host")]
-const fn removal_not_completed(source: CacheFileError) -> ManagedFileRemovalError {
-    ManagedFileRemovalError {
-        removed: false,
-        source,
-    }
 }
 
 /// Traverse a cache root without following links and retain selected regular files.
@@ -470,7 +297,7 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
-    #[cfg(all(unix, feature = "certified-subnet-catalog-host", feature = "sns-host"))]
+    #[cfg(all(unix, feature = "sns-host"))]
     #[test]
     fn zero_budget_scans_project_unadmitted_entries_without_following_them() {
         let root = temp_dir("ic-query-zero-scan-budget");
@@ -480,9 +307,6 @@ mod tests {
         assert!(inventory.root_found);
         assert!(inventory.truncated);
         assert_eq!(inventory.paths, Vec::<PathBuf>::new());
-        let exact = scan_managed_directory_files(&root, &root, 0).unwrap();
-        assert!(exact.truncated);
-        assert_eq!(exact.files, Vec::<ManagedDirectoryFile>::new());
         assert!(matches!(
             collect_managed_collection_files(&root, &root, "proposals", "full.json", 0),
             Err(CacheFileError::ScanLimitExceeded {

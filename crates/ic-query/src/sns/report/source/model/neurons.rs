@@ -160,7 +160,7 @@ pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
         )));
     }
 
-    validate_neuron_permissions(&neuron.permissions, true).map_err(invalid_neuron_detail)?;
+    validate_neuron_permissions(&neuron.permissions).map_err(invalid_neuron_detail)?;
     validate_maturity_disbursements(&neuron.disburse_maturity_in_progress)
         .map_err(invalid_neuron_detail)?;
 

@@ -88,7 +88,7 @@ async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_eviden
         .await
         .expect("bounded account list");
 
-    assert_eq!(account.returned_count, 1);
+    assert_eq!(account.rows.len(), 1);
     assert_eq!(account.next_cursor.as_deref(), Some(ICRC_ACCOUNT_ID));
     assert_eq!(account.rows[0].created_at_unix_secs, 1_731_833_720);
     assert_eq!(account.rows[0].created_at_subsec_nanos, 56_622_711);
@@ -178,7 +178,7 @@ async fn icrc_token_values_preserve_raw_external_rows_bounds_and_provenance() {
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
     assert_eq!(report.query, request.query);
-    assert_eq!(report.returned_row_count, 2);
+    assert_eq!(report.rows.len(), 2);
     assert!(report.limit_reached);
     assert_eq!(report.rows[0].price.as_deref(), Some("63710.86993032754"));
     assert_eq!(report.rows[1].volume_24h, None);
@@ -261,7 +261,7 @@ async fn icrc_total_supply_preserves_raw_values_bounds_and_dashboard_provenance(
     assert_eq!(report.ledger_canister_id, ICRC_LEDGER_ID);
     assert_eq!(report.query, request.query);
     assert_eq!(report.requested_observation_limit, 4);
-    assert_eq!(report.returned_observation_count, 2);
+    assert_eq!(report.observations.len(), 2);
     assert_eq!(
         report.observations[0].total_supply_base_units,
         "23326766272"
@@ -340,7 +340,7 @@ async fn boundary_node_data_centers_preserve_raw_locations_zero_counts_and_prove
         .expect("boundary-node data centers");
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
-    assert_eq!(report.data_center_count, 2);
+    assert_eq!(report.rows.len(), 2);
     assert_eq!(report.total_node_count, 2);
     assert_eq!(report.rows[0].dc_id, "fr1");
     assert_eq!(report.rows[0].total_nodes, "0");
@@ -390,7 +390,7 @@ async fn daily_stats_preserve_raw_rates_bounds_and_canonical_day_order() {
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
-    assert_eq!(report.returned_day_count, 2);
+    assert_eq!(report.rows.len(), 2);
     assert_eq!(report.rows[0].day, "2026-07-30");
     assert_eq!(report.rows[1].day, "2026-07-31");
     assert_eq!(
@@ -467,31 +467,20 @@ async fn metric_report_preserves_raw_values_bounds_and_dashboard_provenance() {
 
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.query, request.query);
-    assert_eq!(report.returned_series_count, 1);
-    assert_eq!(report.returned_observation_count, 2);
+    assert_eq!(report.series.len(), 1);
+    assert_eq!(
+        report
+            .series
+            .iter()
+            .map(|series| series.observations.len())
+            .sum::<usize>(),
+        2
+    );
     assert_eq!(report.series[0].name, "instruction_rate");
     assert_eq!(report.series[0].observations[0].value, "21089992048.10834");
     assert_eq!(report.provenance.authority, "official_ic_dashboard_api");
     assert!(!report.provenance.certified);
     assert!(!report.provenance.point_in_time_guaranteed);
-}
-
-#[tokio::test(flavor = "current_thread")]
-async fn cycle_burn_metric_formats_text_and_preserves_raw_json() {
-    let mut report =
-        build_ic_metric_report_with_source(&metric_request(), &MetricFixture::default())
-            .await
-            .expect("bounded Dashboard metric report");
-    report.query.metric = IcMetricKind::CycleBurnRate;
-    report.series[0].name = "cycle_burn_rate".to_string();
-    report.series[0].observations[0].value = "40067084771.847176".to_string();
-
-    let json = serde_json::to_value(&report).expect("serialize cycle-burn metric report");
-
-    assert_eq!(
-        json["series"][0]["observations"][0]["value"],
-        "40067084771.847176"
-    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -927,7 +916,7 @@ async fn canister_page_returns_one_validated_slice_without_following_cursor() {
     assert_eq!((*source.page_calls.lock().unwrap()), 1);
     assert_eq!((*source.count_calls.lock().unwrap()), 0);
     assert_eq!(report.requested_limit, 2);
-    assert_eq!(report.returned_count, 2);
+    assert_eq!(report.rows.len(), 2);
     assert_eq!(report.rows[0].canister_id, PAGE_CANISTER_ID);
     assert_eq!(report.next_cursor.as_deref(), Some(PAGE_NEXT_CANISTER_ID));
     assert_eq!(

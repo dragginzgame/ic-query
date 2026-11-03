@@ -94,14 +94,11 @@ pub(in crate::ic) fn replica_version_list_report_from_source(
     )?;
     validate_list_rows(&mut source.rows)?;
 
-    let returned_count = source.rows.len();
-
     Ok(IcReplicaVersionListReport {
         provenance: report_provenance(source.source),
         query: source.query,
         resolved_max_proposal_index: source.resolved_max_proposal_index,
         total_proposals: source.total_proposals,
-        returned_count,
         next_offset,
         rows: source.rows,
     })
@@ -127,7 +124,6 @@ pub(in crate::ic) fn replica_version_info_report_from_source(
     validate_subnet_rollouts(&mut source.release.subnets)?;
 
     Ok(IcReplicaVersionInfoReport {
-        subnet_count: source.release.subnets.len(),
         release: source.release,
         provenance: report_provenance(source.source),
     })
@@ -161,13 +157,6 @@ fn validate_list_rows(rows: &mut [IcReplicaVersionListRow]) -> Result<(), IcHost
         }
         previous_timestamp = Some(row.executed_timestamp_seconds);
         validate_subnet_rollouts(&mut row.subnets)?;
-        if row.subnet_count != row.subnets.len() {
-            return invalid_source(format!(
-                "row.subnet_count is {}, expected {} from returned Subnet rows",
-                row.subnet_count,
-                row.subnets.len()
-            ));
-        }
     }
     Ok(())
 }
@@ -238,7 +227,7 @@ mod tests {
 
         assert_eq!((*source.list_calls.lock().unwrap()), 1);
         assert_eq!((*source.info_calls.lock().unwrap()), 0);
-        assert_eq!(report.returned_count, 2);
+        assert_eq!(report.rows.len(), 2);
         assert_eq!(report.total_proposals, 3);
         assert_eq!(report.resolved_max_proposal_index, 438);
         assert_eq!(report.next_offset, Some(2));
@@ -265,7 +254,7 @@ mod tests {
         assert_eq!((*source.list_calls.lock().unwrap()), 0);
         assert_eq!(report.release.replica_version_id, VERSION_A);
         assert_eq!(report.release.summary, "Release notes\nwith raw detail");
-        assert_eq!(report.subnet_count, 2);
+        assert_eq!(report.release.subnets.len(), 2);
         assert_eq!(report.release.subnets[0].subnet_id, SUBNET_A);
         assert_eq!(report.release.subnets[1].subnet_id, SUBNET_B);
     }
@@ -488,7 +477,6 @@ mod tests {
             status,
             title: "Elect release".to_string(),
             url: "https://forum.dfinity.org/t/release/1".to_string(),
-            subnet_count: subnets.len(),
             subnets,
         }
     }

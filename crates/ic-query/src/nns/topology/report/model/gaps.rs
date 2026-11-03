@@ -13,7 +13,6 @@ pub struct NnsTopologyGapsReport {
     pub network: String,
     pub source_endpoint: String,
     pub status: NnsTopologyAssessmentStatus,
-    pub gap_count: usize,
     pub gaps: Vec<NnsTopologyGapRow>,
 }
 

@@ -14,39 +14,22 @@ use crate::{
             source::{NnsProposalSource, validate_proposal_page_size},
         },
     },
-    progress::IgnoreQueryProgress,
 };
 
 /// Refresh a complete NNS proposal snapshot using the live NNS proposal source.
 pub async fn refresh_nns_proposal_cache(
     request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
-    refresh_nns_proposal_cache_with_source(request, &LiveNnsSource::default()).await
-}
-
-/// Refresh a complete NNS proposal snapshot and emit structured progress events.
-pub async fn refresh_nns_proposal_cache_with_progress(
-    request: &NnsGovernanceRefreshRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
     refresh_nns_proposal_cache_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
-        progress,
+        &mut |_| {},
     )
     .await
 }
 
-/// Collect proposals through the supplied source and atomically publish a complete snapshot.
-pub async fn refresh_nns_proposal_cache_with_source(
-    request: &NnsGovernanceRefreshRequest,
-    source: &dyn NnsProposalSource,
-) -> Result<NnsGovernanceRefreshReport, NnsProposalHostError> {
-    let mut progress = IgnoreQueryProgress;
-    refresh_nns_proposal_cache_with_source_and_progress(request, source, &mut progress).await
-}
-
-pub(super) async fn refresh_nns_proposal_cache_with_source_and_progress(
+/// Refresh with a caller-owned source and progress sink.
+pub async fn refresh_nns_proposal_cache_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsProposalSource,
     progress: &mut dyn QueryProgress,

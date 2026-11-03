@@ -176,7 +176,7 @@ where
             Ok(icrc::run_matches(matches).await?)
         }
         "nns" => Ok(nns::run_matches(matches, network).await?),
-        "sns" => Ok(sns::run_matches(matches, network, selected_network.is_some()).await?),
+        "sns" => Ok(sns::run_matches(matches, network).await?),
         "system" => Ok(system::run_matches(matches, network).await?),
         _ => unreachable!("clap only returns declared top-level commands"),
     }

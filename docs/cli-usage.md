@@ -43,7 +43,6 @@ generated `help` entry.
 icq help
 icq help nns
 icq sns
-icq sns reward
 icq nns topology summary --help
 ```
 
@@ -584,9 +583,6 @@ icq sns neuron refresh 1
 icq sns neuron list be2us-64aaa-aaaaa-qaabq-cai --sort stake --limit 500
 icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
 
-icq sns reward checkpoint 1 --json
-icq sns reward checkpoint <sns-root-principal> --max-pages 10 --json
-icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 ```
 
 SNS neuron and proposal refresh results share schema 1. Their JSON reports
@@ -621,42 +617,9 @@ visible and make the affected neuron-local maturity policy observation
 unassessable. Including targeted discovery, the command makes exactly three
 queries and never reads or writes the complete neuron cache.
 
-`sns reward checkpoint` is a live API-exhausted observation, not a
-point-in-time proof. It strictly walks native 100-row neuron pages and retains
-each neuron's raw unstaked/staked maturity components, permissions, pending
-maturity disbursements and auto-stake state. Combined maturity and summary
-statistics are derived from that evidence. Complete nervous-system parameters, latest reward event,
-and running SNS version responses bracket the walk. Any bracket change,
-duplicate or overlapping id, invalid cursor, missing exhaustion evidence, or
-parameter-derived collection-bound violation fails without emitting a
-checkpoint.
-
-For `N` neuron pages the command makes `N + 8` client queries, including
-targeted discovery. It never queries ballots, ledgers, transactions, or one
-detail endpoint per neuron. `--max-pages` is an optional diagnostic ceiling;
-reaching it before exhaustion is an error, not a partial result. Text output
-is a bounded summary, while `--json` retains all raw neuron evidence for
-explicit caller-managed persistence. The command does not read or write the
-ordinary neuron cache and does not create a checkpoint file implicitly.
-
-`sns reward diff` is local-only. It accepts two explicitly selected current-
-schema checkpoint files of at most 64 MiB each and `--json`; it has no source
-endpoint and rejects an
-explicit global `--network`. Both files are untrusted input. The library
-recomputes raw maturity totals, row ids and order, permission findings,
-parameter/event/version brackets, timestamps, counts, and stable target
-principals before comparing them.
-
-Rows join by the full 32-byte neuron id and always retain the signed raw
-`maturity_delta_e8s_equivalent`. A positive allocation is reported only when
-both policies are observed satisfied, the after reward event is the immediate
-native successor by canonical end timestamp and round continuity, no neuron is
-missing or unexplained, every delta is non-negative, and both aggregate and
-per-neuron sums exactly equal the after event's
-`distributed_e8s_equivalent`. Exact zero distribution produces
-`no_allocation`; every failed invariant produces typed `invalid` evidence.
-The command never infers a beneficiary, never writes a file, and explicitly
-states that local checkpoint content is not authenticated.
+SNS reward checkpoint collection and local checkpoint diffs are retired in 0.89.
+Preserve any historical checkpoint files with the earlier reader needed to inspect
+them. Current commands do not load, migrate or delete those files.
 
 ## ICRC
 

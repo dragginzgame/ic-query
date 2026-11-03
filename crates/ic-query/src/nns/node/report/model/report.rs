@@ -14,7 +14,6 @@ pub struct NnsNodeListReport {
     /// Registry acquisition metadata, flattened in JSON.
     #[serde(flatten)]
     pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
-    pub node_count: usize,
     pub nodes: Vec<NnsNodeRow>,
 }
 
@@ -24,7 +23,6 @@ impl_nns_inventory_report!(
     super::super::NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
     "node",
     super::super::COLLECTION,
-    node_count,
     nodes,
     |_report: &NnsNodeListReport| None,
 );

@@ -9,7 +9,6 @@ mod lookup;
 mod metrics;
 mod neurons;
 mod proposals;
-mod reward;
 
 pub(super) use list::list_request;
 pub(super) use lookup::{
@@ -18,4 +17,3 @@ pub(super) use lookup::{
 pub(super) use metrics::metrics_request;
 pub(super) use neurons::{neuron_request, neurons_request};
 pub(super) use proposals::{proposal_request, proposals_request};
-pub(super) use reward::reward_checkpoint_request;

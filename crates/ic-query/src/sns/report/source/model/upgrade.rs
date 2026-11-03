@@ -76,18 +76,18 @@ pub(in crate::sns::report) fn canonicalize_mainnet_sns_upgrade(
 
     upgrade
         .deployed_version
-        .validate_hashes("deployed_version", None)
+        .validate_hashes("deployed_version")
         .map_err(|reason| VALIDATOR.invalid(reason))?;
     if let Some(pending) = &upgrade.pending_upgrade
         && let Some(version) = &pending.target_version
     {
         version
-            .validate_hashes("pending_upgrade.target_version", None)
+            .validate_hashes("pending_upgrade.target_version")
             .map_err(|reason| VALIDATOR.invalid(reason))?;
     }
     if let Some(version) = &upgrade.next_version {
         version
-            .validate_hashes("next_version", None)
+            .validate_hashes("next_version")
             .map_err(|reason| VALIDATOR.invalid(reason))?;
     }
     if let Some(gap) = &upgrade.next_version_gap {

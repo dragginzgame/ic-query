@@ -226,7 +226,6 @@ pub(in crate::ic) fn page_report_from_source(
         provenance: report_provenance(source.source),
         filters: source.filters,
         requested_limit: source.requested_limit,
-        returned_count: source.rows.len(),
         after: source.after,
         before: source.before,
         previous_cursor: source.previous_cursor,

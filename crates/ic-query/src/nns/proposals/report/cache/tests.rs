@@ -1,4 +1,4 @@
-use super::refresh::refresh_nns_proposal_cache_with_source;
+use super::refresh::refresh_nns_proposal_cache_with_source_and_progress;
 use super::reports::build_nns_proposal_activity_report_from_cache;
 use super::reports::build_nns_proposal_cache_list_report;
 use super::reports::build_nns_proposal_cache_status_report;
@@ -230,9 +230,13 @@ async fn nns_proposal_refresh_rejects_invalid_public_page_size() {
             1_700_000_000,
             page_size,
         );
-        let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
-            .await
-            .expect_err("page size must be in 1..=100");
+        let err = refresh_nns_proposal_cache_with_source_and_progress(
+            &request,
+            &FixtureSource,
+            &mut |_| {},
+        )
+        .await
+        .expect_err("page size must be in 1..=100");
         assert!(matches!(
             err,
             NnsProposalHostError::Proposal(NnsProposalError::InvalidLimit {
@@ -259,9 +263,10 @@ async fn nns_proposal_failed_refresh_preserves_page_progress() {
     )
     .with_max_pages(Some(1));
 
-    let err = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
-        .await
-        .expect_err("capped refresh is incomplete");
+    let err =
+        refresh_nns_proposal_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})
+            .await
+            .expect_err("capped refresh is incomplete");
 
     assert!(matches!(
         err,
@@ -305,9 +310,13 @@ async fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_i
         2,
     )
     .with_max_pages(Some(1));
-    let report = refresh_nns_proposal_cache_with_source(&request, &FullTerminalPageSource)
-        .await
-        .expect("id one proves exhaustion even with a full page");
+    let report = refresh_nns_proposal_cache_with_source_and_progress(
+        &request,
+        &FullTerminalPageSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("id one proves exhaustion even with a full page");
 
     assert!(report.complete);
     assert_eq!(report.page_count, 1);
@@ -340,9 +349,10 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
         max_pages: None,
     };
 
-    let report = refresh_nns_proposal_cache_with_source(&request, &FixtureSource)
-        .await
-        .expect("refresh cache");
+    let report =
+        refresh_nns_proposal_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})
+            .await
+            .expect("refresh cache");
 
     assert_eq!(report.network, MAINNET_NETWORK);
     assert_eq!(
@@ -478,7 +488,7 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
         ));
     }
 
-    refresh_nns_proposal_cache_with_source(
+    refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
@@ -488,6 +498,7 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
             max_pages: None,
         },
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("create complete snapshot");
@@ -537,7 +548,7 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-list-cache");
-    refresh_nns_proposal_cache_with_source(
+    refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
@@ -547,6 +558,7 @@ async fn nns_proposal_list_reads_existing_complete_cache_before_live_lookup() {
             max_pages: None,
         },
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh cache");
@@ -911,7 +923,7 @@ async fn nns_proposal_cache_status_reports_malformed_json() {
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache");
-    refresh_nns_proposal_cache_with_source(
+    refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
@@ -921,6 +933,7 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
             max_pages: None,
         },
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh cache");
@@ -958,7 +971,7 @@ async fn nns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_proposal() {
     let root = temp_dir("ic-query-nns-proposal-detail-cache-missing");
-    refresh_nns_proposal_cache_with_source(
+    refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
@@ -968,6 +981,7 @@ async fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_propos
             max_pages: None,
         },
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh cache");
@@ -985,7 +999,7 @@ async fn nns_proposal_detail_cache_lookup_returns_none_for_missing_cached_propos
 }
 
 async fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path::PathBuf {
-    refresh_nns_proposal_cache_with_source(
+    refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
             network: MAINNET_NETWORK.to_string(),
             source_endpoint: DEFAULT_MAINNET_ENDPOINT.to_string(),
@@ -995,6 +1009,7 @@ async fn refresh_fixture_nns_proposal_cache(root: &std::path::Path) -> std::path
             max_pages: None,
         },
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh cache");

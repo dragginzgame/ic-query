@@ -358,7 +358,6 @@ impl SubnetCatalogHostError {
             | Self::Catalog(
                 CatalogError::NetworkMismatch { .. }
                 | CatalogError::RegistryCanisterMismatch { .. }
-                | CatalogError::UnsupportedAssurance { .. }
                 | CatalogError::ClassificationPolicyVersionMismatch { .. }
                 | CatalogError::ClassificationPolicyDigestMismatch { .. }
                 | CatalogError::ResolverPolicyMismatch { .. }

@@ -8,20 +8,17 @@ use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
     MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsGovernanceParameters, SnsHostError,
-    SnsMetricsSource, SnsNeuronDetail, SnsNeuronId, SnsNeuronRow, SnsNeuronSource,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalRow, SnsProposalSource, SnsProposalTopicFilter,
-    SnsProposalsSource, SnsRewardEvent, SnsRewardSource, SnsRunningVersionResponse, SnsSwapSource,
-    SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource,
+    SnsDiscoverySource, SnsGovernanceParameters, SnsHostError, SnsMetricsSource, SnsNeuronDetail,
+    SnsNeuronId, SnsNeuronRow, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalRow,
+    SnsProposalSource, SnsProposalTopicFilter, SnsProposalsSource, SnsSwapSource, SnsTokenSource,
+    SnsUpgradeSource,
     live::fetch::{
         fetch_mainnet_sns_canisters, fetch_mainnet_sns_inventory, fetch_mainnet_sns_lifecycles,
         fetch_mainnet_sns_metadata, fetch_mainnet_sns_metrics, fetch_mainnet_sns_neuron,
         fetch_mainnet_sns_neuron_page, fetch_mainnet_sns_neurons, fetch_mainnet_sns_params,
         fetch_mainnet_sns_proposal, fetch_mainnet_sns_proposal_page, fetch_mainnet_sns_proposals,
-        fetch_mainnet_sns_reward_event, fetch_mainnet_sns_reward_neuron_page,
-        fetch_mainnet_sns_running_version, fetch_mainnet_sns_swap, fetch_mainnet_sns_token,
-        fetch_mainnet_sns_upgrade,
+        fetch_mainnet_sns_swap, fetch_mainnet_sns_token, fetch_mainnet_sns_upgrade,
     },
 };
 
@@ -221,48 +218,6 @@ impl SnsNeuronsSource for LiveSnsSource {
             limit,
             start_page_at,
             owner_principal_id,
-        ))
-    }
-}
-
-impl SnsRewardSource for LiveSnsSource {
-    fn fetch_sns_reward_running_version<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
-        Box::pin(fetch_mainnet_sns_running_version(self, request, sns))
-    }
-
-    fn fetch_sns_reward_parameters<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
-        Box::pin(fetch_mainnet_sns_params(self, request, sns))
-    }
-
-    fn fetch_sns_reward_event<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
-        Box::pin(fetch_mainnet_sns_reward_event(self, request, sns))
-    }
-
-    fn fetch_sns_reward_neuron_page<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        limit: u32,
-        start_page_at: Option<&'a SnsNeuronId>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>> {
-        Box::pin(fetch_mainnet_sns_reward_neuron_page(
-            self,
-            request,
-            sns,
-            limit,
-            start_page_at,
         ))
     }
 }

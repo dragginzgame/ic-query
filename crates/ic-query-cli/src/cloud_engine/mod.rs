@@ -22,7 +22,7 @@ use crate::{
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::CloudEngineHostError;
 use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT;
-use ic_query::cloud_engine::build_cloud_engine_list_report_with_progress;
+use ic_query::cloud_engine::build_cloud_engine_list_report_with_sources_and_progress;
 use ic_query::cloud_engine::build_cloud_engine_operator_report;
 use ic_query::cloud_engine::build_cloud_engine_prices_report;
 use ic_query::ic::IcHostError;
@@ -119,9 +119,11 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngine
         DEFAULT_STALE_AFTER_SECONDS,
     );
     let control_plane_request = source_request_at(matches, network, now_unix_secs);
-    let report = build_cloud_engine_list_report_with_progress(
+    let report = build_cloud_engine_list_report_with_sources_and_progress(
         &catalog_request,
         &control_plane_request,
+        &ic_query::nns::LiveNnsSource::default(),
+        &ic_query::cloud_engine::LiveCloudEngineSource::default(),
         &mut StderrQueryProgress::new(),
     )
     .await?;

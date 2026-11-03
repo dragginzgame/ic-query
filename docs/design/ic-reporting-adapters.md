@@ -44,7 +44,7 @@ Dependencies own the reusable mechanisms beneath that policy:
 | IC transport and standard values | `ic-platform` Agent/Candid/certification/ledger contracts | Explicit trust roots, endpoint admission, deadlines, evidence limits and authority-specific wire contracts |
 | Native file, process and text mechanics | Host's `ic-host-fs`, `ic-host-process`, `ic-host-artifacts`, `ic-host-text` and `ic-host-tools` | Managed-cache root/mode policy, protected export paths, family error projection, report layouts and smoke-harness interruption policy |
 | Bounded native HTTP response bodies | `ic-host-http` | Dashboard client, endpoint, status-before-body admission, byte ceiling, JSON decoding and public error projection |
-| Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification, replay and report projection |
+| Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification and report projection |
 | Canonical unsigned `u64` LEB128 and bounded ICRC chain evidence | Host Tools' `encoding` and `ledger-evidence` features | Field/error projection, certificate/witness authentication and transaction interpretation |
 | SHA-256 identities and streaming hashes | `ic-host-artifacts` | Exact cache-key encodings, canonical JSON and Registry provenance domains |
 | Strict bounded certificate CBOR decoding | `ic-host-tools/certificate` | Registry response ceiling, typed refusal, Agent authentication and original-byte evidence; direct CBOR encoding is fixture-only |
@@ -74,8 +74,8 @@ SNS Root, metrics, token and swap reports share `SnsInstanceContext` through
 the Governance principal. NNS proposal activity and neuron distribution carry
 `NnsGovernanceAnalyticsContext` directly into validation. These context records
 remain flattened in JSON; see the [0.84 Rust consumer update](../changelog/0.84.md).
-Registry authentication carries its existing certificate record through private
-version/witness/batch results without rebuilding its evidence fields.
+Registry latest-version authentication carries its certificate record directly
+into the version result.
 SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
 and list rows retain lifecycle evidence as `SnsLifecycleOutcome`: not collected,
 a raw value, or bounded failure. Complete catalog admission rejects uncollected
@@ -113,18 +113,18 @@ Foundation (Artifacts, FS, HTTP and Process), Build, Text, Host Tools and Testki
 Query selects published packages through one root catalog and lockfile with
 minimum and development Rust 1.99.1.
 
-Current production selections are Platform 0.18.0, canonical Types 0.17.0,
-Runtime 0.18.1, Foundation 0.74.1, Text 0.74.0
-and Host Tools 0.78.0. Build 0.74.0 is development tooling. Query and Host Tools
-share the current Platform/Types identities. Wire 0.15.0 remains development-only, selecting its core codec
-with unchanged protocol bytes and budgets.
+Current production selections are Platform 0.19.0, canonical Types 0.18.0,
+Runtime 0.19.0, Foundation 0.74.2, Text 0.74.1
+and Host Tools 0.79.0. Build 0.74.1 is development tooling. Query and Host Tools
+share the current Platform/Types identities. Wire 0.16.0 remains development-only, selecting its core codec
+for Query’s existing string frames and budgets.
 Query selects neither Wire's `platform-types` schemas nor its endpoint integration.
 
-Testkit 0.80.1 shares the current Platform, Types, Runtime and Foundation
+Testkit 0.81.0 shares the current Platform, Types, Runtime and Foundation
 identities and removes its private Metrics dependency. The complete workspace
 lockfile is Metrics-free. The unpublished native fixture selects the
-independent `ic-platform-pocket-ic` 0.18 client directly, matching Testkit's
-extension traits; required Candid fixture protocols still use Platform 0.18.
+independent `ic-platform-pocket-ic` 0.19 client directly, matching Testkit's
+extension traits; required Candid fixture protocols still use Platform 0.19.
 The client selects management DTOs 0.11 and retains the PocketIC 16.1.0 server
 protocol. The native fixture, server provisioning and installed acceptance remain
 separate from production Wasm graphs and source-only qualification.
@@ -133,9 +133,9 @@ Platform's root Principal is its canonical owned type. Required external Candid
 contracts and Agent/PocketIC calls retain the explicit external Principal from
 `candid::contract::Principal`. Query's existing conversions preserve raw identity
 bytes when crossing Host Registry helper and external protocol boundaries.
-Platform 0.18 supplies the current ICRC DTOs; canister runtime handles belong to
-canonical Runtime 0.18.0. Custom `IcrcTipCertificateSource` implementations return
-Platform 0.18's `ICRC3DataCertificate`; runtime consumers align on the canonical
+Platform 0.19 supplies the current ICRC DTOs; canister runtime handles belong to
+canonical Runtime 0.19.0. Custom `IcrcTipCertificateSource` implementations return
+Platform 0.19's `ICRC3DataCertificate`; runtime consumers align on the canonical
 Runtime owner.
 
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
@@ -146,7 +146,7 @@ deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by Platform 0.7.
 Required external Candid parsing and type checking remain in Testkit fixtures.
 External Agent and Candid identities remain shared. Query's canister
-runtime selects Platform 0.18's delegated canonical Runtime 0.18.0 IC0 and
+runtime selects Platform 0.19's delegated canonical Runtime 0.19.0 IC0 and
 executor, with one runtime owner and no registry executor or IC0 package in the
 Wasm normal/build graph. Embedders align their runtime suppliers, including
 timer/endpoint integrations, on this Runtime owner.
@@ -156,10 +156,10 @@ or compatibility wrapper is used in Query.
 
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
-Host Tools' `ledger_evidence::LedgerTip`. Adopting Host Tools 0.77 and Platform
-0.17 public identities requires the pending Query 0.84 minor release. Callers
-naming these Host types align their direct `ic-host-tools` dependency to 0.77.
-Serialized reports and schema-1 caches remain unchanged.
+Host Tools' `ledger_evidence::LedgerTip`. Current consumers align direct Host
+Tools dependencies to 0.79 and Platform dependencies to 0.19 where these public
+identities cross their API. The [Query 0.89 consumer notes](../../releases/query/0.89.md)
+cover the independent report/cache shape changes; schema identifiers remain 1.
 
 Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
@@ -225,8 +225,8 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Platform 0.18 delegates executor and IC0 ownership to canonical Runtime
-0.18.0; the canister graph excludes their former registry suppliers.
+graphs. Platform 0.19 delegates executor and IC0 ownership to canonical Runtime
+0.19.0; the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the
@@ -356,10 +356,8 @@ one trait per query.
 Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp
 evidence shares one `SnsMetricsSource` capability for Governance `get_metrics`
 rather than reconstructing treasury state through ledger-history scans.
-Exact neuron permission/followee detail uses `SnsNeuronSource`, while bracketed
-API-exhausted maturity checkpoint collection uses `SnsRewardSource`. Both
-capabilities remain on `LiveSnsSource`; variable-size detail and reward
-evidence do not expand the ordinary fixed-size neuron collection cache.
+Exact neuron permission/followee detail uses `SnsNeuronSource` on `LiveSnsSource`;
+variable-size detail does not expand the ordinary fixed-size neuron collection cache.
 Dashboard caller requests share `IcDashboardRequest` for their explicit API
 endpoint and collection clock. Parameterized requests compose it as `dashboard`,
 including CloudEngine Dashboard requests and the shared ICRC analytics target; node-status snapshot and boundary-node
@@ -610,33 +608,16 @@ does not claim cryptographic certification.
 The NNS Registry version report independently calls
 `get_certified_latest_version`, authenticates the certificate, and validates
 the committed `current_version` leaf. That bounded proof does not upgrade
-ordinary `get_value` evidence. `CatalogAssurance::Certified` is established
-only after a complete retained delta sequence is locally reauthenticated,
-replayed from version zero, matched exactly to its recomputed archive manifest,
-and projected through the shared catalog validator. The authority result keeps
-the validated catalog borrowed to that sealed archive; serialized provenance
-cannot recreate the capability. Promotion also requires an explicit caller
-observation time and maximum certificate age, retains the exact freshness
-decision, and rejects stale historical authority before catalog projection.
-Callers must also explicitly allow a historical pinned target or require it to
-equal the newest Registry version certified by any archive batch.
-The caller-runtime certified delta adapter returns at most one contiguous
-batch. Chunk-referenced values named by that batch are completed with bounded,
-SHA-256-verified `get_chunk` calls and exact call/byte accounting; later delta
-batches are never followed implicitly. The shared ordinary `get_value` path
-uses the same bounded chunk reconstruction without inheriting certified
-assurance.
+ordinary `get_value` evidence. Catalog assurance is limited to ordinary query
+or explicit multi-endpoint agreement. Registry archive/delta replay and the
+archive-backed catalog authority/cache are retired. Existing archive evidence
+must be preserved unchanged with its earlier reader; current library operations
+do not load, migrate, rewrite or delete it.
 
-Registry batches retain raw versions, mutations, chunk evidence and observed
-transport accounting. Their validator returns one checked derived summary; sealed
-authenticated batches bind that summary to an immutable report for replay and
-archive accounting. Mutation kinds derive from raw discriminants, and Text derives
-certificate UTC labels and evidence lengths. Source/restored-input quotas and
-raw-certificate reauthentication remain independent boundaries. The
-[0.88 hard cut](../../releases/query/0.88.md) replaces retained report shapes and
-their canonical byte identities. Preserve former archive objects, manifests and
-commitments unchanged; retire their capture roots from current consumers before
-selecting a new root. Current readers do not convert historical evidence.
+Ordinary Registry `get_value` retains bounded, SHA-256-verified chunk reconstruction
+and endpoint-isolated history transcripts. These checks remain independent of
+latest-version certificate verification. Text derives certificate UTC labels and
+evidence lengths from the raw version-report fields.
 
 ## Current Follow-Up Flows
 
@@ -697,31 +678,10 @@ selecting a new root. Current readers do not convert historical evidence.
   request. Resolved live or cache context owns acquisition identity and
   metadata, keeping cache provenance independent of the current request's
   endpoint and clock.
-- SNS reward checkpoint reporting strictly exhausts ordered native neuron
-  pages beneath the Governance parameter ceiling and brackets the walk with
-  complete parameters, latest reward event, and running version responses.
-  The collector derives exhaustion from an admitted page count and absence of
-  a next cursor, so initial and exhausted empty collections remain distinct
-  without storing a second completion flag. Starting bracket evidence is
-  validated before the walk; ending evidence must equal it in full. Final
-  checkpoint validation retains the checks against collection completion
-  time, and restored reports are independently validated.
-  `SnsRewardCheckpointReport::summary()` derives checked aggregates and policy
-  observations from those raw brackets and rows. Counts, collection ceilings and
-  human UTC labels are derived rather than stored alongside their inputs.
-  Checkpoints and diff references retain `MainnetSnsCanisters` through flattened
-  `canisters` identities. The [0.88 hard cut](../../releases/query/0.88.md) requires
-  explicit consumer updates and preservation of earlier checkpoint evidence.
-  The portable neuron model owns permission and pending-disbursement checks
-  shared by source admission and restored checkpoints. Exact detail still
-  requires permission principals; checkpoints preserve missing principals and
-  unknown codes as unassessable evidence. Each trust boundary runs those rules
-  independently. Both retain integer permission codes directly; Text derives
-  permission names. Exact detail derives its policy observations from permissions
-  and pending disbursements instead of storing independently editable results.
-  Local diff projection treats checkpoints as untrusted, recomputes their raw
-  policy and maturity evidence, and reports an allocation only after exact
-  immediate-event reconciliation.
+- Exact neuron detail retains raw integer permission codes and pending maturity
+  disbursements; Text derives permission names and the portable model derives
+  policy observations. Reward checkpoint/diff collection and persistence are
+  retired in 0.89; historical files remain caller-owned evidence.
 - NNS and SNS complete collections page until exhausted. Portable NNS proposal
   and public-neuron continuations expose one bounded call per advance for
   native or replicated canister collection, with caller-owned persistence and
@@ -902,7 +862,7 @@ Expansion should proceed in layers:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, reward checkpoints, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
+| 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value, proposal-activity, and public-neuron distribution reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
 | 2 | CloudEngine domain/operator operational evidence and stronger authority beyond the implemented provider footprint and explicit Type4 node health/detail | Extend the focused CloudEngine source owned by each authority; do not reconcile separately timed Dashboard aggregates or promote them to native/certified state |
@@ -935,3 +895,11 @@ existing principal, error and presence labels. See the
 SNS list text accepts a metadata-cell style callback after Host escaping and
 alignment. The callback receives the typed row's metadata failure state; the CLI
 owns terminal detection, `NO_COLOR` and ANSI selection.
+
+
+Returned array counts are derived, rather than stored alongside their rows, in the
+0.89 report contracts. NNS cache validation still admits provenance, schema and
+family evidence independently; it no longer compares a second declared row count.
+Topology Core owns numeric evidence and typed check statuses; Text owns percentage
+formatting and explanatory table details. Historical files are preserved across
+the schema-1 replacement and explicit cache refresh remains caller-controlled.

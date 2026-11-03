@@ -14,7 +14,7 @@ pub fn nns_data_center_list_report_text(report: &NnsDataCenterListReport) -> Str
     lines.push(format!(
         "data_centers: {} count {} fetched_at {}",
         terminal_text(&report.provenance.network),
-        report.data_center_count,
+        report.data_centers.len(),
         terminal_text(&report.provenance.fetched_at)
     ));
     if report.data_centers.is_empty() {

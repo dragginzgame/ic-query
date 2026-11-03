@@ -22,7 +22,6 @@ pub(super) fn fixture_catalog() -> RawSubnetCatalog {
             routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
             registry_records: Vec::new(),
             fetched_at: "2026-06-04T00:00:00Z".to_string(),
-            certified_registry: None,
             fetched_by: "fixture".to_string(),
             collector_version: "test".to_string(),
             classification_schema_version: CLASSIFICATION_SCHEMA_VERSION,

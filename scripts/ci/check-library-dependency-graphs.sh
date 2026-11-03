@@ -307,10 +307,6 @@ while IFS=$'	' read -r target feature _tests; do
       check_feature_graph "ic-query --features nns-host direct dependencies" nns-host 1 \
         "${forbidden_direct_nns_host_dependencies[@]}"
       ;;
-    native:certified-subnet-catalog-host)
-      check_feature_graph "ic-query --features certified-subnet-catalog-host direct dependencies" certified-subnet-catalog-host 1 \
-        "${forbidden_direct_nns_host_dependencies[@]}"
-      ;;
     native:sns-host)
       check_feature_graph "ic-query --features sns-host" sns-host all \
         "${forbidden_sns_host_dependencies[@]}"

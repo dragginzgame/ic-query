@@ -62,7 +62,6 @@ fn node_provider_info_rejects_ambiguous_prefix() {
             fetched_by: "test".to_string(),
         },
         governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
-        node_provider_count: 2,
         node_providers: vec![
             NnsNodeProviderRow {
                 node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),

@@ -36,7 +36,6 @@ pub async fn build_sns_metrics_report_with_source(
         &lookup.sns.canisters.governance_canister_id,
         request.time_window_seconds,
     )?;
-    let treasury_metric_count = metrics.treasury_metrics.len();
     Ok(SnsMetricsReport {
         schema_version: SNS_METRICS_REPORT_SCHEMA_VERSION,
         context: crate::sns::SnsInstanceContext::from_live(
@@ -45,7 +44,6 @@ pub async fn build_sns_metrics_report_with_source(
             lookup.sns.name,
             lookup.sns.canisters.root_canister_id,
         ),
-        treasury_metric_count,
         metrics,
     })
 }

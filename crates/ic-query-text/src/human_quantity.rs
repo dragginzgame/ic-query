@@ -6,9 +6,9 @@
 
 use ic_host_text::decimal::compact_decimal_text;
 use ic_host_text::escape::terminal_text;
-use std::fmt::Write;
+use ic_host_text::quantity::scaled_quantity_text;
 
-const CYCLE_UNITS: &[(u128, &str)] = &[
+const CYCLE_UNITS: &[(u64, &str)] = &[
     (1_000_000_000_000_000_000, "E"),
     (1_000_000_000_000_000, "P"),
     (1_000_000_000_000, "T"),
@@ -17,18 +17,18 @@ const CYCLE_UNITS: &[(u128, &str)] = &[
     (1_000, "k"),
     (1, ""),
 ];
-const BYTE_UNITS: &[(u128, &str)] = &[
-    (1_u128 << 60, "EiB"),
-    (1_u128 << 50, "PiB"),
-    (1_u128 << 40, "TiB"),
-    (1_u128 << 30, "GiB"),
-    (1_u128 << 20, "MiB"),
-    (1_u128 << 10, "KiB"),
+const BYTE_UNITS: &[(u64, &str)] = &[
+    (1_u64 << 60, "EiB"),
+    (1_u64 << 50, "PiB"),
+    (1_u64 << 40, "TiB"),
+    (1_u64 << 30, "GiB"),
+    (1_u64 << 20, "MiB"),
+    (1_u64 << 10, "KiB"),
     (1, "B"),
 ];
 
 pub fn cycle_count_text(value: u128) -> String {
-    scaled_quantity_text(value, CYCLE_UNITS, 1_000)
+    scaled_quantity_text(value, CYCLE_UNITS).expect("cycle unit divisors form a valid scale")
 }
 
 pub fn decimal_cycle_count_text(value: &str) -> String {
@@ -62,52 +62,13 @@ pub fn decimal_cycle_rate_text(value: &str) -> String {
 }
 
 pub fn byte_count_text(value: u128) -> String {
-    scaled_quantity_text(value, BYTE_UNITS, 1_024)
+    scaled_quantity_text(value, BYTE_UNITS).expect("byte unit divisors form a valid scale")
 }
 
 pub fn decimal_byte_count_text(value: &str) -> String {
     value
         .parse::<u128>()
         .map_or_else(|_| terminal_text(value).into_owned(), byte_count_text)
-}
-
-fn scaled_quantity_text(value: u128, units: &[(u128, &str)], radix: u128) -> String {
-    let mut unit_index = units
-        .iter()
-        .position(|(divisor, _)| value >= *divisor)
-        .unwrap_or(units.len() - 1);
-    let (mut whole, mut hundredths) = rounded_parts(value, units[unit_index].0);
-    if whole >= radix && unit_index > 0 {
-        unit_index -= 1;
-        (whole, hundredths) = rounded_parts(value, units[unit_index].0);
-    }
-
-    quantity_text(whole.to_string(), hundredths, units[unit_index].1)
-}
-
-fn quantity_text(mut number: String, hundredths: u128, unit: &str) -> String {
-    if hundredths != 0 {
-        write!(number, ".{hundredths:02}").expect("writing to a String cannot fail");
-        if hundredths.is_multiple_of(10) {
-            number.pop();
-        }
-    }
-    if !unit.is_empty() {
-        number.push(' ');
-        number.push_str(unit);
-    }
-    number
-}
-
-const fn rounded_parts(value: u128, divisor: u128) -> (u128, u128) {
-    let mut whole = value / divisor;
-    let remainder = value % divisor;
-    let mut hundredths = (remainder * 100 + divisor / 2) / divisor;
-    if hundredths == 100 {
-        whole += 1;
-        hundredths = 0;
-    }
-    (whole, hundredths)
 }
 
 #[cfg(test)]

@@ -16,7 +16,7 @@ pub fn nns_node_list_report_text(report: &NnsNodeListReport) -> String {
     lines.push(format!(
         "nodes: {} count {} fetched_at {}",
         terminal_text(&report.provenance.network),
-        report.node_count,
+        report.nodes.len(),
         terminal_text(&report.provenance.fetched_at)
     ));
     if report.nodes.is_empty() {

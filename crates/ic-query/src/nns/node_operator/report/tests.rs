@@ -63,7 +63,7 @@ async fn node_operator_report_uses_live_registry_source() {
     );
     assert_eq!(report.provenance.registry_version, 42);
     assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
-    assert_eq!(report.node_operator_count, 1);
+    assert_eq!(report.node_operators.len(), 1);
     assert_eq!(report.node_operators[0].node_operator_principal, "aaaaa-aa");
     assert_eq!(
         report.node_operators[0].node_provider_principal,
@@ -99,7 +99,6 @@ fn node_operator_report_fixture() -> NnsNodeOperatorListReport {
             source_endpoint: "https://icp-api.io".to_string(),
             fetched_by: "test".to_string(),
         },
-        node_operator_count: 1,
         node_operators: vec![NnsNodeOperatorRow {
             node_operator_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
             node_provider_principal: "aaaaa-aa".to_string(),
@@ -138,7 +137,6 @@ impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
                     source_endpoint: request.endpoint.clone(),
                     fetched_by: request.fetched_by.clone(),
                 },
-                node_operator_count: node_operators.len(),
                 node_operators,
             })
         })

@@ -41,7 +41,6 @@ impl NnsNodeOperatorSource for LiveNnsSource {
             Ok(NnsNodeOperatorListReport {
                 schema_version: NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
                 provenance,
-                node_operator_count: node_operators.len(),
                 node_operators,
             })
         })

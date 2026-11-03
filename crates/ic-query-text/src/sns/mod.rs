@@ -18,8 +18,6 @@ mod params;
 mod proposals;
 #[cfg(feature = "sns-host")]
 mod refresh;
-mod reward;
-mod reward_diff;
 mod swap;
 mod token;
 mod upgrade;
@@ -45,8 +43,7 @@ pub use crate::sns::proposals::sns_proposal_report_text;
 pub use crate::sns::proposals::sns_proposals_report_text;
 #[cfg(feature = "sns-host")]
 pub use crate::sns::refresh::sns_snapshot_refresh_report_text;
-pub use crate::sns::reward::sns_reward_checkpoint_report_text;
-pub use crate::sns::reward_diff::sns_reward_diff_report_text;
+
 pub use crate::sns::swap::sns_swap_report_text;
 pub use crate::sns::token::sns_token_report_text;
 pub use crate::sns::upgrade::sns_upgrade_report_text;

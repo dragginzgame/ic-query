@@ -8,13 +8,11 @@ use super::proposals::sns_topic_text;
 use crate::sns::report::{
     SnsHostError, SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronId,
-    SnsNeuronPermissionRow, SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsRewardCheckpointRow,
-    hex_bytes,
+    SnsNeuronPermissionRow, SnsNeuronRow, SnsNeuronTopicFolloweesRow, hex_bytes,
     live::types::{
         SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
         SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
-        SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceRewardNeuron,
-        SnsGovernanceTopicFollowees,
+        SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceTopicFollowees,
     },
 };
 
@@ -70,39 +68,6 @@ pub(in crate::sns::report::live) fn mainnet_sns_neuron(
             .map(|(function_id, followees)| legacy_followees(function_id, followees))
             .collect(),
         topic_followees: neuron.topic_followees.map(topic_followees_rows),
-    })
-}
-
-/// Convert one reward-checkpoint neuron projection into report evidence.
-pub(in crate::sns::report::live) fn sns_reward_checkpoint_row(
-    neuron: SnsGovernanceRewardNeuron,
-) -> Result<SnsRewardCheckpointRow, SnsHostError> {
-    let neuron_id = neuron_id_text(neuron.id)?;
-    let maturity_e8s_equivalent = neuron.maturity_e8s_equivalent;
-    let staked_maturity_e8s_equivalent = neuron.staked_maturity_e8s_equivalent;
-    maturity_e8s_equivalent
-        .checked_add(staked_maturity_e8s_equivalent.unwrap_or(0))
-        .ok_or(SnsHostError::RewardCheckpointArithmetic {
-            field: "combined_maturity_e8s_equivalent",
-        })?;
-    let permissions = neuron
-        .permissions
-        .into_iter()
-        .map(neuron_permission)
-        .collect::<Vec<_>>();
-    let disburse_maturity_in_progress = neuron
-        .disburse_maturity_in_progress
-        .into_iter()
-        .map(maturity_disbursement)
-        .collect::<Vec<_>>();
-    Ok(SnsRewardCheckpointRow {
-        neuron_id,
-        created_timestamp_seconds: neuron.created_timestamp_seconds,
-        maturity_e8s_equivalent,
-        staked_maturity_e8s_equivalent,
-        auto_stake_maturity: neuron.auto_stake_maturity,
-        permissions,
-        disburse_maturity_in_progress,
     })
 }
 
@@ -310,14 +275,9 @@ mod tests {
             let mut detail = detail_neuron();
             detail.id = id.clone();
             detail.permissions[0].principal = None;
-            let mut reward = reward_neuron();
-            reward.id = id;
-            reward.maturity_e8s_equivalent = u64::MAX;
-            reward.staked_maturity_e8s_equivalent = Some(1);
             for result in [
                 sns_neuron_row(list).map(|_| ()),
                 mainnet_sns_neuron(detail).map(|_| ()),
-                sns_reward_checkpoint_row(reward).map(|_| ()),
             ] {
                 let error = result.expect_err("reject invalid neuron identity first");
                 if missing {
@@ -340,55 +300,6 @@ mod tests {
                 neuron_id,
                 permission_index: 0,
             }) if neuron_id == "01".repeat(32)
-        ));
-    }
-
-    #[test]
-    fn reward_neuron_conversion_preserves_unassessable_and_disbursement_evidence() {
-        let mut neuron = reward_neuron();
-        neuron.permissions[0].principal = None;
-        neuron.permissions[0].permission_type = vec![11];
-
-        let row = sns_reward_checkpoint_row(neuron).expect("convert reward neuron");
-
-        assert_eq!(row.neuron_id, "01".repeat(32));
-        assert_eq!(row.maturity_e8s_equivalent, 10_000_000);
-        assert_eq!(row.staked_maturity_e8s_equivalent, Some(5_000_000));
-        assert_eq!(row.checked_combined_maturity().unwrap(), 15_000_000);
-        assert_eq!(row.permissions[0].principal, None);
-        assert_eq!(row.permissions[0].permission_types[0], 11);
-        assert_eq!(
-            crate::sns::sns_neuron_permission_name(row.permissions[0].permission_types[0]),
-            "unknown"
-        );
-        let disbursement = &row.disburse_maturity_in_progress[0];
-        let account = disbursement
-            .account_to_disburse_to
-            .as_ref()
-            .expect("destination account");
-        assert_eq!(account.owner.as_deref(), Some("2vxsx-fae"));
-        assert_eq!(account.subaccount_hex.as_deref(), Some(&*"ab".repeat(32)));
-        assert_eq!(
-            row.derived_policy_observations().0,
-            SnsPolicyObservationStatus::Violated
-        );
-        assert_eq!(
-            row.derived_policy_observations().1,
-            SnsPolicyObservationStatus::Unassessable
-        );
-    }
-
-    #[test]
-    fn reward_neuron_conversion_rejects_combined_maturity_overflow() {
-        let mut neuron = reward_neuron();
-        neuron.maturity_e8s_equivalent = u64::MAX;
-        neuron.staked_maturity_e8s_equivalent = Some(1);
-
-        assert!(matches!(
-            sns_reward_checkpoint_row(neuron),
-            Err(SnsHostError::RewardCheckpointArithmetic {
-                field: "combined_maturity_e8s_equivalent",
-            })
         ));
     }
 
@@ -456,19 +367,6 @@ mod tests {
                 )],
             }),
             neuron_fees_e8s: 10_000,
-        }
-    }
-
-    fn reward_neuron() -> SnsGovernanceRewardNeuron {
-        let detail = detail_neuron();
-        SnsGovernanceRewardNeuron {
-            id: detail.id,
-            staked_maturity_e8s_equivalent: detail.staked_maturity_e8s_equivalent,
-            permissions: detail.permissions,
-            maturity_e8s_equivalent: detail.maturity_e8s_equivalent,
-            created_timestamp_seconds: detail.created_timestamp_seconds,
-            auto_stake_maturity: detail.auto_stake_maturity,
-            disburse_maturity_in_progress: detail.disburse_maturity_in_progress,
         }
     }
 }

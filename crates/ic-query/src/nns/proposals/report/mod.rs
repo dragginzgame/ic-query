@@ -34,8 +34,7 @@ pub use cache::{
     build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report_from_cache,
     build_nns_proposal_report_with_cache_and_source, nns_proposal_cache_path,
     nns_proposal_cache_root, nns_proposal_refresh_attempt_path, nns_proposal_refresh_lock_path,
-    refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_progress,
-    refresh_nns_proposal_cache_with_source,
+    refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_source_and_progress,
 };
 #[cfg(feature = "nns-host")]
 pub use collection::advance_nns_proposal_collection;

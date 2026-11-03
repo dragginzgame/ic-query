@@ -41,7 +41,7 @@ pub fn sns_list_report_text_with_metadata_style(
     lines.push(format!("all_lifecycles: {}", yes_no(report.all_lifecycles)));
     lines.push(format!("catalog_sns_count: {}", report.catalog_sns_count));
     lines.push(format!("excluded_sns_count: {}", report.excluded_sns_count));
-    lines.push(format!("sns_count: {}", report.sns_count));
+    lines.push(format!("sns_count: {}", report.sns_instances.len()));
     lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
     crate::sns::common::push_report_provenance_lines(&mut lines, &report.provenance);
     lines.push(format!(

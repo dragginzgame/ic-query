@@ -18,28 +18,17 @@ pub use transport::RegistryAcquisition;
 pub use transport::RegistryHistoryCacheDisposition;
 pub use transport::{SubnetCatalogProgress, SubnetCatalogProgressPhase};
 
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use catalog::{routing_ranges_from_table, subnet_info_from_record};
 pub use error::RegistryFetchError;
 pub use error::SubnetCatalogRegistryFailure;
 use ic_host_tools::registry::proto::{CanisterId, SubnetId};
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use model::AuthenticatedRegistryDeltaWitness;
 pub use model::MainnetRegistryFetchRequest;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use model::{
-    CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
-    CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
-};
 #[cfg(feature = "nns-host")]
 pub use model::{MainnetNodeProvider, MainnetNodeProviderList};
 #[cfg(feature = "nns-topology-host")]
 pub use model::{
     MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
 };
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use source::fetch_mainnet_certified_registry_delta_batch_async;
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(feature = "nns-host")]
 pub use source::fetch_mainnet_registry_version;
 pub use source::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
@@ -48,16 +37,6 @@ pub use source::fetch_mainnet_subnet_topology;
 pub use source::{
     fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
     fetch_mainnet_node_provider_list,
-};
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use transport::authenticate_certified_registry_delta_witness;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use transport::{
-    MAX_CERTIFIED_DELTA_INLINE_VALUE_BYTES, MAX_CERTIFIED_DELTA_KEY_BYTES,
-    MAX_CERTIFIED_DELTA_MUTATIONS, MAX_CERTIFIED_DELTA_PRECONDITIONS,
-    MAX_CERTIFIED_DELTA_VALUE_BYTES, MAX_CERTIFIED_DELTA_VERSIONS, MAX_REGISTRY_CHUNK_BYTES,
-    MAX_REGISTRY_CHUNK_REFERENCES, MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
-    MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
 };
 
 #[cfg(all(test, feature = "nns-host"))]

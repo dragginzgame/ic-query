@@ -43,7 +43,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["host"] }
+ic-query = { version = "0.89", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -51,14 +51,13 @@ operations, or cache-backed report builders. The library has no CLI feature;
 `icq` parsing and dispatch are owned by `ic-query-cli`.
 
 The focused host choices are `cloud-engine-host`, `cmc-host`,
-`certified-subnet-catalog-host`, `dashboard-host`, `ic-state-host`, `icrc-host`,
+`dashboard-host`, `ic-state-host`, `icrc-host`,
 `nns-host`, `nns-topology-host`, `sns-host`, and `subnet-catalog-host`. The
 complete `host` feature is their convenience union.
 For bounded certificate verification, select `certificate-host`; use
 `ledger-evidence-host` when authenticated ledger tips are also needed. Each
 capability selects the Host dependency features it needs.
-Both NNS subsets are nested under `nns-host`, and
-`certified-subnet-catalog-host` and `nns-topology-host` each include
+`nns-topology-host` is nested under `nns-host` and includes
 `subnet-catalog-host`.
 
 For a Rust canister that needs direct NNS Governance point reports, bounded
@@ -67,7 +66,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["canister"] }
+ic-query = { version = "0.89", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -263,7 +262,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -281,7 +280,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -295,7 +294,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -308,7 +307,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -326,7 +325,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
@@ -342,7 +341,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -397,17 +396,15 @@ live requests with no cache selected and for explicit refresh. Proposal-detail
 CLI calls with numeric selectors use live lookup; root selectors may use a
 complete local snapshot before live fallback.
 
-For native SNS discovery, targeted reports, complete proposal/neuron caches,
-reward checkpoints, and local checkpoint diffs, use:
+For native SNS discovery, targeted reports and complete proposal/neuron caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
-builders, confined caches, refresh-attempt evidence, progress events, and
-reward evidence. It enables `ic-agent`, Futures, Tokio, URL, and the
+builders, confined caches, refresh-attempt evidence and progress events. It enables `ic-agent`, Futures, Tokio, URL, and the
 capability-filesystem dependencies required by those APIs. It also enables
 Platform's `icrc-ledger-types` feature for canonical account and metadata wire
 records, without upstream storage integration. It shares
@@ -424,7 +421,7 @@ neuron/proposal listings plus proposal pages return vectors of their row type.
 There are no single-payload source result wrappers. `MainnetSnsNeuronPage` retains
 its rows and native cursor for complete refreshes. Builders still validate source
 identity, row limits, raw evidence and pagination before report assembly or
-cache publication. Exact details and reward checkpoints retain integer permission
+cache publication. Exact details retain integer permission
 codes directly; derive names with `sns_neuron_permission_name(code)` and exact-detail
 policy results with `detail.derived_policy_observations()`. Returned row counts come
 from their vectors. These JSON and persisted-shape changes require the consumer
@@ -436,7 +433,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -460,28 +457,11 @@ endpoint agreement. See the
 [transcript contract](design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
 for bounds, confinement, typed progress, and invalid-content recovery.
 
-For certified Registry archive/replay and archive-bound Subnet Catalog
-authority without the complete NNS host surface, use:
-
-```toml
-[dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["certified-subnet-catalog-host"] }
-```
-
-`certified-subnet-catalog-host` includes `subnet-catalog-host` and adds the
-bounded certified delta, archive, replay, projection, and certified catalog
-cache APIs. It directly enables CBOR certificate decoding. It does not enable
-NNS Governance, proposal, neuron, component-inventory, or derived-topology
-host adapters, and it does not add ic-query's direct Dashboard Reqwest edge.
-Network calls remain confined to explicitly selected certified collection or
-archive refresh operations; archive load, replay, projection, and cache load
-are local-only.
-
 For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -497,11 +477,10 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.89", default-features = false, features = ["nns-host"] }
 ```
 
-`nns-host` is a strict superset of `nns-topology-host` and
-`certified-subnet-catalog-host`. It exposes
+`nns-host` includes `nns-topology-host`. It exposes
 `LiveNnsSource`, all NNS report-specific source traits and builders, Governance
 proposal/neuron complete snapshots, component inventory caches, explicit
 refresh policies, and progress events. Registry Prost decoding and SHA-256 are
@@ -509,102 +488,16 @@ direct dependencies through the topology/catalog substrate; CBOR is direct for
 the authenticated Registry latest-version certificate. Dashboard Reqwest is
 not a direct ic-query edge, although it remains transitive through `ic-agent`.
 The certified version report does not promote ordinary Subnet Catalog
-`get_value` reads beyond their separately recorded assurance. The
-`fetch_nns_certified_registry_delta_batch_async` library operation validates
-one caller-selected `get_certified_changes_since` batch on the caller's
-runtime. It reports exact resource ceilings and `more_available` without
-implicit pagination, caching, replay, or catalog publication. Chunk-referenced
-values in that batch are completed through bounded, hash-verified `get_chunk`
-calls; the report retains unique chunk evidence and exact call/byte accounting.
-Custom async sources pass through the same pure
-`validate_nns_certified_registry_delta_batch` structural contract. Custom
-sources remain responsible for cryptographically authenticating the raw
-certificate evidence they return.
-
-To collect and retain the complete evidence sequence in one operation, use
-`bootstrap_nns_certified_registry_archive_async` with an explicit
-`NnsCertifiedRegistryArchiveBootstrapRequest`. The request combines the
-source/time/replay bootstrap request with caller-selected cache and archive
-roots and manifest/object ceilings. It starts from Registry
-version zero, reserves worst-case capacity before every call, holds one archive
-refresh lock, locally reauthenticates every report, and publishes the final
-manifest only after exact-target completion. Its custom-source counterpart
-also performs built-in mainnet reauthentication; structural source validation
-alone cannot establish archive authority. Neither function is called by a
-load/read-through policy, and neither selects a default path or history size.
-
-Archive manifest schema 1 supports explicit authenticated extension segments.
-After a complete target, the next sealed batch selects a new segment target;
-that target may equal the prior version, allowing a fresh empty delta to update
-certificate-time evidence while preserving the same state digest. Use
-`NnsCertifiedRegistryArchivePublisher::resume` to locally load, reauthenticate,
-and consume an existing archive into a resumable publisher under explicit
-cumulative replay and storage limits. Resume rewrites no historical object,
-makes no source call, and acquires no refresh lock. Callers coordinating live
-collection must hold the dedicated archive lock until `finish` publishes the
-complete new segment. Manifests with another schema identifier have no
-compatibility reader or migration and must be explicitly force-bootstrapped
-again.
-
-For the complete live boundary, call
-`refresh_nns_certified_registry_archive_async` with an explicit
-`NnsCertifiedRegistryArchiveRefreshRequest`. It requires an existing manifest,
-rejects non-mainnet and missing archives before source work, and holds the
-dedicated lock across resume, bounded collection, local authentication, and
-atomic publication. The first response selects one exact successor target;
-collection stops when that target completes, even if a later batch observes a
-newer version. An unchanged version is published as a complete empty evidence
-segment. The custom-source counterpart retains the same built-in mainnet
-reauthentication boundary.
-
-Interrupted publication can leave a durable content-addressed object that no
-manifest references. Remove these only through the explicit local
-`cleanup_nns_certified_registry_archive` operation. Its request supplies the
-archive authentication limits, exact-directory scan ceiling, removal count and
-byte ceilings, confined roots, observation time, and exclusive coordination. Cleanup holds
-the archive lock, reauthenticates the complete retained archive before
-classification, scans no directory except the flat `objects/` directory, and
-checks every ceiling before its first deletion. Its report returns the
-authenticated archive plus exact scanned, referenced, removed, and removed-byte
-counts. The operation is not an automatic load or refresh side effect.
-
-Certified Subnet Catalog authority is available only through the complete
-retained-evidence path. After publishing or loading an
-`NnsAuthenticatedRegistryArchive`, call `project_nns_certified_subnet_catalog`
-with an explicit `NnsCertifiedSubnetCatalogProjectionRequest`. The request owns
-the `CatalogValidationContext` and requires a caller-selected maximum
-certificate age plus `NnsCertifiedSubnetCatalogVersionPolicy`. Choose
-`RequireLatestObserved` for current authority or `AllowHistoricalTarget` only
-when an exact older Registry position is intentional. Excess age fails with
-`StaleArchiveCertificate`; known version lag under require-latest fails with
-`SupersededArchiveTarget`.
-
-Successful authority exposes the exact observation time, certificate time,
-nanosecond age, accepted maximum, selected and newest-observed versions, and
-version policy through `.freshness()`. The returned
-`NnsCertifiedSubnetCatalogAuthority` keeps its `ValidatedSubnetCatalog`
-borrowed to that archive. Ordinary `ValidatedSubnetCatalog::try_from_raw`
-continues to reject `CatalogAssurance::Certified`, so persisted JSON cannot
-self-assert authority. Projection makes no network call and does not publish a
-catalog cache.
-
-To persist that projection, call `load_nns_certified_subnet_catalog` with one
-`NnsCertifiedSubnetCatalogLoadRequest`. Its
-`NnsCertifiedSubnetCatalogReadPolicy` selects cache-only,
-publish-missing, publish-missing-or-invalid, or force-publication behavior.
-The returned `NnsCertifiedSubnetCatalogLoadOutcome` keeps the archive-bound
-authority attached and reports the exact cache path and disposition. All four
-policies are local-only: they can publish from the supplied archive, but cannot
-refresh it or make a network call. Recoverable invalidity is limited to cache
-content; filesystem, projection, serialization, and accounting errors remain
-failures. Use `snapshot_authority()` for the stable catalog identity and
-`cache_evidence()` only when combined archive/cache diagnostics are required.
+`get_value` reads beyond their separately recorded assurance. Registry archive,
+delta replay and archive-backed catalog authority are retired; preserve historical
+archives unchanged with the earlier tooling needed to inspect them. Current
+readers do not migrate archive evidence or accept certified catalog claims.
 
 For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.62", default-features = false }
+ic-query = { version = "0.89", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -653,9 +546,14 @@ interrupted attempt evidence stays available for inspection.
 
 Normal report builders and refresh entry points do not write to stdout or
 stderr. Paged NNS proposal/neuron and SNS neuron/proposal refreshes also expose
-`*_with_progress` entry points. These accept a `QueryProgress` sink and emit
+`*_with_source_and_progress` entry points. These accept a caller-owned source
+and `QueryProgress` sink and emit
 typed `QueryProgressEvent` values for cache creation and refresh lifecycle
-updates. ICRC complete account-history refreshes expose the same pattern.
+updates. ICRC complete account-history refreshes expose the same pattern. Subnet Catalog
+and CloudEngine list builders also use this source/progress boundary (CloudEngine
+accepts both sources). Pass the corresponding live adapter for standard collection,
+or a no-op closure when progress is unwanted. The intermediate source-only and
+progress-only permutations are removed.
 Observed node-status report builders accept the sink directly because an
 ordinary read can visibly refresh one missing, invalid, or 60-second-stale
 shared snapshot.
@@ -765,7 +663,7 @@ ICRC capabilities such as
 `SnsDiscoverySource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
 `SnsMetricsSource`, `SnsSwapSource`, `SnsUpgradeSource`,
 `SnsProposalSource`, `SnsProposalsSource`, `SnsNeuronSource`,
-`SnsNeuronsSource`, and `SnsRewardSource`.
+and `SnsNeuronsSource`.
 `SnsDiscoverySource` keeps the authoritative SNS-W inventory separate from
 explicit metadata targets. Direct report builders enrich exactly one resolved
 SNS; `sns list` requests metadata for every inventory row. Custom sources must
@@ -1611,60 +1509,6 @@ async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<Strin
 }
 ```
 
-## SNS Reward Evidence Example
-
-Exact neuron detail and bracketed reward checkpoints are explicit live
-capabilities under `host`; they do not expand the ordinary fixed-size neuron
-cache. A checkpoint strictly exhausts native 100-row pages beneath the
-Governance parameter ceiling and brackets them with complete parameter,
-reward-event, and running-version responses.
-
-```rust
-use ic_query::sns::{
-    DEFAULT_SNS_SOURCE_ENDPOINT, SnsHostError, SnsRewardCheckpointReport,
-    SnsRewardCheckpointRequest, build_sns_reward_checkpoint_report,
-};
-
-async fn collect_reward_checkpoint(
-    sns_input: &str,
-    now_unix_secs: u64,
-) -> Result<SnsRewardCheckpointReport, SnsHostError> {
-    let request = SnsRewardCheckpointRequest::new(ic_query::sns::SnsLookupRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        now_unix_secs,
-        sns_input,
-    )?);
-    build_sns_reward_checkpoint_report(&request).await
-}
-```
-
-Pure checkpoint validation and reconciliation remain available with no
-features. The diff builder treats both DTOs as untrusted, recomputes their raw
-evidence, and returns typed invalid reasons instead of trusting serialized
-totals or policy booleans:
-
-```rust
-use ic_query::sns::{
-    SnsRewardCheckpointReport, SnsRewardCheckpointValidationError, SnsRewardDiffReport,
-    build_sns_reward_diff_report, validate_sns_reward_checkpoint_report,
-};
-
-fn reconcile_reward(
-    before: &SnsRewardCheckpointReport,
-    after: &SnsRewardCheckpointReport,
-) -> Result<SnsRewardDiffReport, SnsRewardCheckpointValidationError> {
-    validate_sns_reward_checkpoint_report(before)?;
-    validate_sns_reward_checkpoint_report(after)?;
-    Ok(build_sns_reward_diff_report(before, after))
-}
-```
-
-Native callers that want the library to load files can use
-`build_sns_reward_diff_report_from_paths` under `host`. File selection and
-persistence stay caller-owned; no checkpoint is implicitly written or cached,
-and local checkpoint content is not authenticated.
-
 ## SNS Snapshot Example
 
 Native tools can use SNS proposal and neuron snapshot APIs through `host`.
@@ -1866,21 +1710,9 @@ time or zero ballot time displays `-`. JSON retains Unix seconds rather than
 stored display strings. Update consumers and preserve needed evidence before
 explicitly refreshing affected complete snapshots; schemas remain 1.
 
-SNS reward checkpoints retain raw parameter/event/version brackets, neuron evidence,
-collection timestamps and the observed page count. Use `report.summary()?` for
-checked `SnsRewardCheckpointSummary` calculations and `report.row_count()`,
-`report.client_query_count()` and `report.collection_row_ceiling()` for derived
-metadata. Text computes UTC labels from the retained Unix timestamps. These values
-are no longer independently stored in checkpoint JSON.
-
-The 0.88 schema-1 hard cut rejects former checkpoint shapes. Preserve historical
-files and coordinate consumers before adopting it; new collection cannot recreate
-an earlier observation. Readers never migrate or rewrite those files. See the
-[Query 0.88 consumer actions](../releases/query/0.88.md).
-
-Reward checkpoints and their diff references carry all five canister identities
-through `canisters: MainnetSnsCanisters`. Update Rust field access and literals;
-these identities retain their existing top-level JSON keys and strict decoding.
+SNS reward checkpoints and local diffs are retired in 0.89. Keep historical files
+with the earlier tooling needed to inspect them; current Query does not read,
+migrate or delete those files.
 
 `SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
 `MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host
@@ -1898,3 +1730,18 @@ content. Before adopting this contract, stop every old writer using the root,
 retain required cache/attempt evidence and explicitly retire nonempty lock files.
 Never unlink a coordination file while writers may use that root. Cache freshness
 and recorded refresh-attempt times remain separate product evidence.
+
+
+## Derived report values in 0.89
+
+NNS inventory row counts, IC returned-row/series/observation counts, SNS list,
+canister/gap and treasury-metric counts, and topology list counts derive from the
+retained arrays. Rust consumers use those arrays directly; independently sourced
+totals and complete-snapshot counts remain separate evidence. The duplicate
+fields are removed from report JSON and affected inventory caches. Preserve needed
+historical evidence before explicitly refreshing under the current cache policy;
+schema identifiers remain 1, with no migration or older reader.
+
+Topology reports retain numeric capacity/coverage evidence and typed check statuses.
+Text derives percentages and check details. Core no longer exports percentage-text
+helpers or stores utilization, formatted join coverage, or check-detail strings.

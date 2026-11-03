@@ -60,7 +60,6 @@ fn node_provider_report_from_list(list: MainnetNodeProviderList) -> NnsNodeProvi
         schema_version: NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
         provenance: list.provenance,
         governance_canister_id: list.governance_canister_id,
-        node_provider_count: node_providers.len(),
         node_providers,
     }
 }

@@ -40,7 +40,6 @@ impl NnsNodeSource for LiveNnsSource {
             Ok(NnsNodeListReport {
                 schema_version: NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
                 provenance,
-                node_count: nodes.len(),
                 nodes,
             })
         })

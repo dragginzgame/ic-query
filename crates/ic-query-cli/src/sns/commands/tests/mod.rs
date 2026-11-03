@@ -2,8 +2,7 @@ use super::{
     error::SnsCommandError,
     options::{
         cache_status_request, list_request, lookup_request, metrics_request, neuron_request,
-        neurons_request, proposal_request, proposals_request, reward_checkpoint_request,
-        snapshot_refresh_request,
+        neurons_request, proposal_request, proposals_request, snapshot_refresh_request,
     },
     spec::{
         sns_canister_command, sns_canister_list_command, sns_command, sns_info_command,
@@ -12,8 +11,7 @@ use super::{
         sns_neuron_info_command, sns_neuron_list_command, sns_neuron_refresh_command,
         sns_parameters_command, sns_proposal_cache_list_command, sns_proposal_cache_status_command,
         sns_proposal_command, sns_proposal_info_command, sns_proposal_list_command,
-        sns_proposal_refresh_command, sns_refresh_command, sns_reward_checkpoint_command,
-        sns_reward_command, sns_reward_diff_command, sns_swap_command, sns_token_command,
+        sns_proposal_refresh_command, sns_refresh_command, sns_swap_command, sns_token_command,
         sns_upgrade_command,
     },
 };
@@ -52,5 +50,4 @@ mod list;
 mod lookup;
 mod neurons;
 mod proposals;
-mod reward;
 mod usage;

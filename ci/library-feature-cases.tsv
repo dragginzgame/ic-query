@@ -10,7 +10,6 @@ native	icrc-host	icrc_public_api
 native	dashboard-host	ic_public_api cloud_engine_public_api
 native	ic-state-host	ic_public_api
 native	cloud-engine-host	cloud_engine_public_api
-native	certified-subnet-catalog-host	certified_subnet_catalog_public_api
 native	nns-host	nns_public_api
 native	sns-host	sns_public_api
 native	subnet-catalog-host	subnet_catalog_public_api subnet_topology_public_api

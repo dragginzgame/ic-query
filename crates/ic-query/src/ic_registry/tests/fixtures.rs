@@ -38,7 +38,10 @@ pub(super) fn catalog_from_parts_for_test(
                     .ok_or(RegistryFetchError::MissingField {
                         field: "subnet_record",
                     })?;
-            Ok(subnet_info_from_record(&subnet_principal, record))
+            Ok(crate::ic_registry::catalog::subnet_info_from_record(
+                &subnet_principal,
+                record,
+            ))
         })
         .collect::<Result<Vec<_>, RegistryFetchError>>()?;
     RawSubnetCatalog::new_mainnet_uncertified(
@@ -54,7 +57,11 @@ pub(super) fn catalog_from_parts_for_test(
             registry_records: Vec::new(),
         },
         subnets,
-        routing_ranges_from_table(&routing_table)?,
+        crate::ic_registry::catalog::routing_ranges_from_table_detailed(
+            &routing_table,
+            registry_version,
+        )
+        .map_err(|failure| failure.source)?,
     )
     .map_err(RegistryFetchError::from)
 }

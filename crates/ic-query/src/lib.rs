@@ -17,8 +17,6 @@
 //! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
 //! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
 //! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
-//! `certified-subnet-catalog-host` for that API plus certified Registry archive,
-//! replay, and archive-bound catalog authority,
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
 //! topology, `nns-host` for the complete NNS host surface, `canister` for the
 //! replicated NNS Governance adapter on `wasm32`, or `host` for every native
@@ -71,7 +69,7 @@ mod candid_decode;
 #[cfg(feature = "certificate-host")]
 pub mod certificate;
 #[cfg(any(
-    feature = "certified-subnet-catalog-host",
+    feature = "nns-host",
     feature = "cmc-host",
     feature = "ic-state-host",
     feature = "icrc-host"

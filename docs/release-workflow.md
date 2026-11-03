@@ -21,7 +21,7 @@ Group-qualified recovery journals and receipts bind the group, policy digest,
 source, versions and destination. Resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the current 0.86 hard cut, release and publish Query first, then the CLI group.
+For the current 0.89 hard cut, release and publish Query first, then the CLI group.
 Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed
@@ -42,7 +42,7 @@ in `.shared-tooling.snapshot`. See the selected
 selected files' digests and executable modes offline. The version annotation
 comes from the committed source; it does not establish tag publication or native
 host qualification. The same snapshot owns `DRAGGINZGAME.md`; `AGENTS.md` retains
-Query's explicit exceptions, including maintainer-only release execution.
+Query's explicit scope and delegated-delivery permissions.
 
 IC Build owns Cargo manifest and lock candidate rendering. Query selects the
 published `ic-build` version in `Cargo.lock` through the shared selected-tool
@@ -56,7 +56,7 @@ make install-release-tools
 make release-tools-check
 ```
 
-`make install-tools` also prepares it. A maintainer-operated release preflight
+`make install-tools` also prepares it. A maintainer or delegated release preflight
 prepares the locked cache, formatters, pinned Cargo Audit/Cargo Machete and editor
 before validation. Standalone offline preflight and ordinary tool checks only
 admit existing tools. To prepare just the dependency tools explicitly, run
@@ -132,9 +132,9 @@ is an initial selection guide, not automatic ownership of consumer overlays.
 An explicit contribution PR request includes its topic branch, scoped commits,
 branch push and PR creation/update under the reviewed
 [contribution rules](../rules/contributions.md). Ordinary repair requests remain
-local work. The stricter local `AGENTS.md` release boundary retains maintainer-run
-version bumps, release commits/tags and release pushes; PR delivery does not
-authorize merge, integration pushes, publication or release execution.
+local work. Explicit release/ship/deploy requests follow the delegated-delivery scope in
+`AGENTS.md` and the shared contribution rules. PR delivery alone does not authorize
+merge, integration pushes, publication or release execution.
 Generic provisioning/provenance guides retain their exact upstream bytes;
 the current split host-crate ownership is documented locally in
 [canister smoke testing](canister-smoke.md).
@@ -479,8 +479,8 @@ the saved selections, ancestor source, clean checkout and pending notes. Origina
 succeed before a new pointer is published. At unchanged source, exact recovery
 uses its matching receipt; conflicting selections, dirty or divergent source
 and incomplete evidence stop preflight. Explicit resume remains bound to the
-saved source/version. Real restart and release execution remain maintainer
-operations; ordinary agent repair does not perform them.
+saved source/version. Real restart and release execution require a maintainer request or delegated
+delivery scope; ordinary repair does not perform them.
 
 Unique validation directories under Git's `release-state` directory retain the
 selected source, previous/candidate versions, kind, UTC date, remote/branch,

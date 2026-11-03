@@ -255,14 +255,10 @@ pub struct SnsCanisterReport {
     /// Canonical Root inventory and health evidence, flattened in JSON.
     #[serde(flatten)]
     pub inventory: MainnetSnsCanisterInventory,
-    /// Number of canisters in the Root inventory response.
-    pub canister_count: usize,
     /// Number of inventory canisters with returned operational status.
     pub health_status_count: usize,
     /// Number of inventory canisters for which Root reported exactly zero cycles.
     pub reported_zero_cycles_count: usize,
     /// Number of inventory canisters for which cycle evidence was unavailable.
     pub cycles_unavailable_count: usize,
-    /// Number of explicit inventory or health relation gaps.
-    pub gap_count: usize,
 }

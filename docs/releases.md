@@ -17,11 +17,17 @@ select affected approved groups, semantic-version increments and dependency orde
 and execute necessary preparation and delivery without per-command confirmation.
 Preparing code/notes, asking how to deploy or checking readiness does not itself
 authorize execution. Preserve explicit target restrictions and required protections.
+Before execution, disclose the working checkout and branch, remote destination
+and release effects. Direct integration-branch pushes and alternate delivery
+checkouts need explicit authorization under the linked contribution rules; a
+generic deployment request does not silently select either. Preserve unique edits
+under the [durable work contract](../rules/contributions.md#durable-work-and-checkout-location).
 
 The names, version arithmetic and recovery contract are shared across repositories.
 Each repository supplies its canonical version source, metadata file set,
-validation gate, branch, remote and explicit delivery policy. Direct delivery is
-the default; [PR delivery](#pr-delivery) adds review and fresh merged-commit
+validation gate, branch, remote and explicit delivery policy. The runner defaults
+to direct delivery; this is executable behavior, not agent authorization to push.
+[PR delivery](#pr-delivery) adds review and fresh merged-commit
 validation before tagging. A repository
 without package metadata may use a dedicated version file; otherwise it uses
 its latest finalized changelog version. Shared Tooling owns its current local
@@ -1013,13 +1019,18 @@ Cargo output/statuses, policy/root inputs and preparation evidence. Source, inde
 receipt custody and the complete gate remain consumer-owned.
 
 The root dependency catalog also provides readable version information. Every
-workspace member must have a `[workspace.dependencies]` entry with its local path
-and full current package version, optionally prefixed by `=`, `^` or `~`. Include
-private members and unused aliases, and register every alias in its owning
-group's `dependencies` roster. Unused catalog entries add no dependency edges.
+workspace member must have a `[workspace.dependencies]` entry with its local path.
+Publishable members require their full current package version, optionally
+prefixed by `=`, `^` or `~`. Private members (`publish = false`) may use path-only
+entries; their package versions still advance with their group. Include unused
+aliases and register every alias in its owning group's `dependencies` roster.
+Path-only entries need no dependency-version edit. Unused catalog entries add no
+dependency edges. Publishable members may depend on private workspace members
+only through path-only dev-dependencies, which Cargo omits from published
+manifests. Versioned private dependencies and normal/build edges are rejected.
 Admission checks all groups, even when releasing only one; the existing
 `check-dependency-pins.sh --cargo-inheritance` path uses this same admission.
-It rejects missing catalog entries, missing paths/versions, paths pointing at
+It rejects missing catalog entries, missing paths or required versions, paths pointing at
 other packages and incomplete group alias rosters, including unused entries that
 Cargo itself does not resolve.
 For example, `0.73` and `0.73.0` both fail for a local package at `0.73.1`, even

@@ -8,14 +8,14 @@ use ic_query::nns::neuron::NnsNeuronRow;
 use ic_query::nns::neuron::NnsNeuronSource;
 use ic_query::nns::neuron::NnsNeuronSourceFuture;
 use ic_query::nns::neuron::nns_neuron_cache_path;
-use ic_query::nns::neuron::refresh_nns_neuron_cache_with_source;
+use ic_query::nns::neuron::refresh_nns_neuron_cache_with_source_and_progress;
 use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
 use ic_query::nns::proposals::NnsProposalRow;
 use ic_query::nns::proposals::NnsProposalSource;
 use ic_query::nns::proposals::NnsProposalSourceFuture;
 use ic_query::nns::proposals::NnsProposalStatusFilter;
 use ic_query::nns::proposals::nns_proposal_cache_path;
-use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source;
+use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
 use std::{
     fs,
     path::Path,
@@ -100,12 +100,20 @@ async fn binary_nns_cached_analytics_emit_text_and_raw_json() {
         1_700_000_000,
         100,
     );
-    refresh_nns_proposal_cache_with_source(&request, &EmptyGovernanceSource)
-        .await
-        .expect("proposal fixture");
-    refresh_nns_neuron_cache_with_source(&request, &EmptyGovernanceSource)
-        .await
-        .expect("neuron fixture");
+    refresh_nns_proposal_cache_with_source_and_progress(
+        &request,
+        &EmptyGovernanceSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("proposal fixture");
+    refresh_nns_neuron_cache_with_source_and_progress(
+        &request,
+        &EmptyGovernanceSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("neuron fixture");
     for (family, operation, count, table, path) in [
         (
             "proposal",
@@ -257,7 +265,6 @@ fn closed_stdout_succeeds_for_text_json_help_and_version() {
         vec!["cache", "status", "--json"],
         vec!["--help"],
         vec!["--version"],
-        vec!["sns", "reward"],
     ] {
         let (writer, reader) = UnixStream::pair().unwrap();
         drop(reader);
@@ -275,19 +282,192 @@ fn closed_stdout_succeeds_for_text_json_help_and_version() {
     }
 }
 
-#[test]
-fn binary_top_level_help_smoke() {
-    let output = run_icq(&["help"]);
+const HELP_CASES: &[(&[&str], &[&str])] = &[
+    (
+        &["help"],
+        &[
+            "Usage: icq [OPTIONS] [COMMAND]",
+            "cloud-engine",
+            "ic",
+            "icrc",
+            "nns",
+            "sns",
+            "system",
+        ],
+    ),
+    (
+        &["ic", "canister", "info", "--help"],
+        &[
+            "Usage: icq ic canister info [OPTIONS] <canister-id>",
+            "--source-endpoint <url>",
+            "--json",
+            "off-chain analytics authority",
+        ],
+    ),
+    (
+        &["ic", "metrics", "--help"],
+        &[
+            "Usage: icq ic metrics [OPTIONS] <metric>",
+            "instruction-rate",
+            "--start <unix-seconds>",
+            "--step <seconds>",
+            "one official Dashboard Metrics API request",
+        ],
+    ),
+    (
+        &["ic", "network", "boundary-node-data-centers", "--help"],
+        &[
+            "Usage: icq ic network boundary-node-data-centers [OPTIONS]",
+            "--source-endpoint <url>",
+            "--json",
+            "one official Dashboard v4 request",
+        ],
+    ),
+    (
+        &["ic", "api-boundary-node", "list", "--help"],
+        &[
+            "Usage: icq ic api-boundary-node list [OPTIONS]",
+            "--source-endpoint <url>",
+            "--json",
+            "one response-bounded IC read_state request",
+            "built-in mainnet root key",
+        ],
+    ),
+    (
+        &["ic", "network", "daily-stats", "--help"],
+        &[
+            "Usage: icq ic network daily-stats [OPTIONS]",
+            "--start <unix-seconds>",
+            "--end <unix-seconds>",
+            "--source-endpoint <url>",
+            "one official Dashboard v3 request",
+        ],
+    ),
+    (
+        &["icrc", "ledger", "capabilities", "--help"],
+        &[
+            "Usage: icq icrc ledger capabilities [OPTIONS] <ledger-canister-id>",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["icrc", "account", "allowance", "--help"],
+        &[
+            "Usage: icq icrc account allowance [OPTIONS] <ledger-canister-id> <owner-principal> <spender-principal>",
+            "--owner-subaccount <hex>",
+            "--spender-subaccount <hex>",
+            "--source-endpoint <url>",
+        ],
+    ),
+    (
+        &["icrc", "ledger", "index", "--help"],
+        &[
+            "Usage: icq icrc ledger index [OPTIONS] <ledger-canister-id>",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["icrc", "ledger", "transactions", "--help"],
+        &[
+            "Usage: icq icrc ledger transactions [OPTIONS] <ledger-canister-id>",
+            "--start <index>",
+            "--limit <count>",
+            "--follow-archives",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["icrc", "ledger", "block-types", "--help"],
+        &[
+            "Usage: icq icrc ledger block-types [OPTIONS] <ledger-canister-id>",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["icrc", "ledger", "archives", "--help"],
+        &[
+            "Usage: icq icrc ledger archives [OPTIONS] <ledger-canister-id>",
+            "--from <canister-id>",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["sns", "list", "--help"],
+        &[
+            "Usage: icq sns list [OPTIONS]",
+            "--sort <id|name>",
+            "--verbose",
+        ],
+    ),
+    (
+        &["sns", "swap", "--help"],
+        &[
+            "Usage: icq sns swap [OPTIONS] <id|root-principal>",
+            "--source-endpoint <url>",
+            "--json",
+            "exactly three bounded",
+        ],
+    ),
+    (
+        &["sns", "upgrade", "--help"],
+        &[
+            "Usage: icq sns upgrade [OPTIONS] <id|root-principal>",
+            "--source-endpoint <url>",
+            "--json",
+            "at most four live calls",
+        ],
+    ),
+    (
+        &["sns", "metrics", "--help"],
+        &[
+            "Usage: icq sns metrics [OPTIONS] <id|root-principal>",
+            "--window <duration>",
+            "--source-endpoint <url>",
+            "--json",
+            "get_metrics composite query",
+        ],
+    ),
+    (
+        &["sns", "parameters", "--help"],
+        &[
+            "Usage: icq sns parameters [OPTIONS] <id|root-principal>",
+            "nervous system parameters",
+            "--source-endpoint <url>",
+            "--json",
+        ],
+    ),
+    (
+        &["sns", "canister", "list", "--help"],
+        &[
+            "Usage: icq sns canister list [OPTIONS] <id|root-principal>",
+            "--source-endpoint <url>",
+            "update_canister_list=false",
+        ],
+    ),
+    (
+        &["help", "nns", "topology"],
+        &["Usage: icq nns topology [COMMAND]", "summary", "refresh"],
+    ),
+];
 
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq [OPTIONS] [COMMAND]"));
-    assert!(stdout.contains("cloud-engine"));
-    assert!(stdout.contains("ic"));
-    assert!(stdout.contains("icrc"));
-    assert!(stdout.contains("nns"));
-    assert!(stdout.contains("sns"));
-    assert!(stdout.contains("system"));
+#[test]
+fn binary_leaf_and_root_help_smoke() {
+    for &(args, expected) in HELP_CASES {
+        let output = run_icq(args);
+        assert_success(&output);
+        let stdout = stdout_text(&output);
+        for needle in expected {
+            assert!(
+                stdout.contains(needle),
+                "{args:?}: missing {needle:?} in {stdout}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -424,69 +604,6 @@ fn binary_invalid_network_precedes_help_like_option_values() {
 }
 
 #[test]
-fn binary_ic_canister_info_help_smoke() {
-    let output = run_icq(&["ic", "canister", "info", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq ic canister info [OPTIONS] <canister-id>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("off-chain analytics authority"));
-}
-
-#[test]
-fn binary_ic_metrics_help_smoke() {
-    let output = run_icq(&["ic", "metrics", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq ic metrics [OPTIONS] <metric>"));
-    assert!(stdout.contains("instruction-rate"));
-    assert!(stdout.contains("--start <unix-seconds>"));
-    assert!(stdout.contains("--step <seconds>"));
-    assert!(stdout.contains("one official Dashboard Metrics API request"));
-}
-
-#[test]
-fn binary_ic_boundary_node_data_centers_help_smoke() {
-    let output = run_icq(&["ic", "network", "boundary-node-data-centers", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("one official Dashboard v4 request"));
-}
-
-#[test]
-fn binary_ic_api_boundary_node_help_smoke() {
-    let output = run_icq(&["ic", "api-boundary-node", "list", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq ic api-boundary-node list [OPTIONS]"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("one response-bounded IC read_state request"));
-    assert!(stdout.contains("built-in mainnet root key"));
-}
-
-#[test]
-fn binary_ic_daily_stats_help_smoke() {
-    let output = run_icq(&["ic", "network", "daily-stats", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq ic network daily-stats [OPTIONS]"));
-    assert!(stdout.contains("--start <unix-seconds>"));
-    assert!(stdout.contains("--end <unix-seconds>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("one official Dashboard v3 request"));
-}
-
-#[test]
 fn binary_ic_replica_version_help_smoke() {
     let info = run_icq(&["ic", "replica-version", "info", "--help"]);
     assert_success(&info);
@@ -547,17 +664,6 @@ fn binary_icrc_balance_help_smoke() {
 }
 
 #[test]
-fn binary_icrc_capabilities_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "capabilities", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc ledger capabilities [OPTIONS] <ledger-canister-id>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
 fn binary_icrc_analytics_total_supply_help_smoke() {
     let output = run_icq(&["icrc", "analytics", "total-supply", "--help"]);
 
@@ -614,20 +720,6 @@ fn binary_icrc_analytics_indexed_count_help_smoke() {
         assert!(stdout.contains(&format!("requests no {plural} rows")));
         assert!(stdout.contains("does not use a cache"));
     }
-}
-
-#[test]
-fn binary_icrc_allowance_help_smoke() {
-    let output = run_icq(&["icrc", "account", "allowance", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains(
-        "Usage: icq icrc account allowance [OPTIONS] <ledger-canister-id> <owner-principal> <spender-principal>"
-    ));
-    assert!(stdout.contains("--owner-subaccount <hex>"));
-    assert!(stdout.contains("--spender-subaccount <hex>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
 }
 
 #[test]
@@ -732,54 +824,6 @@ fn binary_default_cache_root_uses_xdg_cache_home() {
 }
 
 #[test]
-fn binary_icrc_index_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "index", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc ledger index [OPTIONS] <ledger-canister-id>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn binary_icrc_transactions_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "transactions", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc ledger transactions [OPTIONS] <ledger-canister-id>"));
-    assert!(stdout.contains("--start <index>"));
-    assert!(stdout.contains("--limit <count>"));
-    assert!(stdout.contains("--follow-archives"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn binary_icrc_block_types_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "block-types", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc ledger block-types [OPTIONS] <ledger-canister-id>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn binary_icrc_archives_help_smoke() {
-    let output = run_icq(&["icrc", "ledger", "archives", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq icrc ledger archives [OPTIONS] <ledger-canister-id>"));
-    assert!(stdout.contains("--from <canister-id>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
 fn binary_icrc_tip_certificate_help_smoke() {
     let output = run_icq(&["icrc", "ledger", "tip-certificate", "--help"]);
 
@@ -790,17 +834,6 @@ fn binary_icrc_tip_certificate_help_smoke() {
     );
     assert!(stdout.contains("--source-endpoint <url>"));
     assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn binary_sns_list_help_smoke() {
-    let output = run_icq(&["sns", "list", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns list [OPTIONS]"));
-    assert!(stdout.contains("--sort <id|name>"));
-    assert!(stdout.contains("--verbose"));
 }
 
 #[test]
@@ -869,7 +902,6 @@ fn binary_command_namespaces_match_explicit_local_help() {
             &["sns", "proposal", "cache"],
             &["sns", "proposal", "cache", "help"],
         ),
-        (&["sns", "reward"], &["sns", "reward", "help"]),
         (&["system"], &["system", "help"]),
         (&["cloud-engine"], &["cloud-engine", "help"]),
         (&["cloud-engine", "node"], &["cloud-engine", "node", "help"]),
@@ -891,66 +923,6 @@ fn binary_command_namespaces_match_explicit_local_help() {
 }
 
 #[test]
-fn binary_sns_swap_help_smoke() {
-    let output = run_icq(&["sns", "swap", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns swap [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("exactly three bounded"));
-}
-
-#[test]
-fn binary_sns_upgrade_help_smoke() {
-    let output = run_icq(&["sns", "upgrade", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns upgrade [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("at most four live calls"));
-}
-
-#[test]
-fn binary_sns_metrics_help_smoke() {
-    let output = run_icq(&["sns", "metrics", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns metrics [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("--window <duration>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-    assert!(stdout.contains("get_metrics composite query"));
-}
-
-#[test]
-fn binary_sns_parameters_help_smoke() {
-    let output = run_icq(&["sns", "parameters", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns parameters [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("nervous system parameters"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("--json"));
-}
-
-#[test]
-fn binary_sns_canister_list_help_smoke() {
-    let output = run_icq(&["sns", "canister", "list", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns canister list [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("update_canister_list=false"));
-}
-
-#[test]
 fn binary_sns_nested_family_help_uses_operation_before_target() {
     for (args, usage) in [
         (
@@ -966,41 +938,6 @@ fn binary_sns_nested_family_help_uses_operation_before_target() {
         assert_success(&output);
         assert!(stdout_text(&output).contains(usage));
     }
-}
-
-#[test]
-fn binary_sns_reward_checkpoint_help_smoke() {
-    let output = run_icq(&["sns", "reward", "checkpoint", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns reward checkpoint [OPTIONS] <id|root-principal>"));
-    assert!(stdout.contains("--max-pages <count>"));
-    assert!(stdout.contains("--source-endpoint <url>"));
-    assert!(stdout.contains("N + 8 client queries"));
-}
-
-#[test]
-fn binary_sns_reward_diff_help_is_local_only() {
-    let output = run_icq(&["sns", "reward", "diff", "--help"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq sns reward diff [OPTIONS] <before.json> <after.json>"));
-    assert!(stdout.contains("Local-only file inspection"));
-    assert!(stdout.contains("--json"));
-    assert!(!stdout.contains("--source-endpoint"));
-}
-
-#[test]
-fn binary_nns_topology_help_smoke() {
-    let output = run_icq(&["help", "nns", "topology"]);
-
-    assert_success(&output);
-    let stdout = stdout_text(&output);
-    assert!(stdout.contains("Usage: icq nns topology [COMMAND]"));
-    assert!(stdout.contains("summary"));
-    assert!(stdout.contains("refresh"));
 }
 
 #[test]

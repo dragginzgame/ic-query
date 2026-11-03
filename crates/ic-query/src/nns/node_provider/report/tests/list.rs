@@ -40,7 +40,7 @@ async fn node_provider_report_uses_live_governance_source() {
     );
     assert_eq!(report.provenance.registry_version, 42);
     assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
-    assert_eq!(report.node_provider_count, 2);
+    assert_eq!(report.node_providers.len(), 2);
     assert_eq!(report.node_providers[0].node_provider_principal, "aaaaa-aa");
     assert_eq!(report.node_providers[0].name, None);
     assert_eq!(report.node_providers[0].node_count, Some(3));

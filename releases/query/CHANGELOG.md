@@ -5,6 +5,39 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.89.0]
+
+### ⚠️ Breaking
+
+- Remove Registry delta collection, archive/replay and archive-backed certified
+  Subnet Catalog APIs, including their dedicated feature. The certified latest
+  Registry version query remains available through `nns-host`.
+- Remove archive-only catalog assurance/provenance fields. Preserve historical
+  archives and affected catalog caches before adopting the strict schema-1 shape;
+  current readers do not migrate evidence.
+- Keep live convenience builders and one custom-source/progress entry point for
+  complete Governance/ICRC refreshes, Subnet Catalog reports and CloudEngine lists.
+  Remove their intermediate source-only and progress-only forwarding variants.
+
+- Retire SNS reward checkpoint/diff APIs. Preserve historical checkpoint files
+  with their former reader; current Query does not migrate or delete them.
+- Derive remaining returned-array counts and topology presentation from raw
+  evidence. JSON/cache consumers must adopt the schema-1 replacement described
+  in the detailed notes; independent totals remain.
+
+### 🧹 Cleanup
+
+- Retire archive-only transport, storage helpers and fixtures, and duplicate cached
+  inventory scenarios already covered by their owning tests.
+
+### 🔧 Changed
+
+- Align Platform 0.19, Host Tools 0.79, Testkit 0.81, Wire 0.16 and the latest
+  published Foundation/Build packages; adopt committed Shared Tooling 0.28.0.
+  Keep Rust 1.99.1 and the existing release/native qualification scope.
+
+Details: [0.89 notes](0.89.md).
+
 ## [0.88.0] - 2026-11-02
 
 ### ⚠️ Breaking

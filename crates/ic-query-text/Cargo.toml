@@ -27,14 +27,9 @@ cmc-host = ["ic-query/cmc-host", "certificate-host"]
 dashboard-host = ["ic-query/dashboard-host"]
 ic-state-host = ["ic-query/ic-state-host"]
 icrc-host = ["ic-query/icrc-host", "certificate-host"]
-nns-host = ["ic-query/nns-host", "nns-topology-host", "certified-subnet-catalog-host"]
+nns-host = ["ic-query/nns-host", "nns-topology-host", "certificate-host"]
 sns-host = ["ic-query/sns-host"]
 subnet-catalog-host = ["ic-query/subnet-catalog-host"]
-certified-subnet-catalog-host = [
-    "ic-query/certified-subnet-catalog-host",
-    "certificate-host",
-    "subnet-catalog-host",
-]
 nns-topology-host = ["ic-query/nns-topology-host", "subnet-catalog-host"]
 certificate-host = ["ic-query/certificate-host"]
 ledger-evidence-host = ["ic-query/ledger-evidence-host", "certificate-host"]

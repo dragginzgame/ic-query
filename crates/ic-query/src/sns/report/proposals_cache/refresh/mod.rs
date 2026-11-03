@@ -6,7 +6,6 @@
 
 use crate::{
     QueryProgress,
-    progress::IgnoreQueryProgress,
     sns::report::{
         SnsHostError, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
         cache_refresh::{publish_complete_sns_snapshot, run_resolved_sns_snapshot_refresh},
@@ -22,32 +21,16 @@ use crate::{
 pub async fn refresh_sns_proposals_cache(
     request: &SnsSnapshotRefreshRequest,
 ) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
-    refresh_sns_proposals_cache_with_source(request, &LiveSnsSource::default()).await
-}
-
-/// Refresh a complete SNS proposal snapshot and emit structured progress events.
-pub async fn refresh_sns_proposals_cache_with_progress(
-    request: &SnsSnapshotRefreshRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
     refresh_sns_proposals_cache_with_source_and_progress(
         request,
         &LiveSnsSource::default(),
-        progress,
+        &mut |_| {},
     )
     .await
 }
 
-/// Refresh a complete SNS proposal snapshot using an injected source.
-pub async fn refresh_sns_proposals_cache_with_source(
-    request: &SnsSnapshotRefreshRequest,
-    source: &dyn SnsProposalsSource,
-) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
-    let mut progress = IgnoreQueryProgress;
-    refresh_sns_proposals_cache_with_source_and_progress(request, source, &mut progress).await
-}
-
-pub(in crate::sns::report) async fn refresh_sns_proposals_cache_with_source_and_progress(
+/// Refresh with a caller-owned source and progress sink.
+pub async fn refresh_sns_proposals_cache_with_source_and_progress(
     request: &SnsSnapshotRefreshRequest,
     source: &dyn SnsProposalsSource,
     progress: &mut dyn QueryProgress,

@@ -16,7 +16,7 @@ fn topology_gaps_report_lists_unknown_join_subjects() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
-    assert_eq!(report.gap_count, 5);
+    assert_eq!(report.gaps.len(), 5);
     assert!(report.gaps.iter().any(|gap| {
         gap.subject_kind == NnsTopologyGapSubjectKind::Node
             && gap.subject == "node-c"
@@ -62,5 +62,5 @@ fn topology_gaps_text_renders_gap_or_ok_tables() {
     );
 
     assert_eq!(clean_report.status, NnsTopologyAssessmentStatus::Ok);
-    assert_eq!(clean_report.gap_count, 0);
+    assert_eq!(clean_report.gaps.len(), 0);
 }

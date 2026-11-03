@@ -112,7 +112,6 @@ struct DashboardReplicaVersionListRow {
 
 impl DashboardReplicaVersionListRow {
     fn into_public(self) -> Result<IcReplicaVersionListRow, IcHostError> {
-        let subnet_count = self.subnets.len();
         Ok(IcReplicaVersionListRow {
             replica_version_id: self.replica_version_id,
             proposal_id: self.proposal_id,
@@ -120,7 +119,6 @@ impl DashboardReplicaVersionListRow {
             status: replica_version_status(&self.status)?,
             title: self.title,
             url: self.url,
-            subnet_count,
             subnets: self.subnets,
         })
     }
@@ -196,7 +194,7 @@ mod tests {
         assert_eq!(source.rows[0].status, IcReplicaVersionStatus::Open);
         assert_eq!(source.rows[0].executed_timestamp_seconds, 0);
         assert_eq!(source.resolved_max_proposal_index, 2);
-        assert_eq!(source.rows[0].subnet_count, 1);
+        assert_eq!(source.rows[0].subnets.len(), 1);
         assert_eq!(
             source.rows[0].subnets[0],
             IcReplicaVersionSubnetRollout {

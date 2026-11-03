@@ -10,9 +10,13 @@ async fn sns_neurons_refresh_rejects_invalid_public_page_size() {
     let mut request = sns_neurons_refresh_request(&root, None);
     request.page_size = 0;
 
-    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect_err("zero page size is invalid");
+    let err = refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("zero page size is invalid");
 
     assert!(matches!(
         err,
@@ -44,9 +48,13 @@ async fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
     let root = temp_dir("ic-query-sns-neurons-incomplete-refresh");
     let request = sns_neurons_refresh_request(&root, Some(1));
 
-    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect_err("incomplete refresh");
+    let err = refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("incomplete refresh");
 
     assert!(matches!(
         err,
@@ -81,9 +89,13 @@ async fn sns_neurons_refresh_max_pages_does_not_publish_incomplete_cache() {
 async fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
     let root = temp_dir("ic-query-sns-neurons-unsupported-schema");
     let request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
 
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut cache: serde_json::Value =
@@ -120,9 +132,13 @@ async fn sns_neurons_cached_sort_rejects_unsupported_cache_schema() {
 async fn sns_neurons_cached_sort_rejects_snapshot_identity_mismatch() {
     let root = temp_dir("ic-query-sns-neurons-identity-mismatch");
     let request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
 
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut cache: serde_json::Value =
@@ -217,9 +233,13 @@ impl SnsNeuronsSource for InvalidNeuronPageSource {
 async fn invalid_neuron_page_preserves_complete_cache_and_records_failure() {
     let root = temp_dir("ic-query-sns-neurons-invalid-cursor");
     let request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .unwrap();
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .unwrap();
     let path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let original = fs::read(&path).unwrap();
     for invalid_page in [
@@ -227,10 +247,13 @@ async fn invalid_neuron_page_preserves_complete_cache_and_records_failure() {
         InvalidNeuronPage::DuplicateIds,
         InvalidNeuronPage::DescendingIds,
     ] {
-        let error =
-            refresh_sns_neurons_cache_with_source(&request, &InvalidNeuronPageSource(invalid_page))
-                .await
-                .expect_err("invalid page cannot prove completeness");
+        let error = refresh_sns_neurons_cache_with_source_and_progress(
+            &request,
+            &InvalidNeuronPageSource(invalid_page),
+            &mut |_| {},
+        )
+        .await
+        .expect_err("invalid page cannot prove completeness");
         assert!(matches!(
             error,
             SnsHostError::InvalidSourceData {

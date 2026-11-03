@@ -149,9 +149,7 @@ use ic_query::icrc::normalize_subaccount_hex;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::refresh_icrc_account_transaction_cache;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::refresh_icrc_account_transaction_cache_with_progress;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::refresh_icrc_account_transaction_cache_with_source;
+use ic_query::icrc::refresh_icrc_account_transaction_cache_with_source_and_progress;
 use ic_query_text::icrc::icrc_account_transaction_page_report_text;
 use ic_query_text::icrc::icrc_allowance_report_text;
 use ic_query_text::icrc::icrc_archives_report_text;
@@ -190,13 +188,15 @@ type IcrcAccountTransactionCacheLoader =
         &IcrcAccountTransactionCacheRequest,
     ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
 #[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionRefreshWithSource = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-    &'a dyn IcrcAccountTransactionCollectionSource,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
->;
+type IcrcAccountTransactionRefreshWithSourceAndProgress =
+    for<'a> fn(
+        &'a IcrcAccountTransactionRefreshRequest,
+        &'a dyn IcrcAccountTransactionCollectionSource,
+        &'a mut (dyn QueryProgress + Send),
+    ) -> ic_query::report::SourceFuture<
+        'a,
+        Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
+    >;
 #[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadMissingWithSource = for<'a> fn(
     &'a IcrcAccountTransactionRefreshRequest,
@@ -222,15 +222,6 @@ type IcrcAccountTransactionCacheStatusBuilder =
     fn(
         &IcrcAccountTransactionCacheRequest,
     ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError>;
-
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionRefreshWithProgress = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-    &'a mut (dyn QueryProgress + Send),
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
->;
 
 #[cfg(feature = "icrc-host")]
 type IcrcAccountTransactionLoadStale = for<'a> fn(
@@ -386,11 +377,15 @@ fn public_icrc_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<IcrcAccountTransactionCacheLoader>(
         load_cached_icrc_account_transactions,
     );
-    accepts_public_function::<IcrcAccountTransactionRefreshWithSource>(|arg0, arg1| {
-        Box::pin(refresh_icrc_account_transaction_cache_with_source(
-            arg0, arg1,
-        ))
-    });
+    accepts_public_function::<IcrcAccountTransactionRefreshWithSourceAndProgress>(
+        |request, source, progress| {
+            Box::pin(
+                refresh_icrc_account_transaction_cache_with_source_and_progress(
+                    request, source, progress,
+                ),
+            )
+        },
+    );
     accepts_public_function::<IcrcAccountTransactionLoadMissingWithSource>(|arg0, arg1| {
         Box::pin(load_or_refresh_missing_icrc_account_transactions_with_source(arg0, arg1))
     });
@@ -416,11 +411,7 @@ fn public_icrc_host_api_exposes_live_builder_entry_points() {
             IcrcAccountTransactionError,
         >,
     >(|arg0| Box::pin(refresh_icrc_account_transaction_cache(arg0)));
-    accepts_public_function::<IcrcAccountTransactionRefreshWithProgress>(|arg0, arg1| {
-        Box::pin(refresh_icrc_account_transaction_cache_with_progress(
-            arg0, arg1,
-        ))
-    });
+
     accepts_public_function::<
         IcrcBuilder<
             IcrcAccountTransactionRefreshRequest,

@@ -13,7 +13,6 @@ pub struct NnsNodeOperatorListReport {
     /// Registry acquisition metadata, flattened in JSON.
     #[serde(flatten)]
     pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
-    pub node_operator_count: usize,
     pub node_operators: Vec<NnsNodeOperatorRow>,
 }
 
@@ -23,7 +22,6 @@ impl_nns_inventory_report!(
     super::super::NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
     "node_operator",
     super::super::COLLECTION,
-    node_operator_count,
     node_operators,
     |_report: &NnsNodeOperatorListReport| None,
 );

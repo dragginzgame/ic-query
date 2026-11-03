@@ -30,8 +30,6 @@ pub const SUBNET_RECORD_KEY_PREFIX: &str = "subnet_record_";
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CatalogAssurance {
-    /// Registry state reconstructed from a verified certified delta sequence.
-    Certified,
     /// Canonical raw Registry evidence agreed across independent endpoints.
     MultiEndpointAgreement,
     /// Version-consistent ordinary query evidence from one replica endpoint.
@@ -253,7 +251,6 @@ impl CatalogAssurance {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Certified => "certified",
             Self::MultiEndpointAgreement => "multi_endpoint_agreement",
             Self::UncertifiedQuery => "uncertified_query",
         }
@@ -269,7 +266,6 @@ impl CatalogAssurance {
         match self {
             Self::UncertifiedQuery => 0,
             Self::MultiEndpointAgreement => 1,
-            Self::Certified => 2,
         }
     }
 }
@@ -302,34 +298,6 @@ pub struct UncertifiedCatalogCollection {
 }
 
 ///
-/// CertifiedRegistryCatalogEvidence
-///
-/// Persistable commitments copied from one fully reauthenticated Registry archive.
-/// Serialized values describe evidence but cannot establish certified authority by themselves.
-///
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct CertifiedRegistryCatalogEvidence {
-    /// Archive-manifest schema authenticated during archive restoration.
-    pub archive_manifest_schema_version: u32,
-    /// Certified Registry delta-report schema authenticated during restoration.
-    pub delta_report_schema_version: u32,
-    /// Replay-provenance schema governing the retained commitments.
-    pub replay_provenance_schema_version: u32,
-    /// Lowercase SHA-256 digest of the trusted mainnet root key.
-    pub root_key_digest: String,
-    /// Lowercase SHA-256 commitment to the ordered authenticated report sequence.
-    pub evidence_chain_digest: String,
-    /// Lowercase SHA-256 commitment to the exact reconstructed Registry state.
-    pub complete_state_digest: String,
-    /// Earliest authenticated certificate time in nanoseconds.
-    pub minimum_certificate_time_nanos: u64,
-    /// Latest authenticated certificate time in nanoseconds.
-    pub maximum_certificate_time_nanos: u64,
-}
-
-///
 /// SubnetCatalogProvenance
 ///
 /// Registry, collection, assurance, and policy identity for one raw catalog.
@@ -358,8 +326,6 @@ pub struct SubnetCatalogProvenance {
     pub registry_records: Vec<SubnetCatalogRegistryRecordEvidence>,
     /// Caller-supplied UTC collection timestamp.
     pub fetched_at: String,
-    /// Certified archive commitments, present only for certified assurance.
-    pub certified_registry: Option<CertifiedRegistryCatalogEvidence>,
     /// Collector implementation name.
     pub fetched_by: String,
     /// Collector package version.

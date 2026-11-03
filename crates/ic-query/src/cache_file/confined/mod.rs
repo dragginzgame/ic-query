@@ -24,11 +24,7 @@ use std::os::{fd::AsFd, unix::fs::PermissionsExt};
 use std::io::Write;
 
 mod read;
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "host",
-    feature = "sns-host"
-))]
+#[cfg(any(feature = "host", feature = "sns-host"))]
 mod scan;
 
 #[cfg(any(
@@ -40,7 +36,7 @@ mod scan;
 ))]
 pub use read::open_managed_file;
 #[cfg(any(
-    feature = "certified-subnet-catalog-host",
+    feature = "nns-host",
     feature = "subnet-catalog-host",
     feature = "dashboard-host",
     feature = "nns-topology-host",
@@ -63,8 +59,6 @@ pub use read::{ManagedReadBudget, read_opened_file_bounded};
 pub use scan::collect_managed_collection_files;
 #[cfg(feature = "host")]
 pub use scan::collect_managed_files;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use scan::{ManagedDirectoryFile, remove_managed_regular_file, scan_managed_directory_files};
 
 const MANAGED_DIRECTORY_MODE: u32 = 0o700;
 const MANAGED_FILE_MODE: u32 = 0o600;

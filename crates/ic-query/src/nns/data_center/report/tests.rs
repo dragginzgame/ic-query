@@ -57,7 +57,7 @@ async fn data_center_report_uses_live_registry_source() {
     );
     assert_eq!(report.provenance.registry_version, 42);
     assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
-    assert_eq!(report.data_center_count, 1);
+    assert_eq!(report.data_centers.len(), 1);
     assert_eq!(report.data_centers[0].data_center_id, "dc1");
 }
 
@@ -83,7 +83,6 @@ fn data_center_report_fixture() -> NnsDataCenterListReport {
             source_endpoint: "https://icp-api.io".to_string(),
             fetched_by: "test".to_string(),
         },
-        data_center_count: 1,
         data_centers: vec![NnsDataCenterRow {
             data_center_id: "dc1".to_string(),
             region: "eu-west".to_string(),
@@ -138,7 +137,6 @@ impl NnsDataCenterSource for FixtureDataCenterSource {
                     source_endpoint: request.endpoint.clone(),
                     fetched_by: request.fetched_by.clone(),
                 },
-                data_center_count: data_centers.len(),
                 data_centers,
             })
         })

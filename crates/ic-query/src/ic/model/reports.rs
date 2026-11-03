@@ -96,10 +96,6 @@ pub struct IcMetricReport {
     /// Metric and explicit time-series bounds, flattened in report JSON.
     #[serde(flatten)]
     pub query: IcMetricQuery,
-    /// Number of named series returned by the API.
-    pub returned_series_count: usize,
-    /// Total number of observations across all returned series.
-    pub returned_observation_count: usize,
     /// Raw named time series in canonical series-name order.
     pub series: Vec<IcMetricSeries>,
 }
@@ -136,8 +132,6 @@ pub struct IcIcrcTotalSupplyReport {
     pub query: IcIcrcTotalSupplyQuery,
     /// Maximum observations implied by the requested inclusive window.
     pub requested_observation_limit: u64,
-    /// Number of observations returned by the API.
-    pub returned_observation_count: usize,
     /// Raw observations in strictly increasing timestamp order.
     pub observations: Vec<IcIcrcTotalSupplyObservation>,
 }
@@ -211,8 +205,6 @@ pub struct IcIcrcAccountListReport {
     /// Exact page query, flattened in report JSON.
     #[serde(flatten)]
     pub query: IcIcrcAccountListQuery,
-    /// Number of account rows returned in this page.
-    pub returned_count: usize,
     /// Opaque cursor for an explicit preceding-page request.
     pub previous_cursor: Option<String>,
     /// Opaque cursor for an explicit following-page request.
@@ -283,8 +275,6 @@ pub struct IcIcrcHolderListReport {
     /// Exact page query, flattened in report JSON.
     #[serde(flatten)]
     pub query: IcIcrcHolderListQuery,
-    /// Number of holder rows returned in this page.
-    pub returned_count: usize,
     /// Opaque cursor for an explicit preceding-page request.
     pub previous_cursor: Option<String>,
     /// Opaque cursor for an explicit following-page request.
@@ -333,8 +323,6 @@ pub struct IcIcrcTokenValueReport {
     /// Exact requested time and row bounds, flattened in report JSON.
     #[serde(flatten)]
     pub query: IcIcrcTokenValueQuery,
-    /// Number of rows returned by the API.
-    pub returned_row_count: usize,
     /// Whether the response reached the requested limit and may be truncated.
     pub limit_reached: bool,
     /// Raw token-value rows in nondecreasing timestamp order.
@@ -384,8 +372,6 @@ pub struct IcDailyStatsReport {
     /// Exact requested time bounds, flattened in report JSON.
     #[serde(flatten)]
     pub query: IcDailyStatsQuery,
-    /// Number of daily rows returned by the API.
-    pub returned_day_count: usize,
     /// Rows in strictly increasing timestamp order.
     pub rows: Vec<IcDailyStatsRow>,
 }
@@ -425,8 +411,6 @@ pub struct IcBoundaryNodeDataCentersReport {
     /// Shared Dashboard provenance, flattened in serialized report JSON.
     #[serde(flatten)]
     pub provenance: IcDashboardReportProvenance,
-    /// Number of data-center rows returned by the API.
-    pub data_center_count: usize,
     /// Sum of the raw per-data-center boundary-node counts.
     pub total_node_count: u64,
     /// Rows in canonical data-center-id order, including zero-node locations.
@@ -501,8 +485,6 @@ pub struct IcNodeProviderRewardListReport {
     pub resolved_max_reward_index: u64,
     /// Number of reward records matching the selected reward-index ceiling.
     pub total_reward_records: u64,
-    /// Number of rows returned in this page.
-    pub returned_count: usize,
     /// Arithmetic offset hint for an explicit later request, when more records remain.
     pub next_offset_hint: Option<u64>,
     /// Whether adjacent upstream offset pages can contain overlapping record ids.
@@ -557,8 +539,6 @@ pub struct IcNodeProviderRewardHistoryReport {
     pub query: IcNodeProviderRewardHistoryQuery,
     /// Maximum observations implied by the requested inclusive window.
     pub requested_observation_limit: u64,
-    /// Number of observations returned by the API.
-    pub returned_observation_count: usize,
     /// Aggregate observations in strictly increasing timestamp order.
     pub observations: Vec<IcNodeProviderRewardHistoryObservation>,
 }
@@ -634,8 +614,6 @@ pub struct IcReplicaVersionListRow {
     pub title: String,
     /// Raw proposal discussion URL.
     pub url: String,
-    /// Number of Dashboard-recorded Subnet assignments.
-    pub subnet_count: usize,
     /// Dashboard-recorded Subnet assignments in execution order.
     pub subnets: Vec<IcReplicaVersionSubnetRollout>,
 }
@@ -658,8 +636,6 @@ pub struct IcReplicaVersionListReport {
     pub resolved_max_proposal_index: u64,
     /// Number of release records matching the selected proposal-index ceiling.
     pub total_proposals: u64,
-    /// Number of rows returned in this page.
-    pub returned_count: usize,
     /// Offset for an explicit next-page request, when more rows remain.
     pub next_offset: Option<u64>,
     /// Release rows in the Dashboard's requested descending execution-time order.
@@ -704,8 +680,6 @@ pub struct IcReplicaVersionInfoReport {
     /// Shared record, flattened in serialized output.
     #[serde(flatten)]
     pub release: IcReplicaVersionDetails,
-    /// Number of Dashboard-recorded Subnet assignments.
-    pub subnet_count: usize,
 }
 
 ///
@@ -817,8 +791,6 @@ pub struct IcCanisterPageReport {
     pub filters: IcCanisterFilters,
     /// Maximum rows requested from the API.
     pub requested_limit: u16,
-    /// Number of rows returned in this report.
-    pub returned_count: usize,
     /// Exclusive forward cursor supplied to this request.
     pub after: Option<String>,
     /// Exclusive backward cursor supplied to this request.

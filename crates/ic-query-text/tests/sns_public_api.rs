@@ -1,8 +1,6 @@
 #[cfg(feature = "sns-host")]
 use ic_query::HostCacheError;
 use ic_query::icrc::IcrcMetadataValueKind;
-#[cfg(feature = "sns-host")]
-use ic_query::icrc::IcrcTokenData;
 use ic_query::icrc::IcrcTokenMetadataRow;
 use ic_query::icrc::IcrcTokenStandardRow;
 #[cfg(feature = "sns-host")]
@@ -17,25 +15,16 @@ use ic_query::sns::LiveSnsSource;
 use ic_query::sns::MAX_SNS_METRICS_TIME_WINDOW_SECONDS;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::MainnetSns;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::MainnetSnsCanisterInventory;
 use ic_query::sns::MainnetSnsCanisters;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::MainnetSnsInventory;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::MainnetSnsLifecycle;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::MainnetSnsMetadata;
 use ic_query::sns::MainnetSnsMetrics;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::MainnetSnsNeuronPage;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::MainnetSnsRewardNeuronPage;
+
 use ic_query::sns::MainnetSnsSwap;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::MainnetSnsToken;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::MainnetSnsUpgrade;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsCacheListRequest;
 #[cfg(feature = "sns-host")]
@@ -48,8 +37,6 @@ use ic_query::sns::SnsCanisterMethod;
 use ic_query::sns::SnsCanisterReport;
 use ic_query::sns::SnsCanisterRole;
 use ic_query::sns::SnsCanisterRow;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsCanisterSource;
 use ic_query::sns::SnsCanisterStatus;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsCatalogCacheRequest;
@@ -57,8 +44,6 @@ use ic_query::sns::SnsCatalogCacheRequest;
 use ic_query::sns::SnsCatalogRefreshReport;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsCatalogRefreshRequest;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsCatalogSource;
 use ic_query::sns::SnsCustomProposalCriticality;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsDiscoverySource;
@@ -73,8 +58,6 @@ use ic_query::sns::SnsLookupRequest;
 use ic_query::sns::SnsMaturityDisbursementRow;
 use ic_query::sns::SnsMetricsReport;
 use ic_query::sns::SnsMetricsRequest;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsMetricsSource;
 use ic_query::sns::SnsNeuronAccount;
 use ic_query::sns::SnsNeuronDetail;
 use ic_query::sns::SnsNeuronDetailReport;
@@ -100,8 +83,6 @@ use ic_query::sns::SnsNeuronsRequest;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsNeuronsSource;
 use ic_query::sns::SnsParamsReport;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsParamsSource;
 use ic_query::sns::SnsPendingUpgrade;
 use ic_query::sns::SnsPolicyObservationStatus;
 use ic_query::sns::SnsProposalBallotRow;
@@ -120,19 +101,7 @@ use ic_query::sns::SnsProposalsRequest;
 use ic_query::sns::SnsProposalsSort;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsProposalsSource;
-use ic_query::sns::SnsRewardAllocationStatus;
-use ic_query::sns::SnsRewardCheckpointReport;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsRewardCheckpointRequest;
-use ic_query::sns::SnsRewardCheckpointRow;
-use ic_query::sns::SnsRewardCollectionStatus;
-use ic_query::sns::SnsRewardDiffInvalidReasonKind;
-use ic_query::sns::SnsRewardDiffReport;
-use ic_query::sns::SnsRewardEvent;
-use ic_query::sns::SnsRewardProposalId;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsRewardSource;
-use ic_query::sns::SnsRunningVersionResponse;
+
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsSnapshotRefreshReport;
 #[cfg(feature = "sns-host")]
@@ -144,27 +113,17 @@ use ic_query::sns::SnsSwapNeuronBasketConstructionParameters;
 use ic_query::sns::SnsSwapQueryGap;
 use ic_query::sns::SnsSwapReport;
 use ic_query::sns::SnsSwapSaleParameters;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsSwapSource;
 use ic_query::sns::SnsTokenReport;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsTokenSource;
 use ic_query::sns::SnsTreasuryMetricRow;
 use ic_query::sns::SnsUpgradeQueryGap;
 use ic_query::sns::SnsUpgradeReport;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsUpgradeSource;
 use ic_query::sns::SnsVersion;
 use ic_query::sns::SnsVotingPowerMetrics;
 use ic_query::sns::SnsVotingRewardsParameters;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_canister_report;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_canister_report_with_source;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_info_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_info_report_with_source;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_list_report;
 #[cfg(feature = "sns-host")]
@@ -172,11 +131,7 @@ use ic_query::sns::build_sns_list_report_from_cache;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_list_report_from_cache_or_refresh;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_list_report_with_source;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_metrics_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_metrics_report_with_source;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_neuron_detail_report;
 #[cfg(feature = "sns-host")]
@@ -192,8 +147,6 @@ use ic_query::sns::build_sns_neurons_report_with_source;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_params_report;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_params_report_with_source;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_proposal_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_proposal_report_with_source;
@@ -205,37 +158,24 @@ use ic_query::sns::build_sns_proposals_cache_status_report;
 use ic_query::sns::build_sns_proposals_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_reward_checkpoint_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_reward_checkpoint_report_with_source;
-use ic_query::sns::build_sns_reward_diff_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_reward_diff_report_from_paths;
+
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_swap_report;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_swap_report_with_source;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_token_report;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_token_report_with_source;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_upgrade_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_upgrade_report_with_source;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::load_sns_reward_checkpoint;
+
 #[cfg(feature = "sns-host")]
 use ic_query::sns::refresh_sns_catalog;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::refresh_sns_neurons_cache;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::refresh_sns_neurons_cache_with_source;
+use ic_query::sns::refresh_sns_neurons_cache_with_source_and_progress;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::refresh_sns_proposals_cache;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::refresh_sns_proposals_cache_with_source;
+use ic_query::sns::refresh_sns_proposals_cache_with_source_and_progress;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::sns_catalog_cache_path;
 #[cfg(feature = "sns-host")]
@@ -253,7 +193,7 @@ use ic_query::sns::sns_proposals_cache_path;
 use ic_query::sns::sns_proposals_refresh_attempt_path;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::sns_proposals_refresh_lock_path;
-use ic_query::sns::validate_sns_reward_checkpoint_report;
+
 use ic_query_text::sns::sns_canister_report_text;
 #[cfg(feature = "sns-host")]
 use ic_query_text::sns::sns_catalog_refresh_report_text;
@@ -274,8 +214,7 @@ use ic_query_text::sns::sns_proposals_cache_list_report_text;
 #[cfg(feature = "sns-host")]
 use ic_query_text::sns::sns_proposals_cache_status_report_text;
 use ic_query_text::sns::sns_proposals_report_text;
-use ic_query_text::sns::sns_reward_checkpoint_report_text;
-use ic_query_text::sns::sns_reward_diff_report_text;
+
 #[cfg(feature = "sns-host")]
 use ic_query_text::sns::sns_snapshot_refresh_report_text;
 use ic_query_text::sns::sns_swap_report_text;
@@ -416,384 +355,6 @@ fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
 }
 
 #[test]
-fn public_sns_reward_checkpoint_models_round_trip_and_render_without_host() {
-    let report = sample_sns_reward_checkpoint_report();
-    let value = serde_json::to_value(&report).expect("checkpoint JSON");
-    assert!(
-        value
-            .get("aggregate_combined_maturity_e8s_equivalent")
-            .is_none()
-    );
-    assert_eq!(
-        report
-            .summary()
-            .unwrap()
-            .aggregate_combined_maturity_e8s_equivalent,
-        15_000_000
-    );
-    let canisters = serde_json::to_value(&report.canisters).expect("canister identities");
-    for (key, expected) in canisters.as_object().unwrap() {
-        assert_eq!(value.get(key), Some(expected), "flat identity field {key}");
-    }
-    let decoded: SnsRewardCheckpointReport =
-        serde_json::from_value(value.clone()).expect("strict checkpoint decode");
-    assert_eq!(decoded, report);
-    for field in ["rows", "governance_canister_id"] {
-        let mut missing = value.clone();
-        missing.as_object_mut().unwrap().remove(field);
-        assert!(serde_json::from_value::<SnsRewardCheckpointReport>(missing).is_err());
-    }
-    for (field, legacy) in [
-        ("row_count", serde_json::json!(1)),
-        (
-            "aggregate_combined_maturity_e8s_equivalent",
-            serde_json::json!(15_000_000),
-        ),
-        (
-            "collection_started_at",
-            serde_json::json!("2023-11-15T22:13:20Z"),
-        ),
-    ] {
-        let mut former = value.clone();
-        former[field] = legacy;
-        assert!(serde_json::from_value::<SnsRewardCheckpointReport>(former).is_err());
-    }
-    let mut former_row = value.clone();
-    former_row["rows"][0]["combined_maturity_e8s_equivalent"] = serde_json::json!(15_000_000);
-    assert!(serde_json::from_value::<SnsRewardCheckpointReport>(former_row).is_err());
-    let mut invalid = value;
-    invalid["unexpected"] = serde_json::json!(true);
-    assert!(serde_json::from_value::<SnsRewardCheckpointReport>(invalid).is_err());
-    let duplicate = serde_json::to_string(&report)
-        .unwrap()
-        .replace("\"page_count\":", "\"page_count\":99,\"page_count\":");
-    assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
-    let duplicate = serde_json::to_string(&report).unwrap().replace(
-        "\"root_canister_id\":",
-        "\"root_canister_id\":\"aaaaa-aa\",\"root_canister_id\":",
-    );
-    assert!(serde_json::from_str::<SnsRewardCheckpointReport>(&duplicate).is_err());
-
-    validate_sns_reward_checkpoint_report(&decoded).expect("pure checkpoint validation");
-    let mut cached = decoded.clone();
-    cached.data_source = ReportDataSource::Cache;
-    assert!(validate_sns_reward_checkpoint_report(&cached).is_err());
-    assert_eq!(
-        decoded.rows[0].checked_combined_maturity(),
-        Some(15_000_000)
-    );
-    assert_eq!(
-        decoded.rows[0].derived_policy_observations(),
-        (
-            SnsPolicyObservationStatus::ObservedSatisfied,
-            SnsPolicyObservationStatus::ObservedSatisfied,
-        )
-    );
-    assert!(
-        sns_reward_checkpoint_report_text(&decoded)
-            .contains("collection_status: api_exhausted_observed")
-    );
-}
-
-#[test]
-fn public_sns_reward_diff_reconciles_one_immediate_native_distribution() {
-    let before = sample_sns_reward_checkpoint_report();
-    let after = advance_reward_checkpoint(&before, 5_000, 5_000);
-
-    let report = build_sns_reward_diff_report(&before, &after);
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Valid);
-    assert_eq!(report.invalid_reasons, Vec::new());
-    assert_eq!(report.aggregate_maturity_delta_e8s_equivalent, Some(5_000));
-    assert_eq!(
-        report.summed_neuron_maturity_delta_e8s_equivalent,
-        Some(5_000)
-    );
-    assert_eq!(
-        report.rows[0].allocation_numerator_e8s_equivalent,
-        Some(5_000)
-    );
-    assert_eq!(
-        report.rows[0].allocation_denominator_e8s_equivalent,
-        Some(5_000)
-    );
-    assert!(!report.checkpoint_content_authenticated);
-    assert!(report.rows[0].before.is_some());
-    assert!(report.rows[0].after.is_some());
-
-    let earlier = report.rows[0].before.as_ref().expect("earlier evidence");
-    let later = report.rows[0].after.as_ref().expect("later evidence");
-    assert_eq!(
-        earlier.combined_maturity_e8s_equivalent,
-        before.rows[0].checked_combined_maturity().unwrap()
-    );
-    assert_eq!(
-        later.combined_maturity_e8s_equivalent,
-        after.rows[0].checked_combined_maturity().unwrap()
-    );
-    assert_eq!(
-        earlier.created_timestamp_seconds,
-        before.rows[0].created_timestamp_seconds
-    );
-    assert_eq!(
-        earlier.pending_maturity_disbursement_count,
-        before.rows[0].disburse_maturity_in_progress.len()
-    );
-    let value = serde_json::to_value(&report).expect("reward diff JSON");
-    let decoded: SnsRewardDiffReport =
-        serde_json::from_value(value).expect("strict reward diff decode");
-    assert!(sns_reward_diff_report_text(&decoded).contains("allocation_status: valid"));
-}
-
-#[test]
-fn public_sns_reward_diff_rejects_hidden_conversion_and_skipped_event() {
-    let before = sample_sns_reward_checkpoint_report();
-    let hidden_conversion = advance_reward_checkpoint(&before, 10, 50);
-    let report = build_sns_reward_diff_report(&before, &hidden_conversion);
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Invalid);
-    assert!(
-        report.invalid_reasons.iter().any(|reason| {
-            reason.kind == SnsRewardDiffInvalidReasonKind::AggregateReconciliation
-        })
-    );
-
-    let mut skipped_event = advance_reward_checkpoint(&before, 50, 50);
-    skipped_event.reward_event_before.round += 1;
-    skipped_event.reward_event_after.round += 1;
-    let report = build_sns_reward_diff_report(&before, &skipped_event);
-    assert!(
-        report
-            .invalid_reasons
-            .iter()
-            .any(|reason| { reason.kind == SnsRewardDiffInvalidReasonKind::RewardEventContinuity })
-    );
-
-    let mut uncovered_event = advance_reward_checkpoint(&before, 50, 50);
-    uncovered_event.reward_event_before.actual_timestamp_seconds =
-        before.collection_completed_at_unix_secs;
-    uncovered_event.reward_event_after.actual_timestamp_seconds =
-        before.collection_completed_at_unix_secs;
-    let report = build_sns_reward_diff_report(&before, &uncovered_event);
-    assert!(
-        report
-            .invalid_reasons
-            .iter()
-            .any(|reason| { reason.kind == SnsRewardDiffInvalidReasonKind::RewardEventCoverage })
-    );
-}
-
-#[test]
-fn public_sns_reward_diff_returns_no_allocation_for_exact_zero_distribution() {
-    let before = sample_sns_reward_checkpoint_report();
-    let after = advance_reward_checkpoint(&before, 0, 0);
-
-    let report = build_sns_reward_diff_report(&before, &after);
-    assert_eq!(
-        report.allocation_status,
-        SnsRewardAllocationStatus::NoAllocation
-    );
-    assert_eq!(report.invalid_reasons, Vec::new());
-    assert_eq!(report.rows[0].allocation_denominator_e8s_equivalent, None);
-}
-
-#[test]
-fn public_sns_reward_diff_fails_closed_for_unknown_permissions_and_tampering() {
-    let before = sample_sns_reward_checkpoint_report();
-    let mut unknown = advance_reward_checkpoint(&before, 5_000, 5_000);
-    unknown.rows[0].permissions[0].permission_types = vec![11];
-    let report = build_sns_reward_diff_report(&before, &unknown);
-    assert!(report.invalid_reasons.iter().any(|reason| {
-        reason.kind == SnsRewardDiffInvalidReasonKind::PolicyNotObservedSatisfied
-    }));
-
-    let mut tampered = advance_reward_checkpoint(&before, 5_000, 5_000);
-    tampered.rows[0].maturity_e8s_equivalent = u64::MAX;
-    let report = build_sns_reward_diff_report(&before, &tampered);
-    assert!(
-        report.invalid_reasons.iter().any(|reason| {
-            reason.kind == SnsRewardDiffInvalidReasonKind::AfterCheckpointInvalid
-        })
-    );
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Invalid);
-}
-
-#[test]
-fn public_sns_reward_diff_retains_recomputed_summaries_when_checkpoint_validation_fails() {
-    let before = sample_sns_reward_checkpoint_report();
-    let after = advance_reward_checkpoint(&before, 5_000, 5_000);
-    let mut bad_header = after.clone();
-    bad_header.schema_version = 0;
-    let mut bad_identity = after.clone();
-    bad_identity.sns_wasm_canister_id = "aaaaa-aa".to_string();
-    for invalid in [bad_header, bad_identity] {
-        let report = build_sns_reward_diff_report(&before, &invalid);
-        assert!(report.invalid_reasons.iter().any(|reason| {
-            reason.kind == SnsRewardDiffInvalidReasonKind::AfterCheckpointInvalid
-        }));
-        assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Invalid);
-        assert_eq!(report.rows, Vec::new());
-        assert_eq!(
-            report.aggregate_after_combined_maturity_e8s_equivalent,
-            Some(
-                after
-                    .summary()
-                    .unwrap()
-                    .aggregate_combined_maturity_e8s_equivalent
-            )
-        );
-        assert_eq!(
-            report.after_policy_status,
-            Some(
-                after
-                    .summary()
-                    .unwrap()
-                    .maturity_conversion_policy_observed_status
-            )
-        );
-    }
-
-    let mut overflow = after;
-    overflow.schema_version = 0;
-    overflow.rows[0].maturity_e8s_equivalent = u64::MAX;
-    overflow.rows[0].staked_maturity_e8s_equivalent = Some(1);
-    let report = build_sns_reward_diff_report(&before, &overflow);
-    assert_eq!(
-        report.aggregate_after_combined_maturity_e8s_equivalent,
-        None
-    );
-    assert_eq!(report.after_policy_status, None);
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Invalid);
-    assert_eq!(report.rows, Vec::new());
-}
-
-#[test]
-fn public_sns_reward_diff_preserves_negative_missing_and_new_neuron_evidence() {
-    let before = sample_sns_reward_checkpoint_report();
-    let mut decreased = advance_reward_checkpoint(&before, 0, 50);
-    decreased.rows[0].maturity_e8s_equivalent -= 40;
-    let report = build_sns_reward_diff_report(&before, &decreased);
-    assert_eq!(report.rows[0].maturity_delta_e8s_equivalent, -40);
-    assert!(
-        report
-            .invalid_reasons
-            .iter()
-            .any(|reason| { reason.kind == SnsRewardDiffInvalidReasonKind::NegativeMaturityDelta })
-    );
-
-    let mut missing = advance_reward_checkpoint(&before, 0, 0);
-    clear_reward_checkpoint_rows(&mut missing);
-    let report = build_sns_reward_diff_report(&before, &missing);
-    assert!(report.rows[0].after.is_none());
-    assert!(report.rows[0].before.is_some());
-    assert!(
-        report
-            .invalid_reasons
-            .iter()
-            .any(|reason| { reason.kind == SnsRewardDiffInvalidReasonKind::NeuronMissingAfter })
-    );
-
-    let mut empty_before = before.clone();
-    clear_reward_checkpoint_rows(&mut empty_before);
-    let mut new_after = advance_reward_checkpoint(&before, 0, 15_000_000);
-    new_after.rows[0].created_timestamp_seconds = before.collection_completed_at_unix_secs + 1;
-    let report = build_sns_reward_diff_report(&empty_before, &new_after);
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Valid);
-    assert!(report.rows[0].before.is_none());
-    assert!(report.rows[0].after.is_some());
-
-    new_after.rows[0].created_timestamp_seconds = before.collection_completed_at_unix_secs;
-    let report = build_sns_reward_diff_report(&empty_before, &new_after);
-    assert!(report.invalid_reasons.iter().any(|reason| {
-        reason.kind == SnsRewardDiffInvalidReasonKind::NewNeuronCreationUnexplained
-    }));
-}
-
-#[test]
-fn public_sns_reward_diff_orders_replaced_neurons_in_either_direction() {
-    for (before_id, after_id) in [(1, 2), (2, 1)] {
-        let mut before = sample_sns_reward_checkpoint_report();
-        before.rows[0].neuron_id = format!("{before_id:02x}").repeat(32);
-        let mut after = advance_reward_checkpoint(&before, 0, 0);
-        after.rows[0].neuron_id = format!("{after_id:02x}").repeat(32);
-        after.rows[0].created_timestamp_seconds = before.collection_completed_at_unix_secs + 1;
-        let report = build_sns_reward_diff_report(&before, &after);
-        assert_eq!(report.rows.len(), 2);
-        assert_eq!(report.rows[0].neuron_id, "01".repeat(32));
-        assert_eq!(report.rows[1].neuron_id, "02".repeat(32));
-        for row in &report.rows {
-            let is_new = row.neuron_id == after.rows[0].neuron_id;
-            assert_eq!(row.before.is_none(), is_new);
-            assert_eq!(row.after.is_none(), !is_new);
-        }
-        assert_eq!(report.summed_neuron_maturity_delta_e8s_equivalent, Some(0));
-        assert!(
-            report.invalid_reasons.iter().any(|reason| {
-                reason.kind == SnsRewardDiffInvalidReasonKind::NeuronMissingAfter
-            })
-        );
-    }
-}
-
-#[test]
-fn public_sns_reward_diff_matches_stable_canister_identity_not_display_metadata() {
-    let before = sample_sns_reward_checkpoint_report();
-    let mut after = advance_reward_checkpoint(&before, 5_000, 5_000);
-    after.id += 10;
-    after.name = "Renamed SNS".to_string();
-    assert_eq!(
-        build_sns_reward_diff_report(&before, &after).allocation_status,
-        SnsRewardAllocationStatus::Valid
-    );
-
-    after.canisters.ledger_canister_id = "rkp4c-7iaaa-aaaaa-aaaca-cai".to_string();
-    let report = build_sns_reward_diff_report(&before, &after);
-    assert!(
-        report
-            .invalid_reasons
-            .iter()
-            .any(|reason| { reason.kind == SnsRewardDiffInvalidReasonKind::TargetMismatch })
-    );
-}
-
-#[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_reward_diff_file_adapter_loads_without_live_source_calls() {
-    let before = sample_sns_reward_checkpoint_report();
-    let after = advance_reward_checkpoint(&before, 5_000, 5_000);
-    let root = PathBuf::from(format!(
-        "target/ic-query-sns-public-api-reward-diff-{}",
-        std::process::id()
-    ));
-    std::fs::create_dir_all(&root).expect("reward diff test directory");
-    let before_path = root.join("before.json");
-    let after_path = root.join("after.json");
-    std::fs::write(
-        &before_path,
-        serde_json::to_vec(&before).expect("before checkpoint JSON"),
-    )
-    .expect("write before checkpoint");
-    std::fs::write(
-        &after_path,
-        serde_json::to_vec(&after).expect("after checkpoint JSON"),
-    )
-    .expect("write after checkpoint");
-
-    assert_eq!(
-        load_sns_reward_checkpoint(&before_path).expect("load checkpoint"),
-        before
-    );
-    let report = build_sns_reward_diff_report_from_paths(&before_path, &after_path)
-        .expect("local reward diff");
-    assert_eq!(report.allocation_status, SnsRewardAllocationStatus::Valid);
-    std::fs::write(&after_path, b"{\"schema_version\":1}")
-        .expect("write malformed checkpoint shape");
-    assert!(matches!(
-        load_sns_reward_checkpoint(&after_path),
-        Err(SnsHostError::ParseRewardCheckpoint { path, .. }) if path == after_path
-    ));
-    std::fs::remove_dir_all(root).expect("remove reward diff test directory");
-}
-
-#[test]
 fn public_sns_list_api_is_constructible_and_renderable() {
     let request = SnsListRequest {
         network: "ic".to_string(),
@@ -819,7 +380,6 @@ fn public_sns_list_api_is_constructible_and_renderable() {
         sort: request.sort.as_str().to_string(),
         catalog_sns_count: 0,
         excluded_sns_count: 0,
-        sns_count: 0,
         metadata_error_count: 0,
         lifecycle_error_count: 0,
         sns_instances: Vec::new(),
@@ -846,7 +406,7 @@ fn public_sns_list_api_is_constructible_and_renderable() {
     ready.id = 2;
     ready.metadata_error = None;
     report.sns_instances = vec![failed, ready];
-    report.sns_count = 2;
+
     report.catalog_sns_count = 2;
     report.metadata_error_count = 1;
     let plain = sns_list_report_text(&report, ic_query_text::TextOptions::default());
@@ -925,7 +485,6 @@ fn public_sns_metrics_api_is_constructible_and_renderable() {
     let report = SnsMetricsReport {
         schema_version: 1,
         context: sample_sns_context().instance,
-        treasury_metric_count: 1,
 
         metrics: MainnetSnsMetrics {
             governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
@@ -977,11 +536,9 @@ fn public_sns_canister_api_is_constructible_and_renderable() {
     let report = SnsCanisterReport {
         schema_version: 1,
         context: sample_sns_context().instance,
-        canister_count: 1,
         health_status_count: 1,
         reported_zero_cycles_count: 0,
         cycles_unavailable_count: 0,
-        gap_count: 0,
         inventory: ic_query::sns::MainnetSnsCanisterInventory {
             inventory_method: SnsCanisterMethod::ListSnsCanisters,
             health_method: SnsCanisterMethod::GetSnsCanistersSummary,
@@ -1421,9 +978,6 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsBuilder<SnsNeuronRequest, SnsNeuronDetailReport>>(|arg0| {
         Box::pin(build_sns_neuron_detail_report(arg0))
     });
-    accepts_public_function::<SnsBuilder<SnsRewardCheckpointRequest, SnsRewardCheckpointReport>>(
-        |arg0| Box::pin(build_sns_reward_checkpoint_report(arg0)),
-    );
     accepts_public_function::<SnsBuilder<SnsNeuronsRequest, SnsNeuronsReport>>(|arg0| {
         Box::pin(build_sns_neurons_report(arg0))
     });
@@ -1438,74 +992,6 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     );
     let live_source = LiveSnsSource::default();
     accepts_public_function(live_source);
-}
-
-#[cfg(feature = "sns-host")]
-#[tokio::test(flavor = "current_thread")]
-async fn public_sns_host_api_accepts_custom_source_adapters() -> Result<(), SnsHostError> {
-    let source = FixtureSnsSource;
-    let source_request = CollectionSourceRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        SAMPLE_SNS_FETCHED_AT,
-        "fixture",
-    );
-    assert_eq!(source_request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-    assert_eq!(source_request.network, "ic");
-
-    let list_request = SnsListRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000);
-    let list = build_sns_list_report_with_source(&list_request, &source).await?;
-    assert_eq!(list.sns_count, 1);
-    assert_eq!(list.sns_instances[0].id, 1);
-
-    let info_request = SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
-        .expect("valid SNS selector");
-    let info = build_sns_info_report_with_source(&info_request, &source).await?;
-    assert_eq!(info.canisters.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
-
-    let metrics_request = SnsMetricsRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
-            .expect("valid SNS selector"),
-    );
-    let metrics = build_sns_metrics_report_with_source(&metrics_request, &source).await?;
-    assert_eq!(metrics.metrics.method, SnsCanisterMethod::GetMetrics);
-    assert_eq!(metrics.treasury_metric_count, 1);
-
-    let canisters = build_sns_canister_report_with_source(&info_request, &source).await?;
-    assert_eq!(canisters.canister_count, 1);
-    assert_eq!(canisters.inventory.canisters[0].role, SnsCanisterRole::Root);
-
-    let token_request = SnsLookupRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        1_700_000_000,
-        SAMPLE_SNS_ROOT_CANISTER_ID,
-    )
-    .expect("valid SNS selector");
-    let token = build_sns_token_report_with_source(&token_request, &source).await?;
-    assert_eq!(token.token.token_symbol, "EXT");
-
-    let params_request =
-        SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
-            .expect("valid SNS selector");
-    let params = build_sns_params_report_with_source(&params_request, &source).await?;
-    assert_eq!(
-        params.parameters.neuron_minimum_stake_e8s,
-        Some(100_000_000)
-    );
-
-    let swap = build_sns_swap_report_with_source(&params_request, &source).await?;
-    assert_eq!(swap.swap.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
-    assert_eq!(swap.successful_component_query_count, 3);
-
-    let upgrade = build_sns_upgrade_report_with_source(&params_request, &source).await?;
-    assert_eq!(
-        upgrade.context.governance_canister_id,
-        SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-    );
-    assert_eq!(upgrade.successful_component_query_count, 2);
-
-    Ok(())
 }
 
 #[cfg(feature = "sns-host")]
@@ -1545,7 +1031,12 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
         100,
     )
     .with_max_pages(Some(1));
-    let refresh = refresh_sns_proposals_cache_with_source(&refresh_request, &source).await?;
+    let refresh = refresh_sns_proposals_cache_with_source_and_progress(
+        &refresh_request,
+        &source,
+        &mut |_| {},
+    )
+    .await?;
     assert_eq!(refresh.collection, "proposals");
     assert_eq!(refresh.row_count, 1);
     assert!(refresh.complete);
@@ -1602,7 +1093,9 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
         100,
     )
     .with_max_pages(Some(1));
-    let refresh = refresh_sns_neurons_cache_with_source(&refresh_request, &source).await?;
+    let refresh =
+        refresh_sns_neurons_cache_with_source_and_progress(&refresh_request, &source, &mut |_| {})
+            .await?;
     assert_eq!(refresh.collection, "neurons");
     assert_eq!(refresh.row_count, 1);
     assert!(refresh.complete);
@@ -1612,51 +1105,8 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
 }
 
 #[cfg(feature = "sns-host")]
-#[tokio::test(flavor = "current_thread")]
-async fn public_sns_host_api_accepts_custom_reward_source_adapter() -> Result<(), SnsHostError> {
-    let report = build_sns_reward_checkpoint_report_with_source(
-        &SnsRewardCheckpointRequest::new(
-            ic_query::sns::SnsLookupRequest::new(
-                "ic",
-                DEFAULT_SNS_SOURCE_ENDPOINT,
-                1_700_000_000,
-                "1",
-            )
-            .expect("valid SNS selector"),
-        )
-        .with_max_pages(Some(1)),
-        &FixtureSnsSource,
-    )
-    .await?;
-
-    assert_eq!(report.row_count(), 1);
-    assert_eq!(report.page_count, 1);
-    assert_eq!(report.client_query_count().unwrap(), 9);
-    assert_eq!(
-        report
-            .summary()
-            .unwrap()
-            .maturity_conversion_policy_observed_status,
-        SnsPolicyObservationStatus::ObservedSatisfied
-    );
-    Ok(())
-}
-
-#[cfg(feature = "sns-host")]
 #[test]
 fn public_sns_host_api_exposes_neuron_request_constructor() {
-    let checkpoint = SnsRewardCheckpointRequest::new(
-        ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            1_700_000_000,
-            SAMPLE_SNS_ROOT_CANISTER_ID,
-        )
-        .expect("valid SNS selector"),
-    )
-    .with_max_pages(Some(10));
-    assert_eq!(checkpoint.max_pages, Some(10));
-
     let detail = SnsNeuronRequest::new(
         ic_query::sns::SnsLookupRequest::new(
             "ic",
@@ -1972,138 +1422,6 @@ impl SnsDiscoverySource for FixtureSnsSource {
 }
 
 #[cfg(feature = "sns-host")]
-impl SnsCatalogSource for FixtureSnsSource {
-    fn fetch_sns_lifecycles<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        targets: &'a [MainnetSnsCanisters],
-    ) -> ic_query::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(request.endpoint, DEFAULT_SNS_SOURCE_ENDPOINT);
-            Ok(targets
-                .iter()
-                .map(|target| MainnetSnsLifecycle {
-                    root_canister_id: target.root_canister_id.clone(),
-                    outcome: Ok(3),
-                })
-                .collect())
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsCanisterSource for FixtureSnsSource {
-    fn fetch_sns_canisters<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>> {
-        Box::pin(async move {
-            Ok(MainnetSnsCanisterInventory {
-                inventory_method: SnsCanisterMethod::ListSnsCanisters,
-                health_method: SnsCanisterMethod::GetSnsCanistersSummary,
-                health_call_type: SnsCanisterCallType::IngressUpdate,
-                health_update_canister_list: false,
-                point_in_time_guaranteed: false,
-                canisters: vec![SnsCanisterRow {
-                    role: SnsCanisterRole::Root,
-                    canister_id: sns.canisters.root_canister_id.clone(),
-                    status: Some(SnsCanisterStatus::Running),
-                    module_hash_hex: Some("01020304".to_string()),
-                    cycles: Some("1000000".to_string()),
-                    cycle_balance_status: SnsCanisterCycleBalanceStatus::ReportedNonzero,
-                    memory_size: Some("2000000".to_string()),
-                    idle_cycles_burned_per_day: Some("3000".to_string()),
-                    controllers: vec![sns.canisters.governance_canister_id.clone()],
-                }],
-                health_query_gap: None,
-                gaps: Vec::new(),
-            })
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsTokenSource for FixtureSnsSource {
-    fn fetch_sns_token<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(sns.canisters.root_canister_id, SAMPLE_SNS_ROOT_CANISTER_ID);
-            Ok(sample_mainnet_sns_token())
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsParamsSource for FixtureSnsSource {
-    fn fetch_sns_params<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(
-                sns.canisters.governance_canister_id,
-                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-            );
-            Ok(sample_sns_governance_parameters())
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsMetricsSource for FixtureSnsSource {
-    fn fetch_sns_metrics<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        time_window_seconds: u64,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(
-                sns.canisters.governance_canister_id,
-                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-            );
-            Ok(sample_mainnet_sns_metrics(time_window_seconds))
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsSwapSource for FixtureSnsSource {
-    fn fetch_sns_swap<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(sns.canisters.swap_canister_id, SAMPLE_SNS_SWAP_CANISTER_ID);
-            Ok(sample_mainnet_sns_swap())
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
-impl SnsUpgradeSource for FixtureSnsSource {
-    fn fetch_sns_upgrade<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(
-                sns.canisters.governance_canister_id,
-                SAMPLE_SNS_GOVERNANCE_CANISTER_ID
-            );
-            Ok(sample_mainnet_sns_upgrade())
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
 impl SnsProposalSource for FixtureSnsSource {
     fn fetch_sns_proposal<'a>(
         &'a self,
@@ -2231,62 +1549,6 @@ impl SnsNeuronsSource for FixtureSnsSource {
 }
 
 #[cfg(feature = "sns-host")]
-impl SnsRewardSource for FixtureSnsSource {
-    fn fetch_sns_reward_running_version<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        _sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>> {
-        Box::pin(async move {
-            Ok(SnsRunningVersionResponse {
-                deployed_version: Some(sample_sns_version(&"01".repeat(32))),
-                pending_version: None,
-            })
-        })
-    }
-
-    fn fetch_sns_reward_parameters<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        _sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>> {
-        Box::pin(async move {
-            let mut parameters = sample_sns_governance_parameters();
-            parameters.max_number_of_neurons = Some(100);
-            parameters.neuron_grantable_permissions = Some(SnsNeuronPermissionList {
-                permissions: vec![2, 4],
-            });
-            Ok(parameters)
-        })
-    }
-
-    fn fetch_sns_reward_event<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        _sns: &'a MainnetSns,
-    ) -> ic_query::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>> {
-        Box::pin(async move { Ok(sample_sns_reward_checkpoint_report().reward_event_after) })
-    }
-
-    fn fetch_sns_reward_neuron_page<'a>(
-        &'a self,
-        _request: &'a CollectionSourceRequest,
-        _sns: &'a MainnetSns,
-        limit: u32,
-        start_page_at: Option<&'a SnsNeuronId>,
-    ) -> ic_query::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>> {
-        Box::pin(async move {
-            assert_eq!(limit, 100);
-            assert!(start_page_at.is_none());
-            Ok(MainnetSnsRewardNeuronPage {
-                neurons: sample_sns_reward_checkpoint_report().rows,
-                next_cursor: None,
-            })
-        })
-    }
-}
-
-#[cfg(feature = "sns-host")]
 fn proposal_source_cache_root() -> PathBuf {
     PathBuf::from(format!(
         "target/ic-query-sns-public-api-proposal-source-{}",
@@ -2320,92 +1582,6 @@ fn sample_mainnet_sns_inventory(request: &CollectionSourceRequest) -> MainnetSns
     }
 }
 
-#[cfg(feature = "sns-host")]
-fn sample_mainnet_sns_token() -> MainnetSnsToken {
-    MainnetSnsToken {
-        token: IcrcTokenData {
-            token_name: "Example Token".to_string(),
-            token_symbol: "EXT".to_string(),
-            decimals: 8,
-            transfer_fee: "100000000".to_string(),
-            total_supply: "1000000000".to_string(),
-            minting_account_owner: Some("aaaaa-aa".to_string()),
-            minting_account_subaccount_hex: None,
-            supported_standards: vec![IcrcTokenStandardRow {
-                name: "ICRC-1".to_string(),
-                url: "https://github.com/dfinity/ICRC-1".to_string(),
-            }],
-            metadata: vec![IcrcTokenMetadataRow {
-                key: "icrc1:symbol".to_string(),
-                value_type: IcrcMetadataValueKind::Text,
-                value: json!("EXT"),
-            }],
-        },
-        ledger_index: ic_query::icrc::IcrcIndexData::Found(
-            SAMPLE_SNS_INDEX_CANISTER_ID.to_string(),
-        ),
-    }
-}
-
-#[cfg(feature = "sns-host")]
-fn sample_mainnet_sns_swap() -> MainnetSnsSwap {
-    MainnetSnsSwap {
-        swap_canister_id: SAMPLE_SNS_SWAP_CANISTER_ID.to_string(),
-        lifecycle_method: SnsCanisterMethod::GetLifecycle,
-        sale_parameters_method: SnsCanisterMethod::GetSaleParameters,
-        derived_state_method: SnsCanisterMethod::GetDerivedState,
-        point_in_time_guaranteed: false,
-        lifecycle: Some(SnsSwapLifecycle {
-            lifecycle: Some(3),
-
-            decentralization_sale_open_timestamp_seconds: Some(1_700_000_000),
-            decentralization_swap_termination_timestamp_seconds: Some(1_700_086_400),
-        }),
-        sale_parameters: None,
-        derived_state: Some(SnsSwapDerivedState {
-            sns_tokens_per_icp: Some(2.5),
-            buyer_total_icp_e8s: Some(1_000_000_000),
-            direct_participation_icp_e8s: Some(900_000_000),
-            neurons_fund_participation_icp_e8s: Some(100_000_000),
-            direct_participant_count: Some(10),
-            cf_participant_count: None,
-            cf_neuron_count: None,
-        }),
-        gaps: Vec::new(),
-    }
-}
-
-#[cfg(feature = "sns-host")]
-fn sample_mainnet_sns_metrics(time_window_seconds: u64) -> MainnetSnsMetrics {
-    MainnetSnsMetrics {
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        method: SnsCanisterMethod::GetMetrics,
-        call_type: SnsCanisterCallType::CompositeQuery,
-        time_window_seconds,
-        point_in_time_guaranteed: false,
-        treasury_metrics_cached: true,
-        num_recently_submitted_proposals: Some(3),
-        num_recently_executed_proposals: Some(2),
-        last_ledger_block_timestamp: Some(1_700_000_010),
-        genesis_timestamp_seconds: Some(1_600_000_000),
-        treasury_metrics: vec![SnsTreasuryMetricRow {
-            treasury: 1,
-
-            name: Some("ICP treasury".to_string()),
-            ledger_canister_id: None,
-            account_owner: None,
-            account_subaccount_hex: None,
-            amount_e8s: Some(100_000_000),
-            original_amount_e8s: Some(200_000_000),
-            timestamp_seconds: Some(1_700_000_000),
-        }],
-        voting_power_metrics: Some(SnsVotingPowerMetrics {
-            governance_total_potential_voting_power: Some(500_000_000),
-            timestamp_seconds: Some(1_700_000_001),
-        }),
-    }
-}
-
 fn sample_sns_version(hash: &str) -> SnsVersion {
     SnsVersion {
         archive_wasm_hash_hex: hash.to_string(),
@@ -2414,21 +1590,6 @@ fn sample_sns_version(hash: &str) -> SnsVersion {
         ledger_wasm_hash_hex: hash.to_string(),
         governance_wasm_hash_hex: hash.to_string(),
         index_wasm_hash_hex: hash.to_string(),
-    }
-}
-
-#[cfg(feature = "sns-host")]
-fn sample_mainnet_sns_upgrade() -> MainnetSnsUpgrade {
-    MainnetSnsUpgrade {
-        governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        running_version_method: SnsCanisterMethod::GetRunningSnsVersion,
-        next_version_method: SnsCanisterMethod::GetNextSnsVersion,
-        point_in_time_guaranteed: false,
-        deployed_version: sample_sns_version("01"),
-        pending_upgrade: None,
-        next_version: Some(sample_sns_version("02")),
-        next_version_gap: None,
     }
 }
 
@@ -2633,106 +1794,6 @@ fn sample_sns_neuron_detail() -> SnsNeuronDetail {
             }],
         }]),
     }
-}
-
-fn sample_sns_reward_checkpoint_report() -> SnsRewardCheckpointReport {
-    let mut parameters = sample_sns_governance_parameters();
-    parameters.neuron_grantable_permissions = Some(SnsNeuronPermissionList {
-        permissions: vec![2, 4],
-    });
-    let reward_event = SnsRewardEvent {
-        rounds_since_last_distribution: Some(1),
-        actual_timestamp_seconds: 1_700_086_300,
-        end_timestamp_seconds: Some(1_700_086_400),
-        total_available_e8s_equivalent: Some(10_000),
-        distributed_e8s_equivalent: 5_000,
-        round: 42,
-        settled_proposals: vec![SnsRewardProposalId { id: 7 }],
-    };
-    let running_version = SnsRunningVersionResponse {
-        deployed_version: Some(sample_sns_version(&"01".repeat(32))),
-        pending_version: None,
-    };
-    let row = SnsRewardCheckpointRow {
-        neuron_id: SAMPLE_SNS_NEURON_ID.to_string(),
-        created_timestamp_seconds: 1_700_000_000,
-        maturity_e8s_equivalent: 10_000_000,
-        staked_maturity_e8s_equivalent: Some(5_000_000),
-        auto_stake_maturity: Some(true),
-        permissions: vec![SnsNeuronPermissionRow {
-            principal: Some(SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string()),
-            permission_types: vec![4],
-        }],
-        disburse_maturity_in_progress: Vec::new(),
-    };
-    SnsRewardCheckpointReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        sns_wasm_canister_id: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
-        source_endpoint: "https://icp-api.io".to_string(),
-        fetched_by: "ic-query".to_string(),
-        id: 1,
-        name: "Example SNS".to_string(),
-        canisters: MainnetSnsCanisters {
-            root_canister_id: SAMPLE_SNS_ROOT_CANISTER_ID.to_string(),
-            governance_canister_id: SAMPLE_SNS_GOVERNANCE_CANISTER_ID.to_string(),
-            ledger_canister_id: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
-            swap_canister_id: "br5f7-7uaaa-aaaaa-qaaca-cai".to_string(),
-            index_canister_id: "bw4dl-smaaa-aaaaa-qaacq-cai".to_string(),
-        },
-        data_source: ReportDataSource::Live,
-        collection_started_at_unix_secs: 1_700_086_400,
-        collection_completed_at_unix_secs: 1_700_086_401,
-        page_count: 1,
-        collection_status: SnsRewardCollectionStatus::ApiExhaustedObserved,
-        point_in_time_guaranteed: false,
-        parameters_before: parameters.clone(),
-        parameters_after: parameters,
-        reward_event_before: reward_event.clone(),
-        reward_event_after: reward_event,
-        running_version_before: running_version.clone(),
-        running_version_after: running_version,
-
-        rows: vec![row],
-    }
-}
-
-fn advance_reward_checkpoint(
-    before: &SnsRewardCheckpointReport,
-    maturity_delta: u64,
-    distributed: u64,
-) -> SnsRewardCheckpointReport {
-    let mut after = before.clone();
-    after.collection_started_at_unix_secs = 1_700_172_800;
-    after.collection_completed_at_unix_secs = 1_700_172_801;
-    let mut event = before.reward_event_after.clone();
-    event.actual_timestamp_seconds = 1_700_172_700;
-    event.end_timestamp_seconds = Some(1_700_172_800);
-    event.distributed_e8s_equivalent = distributed;
-    event.round = before.reward_event_after.round + 1;
-    event.rounds_since_last_distribution = Some(1);
-    after.reward_event_before = event.clone();
-    after.reward_event_after = event;
-    after.rows[0].maturity_e8s_equivalent += maturity_delta;
-    after.summary().unwrap().aggregate_maturity_e8s_equivalent += maturity_delta;
-    after
-        .summary()
-        .unwrap()
-        .aggregate_combined_maturity_e8s_equivalent += maturity_delta;
-    after
-}
-
-fn clear_reward_checkpoint_rows(report: &mut SnsRewardCheckpointReport) {
-    report.rows.clear();
-    report.summary().unwrap().aggregate_maturity_e8s_equivalent = 0;
-    report
-        .summary()
-        .unwrap()
-        .aggregate_staked_maturity_e8s_equivalent = 0;
-    report
-        .summary()
-        .unwrap()
-        .aggregate_combined_maturity_e8s_equivalent = 0;
 }
 
 fn sample_sns_context() -> ic_query::sns::SnsReportContext {

@@ -54,8 +54,8 @@ retain their separate acceptance gates.
 - Build and Testkit executable setup and offline admission select the same
   explicit `cli` feature set. Library-only dependencies omit that feature.
   Native fixtures import the independently published `ic-platform-pocket-ic`
-  0.18 client directly, matching Testkit 0.80 and its management DTO 0.11 identity.
-  Platform 0.18 supplies Candid fixture protocols. Testkit owns simulator startup,
+  0.19 client directly, matching Testkit 0.81 and its management DTO 0.11 identity.
+  Platform 0.19 supplies Candid fixture protocols. Testkit owns simulator startup,
   installation extensions, reply fixtures and the existing PocketIC 16.1.0 server
   selection; client compilation does not replace installed server acceptance.
 - Make uses the admitted checkout-local paths. Interactive shells can select them

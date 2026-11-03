@@ -79,6 +79,8 @@ product, release and recovery obligations remain binding when applicable.
   validation within the established scope. A release/ship/deploy
   request delegates its corresponding workflow and routine group/version/order
   choices under [delegated delivery](contributions.md#delegated-delivery).
+  Explicitly authorize direct integration-branch pushes and alternate delivery
+  checkouts under that contract; a configured default does not grant consent.
   Continue that workflow without per-step permission; preserve explicit target
   restrictions and the explicitly scoped isolated PR boundary. A dependency
   blocker does not extend delivery to another repository: report the required
@@ -225,13 +227,24 @@ product, release and recovery obligations remain binding when applicable.
   [IC Observability](https://github.com/dragginzgame/ic-observability) owns both
   canonical crates. Select the capabilities a crate uses; this does not require
   otherwise unused dependencies or instrumentation in every crate.
-- Outside those canonical owners, do not introduce or maintain custom measurement
-  arithmetic, accumulators, histograms, recording engines, log stores, retention or paging engines, or
-  competing metrics/logging frameworks for facilities we own. Reuse the canonical
+- Outside those canonical owners, do not introduce or maintain custom metrics
+  instrumentation, metric accumulators or histograms, recording engines, log
+  stores, retention or paging engines, or competing metrics/logging frameworks
+  for facilities we own. Reuse the canonical
   crates rather than copying their implementations or hiding duplicates behind
   wrappers. Existing bespoke implementations are migration work, not precedent
   for new ones.
-- If a required capability is missing or unsuitable, search for an existing
+- Ordinary benchmark/statistical calculations over caller-owned samples belong
+  to the consuming tool. Averages, ratios, rounding and checked arithmetic alone
+  do not require `ic-metrics`; this includes Testkit's private benchmark-average
+  calculation. Consumers retain their numeric and error contracts when removing
+  that dependency. Keep such helpers private and narrowly scoped; this does not
+  permit a competing metrics instrumentation or recording engine. Do not create
+  another published arithmetic
+  crate for one formula or make general test tooling depend on Observability
+  solely for that calculation. Actual use of Metrics or Logging facilities still
+  selects their canonical owners.
+- If a required Metrics or Logging capability is missing or unsuitable, search for an existing
   issue or open one in
   [IC Observability](https://github.com/dragginzgame/ic-observability/issues).
   Describe the concrete consumer requirement and extend the canonical crate
@@ -242,10 +255,11 @@ product, release and recovery obligations remain binding when applicable.
 - Consumers retain measurement attribution, units, labels, platform sampling,
   clocks, budgets, authorization, lifecycle, endpoints and export formats.
   Thin adapters may translate these application contracts or integrate governed
-  persistence; they must delegate shared arithmetic, recording, retention and
-  paging. IC Persistence continues to own `ic-metrics-stable` and its governed
-  Memory/Storage integration. Preserve supported consumer behavior and stored
-  formats when replacing an existing engine, then delete the replaced copy.
+  persistence; they must delegate metrics-engine arithmetic, recording, retention
+  and paging to their canonical owners. IC Persistence continues to own
+  `ic-metrics-stable` and its governed Memory/Storage integration. Preserve
+  supported consumer behavior and stored formats when replacing an existing
+  engine, then delete the replaced copy.
 
 ## IC application encoding
 
@@ -616,6 +630,12 @@ contracts; ordinary development does not require rereading these mechanics.
   trees and intermediate downloads. Create unique per-run directories there so
   explicit workspace cleanup reclaims them along with compiler outputs. Do not
   default to repository `.tmp/`, `tmp/` or system `/tmp` merely for convenience.
+- Scratch is not source custody. Lasting implementation, unique patches and
+  contribution checkouts follow the [durable work contract](contributions.md#durable-work-and-checkout-location)
+  and must survive routine deletion of `/tmp`, caches and `target/`. Keep actual
+  changes in the requested checkout or an authorized durable contribution; ask
+  before choosing another handoff location. Scratch exceptions below do not
+  authorize leaving unique code changes there.
 - Use outside-target scratch only when the operation needs it, such as an atomic
   replacement on the destination filesystem, a fixture that removes `target/`
   itself, or evidence explicitly required to survive cleanup. Document the reason,
@@ -889,6 +909,22 @@ contracts; ordinary development does not require rereading these mechanics.
 
 ### Shared dependency findings
 
+- A pending sibling release, registry publication, tag or deployment is a user
+  coordination matter, not a new engineering issue. Do not create or reopen
+  supplier, consumer or Shared issues, or post repeated release requests, solely
+  because a needed version is not yet available. This includes "publish the fix",
+  "release group X" and "blocked until sibling Y deploys" trackers, even when
+  the dependency genuinely blocks the current task.
+- Report that blocker directly to the user: name the repository and release
+  group/package, the needed version or source commit, observed delivery state,
+  and the affected work. Distinguish committed code, pushed tags, registry
+  availability and deployed applications. Do not invent an unpublished version
+  or start sibling delivery. Continue independent authorized work where possible.
+- Actual source defects, missing APIs and substantive consumer migrations still
+  belong in their owning issues. A code fix's existing implementation and required
+  acceptance criteria remain valid; this rule does not close unfinished fixes or
+  waive qualification. Routine version/lock/snapshot updates and publication
+  requests alone do not justify another issue.
 - Keep **one active remediation issue per shared dependency root cause**, at the
   repository that owns the supplying dependency or capability. A matching
   advisory or inherited defect in multiple consumer graphs does not create

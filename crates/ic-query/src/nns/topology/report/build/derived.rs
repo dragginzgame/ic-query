@@ -28,7 +28,6 @@ pub async fn build_nns_topology_versions_report_with_source(
         schema_version: NNS_TOPOLOGY_VERSIONS_REPORT_SCHEMA_VERSION,
         network: request.cache.network.clone(),
         source_endpoint: request.source_endpoint.clone(),
-        source_count: registry_versions.len(),
         registry_versions,
     })
 }

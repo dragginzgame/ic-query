@@ -5,8 +5,6 @@
 //! Boundary: no caller can reconstruct an unbounded large Registry value.
 
 use super::{RegistryQueryCounter, hex_bytes};
-#[cfg(feature = "certified-subnet-catalog-host")]
-use crate::ic_registry::CertifiedRegistryChunkEvidence;
 use crate::ic_registry::{
     RegistryFetchError,
     wire::{RegistryChunk, RegistryGetChunkRequest},
@@ -23,9 +21,6 @@ pub const MAX_REGISTRY_CHUNK_REFERENCES: usize = 64;
 pub const MAX_REGISTRY_CHUNK_BYTES: usize = 1_800_000;
 /// Maximum bytes reconstructed for one Registry value.
 pub const MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES: usize = 10 * 1_024 * 1_024;
-#[cfg(feature = "certified-subnet-catalog-host")]
-/// Maximum complete value bytes accepted in one certified delta batch.
-pub const MAX_CERTIFIED_DELTA_VALUE_BYTES: usize = 16 * 1_024 * 1_024;
 /// Maximum encoded response bytes accepted across Registry chunk calls.
 pub const MAX_REGISTRY_CHUNK_RESPONSE_BYTES: usize = 32 * 1_024 * 1_024;
 
@@ -51,17 +46,6 @@ impl RegistryChunkLimits {
             chunk_bytes: MAX_REGISTRY_CHUNK_BYTES,
             value_bytes: MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
             total_value_bytes: MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
-            response_bytes: MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
-        }
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) const fn certified_delta() -> Self {
-        Self {
-            references: MAX_REGISTRY_CHUNK_REFERENCES,
-            chunk_bytes: MAX_REGISTRY_CHUNK_BYTES,
-            value_bytes: MAX_REGISTRY_RECONSTRUCTED_VALUE_BYTES,
-            total_value_bytes: MAX_CERTIFIED_DELTA_VALUE_BYTES,
             response_bytes: MAX_REGISTRY_CHUNK_RESPONSE_BYTES,
         }
     }
@@ -100,29 +84,6 @@ impl RegistryChunkBudget {
             reconstructed_value_bytes: initial_value_bytes,
             cache: BTreeMap::new(),
         })
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) const fn reference_count(&self) -> usize {
-        self.reference_count
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) const fn query_call_count(&self) -> usize {
-        self.query_call_count
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) const fn response_bytes(&self) -> usize {
-        self.response_bytes
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    pub(in crate::ic_registry) fn into_chunk_evidence(self) -> Vec<CertifiedRegistryChunkEvidence> {
-        self.cache
-            .into_iter()
-            .map(|(sha256, content)| CertifiedRegistryChunkEvidence { sha256, content })
-            .collect()
     }
 
     fn validated_hashes(
@@ -405,36 +366,6 @@ mod tests {
             error,
             RegistryFetchError::ChunkHashMismatch { .. }
         ));
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    #[test]
-    fn budget_publishes_unique_chunk_evidence_in_digest_order() {
-        let first_content = b"first".to_vec();
-        let second_content = b"second".to_vec();
-        let first_hash = sha256_digest(&first_content);
-        let second_hash = sha256_digest(&second_content);
-        let mut budget = RegistryChunkBudget::new(RegistryChunkLimits::certified_delta(), 0)
-            .expect("empty budget");
-
-        budget
-            .append_fetched_chunk(&mut Vec::new(), second_hash, second_content.clone())
-            .expect("second chunk");
-        budget
-            .append_fetched_chunk(&mut Vec::new(), first_hash, first_content.clone())
-            .expect("first chunk");
-
-        let evidence = budget.into_chunk_evidence();
-        assert_eq!(evidence.len(), 2);
-        assert!(evidence[0].sha256 < evidence[1].sha256);
-        for row in evidence {
-            let expected = if row.sha256 == first_hash {
-                &first_content
-            } else {
-                &second_content
-            };
-            assert_eq!(&row.content, expected);
-        }
     }
 
     #[test]

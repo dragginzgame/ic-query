@@ -1,18 +1,9 @@
-#[cfg(feature = "certified-subnet-catalog-host")]
-mod certified_delta;
 #[cfg(feature = "nns-host")]
 mod node_provider;
 mod request;
 #[cfg(feature = "nns-topology-host")]
 mod subnet_topology;
 
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use certified_delta::AuthenticatedRegistryDeltaWitness;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use certified_delta::{
-    CertifiedRegistryChunkEvidence, CertifiedRegistryDeltaBatch, CertifiedRegistryDeltaVersion,
-    CertifiedRegistryMutation, CertifiedRegistryPrecondition, CertifiedRegistryValueEncoding,
-};
 #[cfg(feature = "nns-host")]
 pub use node_provider::{MainnetNodeProvider, MainnetNodeProviderList};
 pub use request::MainnetRegistryFetchRequest;

@@ -41,7 +41,6 @@ impl NnsDataCenterSource for LiveNnsSource {
             Ok(NnsDataCenterListReport {
                 schema_version: NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
                 provenance,
-                data_center_count: data_centers.len(),
                 data_centers,
             })
         })

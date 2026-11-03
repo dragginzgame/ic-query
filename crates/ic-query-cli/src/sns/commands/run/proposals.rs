@@ -19,7 +19,7 @@ use ic_query::sns::build_sns_proposal_report;
 use ic_query::sns::build_sns_proposals_cache_list_report;
 use ic_query::sns::build_sns_proposals_cache_status_report;
 use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
-use ic_query::sns::refresh_sns_proposals_cache_with_progress;
+use ic_query::sns::refresh_sns_proposals_cache_with_source_and_progress;
 use ic_query_text::sns::sns_proposal_report_text;
 use ic_query_text::sns::sns_proposals_cache_list_report_text;
 use ic_query_text::sns::sns_proposals_cache_status_report_text;
@@ -32,8 +32,15 @@ pub(super) async fn run_sns_proposal(
         Some(("list", matches)) => run_sns_proposal_list(matches, network).await,
         Some(("info", matches)) => run_sns_proposal_info(matches, network).await,
         Some(("refresh", matches)) => {
-            cache::run_snapshot_refresh(matches, network, refresh_sns_proposals_cache_with_progress)
+            cache::run_snapshot_refresh(matches, network, async |request, progress| {
+                refresh_sns_proposals_cache_with_source_and_progress(
+                    request,
+                    &ic_query::sns::LiveSnsSource::default(),
+                    progress,
+                )
                 .await
+            })
+            .await
         }
         Some(("cache", matches)) => run_sns_proposal_cache(matches, network),
         _ => unreachable!("clap requires a known SNS proposal subcommand"),

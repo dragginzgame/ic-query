@@ -51,10 +51,6 @@ pub use confined::write_managed_file_atomically;
     feature = "sns-host"
 ))]
 pub use confined::{ManagedReadBudget, read_opened_file_bounded};
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use write::canonical_json_identity;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use write::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]
 pub use write::canonical_json_serialized_len;
 #[cfg(feature = "subnet-catalog-host")]
@@ -72,10 +68,6 @@ pub use confined::collect_managed_collection_files;
 pub use confined::open_managed_file;
 #[cfg(any(feature = "subnet-catalog-host", test))]
 pub use confined::write_managed_text_atomically;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use confined::{
-    ManagedDirectoryFile, remove_managed_regular_file, scan_managed_directory_files,
-};
 #[cfg(feature = "host")]
 pub use confined::{collect_managed_files, read_bounded_stream};
 pub use confined::{create_managed_parent_directory, managed_file_exists};

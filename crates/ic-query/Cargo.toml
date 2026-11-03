@@ -39,7 +39,6 @@ cmc-host = [
     "ic-platform/agent",
     "ic-platform/cmc-types",
 ]
-certified-subnet-catalog-host = ["certificate-host", "subnet-catalog-host", "ic-host-tools/encoding"]
 dashboard-host = ["dep:ic-host-artifacts", "dep:ic-host-fs", "dep:ic-host-http", "dep:reqwest"]
 ic-state-host = [
     "ic-host-tools/agent",
@@ -57,7 +56,7 @@ icrc-host = [
     "ic-platform/icrc-ledger-types",
 ]
 nns-topology-host = ["subnet-catalog-host"]
-nns-host = ["nns-topology-host", "certified-subnet-catalog-host"]
+nns-host = ["nns-topology-host", "certificate-host", "ic-host-tools/encoding"]
 sns-host = [
     "ic-host-tools/agent",
     "dep:futures-util",

@@ -129,14 +129,11 @@ pub(in crate::ic) fn node_provider_reward_list_report_from_source(
     )?;
     validate_reward_rows(&source.rows)?;
 
-    let returned_count = source.rows.len();
-
     Ok(IcNodeProviderRewardListReport {
         provenance: report_provenance(source.source),
         query: source.query,
         resolved_max_reward_index: source.resolved_max_reward_index,
         total_reward_records: source.total_reward_records,
-        returned_count,
         next_offset_hint,
         pages_may_overlap: true,
         rows: source.rows,
@@ -190,7 +187,6 @@ pub(in crate::ic) fn node_provider_reward_history_report_from_source(
         provenance: report_provenance(source.source),
         query: source.query,
         requested_observation_limit,
-        returned_observation_count: source.observations.len(),
         observations: source.observations,
     })
 }
@@ -307,12 +303,12 @@ mod tests {
         .expect("reward history");
 
         assert_eq!((*source.calls.lock().unwrap()), 3);
-        assert_eq!(list.returned_count, 1);
+        assert_eq!(list.rows.len(), 1);
         assert_eq!(list.next_offset_hint, Some(1));
         assert!(list.pages_may_overlap);
         assert_eq!(info.reward.reward_id, 7_562);
         assert_eq!(history.requested_observation_limit, 5);
-        assert_eq!(history.returned_observation_count, 1);
+        assert_eq!(history.observations.len(), 1);
     }
 
     #[tokio::test(flavor = "current_thread")]

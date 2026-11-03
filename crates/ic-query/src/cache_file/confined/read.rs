@@ -112,7 +112,7 @@ pub fn open_managed_file(
 
 /// Read under a per-file ceiling and an optional shared inspection allowance.
 #[cfg(any(
-    feature = "certified-subnet-catalog-host",
+    feature = "nns-host",
     feature = "subnet-catalog-host",
     feature = "dashboard-host",
     feature = "nns-topology-host",

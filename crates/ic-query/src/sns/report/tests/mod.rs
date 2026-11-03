@@ -29,7 +29,6 @@ mod metrics;
 mod neurons;
 mod params;
 mod proposals;
-mod reward;
 mod swap;
 mod token;
 mod upgrade;

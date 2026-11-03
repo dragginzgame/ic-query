@@ -10,7 +10,6 @@ use ic_query::subnet_catalog::CatalogAssurance;
 use ic_query::subnet_catalog::CatalogSnapshotAuthorityEvidence;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::CatalogSourceSelection;
-use ic_query::subnet_catalog::CertifiedRegistryCatalogEvidence;
 use ic_query::subnet_catalog::ClassificationSource;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
@@ -80,7 +79,7 @@ use ic_query::subnet_catalog::build_subnet_catalog_info_report;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::build_subnet_catalog_list_report;
 #[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::build_subnet_catalog_list_report_with_source;
+use ic_query::subnet_catalog::build_subnet_catalog_list_report_with_source_and_progress;
 use ic_query::subnet_catalog::catalog_to_pretty_json;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::fetch_subnet_catalog_async;
@@ -127,9 +126,6 @@ fn public_subnet_catalog_api_parses_and_resolves_without_host() {
     let catalog = fixture_catalog();
     let json = catalog_to_pretty_json(&catalog).expect("catalog serializes");
     let parsed = parse_catalog_json(&json).expect("catalog parses");
-    let certified_evidence: Option<&CertifiedRegistryCatalogEvidence> =
-        parsed.provenance.certified_registry.as_ref();
-    assert!(certified_evidence.is_none());
 
     let subnet = parsed
         .resolve_principal(SUBNET_A, Some(ResolveAs::Subnet))
@@ -260,10 +256,13 @@ async fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     ))
     .expect("public async load");
 
-    let report =
-        build_subnet_catalog_list_report_with_source(&request, &FixtureSubnetCatalogSource)
-            .await
-            .expect("build list report from custom source");
+    let report = build_subnet_catalog_list_report_with_source_and_progress(
+        &request,
+        &FixtureSubnetCatalogSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("build list report from custom source");
 
     let _ = fs::remove_dir_all(root);
     assert_eq!(loaded.disposition, CacheDisposition::RefreshedMissing);
@@ -637,7 +636,6 @@ fn fixture_catalog() -> RawSubnetCatalog {
             routing_source: SubnetCatalogRoutingSource::LegacyRoutingTable,
             registry_records: Vec::new(),
             fetched_at: "2026-06-26T00:00:00Z".to_string(),
-            certified_registry: None,
             fetched_by: "fixture".to_string(),
             collector_version: "test".to_string(),
             classification_schema_version: CLASSIFICATION_SCHEMA_VERSION,

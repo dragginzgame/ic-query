@@ -16,8 +16,7 @@ pub use paths::{
     nns_proposal_refresh_lock_path,
 };
 pub use refresh::{
-    refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_progress,
-    refresh_nns_proposal_cache_with_source,
+    refresh_nns_proposal_cache, refresh_nns_proposal_cache_with_source_and_progress,
 };
 pub(super) use reports::AdmittedProposalCache;
 

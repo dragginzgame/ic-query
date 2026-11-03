@@ -1,5 +1,5 @@
 # Release group validation
-<!-- Shared companions: scripts/ci/run-validation-targets.sh -->
+<!-- Shared companions: scripts/ci/run-validation-targets.sh docs/validation-runner.md -->
 
 Independent versions should not force unrelated release checks. A consumer may
 qualify a complete gate for one release group, including its affected integration

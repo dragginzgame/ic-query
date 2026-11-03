@@ -34,7 +34,6 @@ pub(in crate::nns::topology::report::tests) fn node_report_fixture() -> NnsNodeL
     NnsNodeListReport {
         schema_version: 1,
         provenance: super::inventory_provenance(43, "2026-06-04T00:01:00Z"),
-        node_count: 3,
         nodes: vec![
             node_row(
                 "node-a",

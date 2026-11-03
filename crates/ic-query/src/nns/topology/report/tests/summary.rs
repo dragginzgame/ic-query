@@ -109,7 +109,7 @@ fn topology_summary_preserves_all_kind_counts_and_routing_ranges() {
         row
     })
     .collect();
-    nodes.node_count = nodes.nodes.len();
+
     let report = topology_summary_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),

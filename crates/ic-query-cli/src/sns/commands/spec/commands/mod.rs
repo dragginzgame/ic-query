@@ -9,7 +9,6 @@ mod canisters;
 mod lookup;
 mod neurons;
 mod proposals;
-mod reward;
 
 use crate::cli::{
     clap::{flag_arg, value_arg},
@@ -41,9 +40,6 @@ pub(in crate::sns::commands) use proposals::{
     sns_proposal_cache_list_command, sns_proposal_cache_status_command, sns_proposal_info_command,
     sns_proposal_list_command, sns_proposal_refresh_command,
 };
-pub(in crate::sns::commands) use reward::sns_reward_command;
-#[cfg(test)]
-pub(in crate::sns::commands) use reward::{sns_reward_checkpoint_command, sns_reward_diff_command};
 
 const SNS_LIST_HELP_AFTER: &str = "\
 Uses the joined deployed-SNS catalog cache and visibly refreshes it when missing
@@ -77,7 +73,6 @@ pub(in crate::sns::commands) fn sns_command() -> ClapCommand {
         .subcommand(sns_canister_command())
         .subcommand(sns_proposal_command())
         .subcommand(sns_neuron_command())
-        .subcommand(sns_reward_command())
 }
 
 pub(in crate::sns::commands) fn sns_list_command() -> ClapCommand {

@@ -62,7 +62,6 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
     let mut unused = providers.node_providers[0].clone();
     unused.node_provider_principal = "provider-unused".to_string();
     providers.node_providers.push(unused);
-    providers.node_provider_count = 2;
 
     let mut operators = node_operator_report_fixture();
     let mut spare = operators.node_operators[0].clone();
@@ -72,7 +71,6 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
     spare.data_center_id = "dc-z".to_string();
     operators.node_operators.push(spare);
     operators.node_operators[1].node_count = None;
-    operators.node_operator_count = 3;
 
     let report = topology_providers_report_from_reports(
         MAINNET_NETWORK.to_string(),

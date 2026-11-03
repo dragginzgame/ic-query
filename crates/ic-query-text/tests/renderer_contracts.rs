@@ -120,9 +120,6 @@ fn render_report(
             render(topology::nns_topology_versions_report_text, report)
         }
         "sns_neuron_detail_report_text" => render(sns::sns_neuron_detail_report_text, report),
-        "sns_reward_checkpoint_report_text" => {
-            render(sns::sns_reward_checkpoint_report_text, report)
-        }
         "subnet_catalog_info_report_text" => {
             render(subnet_catalog::subnet_catalog_info_report_text, report)
         }

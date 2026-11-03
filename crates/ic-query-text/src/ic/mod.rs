@@ -77,7 +77,7 @@ pub fn ic_boundary_node_data_centers_report_text(
 ) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("data_center_count: {}", report.data_center_count),
+        format!("data_center_count: {}", report.rows.len()),
         format!("total_node_count: {}", report.total_node_count),
     ]);
 
@@ -108,7 +108,7 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
         report.query.start_unix_secs,
         report.query.end_unix_secs,
     ));
-    lines.extend([format!("returned_day_count: {}", report.returned_day_count)]);
+    lines.extend([format!("returned_day_count: {}", report.rows.len())]);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -147,7 +147,7 @@ pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardLis
             report.resolved_max_reward_index
         ),
         format!("total_reward_records: {}", report.total_reward_records),
-        format!("returned_count: {}", report.returned_count),
+        format!("returned_count: {}", report.rows.len()),
         format!(
             "next_offset_hint: {}",
             optional_u64_text(report.next_offset_hint)
@@ -255,10 +255,7 @@ pub fn ic_node_provider_reward_history_report_text(
             "requested_observation_limit: {}",
             report.requested_observation_limit
         ),
-        format!(
-            "returned_observation_count: {}",
-            report.returned_observation_count
-        ),
+        format!("returned_observation_count: {}", report.observations.len()),
     ]);
 
     if !report.observations.is_empty() {
@@ -298,7 +295,7 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
             report.resolved_max_proposal_index
         ),
         format!("total_proposals: {}", report.total_proposals),
-        format!("returned_count: {}", report.returned_count),
+        format!("returned_count: {}", report.rows.len()),
         format!("next_offset: {}", optional_u64_text(report.next_offset)),
     ]);
 
@@ -322,7 +319,7 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
                         row.status.to_string(),
                         row.proposal_id.to_string(),
                         row.executed_timestamp_seconds.to_string(),
-                        row.subnet_count.to_string(),
+                        row.subnets.len().to_string(),
                         truncate_text(&row.title, IC_REPLICA_VERSION_TITLE_TEXT_LIMIT),
                     ]
                 })
@@ -357,7 +354,7 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
         ),
         format!("title: {}", text_or_dash(&report.release.title)),
         format!("url: {}", text_or_dash(&report.release.url)),
-        format!("subnet_count: {}", report.subnet_count),
+        format!("subnet_count: {}", report.release.subnets.len()),
         format!(
             "summary: {}",
             truncate_text(
@@ -391,10 +388,14 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
         report.query.step_secs,
     ));
     lines.extend([
-        format!("returned_series_count: {}", report.returned_series_count),
+        format!("returned_series_count: {}", report.series.len()),
         format!(
             "returned_observation_count: {}",
-            report.returned_observation_count
+            report
+                .series
+                .iter()
+                .map(|series| series.observations.len())
+                .sum::<usize>()
         ),
     ]);
 
@@ -442,7 +443,7 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
         &mut lines,
         report.query.sort_by.as_api_value(),
         report.query.limit,
-        report.returned_count,
+        report.rows.len(),
         report.previous_cursor.as_ref(),
         report.next_cursor.as_ref(),
     );
@@ -543,7 +544,7 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
         &mut lines,
         report.query.sort_by.as_api_value(),
         report.query.limit,
-        report.returned_count,
+        report.rows.len(),
         report.previous_cursor.as_ref(),
         report.next_cursor.as_ref(),
     );
@@ -603,7 +604,7 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
     ));
     lines.extend([
         format!("limit: {}", report.query.limit),
-        format!("returned_row_count: {}", report.returned_row_count),
+        format!("returned_row_count: {}", report.rows.len()),
         format!("limit_reached: {}", yes_no(report.limit_reached)),
     ]);
 
@@ -644,10 +645,7 @@ pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String
             "requested_observation_limit: {}",
             report.requested_observation_limit
         ),
-        format!(
-            "returned_observation_count: {}",
-            report.returned_observation_count
-        ),
+        format!("returned_observation_count: {}", report.observations.len()),
     ]);
 
     if !report.observations.is_empty() {
@@ -750,7 +748,7 @@ pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
 pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("returned_count: {}", report.returned_count),
+        format!("returned_count: {}", report.rows.len()),
         format!("requested_limit: {}", report.requested_limit),
         format!(
             "after: {}",

@@ -132,7 +132,7 @@ async fn node_report_uses_live_registry_source() {
     );
     assert_eq!(report.provenance.registry_version, 42);
     assert_eq!(report.provenance.fetched_at, "2026-06-04T00:00:00Z");
-    assert_eq!(report.node_count, 1);
+    assert_eq!(report.nodes.len(), 1);
     assert_eq!(
         report.nodes[0].node_principal,
         "ryjl3-tyaaa-aaaaa-aaaba-cai"
@@ -144,7 +144,7 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-cache-refresh");
     let path = nns_node_cache_path(&cache.cache_root, &cache.network);
     let mut invalid = node_report_fixture();
-    invalid.node_count = 2;
+    invalid.provenance.fetched_at = "invalid-timestamp".to_string();
     let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, &invalid_json)
         .expect("write invalid cache");
@@ -202,7 +202,7 @@ async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     .expect_err("invalid source is rejected before publication");
 
     assert!(
-        matches!(error, NnsInventoryError::InvalidSourceData { reason, .. } if reason.contains("node_count"))
+        matches!(error, NnsInventoryError::InvalidSourceData { reason, .. } if reason.contains("schema_version"))
     );
     assert_eq!(
         fs::read_to_string(path).expect("preserved invalid cache"),
@@ -236,7 +236,6 @@ fn node_info_resolves_unique_prefix() {
 #[test]
 fn node_list_filters_by_related_prefixes() {
     let mut report = node_report_fixture();
-    report.node_count = 2;
     report.nodes.push(NnsNodeRow {
         node_principal: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
         node_operator_principal: "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
@@ -258,7 +257,7 @@ fn node_list_filters_by_related_prefixes() {
         },
     );
 
-    assert_eq!(filtered.node_count, 1);
+    assert_eq!(filtered.nodes.len(), 1);
     assert_eq!(
         filtered.nodes[0].node_principal,
         "ryjl3-tyaaa-aaaaa-aaaba-cai"
@@ -275,7 +274,7 @@ fn node_list_filter_preparation_preserves_case_whitespace_and_empty_input() {
         node_operator: Some(" aaaaa-aa ".to_string()),
     };
     let filtered = filter_node_list_report(node_report_fixture(), &matching);
-    assert_eq!(filtered.node_count, 1);
+    assert_eq!(filtered.nodes.len(), 1);
     assert_eq!(filtered.nodes[0].data_center_id, "dc1");
 
     for filters in [
@@ -297,7 +296,7 @@ fn node_list_filter_preparation_preserves_case_whitespace_and_empty_input() {
         },
     ] {
         let filtered = filter_node_list_report(node_report_fixture(), &filters);
-        assert_eq!(filtered.node_count, 0);
+        assert_eq!(filtered.nodes.len(), 0);
         assert_eq!(filtered.nodes, Vec::<NnsNodeRow>::new());
     }
 }
@@ -313,7 +312,6 @@ fn node_report_fixture() -> NnsNodeListReport {
             source_endpoint: "https://icp-api.io".to_string(),
             fetched_by: "test".to_string(),
         },
-        node_count: 1,
         nodes: vec![NnsNodeRow {
             node_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
             node_operator_principal: "aaaaa-aa".to_string(),
@@ -363,7 +361,7 @@ impl NnsNodeSource for InvalidNodeSource {
                 .provenance
                 .source_endpoint
                 .clone_from(&request.endpoint);
-            report.node_count = 2;
+            report.schema_version = 0;
             Ok(report)
         })
     }
@@ -386,7 +384,6 @@ impl NnsNodeSource for FixtureNodeSource {
                     source_endpoint: request.endpoint.clone(),
                     fetched_by: request.fetched_by.clone(),
                 },
-                node_count: nodes.len(),
                 nodes,
             })
         })

@@ -14,8 +14,6 @@ mod neurons;
 mod proposals;
 #[cfg(feature = "sns-host")]
 mod refresh;
-#[cfg(feature = "sns-host")]
-mod reward;
 
 #[cfg(feature = "sns-host")]
 pub use cache::{SnsCacheListRequest, SnsCacheStatusRequest};
@@ -35,5 +33,3 @@ pub use proposals::{
 };
 #[cfg(feature = "sns-host")]
 pub use refresh::SnsSnapshotRefreshRequest;
-#[cfg(feature = "sns-host")]
-pub use reward::SnsRewardCheckpointRequest;

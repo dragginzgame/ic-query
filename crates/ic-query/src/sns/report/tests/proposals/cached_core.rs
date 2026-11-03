@@ -4,9 +4,13 @@ use super::*;
 async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() {
     let root = temp_dir("ic-query-sns-proposal-detail-cache");
     let refresh_request = sns_proposals_refresh_request(&root, None);
-    refresh_sns_proposals_cache_with_source(&refresh_request, &FixtureSnsProposalsSource)
-        .await
-        .expect("refresh proposals cache");
+    refresh_sns_proposals_cache_with_source_and_progress(
+        &refresh_request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh proposals cache");
     let mut request = proposal_request(ROOT_A);
     request = request.with_cache_root(root.clone());
 

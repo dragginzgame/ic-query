@@ -138,20 +138,6 @@ pub(in crate::sns::report::tests) fn neuron_request(input: &str) -> SnsNeuronReq
     }
 }
 
-pub(in crate::sns::report::tests) fn reward_checkpoint_request(
-    input: &str,
-) -> SnsRewardCheckpointRequest {
-    SnsRewardCheckpointRequest::new(
-        crate::sns::SnsLookupRequest::new(
-            MAINNET_NETWORK,
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            1_780_531_200,
-            input,
-        )
-        .expect("valid SNS selector"),
-    )
-}
-
 pub(in crate::sns::report::tests) fn sns_neurons_refresh_request(
     root: &Path,
     max_pages: Option<u32>,

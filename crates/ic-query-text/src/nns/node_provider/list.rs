@@ -17,7 +17,7 @@ pub fn nns_node_provider_list_report_text(report: &NnsNodeProviderListReport) ->
     lines.push(format!(
         "node_providers: {} count {} fetched_at {}",
         terminal_text(&report.provenance.network),
-        report.node_provider_count,
+        report.node_providers.len(),
         terminal_text(&report.provenance.fetched_at)
     ));
     if report.node_providers.is_empty() {

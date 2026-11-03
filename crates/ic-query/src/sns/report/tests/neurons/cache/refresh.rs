@@ -13,9 +13,13 @@ async fn sns_neurons_refresh_writes_complete_cache_and_cached_sort_uses_it() {
     let root = temp_dir("ic-query-sns-neurons-refresh");
     let request = sns_neurons_refresh_request(&root, None);
 
-    let refresh = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    let refresh = refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
     let cache_path = sns_neurons_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let lock_path = sns_neurons_refresh_lock_path(&root, MAINNET_NETWORK, ROOT_A);
@@ -160,9 +164,13 @@ impl SnsNeuronsSource for ExclusiveNeuronPagesSource {
 async fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
     let root = temp_dir("ic-query-sns-neurons-exclusive-pages");
     let request = sns_neurons_refresh_request(&root, None);
-    let refresh = refresh_sns_neurons_cache_with_source(&request, &ExclusiveNeuronPagesSource)
-        .await
-        .expect("exclusive pages exhaust successfully");
+    let refresh = refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &ExclusiveNeuronPagesSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("exclusive pages exhaust successfully");
     assert_eq!(refresh.page_count, 3);
     assert_eq!(refresh.row_count, 4);
     let cache: serde_json::Value = serde_json::from_slice(
@@ -188,14 +196,22 @@ async fn sns_neurons_refresh_accepts_exclusive_pages_and_empty_terminal_page() {
 async fn sns_neurons_refresh_failure_preserves_existing_complete_cache() {
     let root = temp_dir("ic-query-sns-neurons-refresh-preserves-cache");
     let complete_request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&complete_request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("complete refresh");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &complete_request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("complete refresh");
 
     let failed_request = sns_neurons_refresh_request(&root, Some(1));
-    refresh_sns_neurons_cache_with_source(&failed_request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect_err("incomplete refresh");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &failed_request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("incomplete refresh");
 
     let mut cached_request = neurons_request(ROOT_A);
     cached_request.collection = crate::sns::SnsNeuronCollection::Cached {
@@ -232,9 +248,13 @@ async fn sns_neurons_refresh_rejects_invalid_coordination_file_without_publishin
     )
     .expect("write invalid coordination file");
 
-    let err = refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect_err("invalid coordination file requires manual cleanup");
+    let err = refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("invalid coordination file requires manual cleanup");
 
     assert!(matches!(
         err,

@@ -31,10 +31,9 @@ pub(in crate::sns::report::live) use metrics::{
 };
 pub(in crate::sns::report::live) use neurons::{
     GetNeuronRequest, GetNeuronResponse, GetNeuronResult, ListNeuronsRequest, ListNeuronsResponse,
-    ListRewardNeuronsResponse, SnsGovernanceDissolveState, SnsGovernanceFollowee,
-    SnsGovernanceFollowees, SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement,
-    SnsGovernanceNeuron, SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission,
-    SnsGovernanceRewardNeuron, SnsGovernanceTopicFollowees,
+    SnsGovernanceDissolveState, SnsGovernanceFollowee, SnsGovernanceFollowees,
+    SnsGovernanceFolloweesForTopic, SnsGovernanceMaturityDisbursement, SnsGovernanceNeuron,
+    SnsGovernanceNeuronDetail, SnsGovernanceNeuronPermission, SnsGovernanceTopicFollowees,
 };
 pub(in crate::sns::report::live) use params::{
     SnsDefaultFolloweesWire, SnsGovernanceParametersWire,

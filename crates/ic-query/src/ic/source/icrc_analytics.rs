@@ -129,7 +129,6 @@ pub(in crate::ic) fn icrc_token_value_report_from_source(
         provenance: report_provenance(source.source),
         ledger_canister_id: source.ledger_canister_id,
         query: source.query,
-        returned_row_count,
         limit_reached: returned_row_count == usize::from(query.limit),
         rows,
     })
@@ -239,7 +238,6 @@ pub(in crate::ic) fn icrc_total_supply_report_from_source(
         ledger_canister_id: source.ledger_canister_id,
         query: source.query,
         requested_observation_limit,
-        returned_observation_count: source.observations.len(),
         observations: source.observations,
     })
 }

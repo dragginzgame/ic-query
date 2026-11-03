@@ -7,9 +7,9 @@ use ic_query::report::CollectionSourceRequest;
 use ic_query::report::SortDirection;
 #[cfg(feature = "nns-host")]
 use ic_query_text::nns::governance::nns_governance_refresh_report_text;
-#[cfg(feature = "nns-host")]
-use ic_query_text::nns::nns_inventory_refresh_report_text;
 use std::future::Future;
+#[cfg(all(unix, feature = "nns-host"))]
+use std::os::unix::fs::PermissionsExt;
 
 #[cfg(feature = "nns-host")]
 use ic_query::nns::NnsInventoryError;
@@ -21,19 +21,13 @@ use ic_query::nns::data_center::NnsDataCenterRow;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::NnsDataCenterSource;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::build_nns_data_center_info_report;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::build_nns_data_center_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::build_nns_data_center_list_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::build_nns_data_center_list_report_with_source_and_progress;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::nns_data_center_cache_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::nns_data_center_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::refresh_nns_data_center_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::data_center::refresh_nns_data_center_report_with_source;
 use ic_query_text::nns::data_center::nns_data_center_info_report_text;
@@ -109,19 +103,13 @@ use ic_query::nns::node::NnsNodeRow;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::NnsNodeSource;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::node::build_nns_node_info_report;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::node::build_nns_node_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::build_nns_node_list_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::build_nns_node_list_report_with_source_and_progress;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::nns_node_cache_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::nns_node_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::refresh_nns_node_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::refresh_nns_node_report_with_source;
 #[cfg(feature = "nns-host")]
@@ -132,19 +120,13 @@ use ic_query::nns::node_operator::NnsNodeOperatorRow;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::NnsNodeOperatorSource;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::build_nns_node_operator_info_report;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::build_nns_node_operator_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::build_nns_node_operator_list_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::build_nns_node_operator_list_report_with_source_and_progress;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::nns_node_operator_cache_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::nns_node_operator_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::refresh_nns_node_operator_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_operator::refresh_nns_node_operator_report_with_source;
 #[cfg(feature = "nns-host")]
@@ -155,19 +137,13 @@ use ic_query::nns::node_provider::NnsNodeProviderRow;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::NnsNodeProviderSource;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::build_nns_node_provider_info_report;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::build_nns_node_provider_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::build_nns_node_provider_list_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::build_nns_node_provider_list_report_with_source_and_progress;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::nns_node_provider_cache_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::nns_node_provider_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::refresh_nns_node_provider_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node_provider::refresh_nns_node_provider_report_with_source;
 use ic_query::nns::proposals::DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT;
@@ -226,158 +202,17 @@ use ic_query::nns::proposals::nns_proposal_refresh_lock_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::proposals::refresh_nns_proposal_cache;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source;
+use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
 use ic_query::nns::proposals::validate_nns_proposal_activity_report;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsAuthenticatedRegistryArchive;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsAuthenticatedRegistryReplayBuilder;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsAuthenticatedRegistryReplaySession;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveBatchDescriptor;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveBootstrapError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveBootstrapRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveCleanupError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveCleanupLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveCleanupReport;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveCleanupRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveManifest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveManifestBuilder;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchivePublisher;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveRefreshError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveRefreshRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveStorageError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryArchiveStorageLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryBootstrapProbeStatus;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryBootstrapRequest;
-use ic_query::nns::registry::NnsCertifiedRegistryChunkEvidence;
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaBatchReport;
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaBatchRequest;
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaSource;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaSourceFuture;
-use ic_query::nns::registry::NnsCertifiedRegistryDeltaVersion;
-use ic_query::nns::registry::NnsCertifiedRegistryMutation;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedRegistryMutationKind;
-use ic_query::nns::registry::NnsCertifiedRegistryValueEncoding;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogAuthority;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogCacheDisposition;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogCacheError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogCacheEvidence;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogCacheLocation;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogFreshness;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogLoadOutcome;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogLoadRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogProjectionRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogReadPolicy;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsCertifiedSubnetCatalogVersionPolicy;
 use ic_query::nns::registry::NnsRegistryCertification;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::NnsRegistryHostError;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryReplayError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryReplayLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryReplaySession;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryReplaySessionLimits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryReplayState;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::registry::NnsRegistrySource;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistrySubnetCatalogProjectionError;
 use ic_query::nns::registry::NnsRegistryVersionReport;
 use ic_query::nns::registry::NnsRegistryVersionRequest;
 #[cfg(feature = "nns-host")]
-use ic_query::nns::registry::apply_nns_certified_registry_delta_batch;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::bootstrap_nns_certified_registry_archive_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::bootstrap_nns_certified_registry_archive_with_source_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::bootstrap_nns_certified_registry_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::bootstrap_nns_certified_registry_with_source_async;
-#[cfg(feature = "nns-host")]
 use ic_query::nns::registry::build_nns_registry_version_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::cleanup_nns_certified_registry_archive;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::fetch_nns_certified_registry_delta_batch_with_source_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::load_nns_certified_registry_archive;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::load_nns_certified_subnet_catalog;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::nns_certified_registry_archive_manifest_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::nns_certified_registry_archive_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::nns_certified_registry_delta_limits;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::nns_certified_subnet_catalog_cache_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::nns_certified_subnet_catalog_cache_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::probe_nns_certified_registry_with_source_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::project_nns_certified_subnet_catalog;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::project_nns_registry_subnet_catalog;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::reauthenticate_nns_certified_registry_delta_batch;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::refresh_nns_certified_registry_archive_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::refresh_nns_certified_registry_archive_with_source_async;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::validate_nns_certified_registry_archive_manifest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::validate_nns_certified_registry_delta_batch;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 use ic_query::nns::topology::NnsTopologyAssessmentStatus;
@@ -473,7 +308,7 @@ use ic_query_text::nns::topology::nns_topology_regions_report_text;
 use ic_query_text::nns::topology::nns_topology_summary_report_text;
 use ic_query_text::nns::topology::nns_topology_versions_report_text;
 #[cfg(feature = "nns-host")]
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 #[cfg(feature = "nns-host")]
 use std::{
     fs,
@@ -1520,228 +1355,6 @@ fn public_nns_registry_api_is_constructible_and_renderable() {
     assert!(text.contains("registry_version: 42"));
 }
 
-#[test]
-fn public_certified_registry_delta_models_preserve_raw_evidence() {
-    let request =
-        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
-    let report = public_certified_delta_report(&request);
-
-    let json = serde_json::to_value(report).expect("serialize certified delta report");
-
-    assert_eq!(json["schema_version"], 1);
-    assert_eq!(json["requested_version"], 41);
-    assert_eq!(json["versions"][0]["mutations"][0]["mutation_type"], 4);
-    assert_eq!(json["versions"][0]["mutations"][0]["key_hex"], "61");
-    assert_eq!(
-        json["versions"][0]["mutations"][0]["value_encoding"],
-        "inline"
-    );
-    assert_eq!(json["chunk_evidence"], serde_json::json!([]));
-    assert_eq!(json["chunk_query_call_count"], 0);
-    assert_eq!(json["certified_response_bytes"], 64);
-    assert_eq!(json["chunk_response_bytes"], 0);
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn retained_certified_registry_delta_reauthenticates_without_source_calls() {
-    let mut fixture = authenticated_delta_fixture();
-    let offline_endpoint = "https://offline.invalid";
-    fixture.source_endpoint = offline_endpoint.to_string();
-    fixture.report.source_endpoint = offline_endpoint.to_string();
-    let request = fixture.request();
-
-    let authenticated =
-        reauthenticate_nns_certified_registry_delta_batch(&request, &fixture.report)
-            .expect("frozen mainnet evidence reauthenticates locally");
-
-    assert_eq!(
-        std::ptr::from_ref(authenticated.report()),
-        std::ptr::from_ref(&fixture.report)
-    );
-
-    let mut changed_value = fixture.report.clone();
-    changed_value.versions[0].mutations[0]
-        .value_hex
-        .as_mut()
-        .expect("fixture inline value")
-        .replace_range(..2, "00");
-    let error = reauthenticate_nns_certified_registry_delta_batch(&request, &changed_value)
-        .expect_err("reported value must match the authenticated witness");
-    assert!(matches!(
-        &error,
-        NnsRegistryHostError::EvidenceAuthentication { .. }
-    ));
-    assert!(
-        error
-            .to_string()
-            .contains("authenticated versions[0].mutations[0].value_hex mismatch")
-    );
-
-    let mut changed_certificate = fixture.report;
-    let last_byte = changed_certificate.certification.certificate_hex.len() - 2;
-    changed_certificate
-        .certification
-        .certificate_hex
-        .replace_range(last_byte.., "00");
-    let error = reauthenticate_nns_certified_registry_delta_batch(&request, &changed_certificate)
-        .expect_err("changed certificate must not authenticate");
-    assert!(matches!(
-        error,
-        NnsRegistryHostError::EvidenceAuthentication { .. }
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_reauthenticated_replay_builder_accepts_only_sealed_batch_input() {
-    let mut fixture = authenticated_delta_fixture();
-    fixture.source_endpoint = "https://offline.invalid".to_string();
-    fixture
-        .report
-        .source_endpoint
-        .clone_from(&fixture.source_endpoint);
-    let request = fixture.request();
-    let batch = reauthenticate_nns_certified_registry_delta_batch(&request, &fixture.report)
-        .expect("frozen batch reauthenticates without a source call");
-    let limits = NnsRegistryReplaySessionLimits::new(
-        fixture.report.certified_latest_version,
-        100,
-        10_000,
-        128 * 1_024 * 1_024,
-        NnsRegistryReplayLimits::new(100_000, 128 * 1_024 * 1_024),
-    );
-    let mut builder = NnsAuthenticatedRegistryReplayBuilder::new(limits);
-
-    let error = builder
-        .apply_batch(&batch)
-        .expect_err("a retained sequence must still begin from Registry version zero");
-
-    assert!(matches!(
-        error,
-        NnsRegistryReplayError::VersionMismatch {
-            state_version: 0,
-            requested_version: 62_953,
-        }
-    ));
-    assert_eq!(builder.replay_session().state().through_version(), 0);
-    assert_eq!(builder.replay_session().batch_count(), 0);
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_registry_archive_manifest_contract_is_bounded_and_untrusted() {
-    assert_eq!(NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION, 1);
-    let replay_limits = NnsRegistryReplaySessionLimits::new(
-        100,
-        10,
-        100,
-        1_000_000,
-        NnsRegistryReplayLimits::new(1_000, 1_000_000),
-    );
-    let archive_limits = NnsCertifiedRegistryArchiveLimits::new(10, 1_000_000, 10_000_000);
-    let builder = NnsCertifiedRegistryArchiveManifestBuilder::new(replay_limits, archive_limits);
-    assert_eq!(builder.replay_session().batch_count(), 0);
-
-    let batches: Vec<NnsCertifiedRegistryArchiveBatchDescriptor> = Vec::new();
-    let untrusted = NnsCertifiedRegistryArchiveManifest {
-        schema_version: NNS_CERTIFIED_REGISTRY_ARCHIVE_MANIFEST_SCHEMA_VERSION,
-        delta_report_schema_version: NNS_CERTIFIED_REGISTRY_DELTA_BATCH_SCHEMA_VERSION,
-        replay_provenance_schema_version: NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION,
-        network: "ic".to_string(),
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        selected_version: 0,
-        segment_count: 0,
-        batch_count: 0,
-        total_report_bytes: 0,
-        query_call_count: 0,
-        response_bytes: 0,
-        applied_mutation_count: 0,
-        root_key_digest: "00".repeat(32),
-        evidence_chain_digest: "00".repeat(32),
-        complete_state_digest: "00".repeat(32),
-        minimum_certificate_time_nanos: 0,
-        maximum_certificate_time_nanos: 0,
-        source_endpoints: vec!["https://icp-api.io".to_string()],
-        batches,
-    };
-
-    let error = validate_nns_certified_registry_archive_manifest(&untrusted, archive_limits)
-        .expect_err("an empty deserialized manifest is not an archive authority");
-    assert!(matches!(
-        error,
-        NnsCertifiedRegistryArchiveError::InvalidManifest { .. }
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_registry_archive_storage_contract_is_explicit_and_local() {
-    use std::path::Path;
-
-    let replay_limits = NnsRegistryReplaySessionLimits::new(
-        100,
-        10,
-        100,
-        1_000_000,
-        NnsRegistryReplayLimits::new(1_000, 1_000_000),
-    );
-    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
-        100_000,
-        NnsCertifiedRegistryArchiveLimits::new(10, 1_000_000, 10_000_000),
-    );
-    let archive_root = Path::new("/tmp/ic-query-public-api-archive");
-    let publisher = NnsCertifiedRegistryArchivePublisher::new(
-        Path::new("/tmp"),
-        archive_root,
-        replay_limits,
-        storage_limits,
-    );
-    assert_eq!(publisher.replay_session().batch_count(), 0);
-    assert_eq!(
-        nns_certified_registry_archive_manifest_path(archive_root),
-        archive_root.join("manifest.json")
-    );
-
-    let loader: fn(
-        &Path,
-        &Path,
-        NnsRegistryReplaySessionLimits,
-        NnsCertifiedRegistryArchiveStorageLimits,
-    ) -> Result<
-        NnsAuthenticatedRegistryArchive,
-        NnsCertifiedRegistryArchiveStorageError,
-    > = load_nns_certified_registry_archive;
-    let _ = loader;
-    let resumer: fn(
-        &Path,
-        &Path,
-        NnsRegistryReplaySessionLimits,
-        NnsCertifiedRegistryArchiveStorageLimits,
-    ) -> Result<
-        NnsCertifiedRegistryArchivePublisher,
-        NnsCertifiedRegistryArchiveStorageError,
-    > = NnsCertifiedRegistryArchivePublisher::resume;
-    let _ = resumer;
-    let cleanup_limits = NnsCertifiedRegistryArchiveCleanupLimits::new(10, 2, 1_000);
-    let cleanup_request = NnsCertifiedRegistryArchiveCleanupRequest::new(
-        1_700_000_000,
-        "/tmp",
-        "/tmp/ic-query-public-api-archive-cleanup",
-        replay_limits,
-        storage_limits,
-        cleanup_limits,
-    );
-    assert_eq!(cleanup_request.cleanup_limits, cleanup_limits);
-    let cleanup: for<'a> fn(
-        &'a NnsCertifiedRegistryArchiveCleanupRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<NnsCertifiedRegistryArchiveCleanupReport, NnsCertifiedRegistryArchiveCleanupError>,
-    > = |arg0| Box::pin(cleanup_nns_certified_registry_archive(arg0));
-    let _ = cleanup;
-}
-
 #[cfg(feature = "nns-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn public_nns_registry_host_api_accepts_custom_source_adapter() {
@@ -1789,453 +1402,6 @@ impl NnsRegistrySource for FixtureNnsRegistrySource {
     }
 }
 
-#[cfg(feature = "nns-host")]
-struct FixtureCertifiedRegistryDeltaSource;
-
-#[cfg(feature = "nns-host")]
-impl NnsCertifiedRegistryDeltaSource for FixtureCertifiedRegistryDeltaSource {
-    fn fetch_certified_registry_delta_batch<'a>(
-        &'a self,
-        request: &'a NnsCertifiedRegistryDeltaBatchRequest,
-    ) -> NnsCertifiedRegistryDeltaSourceFuture<'a> {
-        Box::pin(async move { Ok(public_certified_delta_report(request)) })
-    }
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_registry_delta_async_api_accepts_custom_sources() {
-    let request =
-        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
-    let report =
-        futures::executor::block_on(fetch_nns_certified_registry_delta_batch_with_source_async(
-            &request,
-            &FixtureCertifiedRegistryDeltaSource,
-        ))
-        .expect("public certified delta API");
-
-    assert_eq!(report.summary().unwrap().first_version, Some(42));
-    assert_eq!(
-        report.versions[0].mutations[0].mutation_kind(),
-        Some(NnsCertifiedRegistryMutationKind::Upsert)
-    );
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_registry_validator_preserves_committed_same_key_delete_content() {
-    let request =
-        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
-    let mut report = public_certified_delta_report(&request);
-    report.versions[0]
-        .mutations
-        .push(NnsCertifiedRegistryMutation {
-            mutation_type: 2,
-
-            key_hex: "61".to_string(),
-            value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
-            chunk_sha256_hexes: Vec::new(),
-            value_hex: Some("63".to_string()),
-        });
-
-    validate_nns_certified_registry_delta_batch(&request, &report)
-        .expect("public validator preserves ordered committed rows and ignored delete content");
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_replay_session_exposes_complete_provenance_commitments() {
-    assert_eq!(NNS_REGISTRY_REPLAY_PROVENANCE_SCHEMA_VERSION, 1);
-    let request =
-        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 0, 1_700_000_000);
-    let mut report = public_certified_delta_report(&request);
-    report.certified_latest_version = 1;
-
-    report.versions[0].version = 1;
-    let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
-        1,
-        1,
-        1,
-        64,
-        NnsRegistryReplayLimits::new(10, 100),
-    ));
-
-    session
-        .apply_batch(&request, &report)
-        .expect("complete public replay session");
-
-    assert!(session.is_complete());
-    assert!(session.evidence_chain_digest().is_some());
-    assert!(session.complete_state_digest().is_some());
-    assert_eq!(
-        session.source_endpoints().collect::<Vec<_>>(),
-        vec!["https://icp-api.io"]
-    );
-    assert_eq!(
-        session.minimum_certificate_time_nanos(),
-        Some(1_700_000_000_000_000_000)
-    );
-    assert_eq!(
-        session.maximum_certificate_time_nanos(),
-        Some(1_700_000_000_000_000_000)
-    );
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_catalog_projection_requires_complete_replay_evidence() {
-    let session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
-        1,
-        1,
-        1,
-        64,
-        NnsRegistryReplayLimits::new(10, 100),
-    ));
-
-    let error = project_nns_registry_subnet_catalog(&session)
-        .expect_err("empty public replay session is not projectable");
-
-    assert!(matches!(
-        error,
-        NnsRegistrySubnetCatalogProjectionError::IncompleteSession {
-            selected_version: None,
-            through_version: 0,
-        }
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-#[tokio::test(flavor = "current_thread")]
-async fn public_live_bootstrap_and_archive_projection_preserve_authentication_types() {
-    fn accept_bootstrap_future<F>(_future: F)
-    where
-        F: std::future::Future<
-                Output = Result<NnsAuthenticatedRegistryReplaySession, NnsRegistryReplayError>,
-            >,
-    {
-    }
-
-    fn accept_archive_bootstrap_future<F>(_future: F)
-    where
-        F: std::future::Future<
-                Output = Result<
-                    NnsAuthenticatedRegistryArchive,
-                    NnsCertifiedRegistryArchiveBootstrapError,
-                >,
-            >,
-    {
-    }
-
-    fn accept_archive_refresh_future<F>(_future: F)
-    where
-        F: std::future::Future<
-                Output = Result<
-                    NnsAuthenticatedRegistryArchive,
-                    NnsCertifiedRegistryArchiveRefreshError,
-                >,
-            >,
-    {
-    }
-
-    let request = NnsCertifiedRegistryBootstrapRequest::new(
-        "ic",
-        "https://icp-api.io",
-        1_700_000_000,
-        NnsRegistryReplaySessionLimits::new(
-            1,
-            1,
-            65,
-            40 * 1_024 * 1_024,
-            NnsRegistryReplayLimits::new(10, 100),
-        ),
-    );
-    accept_bootstrap_future(bootstrap_nns_certified_registry_async(&request));
-    let storage_limits = NnsCertifiedRegistryArchiveStorageLimits::new(
-        100_000,
-        NnsCertifiedRegistryArchiveLimits::new(1, 1_000_000, 1_000_000),
-    );
-    let archive_request = NnsCertifiedRegistryArchiveBootstrapRequest::new(
-        request,
-        "/tmp",
-        "/tmp/ic-query-public-api-archive-bootstrap",
-        storage_limits,
-    );
-
-    assert_eq!(
-        nns_certified_registry_archive_refresh_lock_path(&archive_request.archive_root),
-        archive_request.archive_root.join("refresh.lock")
-    );
-    accept_archive_bootstrap_future(bootstrap_nns_certified_registry_archive_async(
-        &archive_request,
-    ));
-    accept_archive_bootstrap_future(bootstrap_nns_certified_registry_archive_with_source_async(
-        &archive_request,
-        &FixtureCertifiedRegistryDeltaSource,
-    ));
-    let refresh_request = NnsCertifiedRegistryArchiveRefreshRequest::new(
-        archive_request.bootstrap.clone(),
-        &archive_request.cache_root,
-        &archive_request.archive_root,
-        storage_limits,
-    );
-    accept_archive_refresh_future(refresh_nns_certified_registry_archive_async(
-        &refresh_request,
-    ));
-    accept_archive_refresh_future(refresh_nns_certified_registry_archive_with_source_async(
-        &refresh_request,
-        &FixtureCertifiedRegistryDeltaSource,
-    ));
-
-    let builder: for<'a> fn(
-        &'a NnsAuthenticatedRegistryArchive,
-        &NnsCertifiedSubnetCatalogProjectionRequest,
-    ) -> Result<
-        NnsCertifiedSubnetCatalogAuthority<'a>,
-        NnsRegistrySubnetCatalogProjectionError,
-    > = project_nns_certified_subnet_catalog;
-    let _ = builder;
-    let request = NnsCertifiedSubnetCatalogProjectionRequest::new(
-        ic_query::subnet_catalog::CatalogValidationContext::new(
-            "ic",
-            "rwlgt-iiaaa-aaaaa-aaaaa-cai",
-            1_700_000_000,
-            300,
-        ),
-        3_600,
-        NnsCertifiedSubnetCatalogVersionPolicy::RequireLatestObserved,
-    );
-    assert_eq!(request.maximum_certificate_age_seconds, 3_600);
-    assert!(std::mem::size_of::<NnsCertifiedSubnetCatalogFreshness>() > 0);
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_catalog_cache_contract_is_explicit_and_archive_bound() {
-    let cache_location = NnsCertifiedSubnetCatalogCacheLocation::new(
-        "/tmp",
-        "/tmp/ic-query-public-api-certified-catalog",
-        1_000_000,
-    );
-    let cache_request =
-        NnsCertifiedSubnetCatalogLoadRequest::publish_missing_or_invalid(cache_location.clone());
-    assert_eq!(NNS_CERTIFIED_SUBNET_CATALOG_CACHE_SCHEMA_VERSION, 1);
-    assert_eq!(
-        nns_certified_subnet_catalog_cache_path(&cache_location.cache_directory),
-        cache_location.cache_directory.join("catalog.json")
-    );
-    assert_eq!(
-        nns_certified_subnet_catalog_cache_refresh_lock_path(&cache_location.cache_directory),
-        cache_location.cache_directory.join("refresh.lock")
-    );
-    assert_eq!(cache_request.location, cache_location);
-    assert_eq!(
-        cache_request.policy,
-        NnsCertifiedSubnetCatalogReadPolicy::PublishMissingOrInvalid
-    );
-    let cache_loader: for<'a> fn(
-        &'a NnsAuthenticatedRegistryArchive,
-        &'a NnsCertifiedSubnetCatalogProjectionRequest,
-        &'a NnsCertifiedSubnetCatalogLoadRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<NnsCertifiedSubnetCatalogLoadOutcome<'a>, NnsCertifiedSubnetCatalogCacheError>,
-    > = |arg0, arg1, arg2| Box::pin(load_nns_certified_subnet_catalog(arg0, arg1, arg2));
-    let _ = cache_loader;
-    let _ = NnsCertifiedSubnetCatalogLoadOutcome::snapshot_authority;
-    let _ = NnsCertifiedSubnetCatalogLoadOutcome::cache_evidence;
-    assert_eq!(
-        NnsCertifiedSubnetCatalogCacheDisposition::PublishedInvalid.as_str(),
-        "published_invalid"
-    );
-    assert!(std::mem::size_of::<NnsCertifiedSubnetCatalogCacheEvidence>() > 0);
-}
-
-#[cfg(feature = "nns-host")]
-#[test]
-fn public_certified_registry_replay_api_is_bounded_and_version_checked() {
-    let request =
-        NnsCertifiedRegistryDeltaBatchRequest::new("ic", "https://icp-api.io", 41, 1_700_000_000);
-    let report = public_certified_delta_report(&request);
-    let mut state = NnsRegistryReplayState::new();
-
-    let error = apply_nns_certified_registry_delta_batch(
-        &mut state,
-        &request,
-        &report,
-        NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
-    )
-    .expect_err("state must begin at the batch request version");
-
-    assert!(matches!(
-        error,
-        NnsRegistryReplayError::VersionMismatch {
-            state_version: 0,
-            requested_version: 41,
-        }
-    ));
-    assert_eq!(state.through_version(), 0);
-    assert!(state.is_empty());
-
-    let mut session = NnsRegistryReplaySession::new(NnsRegistryReplaySessionLimits::new(
-        100,
-        1,
-        1,
-        1_024,
-        NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
-    ));
-    let error = session
-        .apply_batch(&request, &report)
-        .expect_err("session must begin at Registry version zero");
-    assert!(matches!(
-        error,
-        NnsRegistryReplayError::VersionMismatch {
-            state_version: 0,
-            requested_version: 41,
-        }
-    ));
-    assert_eq!(session.selected_version(), None);
-    assert!(session.state().is_empty());
-
-    let bootstrap = NnsCertifiedRegistryBootstrapRequest::new(
-        "local",
-        "https://icp-api.io",
-        1_700_000_000,
-        NnsRegistryReplaySessionLimits::new(
-            100,
-            1,
-            65,
-            40 * 1_024 * 1_024,
-            NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
-        ),
-    );
-    let error = futures::executor::block_on(bootstrap_nns_certified_registry_with_source_async(
-        &bootstrap,
-        &FixtureCertifiedRegistryDeltaSource,
-    ))
-    .expect_err("bootstrap must reject non-mainnet before the custom source");
-    assert!(matches!(
-        error,
-        NnsRegistryReplayError::InvalidBatch(NnsRegistryHostError::UnsupportedNetwork {
-            network
-        }) if network == "local"
-    ));
-
-    let probe = NnsCertifiedRegistryBootstrapRequest::new(
-        "ic",
-        "https://icp-api.io",
-        1_700_000_000,
-        NnsRegistryReplaySessionLimits::new(
-            100,
-            0,
-            0,
-            0,
-            NnsRegistryReplayLimits::new(100, 1_024 * 1_024),
-        ),
-    );
-    let outcome = futures::executor::block_on(probe_nns_certified_registry_with_source_async(
-        &probe,
-        &FixtureCertifiedRegistryDeltaSource,
-    ))
-    .expect("zero-call public diagnostic probe");
-    assert_eq!(
-        outcome.status,
-        NnsCertifiedRegistryBootstrapProbeStatus::CapacityReached {
-            field: "batch count",
-            maximum: 0,
-            required: 1,
-        }
-    );
-    assert_eq!(outcome.session.selected_version(), None);
-}
-
-fn public_certified_delta_report(
-    request: &NnsCertifiedRegistryDeltaBatchRequest,
-) -> NnsCertifiedRegistryDeltaBatchReport {
-    NnsCertifiedRegistryDeltaBatchReport {
-        schema_version: 1,
-        network: "ic".to_string(),
-        registry_canister_id: "rwlgt-iiaaa-aaaaa-aaaaa-cai".to_string(),
-        requested_version: request.requested_version,
-        certified_latest_version: 42,
-
-        fetched_at: "2023-11-14T22:13:20Z".to_string(),
-        source_endpoint: request.source_endpoint.clone(),
-        fetched_by: "ic-query".to_string(),
-
-        chunk_query_call_count: 0,
-        certified_response_bytes: 64,
-        chunk_response_bytes: 0,
-
-        limits: public_certified_delta_limits(),
-        versions: vec![NnsCertifiedRegistryDeltaVersion {
-            version: 42,
-            timestamp_nanoseconds: 1_700_000_000_000_000_000,
-            mutations: vec![NnsCertifiedRegistryMutation {
-                mutation_type: 4,
-
-                key_hex: "61".to_string(),
-                value_encoding: NnsCertifiedRegistryValueEncoding::Inline,
-                chunk_sha256_hexes: Vec::new(),
-                value_hex: Some("62".to_string()),
-            }],
-            preconditions: Vec::new(),
-        }],
-        chunk_evidence: Vec::<NnsCertifiedRegistryChunkEvidence>::new(),
-        certification: public_registry_certification(),
-    }
-}
-
-#[cfg(feature = "nns-host")]
-#[derive(Deserialize)]
-struct AuthenticatedDeltaFixture {
-    network: String,
-    source_endpoint: String,
-    requested_version: u64,
-    now_unix_secs: u64,
-    report: NnsCertifiedRegistryDeltaBatchReport,
-}
-
-#[cfg(feature = "nns-host")]
-impl AuthenticatedDeltaFixture {
-    fn request(&self) -> NnsCertifiedRegistryDeltaBatchRequest {
-        NnsCertifiedRegistryDeltaBatchRequest::new(
-            &self.network,
-            &self.source_endpoint,
-            self.requested_version,
-            self.now_unix_secs,
-        )
-    }
-}
-
-#[cfg(feature = "nns-host")]
-fn authenticated_delta_fixture() -> AuthenticatedDeltaFixture {
-    serde_json::from_str(include_str!("nns_certified_registry_delta_fixture.json"))
-        .expect("valid frozen certified Registry delta fixture")
-}
-
-const fn public_certified_delta_limits() -> NnsCertifiedRegistryDeltaLimits {
-    #[cfg(feature = "nns-host")]
-    {
-        nns_certified_registry_delta_limits()
-    }
-    #[cfg(not(feature = "nns-host"))]
-    {
-        NnsCertifiedRegistryDeltaLimits {
-            max_versions: 1_000,
-            max_mutations: 65_536,
-            max_preconditions: 65_536,
-            max_key_bytes: 4_096,
-            max_inline_value_bytes: 2 * 1_024 * 1_024,
-            max_chunk_references: 64,
-            max_chunk_bytes: 1_800_000,
-            max_reconstructed_value_bytes: 10 * 1_024 * 1_024,
-            max_value_bytes: 16 * 1_024 * 1_024,
-            max_chunk_response_bytes: 32 * 1_024 * 1_024,
-            max_response_body_bytes: 8 * 1_024 * 1_024,
-        }
-    }
-}
-
 fn public_registry_certification() -> NnsRegistryCertification {
     NnsRegistryCertification {
         certificate_verified: true,
@@ -2269,7 +1435,6 @@ fn public_nns_node_api_is_constructible_and_renderable() {
             source_endpoint: list_request.inventory.source_endpoint,
             ..sample_registry_provenance()
         },
-        node_count: 1,
         nodes: vec![node.clone()],
     };
 
@@ -2317,7 +1482,6 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
             source_endpoint: request.source_endpoint,
             ..sample_registry_provenance()
         },
-        data_center_count: 1,
         data_centers: vec![data_center.clone()],
     };
 
@@ -2365,7 +1529,6 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
             ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        node_provider_count: 1,
         node_providers: vec![provider.clone()],
     };
 
@@ -2413,7 +1576,6 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
             source_endpoint: request.source_endpoint,
             ..sample_registry_provenance()
         },
-        node_operator_count: 1,
         node_operators: vec![operator.clone()],
     };
 
@@ -2446,20 +1608,6 @@ fn public_nns_node_operator_api_is_constructible_and_renderable() {
 
     assert!(info_text.contains("resolved_from: node_operator_principal"));
     assert!(info_text.contains("node_allowance: 28"));
-}
-
-#[cfg(feature = "nns-host")]
-#[tokio::test(flavor = "current_thread")]
-async fn public_nns_inventory_host_api_reads_cached_reports_without_cli() {
-    let root = temp_root("nns-inventory-host-public-api");
-    write_nns_inventory_fixture_caches(&root);
-
-    assert_public_nns_node_host_api(&root).await;
-    assert_public_nns_data_center_host_api(&root).await;
-    assert_public_nns_node_provider_host_api(&root).await;
-    assert_public_nns_node_operator_host_api(&root).await;
-
-    let _ = fs::remove_dir_all(root);
 }
 
 #[cfg(feature = "nns-host")]
@@ -2514,7 +1662,7 @@ async fn assert_public_nns_node_custom_source_api(root: &Path) {
             .await
             .expect("node refresh report");
 
-    assert_eq!(node_list.node_count, 1);
+    assert_eq!(node_list.nodes.len(), 1);
     assert_eq!(
         node_info.node.node_principal,
         sample_nns_node_row().node_principal
@@ -2565,7 +1713,7 @@ async fn assert_public_nns_data_center_custom_source_api(root: &Path) {
     .await
     .expect("data-center refresh report");
 
-    assert_eq!(data_center_list.data_center_count, 1);
+    assert_eq!(data_center_list.data_centers.len(), 1);
     assert_eq!(
         data_center_info.data_center.data_center_id,
         sample_nns_data_center_row().data_center_id
@@ -2616,7 +1764,7 @@ async fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
     .await
     .expect("node-provider refresh report");
 
-    assert_eq!(node_provider_list.node_provider_count, 1);
+    assert_eq!(node_provider_list.node_providers.len(), 1);
     assert_eq!(
         node_provider_info.node_provider.node_provider_principal,
         sample_nns_node_provider_row().node_provider_principal
@@ -2667,7 +1815,7 @@ async fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
     .await
     .expect("node-operator refresh report");
 
-    assert_eq!(node_operator_list.node_operator_count, 1);
+    assert_eq!(node_operator_list.node_operators.len(), 1);
     assert_eq!(
         node_operator_info.node_operator.node_operator_principal,
         sample_nns_node_operator_row().node_operator_principal
@@ -2951,7 +2099,6 @@ fn public_nns_topology_summary_and_versions_api_is_constructible_and_renderable(
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
-        source_count: 1,
         registry_versions: vec![registry_version],
     };
     assert!(nns_topology_versions_report_text(&versions).contains("subnet_catalog"));
@@ -2974,11 +2121,9 @@ fn public_nns_topology_coverage_and_check_api_is_constructible_and_renderable() 
         subnet_catalog_stale_reason: "fresh".to_string(),
         known_join_count: 11,
         unknown_join_count: 0,
-        join_coverage: "100.0%".to_string(),
         checks: vec![NnsTopologyCheckRow {
             check: "registry_versions".to_string(),
             status: NnsTopologyAssessmentStatus::Ok,
-            detail: "1 source at registry version 42".to_string(),
         }],
     };
     assert!(nns_topology_check_report_text(&check).contains("registry_versions"));
@@ -3024,7 +2169,6 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         status: NnsTopologyAssessmentStatus::Attention,
-        gap_count: 1,
         gaps: vec![NnsTopologyGapRow {
             subject_kind: NnsTopologyGapSubjectKind::Node,
             subject: "zh3jp-xqaaa-aaaar-qaada-cai".to_string(),
@@ -3039,7 +2183,6 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         status: NnsTopologyAssessmentStatus::Attention,
-        node_operator_count: 1,
         total_node_allowance: 2,
         assigned_node_count: 3,
         unknown_node_count_operator_count: 0,
@@ -3054,7 +2197,6 @@ fn public_nns_topology_gaps_and_capacity_api_is_constructible_and_renderable() {
             assigned_node_count: Some(3),
             available_node_slots: Some(0),
             over_assigned_node_count: Some(1),
-            utilization: "150.0%".to_string(),
             status: NnsTopologyCapacityStatus::Over,
         }],
     };
@@ -3191,7 +2333,7 @@ async fn public_nns_topology_host_api_accepts_custom_source_adapter() {
     assert_eq!(summary.subnet_count, 1);
     assert_eq!(coverage.node_count, 1);
     assert_eq!(check.network, "ic");
-    assert_eq!(versions.source_count, 5);
+    assert_eq!(versions.registry_versions.len(), 5);
     assert_eq!(refresh.component_count, 5);
     assert!(refresh.dry_run);
     assert_topology_direct_reports_with_source(&source).await;
@@ -3272,7 +2414,7 @@ async fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySour
         .expect("providers report");
 
     assert_eq!(gaps.network, "ic");
-    assert_eq!(capacity.node_operator_count, 1);
+    assert_eq!(capacity.capacity.len(), 1);
     assert_eq!(regions.region_count, 1);
     assert_eq!(providers.registered_node_provider_count, 1);
 }
@@ -3622,9 +2764,10 @@ async fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
     let detail = build_nns_proposal_report_with_source(&detail_request, &source)
         .await
         .expect("proposal detail report");
-    let refresh = refresh_nns_proposal_cache_with_source(&refresh_request, &source)
-        .await
-        .expect("proposal refresh report");
+    let refresh =
+        refresh_nns_proposal_cache_with_source_and_progress(&refresh_request, &source, &mut |_| {})
+            .await
+            .expect("proposal refresh report");
 
     assert_eq!(list.proposals.len(), 1);
     assert_eq!(list.provenance.data_source().as_str(), "live");
@@ -3788,30 +2931,6 @@ fn assert_proposal_source_request(request: &NnsGovernanceRequest) {
 }
 
 #[cfg(feature = "nns-host")]
-fn write_nns_inventory_fixture_caches(root: &Path) {
-    write_json_cache(
-        root,
-        &nns_node_cache_path(root, "ic"),
-        &sample_nns_node_list_report(),
-    );
-    write_json_cache(
-        root,
-        &nns_data_center_cache_path(root, "ic"),
-        &sample_nns_data_center_list_report(),
-    );
-    write_json_cache(
-        root,
-        &nns_node_provider_cache_path(root, "ic"),
-        &sample_nns_node_provider_list_report(),
-    );
-    write_json_cache(
-        root,
-        &nns_node_operator_cache_path(root, "ic"),
-        &sample_nns_node_operator_list_report(),
-    );
-}
-
-#[cfg(feature = "nns-host")]
 fn write_nns_proposal_fixture_cache(root: &Path) {
     write_json_cache(
         root,
@@ -3845,167 +2964,6 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
 }
 
 #[cfg(feature = "nns-host")]
-async fn assert_public_nns_node_host_api(root: &Path) {
-    let cache = NnsInventoryCacheRequest::new(root, "ic");
-    let request = NnsNodeListRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
-        1_700_000_000,
-    );
-    let list = build_nns_node_list_report(&request)
-        .await
-        .expect("build node list from cache");
-    let info = build_nns_node_info_report(&NnsInventoryInfoRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
-        sample_nns_node_row().node_principal,
-        1_700_000_000,
-    ))
-    .await
-    .expect("build node info from cache");
-    let refresh = sample_nns_node_refresh_report(root);
-    let refresh_request =
-        NnsInventoryRefreshRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, 1_700_000_000)
-            .with_dry_run(true);
-
-    assert_eq!(list.node_count, 1);
-    assert_eq!(
-        info.node.node_principal,
-        sample_nns_node_row().node_principal
-    );
-    assert!(nns_node_cache_path(root, "ic").is_file());
-    assert!(nns_node_refresh_lock_path(root, "ic").ends_with("refresh.lock"));
-    assert!(nns_inventory_refresh_report_text(&refresh).contains("row_count: 1"));
-    assert!(refresh_api_accepts_public_types(
-        refresh_nns_node_report,
-        &refresh_request
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-async fn assert_public_nns_data_center_host_api(root: &Path) {
-    let cache = NnsInventoryCacheRequest::new(root, "ic");
-    let request = NnsInventoryListRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-        1_700_000_000,
-    );
-    let list = build_nns_data_center_list_report(&request)
-        .await
-        .expect("build data-center list from cache");
-    let info = build_nns_data_center_info_report(&NnsInventoryInfoRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-        sample_nns_data_center_row().data_center_id,
-        1_700_000_000,
-    ))
-    .await
-    .expect("build data-center info from cache");
-    let refresh = sample_nns_data_center_refresh_report(root);
-    let refresh_request = NnsInventoryRefreshRequest::new(
-        cache,
-        DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
-        1_700_000_000,
-    )
-    .with_dry_run(true);
-
-    assert_eq!(list.data_center_count, 1);
-    assert_eq!(
-        info.data_center.data_center_id,
-        sample_nns_data_center_row().data_center_id
-    );
-    assert!(nns_data_center_cache_path(root, "ic").is_file());
-    assert!(nns_data_center_refresh_lock_path(root, "ic").ends_with("refresh.lock"));
-    assert!(nns_inventory_refresh_report_text(&refresh).contains("row_count: 1"));
-    assert!(refresh_api_accepts_public_types(
-        refresh_nns_data_center_report,
-        &refresh_request
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-async fn assert_public_nns_node_provider_host_api(root: &Path) {
-    let cache = NnsInventoryCacheRequest::new(root, "ic");
-    let request = NnsInventoryListRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
-        1_700_000_000,
-    );
-    let list = build_nns_node_provider_list_report(&request)
-        .await
-        .expect("build node-provider list from cache");
-    let info = build_nns_node_provider_info_report(&NnsInventoryInfoRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
-        sample_nns_node_provider_row().node_provider_principal,
-        1_700_000_000,
-    ))
-    .await
-    .expect("build node-provider info from cache");
-    let refresh = sample_nns_node_provider_refresh_report(root);
-    let refresh_request = NnsInventoryRefreshRequest::new(
-        cache,
-        DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
-        1_700_000_000,
-    )
-    .with_dry_run(true);
-
-    assert_eq!(list.node_provider_count, 1);
-    assert_eq!(
-        info.node_provider.node_provider_principal,
-        sample_nns_node_provider_row().node_provider_principal
-    );
-    assert!(nns_node_provider_cache_path(root, "ic").is_file());
-    assert!(nns_node_provider_refresh_lock_path(root, "ic").ends_with("refresh.lock"));
-    assert!(nns_inventory_refresh_report_text(&refresh).contains("row_count: 1"));
-    assert!(refresh_api_accepts_public_types(
-        refresh_nns_node_provider_report,
-        &refresh_request
-    ));
-}
-
-#[cfg(feature = "nns-host")]
-async fn assert_public_nns_node_operator_host_api(root: &Path) {
-    let cache = NnsInventoryCacheRequest::new(root, "ic");
-    let request = NnsInventoryListRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-        1_700_000_000,
-    );
-    let list = build_nns_node_operator_list_report(&request)
-        .await
-        .expect("build node-operator list from cache");
-    let info = build_nns_node_operator_info_report(&NnsInventoryInfoRequest::new(
-        cache.clone(),
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-        sample_nns_node_operator_row().node_operator_principal,
-        1_700_000_000,
-    ))
-    .await
-    .expect("build node-operator info from cache");
-    let refresh = sample_nns_node_operator_refresh_report(root);
-    let refresh_request = NnsInventoryRefreshRequest::new(
-        cache,
-        DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
-        1_700_000_000,
-    )
-    .with_dry_run(true);
-
-    assert_eq!(list.node_operator_count, 1);
-    assert_eq!(
-        info.node_operator.node_operator_principal,
-        sample_nns_node_operator_row().node_operator_principal
-    );
-    assert!(nns_node_operator_cache_path(root, "ic").is_file());
-    assert!(nns_node_operator_refresh_lock_path(root, "ic").ends_with("refresh.lock"));
-    assert!(nns_inventory_refresh_report_text(&refresh).contains("row_count: 1"));
-    assert!(refresh_api_accepts_public_types(
-        refresh_nns_node_operator_report,
-        &refresh_request
-    ));
-}
-
-#[cfg(feature = "nns-host")]
 fn write_json_cache<T>(root: &Path, path: &Path, value: &T)
 where
     T: Serialize,
@@ -4014,8 +2972,6 @@ where
     fs::create_dir_all(parent).expect("create cache parent");
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-
         let mut directory = root.to_path_buf();
         fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
             .expect("secure cache root");
@@ -4032,19 +2988,8 @@ where
     .expect("write fixture cache");
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-
         fs::set_permissions(path, fs::Permissions::from_mode(0o600)).expect("secure cache file");
     }
-}
-
-#[cfg(feature = "nns-host")]
-#[must_use]
-fn refresh_api_accepts_public_types<Request, Report, Error>(
-    _refresh: impl AsyncFn(&Request) -> Result<Report, Error>,
-    request: &Request,
-) -> bool {
-    std::mem::size_of_val(request) > 0
 }
 
 #[cfg(feature = "nns-host")]
@@ -4160,7 +3105,6 @@ fn sample_nns_node_list_report() -> NnsNodeListReport {
             source_endpoint: DEFAULT_NNS_NODE_SOURCE_ENDPOINT.to_string(),
             ..sample_registry_provenance()
         },
-        node_count: 1,
         nodes: vec![node],
     }
 }
@@ -4174,7 +3118,6 @@ fn sample_nns_data_center_list_report() -> NnsDataCenterListReport {
             source_endpoint: DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT.to_string(),
             ..sample_registry_provenance()
         },
-        data_center_count: 1,
         data_centers: vec![data_center],
     }
 }
@@ -4189,7 +3132,6 @@ fn sample_nns_node_provider_list_report() -> NnsNodeProviderListReport {
             ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        node_provider_count: 1,
         node_providers: vec![provider],
     }
 }
@@ -4203,7 +3145,6 @@ fn sample_nns_node_operator_list_report() -> NnsNodeOperatorListReport {
             source_endpoint: DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT.to_string(),
             ..sample_registry_provenance()
         },
-        node_operator_count: 1,
         node_operators: vec![operator],
     }
 }

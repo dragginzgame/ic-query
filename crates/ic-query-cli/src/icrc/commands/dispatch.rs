@@ -42,7 +42,7 @@ use ic_query::icrc::build_icrc_index_report;
 use ic_query::icrc::build_icrc_tip_certificate_report;
 use ic_query::icrc::build_icrc_token_report;
 use ic_query::icrc::build_icrc_transactions_report;
-use ic_query::icrc::refresh_icrc_account_transaction_cache_with_progress;
+use ic_query::icrc::refresh_icrc_account_transaction_cache_with_source_and_progress;
 use ic_query_text::ic::icrc_account_info_report_text;
 use ic_query_text::ic::icrc_account_list_report_text;
 use ic_query_text::ic::icrc_holder_list_report_text;
@@ -258,8 +258,12 @@ async fn run_icrc_account_transaction_refresh(
         current_unix_secs()?,
     );
     let mut progress = StderrQueryProgress::new();
-    let report =
-        refresh_icrc_account_transaction_cache_with_progress(&request, &mut progress).await?;
+    let report = refresh_icrc_account_transaction_cache_with_source_and_progress(
+        &request,
+        &ic_query::icrc::LiveIcrcSource::default(),
+        &mut progress,
+    )
+    .await?;
     write_text_or_json(
         format,
         &report,

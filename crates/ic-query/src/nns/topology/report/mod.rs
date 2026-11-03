@@ -129,6 +129,3 @@ pub const NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(feature = "nns-host")]
 impl_nns_mainnet_network_enforcer!(NnsTopologyHostError);
-
-mod percent;
-pub use percent::{coverage_percent_text, ratio_percent_text};

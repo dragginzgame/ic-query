@@ -32,7 +32,6 @@ pub(super) fn filter_node_list_report(
                 .as_ref()
                 .is_none_or(|filter| filter.matches(&node.node_operator_principal))
     });
-    report.node_count = report.nodes.len();
     report
 }
 

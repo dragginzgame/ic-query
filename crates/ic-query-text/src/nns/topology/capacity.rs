@@ -4,6 +4,7 @@
 //! Does not own: capacity calculation, source reads, or JSON output.
 //! Boundary: combines summary and attention capacity tables for humans.
 
+use super::percent::ratio_percent_text;
 use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::table::Alignment;
 use ic_host_text::table::render;
@@ -31,7 +32,7 @@ fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
         ["status".to_string(), report.status.as_str().to_string()],
         [
             "node_operators".to_string(),
-            report.node_operator_count.to_string(),
+            report.capacity.len().to_string(),
         ],
         [
             "total_node_allowance".to_string(),
@@ -106,7 +107,10 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
                 optional_u64_text(row.assigned_node_count),
                 optional_u64_text(row.available_node_slots),
                 optional_u64_text(row.over_assigned_node_count),
-                row.utilization.clone(),
+                row.assigned_node_count.map_or_else(
+                    || "-".to_string(),
+                    |assigned| ratio_percent_text(assigned, row.node_allowance),
+                ),
                 row.status.as_str().to_string(),
             ]
         })

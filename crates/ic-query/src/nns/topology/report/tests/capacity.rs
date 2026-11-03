@@ -11,7 +11,7 @@ fn topology_capacity_report_summarizes_operator_allowance() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
-    assert_eq!(report.node_operator_count, 2);
+    assert_eq!(report.capacity.len(), 2);
     assert_eq!(report.total_node_allowance, 2);
     assert_eq!(report.assigned_node_count, 3);
     assert_eq!(report.available_node_slots, 0);
@@ -21,7 +21,6 @@ fn topology_capacity_report_summarizes_operator_allowance() {
         row.node_operator_principal == "operator-a"
             && row.assigned_node_count == Some(2)
             && row.over_assigned_node_count == Some(1)
-            && row.utilization == "200.0%"
             && row.status == NnsTopologyCapacityStatus::Over
     }));
 }
@@ -46,7 +45,7 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
         row
     })
     .collect();
-    operators.node_operator_count = operators.node_operators.len();
+
     let report = topology_capacity_report_from_report(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
@@ -54,7 +53,7 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
     );
 
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
-    assert_eq!(report.node_operator_count, 5);
+    assert_eq!(report.capacity.len(), 5);
     assert_eq!(report.total_node_allowance, 18);
     assert_eq!(report.assigned_node_count, 5);
     assert_eq!(report.unknown_node_count_operator_count, 1);
@@ -74,11 +73,10 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
     assert_eq!(unknown.assigned_node_count, None);
     assert_eq!(unknown.available_node_slots, None);
     assert_eq!(unknown.over_assigned_node_count, None);
-    assert_eq!(unknown.utilization, "-");
 
     let mut empty = node_operator_report_fixture();
     empty.node_operators.clear();
-    empty.node_operator_count = 0;
+
     let report = topology_capacity_report_from_report(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),

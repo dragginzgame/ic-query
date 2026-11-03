@@ -47,11 +47,7 @@ pub use neurons::{
     SnsMaturityDisbursementRow, SnsNeuronAccount, SnsNeuronDetail, SnsNeuronDetailReport,
     SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow, SnsNeuronPermissionRow,
     SnsNeuronRow, SnsNeuronTopicFolloweesRow, SnsPolicyObservationStatus,
-    SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
-    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffNeuronEvidence, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
-    SnsRewardProposalId, sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+    sns_neuron_permission_name,
 };
 pub use params::SnsParamsReport;
 pub use proposals::{
@@ -66,9 +62,7 @@ pub use swap::{
     SnsSwapSaleParameters,
 };
 pub use token::SnsTokenReport;
-pub use upgrade::{
-    SnsPendingUpgrade, SnsRunningVersionResponse, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion,
-};
+pub use upgrade::{SnsPendingUpgrade, SnsUpgradeQueryGap, SnsUpgradeReport, SnsVersion};
 
 pub use metrics::MainnetSnsMetrics;
 

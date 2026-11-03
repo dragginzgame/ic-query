@@ -32,12 +32,12 @@ ic-query-text = { path = "crates/ic-query-text", version = "0.88.0", default-fea
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.74.1", default-features = false }
-ic-host-fs = { version = "0.74.1", default-features = false }
-ic-host-http = { version = "0.74.1", default-features = false }
-ic-host-text = "0.74.0"
-ic-host-tools = { version = "0.78.0", default-features = false }
-ic-platform = { version = "0.18.0", default-features = false, features = ["candid"] }
+ic-host-artifacts = { version = "0.74.2", default-features = false }
+ic-host-fs = { version = "0.74.2", default-features = false }
+ic-host-http = { version = "0.74.2", default-features = false }
+ic-host-text = "0.74.1"
+ic-host-tools = { version = "0.79.0", default-features = false }
+ic-platform = { version = "0.19.0", default-features = false, features = ["candid"] }
 prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
@@ -48,12 +48,12 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.74.0"
-ic-host-process = { version = "0.74.1", default-features = false }
+ic-build = "0.74.1"
+ic-host-process = { version = "0.74.2", default-features = false }
 # Native fixtures select the independent client matching Testkit.
-ic-platform-pocket-ic = { version = "0.18.0", default-features = false }
-ic-testkit = "0.80.1"
-ic-wire = "0.15.0"
+ic-platform-pocket-ic = { version = "0.19.0", default-features = false }
+ic-testkit = "0.81.0"
+ic-wire = "0.16.0"
 libc = "0.2"
 serde_cbor = "0.11.2"
 time = { version = "0.3", features = ["formatting"] }

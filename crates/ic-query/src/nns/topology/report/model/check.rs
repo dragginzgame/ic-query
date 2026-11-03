@@ -24,7 +24,6 @@ pub struct NnsTopologyCheckReport {
     pub subnet_catalog_stale_reason: String,
     pub known_join_count: usize,
     pub unknown_join_count: usize,
-    pub join_coverage: String,
     pub checks: Vec<NnsTopologyCheckRow>,
 }
 
@@ -38,5 +37,4 @@ pub struct NnsTopologyCheckReport {
 pub struct NnsTopologyCheckRow {
     pub check: String,
     pub status: NnsTopologyAssessmentStatus,
-    pub detail: String,
 }

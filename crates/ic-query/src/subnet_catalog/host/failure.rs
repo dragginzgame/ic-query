@@ -440,7 +440,6 @@ pub fn subject_from_catalog_error(error: &CatalogError) -> Option<SubnetCatalogS
         | CatalogError::EmptySubnets
         | CatalogError::EmptyRoutingRanges
         | CatalogError::NonCanonicalSubnetOrder { .. }
-        | CatalogError::UnsupportedAssurance { .. }
         | CatalogError::ClassificationPolicyVersionMismatch { .. }
         | CatalogError::ClassificationPolicyDigestMismatch { .. }
         | CatalogError::ResolverPolicyMismatch { .. }

@@ -16,7 +16,7 @@ use ic_query::nns::proposals::build_nns_proposal_cache_list_report;
 use ic_query::nns::proposals::build_nns_proposal_cache_status_report;
 use ic_query::nns::proposals::build_nns_proposal_list_report_with_cache_and_source;
 use ic_query::nns::proposals::build_nns_proposal_report_with_cache_and_source;
-use ic_query::nns::proposals::refresh_nns_proposal_cache_with_progress;
+use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
 use ic_query_text::nns::proposals::nns_proposal_activity_report_text;
 use ic_query_text::nns::proposals::nns_proposal_cache_list_report_text;
 use ic_query_text::nns::proposals::nns_proposal_list_report_text;
@@ -32,11 +32,14 @@ pub(in crate::nns) async fn run(
         Some(("list", matches)) => run_nns_proposal_list(matches, network).await,
         Some(("info", matches)) => run_nns_proposal_info(matches, network).await,
         Some(("refresh", matches)) => {
-            crate::nns::collection::run_refresh(
-                matches,
-                network,
-                refresh_nns_proposal_cache_with_progress,
-            )
+            crate::nns::collection::run_refresh(matches, network, async |request, progress| {
+                refresh_nns_proposal_cache_with_source_and_progress(
+                    request,
+                    &LiveNnsSource::default(),
+                    progress,
+                )
+                .await
+            })
             .await
         }
         _ => unreachable!("clap requires a known NNS proposal subcommand"),
@@ -56,7 +59,7 @@ async fn run_nns_proposal_list(matches: &ArgMatches, network: &str) -> Result<()
     let report = build_nns_proposal_list_report_with_cache_and_source(
         &request,
         &cache_root()?,
-        &LiveNnsSource::default(),
+        &ic_query::nns::LiveNnsSource::default(),
     )
     .await?;
     write_text_or_json(format, &report, |report| {
@@ -69,7 +72,7 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
     let report = build_nns_proposal_report_with_cache_and_source(
         &request,
         &cache_root()?,
-        &LiveNnsSource::default(),
+        &ic_query::nns::LiveNnsSource::default(),
     )
     .await?;
     write_text_or_json(format, &report, |report| {

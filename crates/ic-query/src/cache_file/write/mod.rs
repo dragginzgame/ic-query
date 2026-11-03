@@ -12,10 +12,6 @@ mod refresh;
 #[cfg(all(test, feature = "subnet-catalog-host"))]
 mod tests;
 
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use json::canonical_json_identity;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub use json::canonical_json_matches;
 #[cfg(feature = "subnet-catalog-host")]
 pub use json::canonical_json_serialized_len;
 #[cfg(feature = "subnet-catalog-host")]

@@ -14,7 +14,6 @@ pub struct NnsNodeProviderListReport {
     #[serde(flatten)]
     pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     pub governance_canister_id: String,
-    pub node_provider_count: usize,
     pub node_providers: Vec<NnsNodeProviderRow>,
 }
 
@@ -24,7 +23,6 @@ impl_nns_inventory_report!(
     super::super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
     "node_provider",
     super::super::COLLECTION,
-    node_provider_count,
     node_providers,
     |report: &NnsNodeProviderListReport| Some(report.governance_canister_id.clone()),
     |report: &NnsNodeProviderListReport| {

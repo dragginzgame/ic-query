@@ -221,14 +221,7 @@ pub fn subnet_info_from_record(subnet_principal: &str, record: &SubnetRecord) ->
     }
 }
 
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub fn routing_ranges_from_table(
-    table: &RoutingTable,
-) -> Result<Vec<RoutingRange>, RegistryFetchError> {
-    routing_ranges_from_table_inner(table).map_err(|failure| failure.source)
-}
-
-fn routing_ranges_from_table_detailed(
+pub(super) fn routing_ranges_from_table_detailed(
     table: &RoutingTable,
     registry_version: u64,
 ) -> Result<Vec<RoutingRange>, Box<SubnetCatalogRegistryFailure>> {

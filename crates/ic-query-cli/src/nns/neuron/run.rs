@@ -11,7 +11,7 @@ use ic_query::nns::neuron::build_nns_neuron_cache_status_report;
 use ic_query::nns::neuron::build_nns_neuron_distribution_report_from_cache;
 use ic_query::nns::neuron::build_nns_neuron_info_report_with_cache_and_source;
 use ic_query::nns::neuron::build_nns_neuron_list_report_with_cache_and_source;
-use ic_query::nns::neuron::refresh_nns_neuron_cache_with_progress;
+use ic_query::nns::neuron::refresh_nns_neuron_cache_with_source_and_progress;
 use ic_query_text::nns::neuron::nns_neuron_distribution_report_text;
 use ic_query_text::nns::neuron::nns_neuron_info_report_text;
 use ic_query_text::nns::neuron::nns_neuron_list_report_text;
@@ -25,11 +25,14 @@ pub(in crate::nns) async fn run(
         Some(("list", matches)) => run_list(matches, network).await,
         Some(("info", matches)) => run_info(matches, network).await,
         Some(("refresh", matches)) => {
-            crate::nns::collection::run_refresh(
-                matches,
-                network,
-                refresh_nns_neuron_cache_with_progress,
-            )
+            crate::nns::collection::run_refresh(matches, network, async |request, progress| {
+                refresh_nns_neuron_cache_with_source_and_progress(
+                    request,
+                    &LiveNnsSource::default(),
+                    progress,
+                )
+                .await
+            })
             .await
         }
         Some(("cache", matches)) => run_cache(matches, network),
@@ -49,7 +52,7 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
     let report = build_nns_neuron_list_report_with_cache_and_source(
         &request,
         &cache_root()?,
-        &LiveNnsSource::default(),
+        &ic_query::nns::LiveNnsSource::default(),
     )
     .await?;
     write_text_or_json(format, &report, |report| {
@@ -62,7 +65,7 @@ async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandE
     let report = build_nns_neuron_info_report_with_cache_and_source(
         &request,
         &cache_root()?,
-        &LiveNnsSource::default(),
+        &ic_query::nns::LiveNnsSource::default(),
     )
     .await?;
     write_text_or_json(format, &report, nns_neuron_info_report_text)

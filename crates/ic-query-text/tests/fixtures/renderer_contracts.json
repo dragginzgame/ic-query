@@ -228,7 +228,6 @@
   {
     "renderer": "nns_data_center_list_report_text",
     "report": {
-      "data_center_count": 1,
       "data_centers": [
         {
           "data_center_id": "dc1",
@@ -255,7 +254,6 @@
   {
     "renderer": "nns_data_center_list_report_verbose_text",
     "report": {
-      "data_center_count": 1,
       "data_centers": [
         {
           "data_center_id": "dc1",
@@ -407,7 +405,6 @@
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
       "network": "ic",
-      "node_count": 1,
       "nodes": [
         {
           "data_center_id": "dc1",
@@ -432,7 +429,6 @@
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
       "network": "ic",
-      "node_count": 1,
       "nodes": [
         {
           "data_center_id": "dc1",
@@ -457,7 +453,6 @@
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
       "network": "ic",
-      "node_operator_count": 1,
       "node_operators": [
         {
           "data_center_id": "dc1",
@@ -481,7 +476,6 @@
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
       "network": "ic",
-      "node_operator_count": 1,
       "node_operators": [
         {
           "data_center_id": "dc1",
@@ -527,7 +521,6 @@
       "fetched_by": "test",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "node_provider_count": 1,
       "node_providers": [
         {
           "name": "DFINITY",
@@ -551,7 +544,6 @@
       "fetched_by": "test",
       "governance_canister_id": "rrkah-fqaaa-aaaaa-aaaaq-cai",
       "network": "ic",
-      "node_provider_count": 2,
       "node_providers": [
         {
           "name": null,
@@ -1166,8 +1158,7 @@
           "node_operator_principal": "operator-a",
           "node_provider_principal": "provider-a",
           "over_assigned_node_count": 1,
-          "status": "over",
-          "utilization": "200.0%"
+          "status": "over"
         },
         {
           "assigned_node_count": 1,
@@ -1177,12 +1168,10 @@
           "node_operator_principal": "operator-b",
           "node_provider_principal": "provider-z",
           "over_assigned_node_count": 0,
-          "status": "full",
-          "utilization": "100.0%"
+          "status": "full"
         }
       ],
       "network": "ic",
-      "node_operator_count": 2,
       "over_assigned_node_count": 1,
       "over_assigned_operator_count": 1,
       "schema_version": 1,
@@ -1200,21 +1189,17 @@
       "checks": [
         {
           "check": "registry_versions",
-          "detail": "5 sources span registry versions 42..46",
           "status": "attention"
         },
         {
           "check": "cache_freshness",
-          "detail": "4 topology sources have no age policy",
           "status": "attention"
         },
         {
           "check": "join_coverage",
-          "detail": "8 known, 5 unknown (61.5%)",
           "status": "attention"
         }
       ],
-      "join_coverage": "61.5%",
       "known_join_count": 8,
       "network": "ic",
       "registry_source_count": 5,
@@ -1260,7 +1245,6 @@
   {
     "renderer": "nns_topology_gaps_report_text",
     "report": {
-      "gap_count": 5,
       "gaps": [
         {
           "missing_relation": "data_center",
@@ -1304,7 +1288,6 @@
   {
     "renderer": "nns_topology_gaps_report_text",
     "report": {
-      "gap_count": 0,
       "gaps": [],
       "network": "ic",
       "schema_version": 1,
@@ -1615,7 +1598,6 @@
         }
       ],
       "schema_version": 1,
-      "source_count": 5,
       "source_endpoint": "https://icp-api.io"
     },
     "report_type": "ic_query::nns::topology::report::model::versions::NnsTopologyVersionsReport",
@@ -1702,229 +1684,6 @@
     },
     "report_type": "ic_query::sns::report::model::reports::neurons::detail::SnsNeuronDetailReport",
     "text": "network: ic\nsns_id: 1\nname: Fixture SNS\nroot_canister_id: be2us-64aaa-aaaaa-qaabq-cai\ngovernance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai\nneuron_id: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\ndata_source: live\nmaturity_mint_conversion_observed_disabled: violated\nmanual_maturity_staking_observed_disabled: violated\ncached_neuron_stake: 1.00\nneuron_fees: 0.00\nmaturity: 0.50\nstaked_maturity: 0.25\nauto_stake_maturity: yes\ndissolve_state: delay:31536000\nvoting_power_percentage_multiplier: 100\ncreated_at: 2026-06-01T00:00:00Z\nsource_nns_neuron_id: 42\nvesting_period_seconds: 63072000\npermission_entry_count: 1\npending_maturity_disbursement_count: 1\nlegacy_following_entry_count: 1\ntopic_following_entry_count: 1\nsns_wasm_canister_id: qaa6y-5yaaa-aaaaa-aaafa-cai\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\n\nPRINCIPAL                     PERMISSIONS\n---------------------------   --------------------------------------------------------------------------------------------------------------------\nbkyz2-fmaaa-aaaaa-qaaaq-cai   1:configure_dissolve_state,2:manage_principals,3:submit_proposal,4:vote,9:stake_maturity,10:manage_voting_permission\n\nSCHEDULED_AT   AMOUNT   DESTINATION                                                                                    FINALIZE_AT\n------------   ------   --------------------------------------------------------------------------------------------   -----------\n  1780272200     0.13   be2us-64aaa-aaaaa-qaabq-cai:abababababababababababababababababababababababababababababababab    1780358600\n\nFUNCTION_ID   FOLLOWEE_NEURON_IDS\n-----------   ----------------------------------------------------------------\n          1   1111111111111111111111111111111111111111111111111111111111111111\n\nTOPIC_CODE   TOPIC        FOLLOWEES\n----------   ----------   --------------------------------------------------------------------------------\n         5   governance   2222222222222222222222222222222222222222222222222222222222222222:governance lead"
-  },
-  {
-    "renderer": "sns_reward_checkpoint_report_text",
-    "report": {
-      "collection_completed_at_unix_secs": 1793638342,
-      "collection_started_at_unix_secs": 1780531200,
-      "collection_status": "api_exhausted_observed",
-      "data_source": "live",
-      "fetched_by": "ic-query",
-      "governance_canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-      "id": 1,
-      "index_canister_id": "bw4dl-smaaa-aaaaa-qaacq-cai",
-      "ledger_canister_id": "bd3sg-teaaa-aaaaa-qaaba-cai",
-      "name": "Fixture SNS",
-      "network": "ic",
-      "page_count": 1,
-      "parameters_after": {
-        "automatically_advance_target_version": true,
-        "custom_proposal_criticality": {
-          "additional_critical_native_action_ids": [
-            1,
-            2
-          ]
-        },
-        "default_followees": null,
-        "initial_voting_period_seconds": 345600,
-        "maturity_modulation_disabled": false,
-        "max_age_bonus_percentage": 25,
-        "max_dissolve_delay_bonus_percentage": 100,
-        "max_dissolve_delay_seconds": 252460800,
-        "max_followees_per_function": 15,
-        "max_neuron_age_for_age_bonus": 126144000,
-        "max_number_of_neurons": 200000,
-        "max_number_of_principals_per_neuron": 10,
-        "max_number_of_proposals_with_ballots": 700,
-        "max_proposals_to_keep_per_action": 100,
-        "neuron_claimer_permissions": {
-          "permissions": [
-            1,
-            2,
-            3
-          ]
-        },
-        "neuron_grantable_permissions": {
-          "permissions": [
-            4,
-            5
-          ]
-        },
-        "neuron_minimum_dissolve_delay_to_vote_seconds": 2592000,
-        "neuron_minimum_stake_e8s": 100000000,
-        "reject_cost_e8s": 100000000,
-        "transaction_fee_e8s": 10000,
-        "voting_rewards_parameters": {
-          "final_reward_rate_basis_points": 500,
-          "initial_reward_rate_basis_points": 1000,
-          "reward_rate_transition_duration_seconds": 189216000,
-          "round_duration_seconds": 86400
-        },
-        "wait_for_quiet_deadline_increase_seconds": 86400
-      },
-      "parameters_before": {
-        "automatically_advance_target_version": true,
-        "custom_proposal_criticality": {
-          "additional_critical_native_action_ids": [
-            1,
-            2
-          ]
-        },
-        "default_followees": null,
-        "initial_voting_period_seconds": 345600,
-        "maturity_modulation_disabled": false,
-        "max_age_bonus_percentage": 25,
-        "max_dissolve_delay_bonus_percentage": 100,
-        "max_dissolve_delay_seconds": 252460800,
-        "max_followees_per_function": 15,
-        "max_neuron_age_for_age_bonus": 126144000,
-        "max_number_of_neurons": 200000,
-        "max_number_of_principals_per_neuron": 10,
-        "max_number_of_proposals_with_ballots": 700,
-        "max_proposals_to_keep_per_action": 100,
-        "neuron_claimer_permissions": {
-          "permissions": [
-            1,
-            2,
-            3
-          ]
-        },
-        "neuron_grantable_permissions": {
-          "permissions": [
-            4,
-            5
-          ]
-        },
-        "neuron_minimum_dissolve_delay_to_vote_seconds": 2592000,
-        "neuron_minimum_stake_e8s": 100000000,
-        "reject_cost_e8s": 100000000,
-        "transaction_fee_e8s": 10000,
-        "voting_rewards_parameters": {
-          "final_reward_rate_basis_points": 500,
-          "initial_reward_rate_basis_points": 1000,
-          "reward_rate_transition_duration_seconds": 189216000,
-          "round_duration_seconds": 86400
-        },
-        "wait_for_quiet_deadline_increase_seconds": 86400
-      },
-      "point_in_time_guaranteed": false,
-      "reward_event_after": {
-        "actual_timestamp_seconds": 1780531100,
-        "distributed_e8s_equivalent": 500,
-        "end_timestamp_seconds": 1780531200,
-        "round": 42,
-        "rounds_since_last_distribution": 1,
-        "settled_proposals": [
-          {
-            "id": 7
-          }
-        ],
-        "total_available_e8s_equivalent": 1000
-      },
-      "reward_event_before": {
-        "actual_timestamp_seconds": 1780531100,
-        "distributed_e8s_equivalent": 500,
-        "end_timestamp_seconds": 1780531200,
-        "round": 42,
-        "rounds_since_last_distribution": 1,
-        "settled_proposals": [
-          {
-            "id": 7
-          }
-        ],
-        "total_available_e8s_equivalent": 1000
-      },
-      "root_canister_id": "be2us-64aaa-aaaaa-qaabq-cai",
-      "rows": [
-        {
-          "auto_stake_maturity": false,
-          "created_timestamp_seconds": 1700000001,
-          "disburse_maturity_in_progress": [],
-          "maturity_e8s_equivalent": 100,
-          "neuron_id": "0101010101010101010101010101010101010101010101010101010101010101",
-          "permissions": [
-            {
-              "permission_types": [
-                2,
-                4
-              ],
-              "principal": "be2us-64aaa-aaaaa-qaabq-cai"
-            }
-          ],
-          "staked_maturity_e8s_equivalent": 10
-        },
-        {
-          "auto_stake_maturity": true,
-          "created_timestamp_seconds": 1700000002,
-          "disburse_maturity_in_progress": [],
-          "maturity_e8s_equivalent": 200,
-          "neuron_id": "0202020202020202020202020202020202020202020202020202020202020202",
-          "permissions": [
-            {
-              "permission_types": [
-                2,
-                4
-              ],
-              "principal": "be2us-64aaa-aaaaa-qaabq-cai"
-            }
-          ],
-          "staked_maturity_e8s_equivalent": 20
-        }
-      ],
-      "running_version_after": {
-        "deployed_version": {
-          "archive_wasm_hash_hex": "0101010101010101010101010101010101010101010101010101010101010101",
-          "governance_wasm_hash_hex": "0505050505050505050505050505050505050505050505050505050505050505",
-          "index_wasm_hash_hex": "0606060606060606060606060606060606060606060606060606060606060606",
-          "ledger_wasm_hash_hex": "0404040404040404040404040404040404040404040404040404040404040404",
-          "root_wasm_hash_hex": "0202020202020202020202020202020202020202020202020202020202020202",
-          "swap_wasm_hash_hex": "0303030303030303030303030303030303030303030303030303030303030303"
-        },
-        "pending_version": {
-          "checking_upgrade_lock": 9,
-          "mark_failed_at_seconds": 1780617600,
-          "proposal_id": 42,
-          "target_version": {
-            "archive_wasm_hash_hex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-            "governance_wasm_hash_hex": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
-            "index_wasm_hash_hex": "1010101010101010101010101010101010101010101010101010101010101010",
-            "ledger_wasm_hash_hex": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-            "root_wasm_hash_hex": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
-            "swap_wasm_hash_hex": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
-          }
-        }
-      },
-      "running_version_before": {
-        "deployed_version": {
-          "archive_wasm_hash_hex": "0101010101010101010101010101010101010101010101010101010101010101",
-          "governance_wasm_hash_hex": "0505050505050505050505050505050505050505050505050505050505050505",
-          "index_wasm_hash_hex": "0606060606060606060606060606060606060606060606060606060606060606",
-          "ledger_wasm_hash_hex": "0404040404040404040404040404040404040404040404040404040404040404",
-          "root_wasm_hash_hex": "0202020202020202020202020202020202020202020202020202020202020202",
-          "swap_wasm_hash_hex": "0303030303030303030303030303030303030303030303030303030303030303"
-        },
-        "pending_version": {
-          "checking_upgrade_lock": 9,
-          "mark_failed_at_seconds": 1780617600,
-          "proposal_id": 42,
-          "target_version": {
-            "archive_wasm_hash_hex": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
-            "governance_wasm_hash_hex": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
-            "index_wasm_hash_hex": "1010101010101010101010101010101010101010101010101010101010101010",
-            "ledger_wasm_hash_hex": "0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e",
-            "root_wasm_hash_hex": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
-            "swap_wasm_hash_hex": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
-          }
-        }
-      },
-      "schema_version": 1,
-      "sns_wasm_canister_id": "qaa6y-5yaaa-aaaaa-aaafa-cai",
-      "source_endpoint": "https://icp-api.io",
-      "swap_canister_id": "br5f7-7uaaa-aaaaa-qaaca-cai"
-    },
-    "report_type": "ic_query::sns::report::model::reports::neurons::reward::SnsRewardCheckpointReport",
-    "text": "network: ic\nsns_id: 1\nname: Fixture SNS\nroot_canister_id: be2us-64aaa-aaaaa-qaabq-cai\ngovernance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai\ncollection_status: api_exhausted_observed\npoint_in_time_guaranteed: no\ncollection_started_at: 2026-06-04T00:00:00Z\ncollection_completed_at: 2026-11-02T16:52:22Z\npage_count: 1\nrow_count: 2\ncollection_row_ceiling: 200000\nclient_query_count: 9\nreward_event_end_timestamp_seconds: 1780531200\nreward_event_round: 42\nreward_event_distributed: 0.00\naggregate_unstaked_maturity: 0.00\naggregate_staked_maturity: 0.00\naggregate_combined_maturity: 0.00\npermission_entry_count: 2\npending_maturity_disbursement_count: 0\nunassessable_permission_code_count: 0\nmanage_principals_grantable: no\nmaturity_mint_conversion_observed_disabled: observed_satisfied\nmanual_maturity_staking_observed_disabled: observed_satisfied\nmaturity_conversion_policy_observed_status: observed_satisfied\nsource_endpoint: https://icp-api.io"
   },
   {
     "renderer": "subnet_catalog_info_report_text",

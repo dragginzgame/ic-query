@@ -1,6 +1,6 @@
 //! Reusable Network Nervous System query families, models.
 
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(feature = "nns-host")]
 #[macro_use]
 mod macros;
 pub mod data_center;

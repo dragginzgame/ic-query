@@ -16,13 +16,13 @@ use super::{
     },
     enforce_mainnet_network,
 };
+use crate::QueryProgress;
 use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogSource,
     SubnetKind, build_subnet_catalog_list_report_with_source_and_progress,
 };
-use crate::{QueryProgress, progress::IgnoreQueryProgress};
 use ic_platform::candid::contract::Principal;
 
 const REGISTRY_AUTHORITY: &str = "nns_registry";
@@ -33,44 +33,12 @@ pub async fn build_cloud_engine_list_report(
     catalog_request: &SubnetCatalogListRequest,
     control_plane_request: &CollectionSourceRequest,
 ) -> Result<CloudEngineListReport, CloudEngineHostError> {
-    build_cloud_engine_list_report_with_sources(
-        catalog_request,
-        control_plane_request,
-        &LiveNnsSource::default(),
-        &LiveCloudEngineSource::default(),
-    )
-    .await
-}
-
-/// Build a CloudEngine inventory while reporting authorized catalog refreshes.
-pub async fn build_cloud_engine_list_report_with_progress(
-    catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CollectionSourceRequest,
-    progress: &mut (dyn QueryProgress + Send),
-) -> Result<CloudEngineListReport, CloudEngineHostError> {
     build_cloud_engine_list_report_with_sources_and_progress(
         catalog_request,
         control_plane_request,
         &LiveNnsSource::default(),
         &LiveCloudEngineSource::default(),
-        progress,
-    )
-    .await
-}
-
-/// Build a bounded CloudEngine inventory with separate custom sources for both authorities.
-pub async fn build_cloud_engine_list_report_with_sources(
-    catalog_request: &SubnetCatalogListRequest,
-    control_plane_request: &CollectionSourceRequest,
-    catalog_source: &dyn SubnetCatalogSource,
-    binding_source: &dyn CloudEngineOperatorBindingSource,
-) -> Result<CloudEngineListReport, CloudEngineHostError> {
-    build_cloud_engine_list_report_with_sources_and_progress(
-        catalog_request,
-        control_plane_request,
-        catalog_source,
-        binding_source,
-        &mut IgnoreQueryProgress,
+        &mut |_| {},
     )
     .await
 }

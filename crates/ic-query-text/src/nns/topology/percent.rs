@@ -1,4 +1,4 @@
-//! Module: nns::topology::report::percent
+//! Module: nns::topology::percent
 //!
 //! Responsibility: format reusable NNS topology percentage values.
 //! Does not own: report construction, text tables, or consistency checks.
@@ -6,7 +6,7 @@
 
 /// Format known and unknown relationship counts as a nearest-tenth percentage.
 #[must_use]
-pub fn coverage_percent_text(known: usize, unknown: usize) -> String {
+pub(super) fn coverage_percent_text(known: usize, unknown: usize) -> String {
     let Some(total) = known.checked_add(unknown) else {
         return "-".to_string();
     };
@@ -18,7 +18,7 @@ pub fn coverage_percent_text(known: usize, unknown: usize) -> String {
 
 /// Format a ratio as a nearest-tenth percentage, preserving unavailable totals.
 #[must_use]
-pub fn ratio_percent_text(numerator: u64, denominator: u64) -> String {
+pub(super) fn ratio_percent_text(numerator: u64, denominator: u64) -> String {
     if denominator == 0 {
         return "-".to_string();
     }
@@ -44,6 +44,7 @@ mod tests {
             (1, 3, "33.3%"),
             (2, 3, "66.7%"),
             (3, 2, "150.0%"),
+            (2, 1, "200.0%"),
             (u64::MAX, u64::MAX, "100.0%"),
             (u64::MAX - 1, u64::MAX, "100.0%"),
             (u64::MAX, u64::MAX - 1, "100.0%"),

@@ -179,9 +179,10 @@ async fn list_report_refreshes_missing_catalog() {
     let source = FixtureRefreshSource::ok(catalog);
     let request = list_request(&root);
 
-    let report = build_subnet_catalog_list_report_with_source(&request, &source)
-        .await
-        .expect("list report");
+    let report =
+        build_subnet_catalog_list_report_with_source_and_progress(&request, &source, &mut |_| {})
+            .await
+            .expect("list report");
     let cached =
         load_cached_subnet_catalog(&cache_only_load_request(&root)).expect("cached catalog");
 
@@ -209,10 +210,13 @@ async fn list_report_refreshes_invalid_catalog_but_cache_only_remains_strict() {
     let mut catalog = fixture_catalog();
     catalog.provenance.registry_version = 987_654;
     catalog.canonicalize_and_seal().expect("reseal fixture");
-    let report =
-        build_subnet_catalog_list_report_with_source(&request, &FixtureRefreshSource::ok(catalog))
-            .await
-            .expect("invalid catalog refreshes");
+    let report = build_subnet_catalog_list_report_with_source_and_progress(
+        &request,
+        &FixtureRefreshSource::ok(catalog),
+        &mut |_| {},
+    )
+    .await
+    .expect("invalid catalog refreshes");
 
     assert_eq!(report.metadata.registry_version, 987_654);
     assert_eq!(report.cache_disposition, CacheDisposition::RefreshedInvalid);
@@ -230,9 +234,10 @@ async fn failed_invalid_catalog_refresh_preserves_original_file() {
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
         .expect("write invalid catalog");
 
-    let error = build_subnet_catalog_list_report_with_source(
+    let error = build_subnet_catalog_list_report_with_source_and_progress(
         &list_request(&root),
         &FixtureRefreshSource::err(),
+        &mut |_| {},
     )
     .await
     .expect_err("failed refresh remains visible");

@@ -13,10 +13,10 @@ pub(super) fn topology_coverage_report_from_reports(
         schema_version: NNS_TOPOLOGY_COVERAGE_REPORT_SCHEMA_VERSION,
         network,
         source_endpoint,
-        node_count: reports.node.node_count,
-        node_provider_count: reports.node_provider.node_provider_count,
-        node_operator_count: reports.node_operator.node_operator_count,
-        data_center_count: reports.data_center.data_center_count,
+        node_count: reports.node.nodes.len(),
+        node_provider_count: reports.node_provider.node_providers.len(),
+        node_operator_count: reports.node_operator.node_operators.len(),
+        data_center_count: reports.data_center.data_centers.len(),
         join_coverage: counts,
     }
 }
@@ -44,23 +44,28 @@ pub(super) fn topology_join_coverage_counts(
     }
     counts.nodes_with_unknown_node_provider_count = reports
         .node
-        .node_count
+        .nodes
+        .len()
         .saturating_sub(counts.nodes_with_known_node_provider_count);
     counts.nodes_with_unknown_node_operator_count = reports
         .node
-        .node_count
+        .nodes
+        .len()
         .saturating_sub(counts.nodes_with_known_node_operator_count);
     counts.nodes_with_unknown_data_center_count = reports
         .node
-        .node_count
+        .nodes
+        .len()
         .saturating_sub(counts.nodes_with_known_data_center_count);
     counts.node_operators_with_unknown_node_provider_count = reports
         .node_operator
-        .node_operator_count
+        .node_operators
+        .len()
         .saturating_sub(counts.node_operators_with_known_node_provider_count);
     counts.node_operators_with_unknown_data_center_count = reports
         .node_operator
-        .node_operator_count
+        .node_operators
+        .len()
         .saturating_sub(counts.node_operators_with_known_data_center_count);
     counts
 }

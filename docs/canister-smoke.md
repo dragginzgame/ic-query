@@ -455,13 +455,13 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query selects Platform 0.18.0, Types 0.17.0 and Runtime 0.18.1.
-Testkit 0.80.1 shares those identities and removes its private Metrics dependency;
+callers use Wire. Query selects Platform 0.19.0, Types 0.18.0 and Runtime 0.19.0.
+Testkit 0.81.0 shares those identities and removes its private Metrics dependency;
 Query owns its report arithmetic without Metrics. The private
-fixture selects the independent `ic-platform-pocket-ic` 0.18 client directly,
+fixture selects the independent `ic-platform-pocket-ic` 0.19 client directly,
 matching Testkit's extension traits and management DTO 0.11 identity. External
 Candid/PocketIC Principal bytes retain their explicit boundary, and the probe
-codec selects Wire 0.15.0 with unchanged protocol bytes and budgets. The prepared
+codec selects Wire 0.16.0 for Query’s existing string frames and budgets. The prepared
 server remains PocketIC 16.1.0.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
@@ -492,7 +492,7 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.18.0. Its source and feature
+The selected published `ic-platform` release is 0.19.0. Its source and feature
 contracts were inspected from the downloaded registry package; sibling source
 is not substituted. Runtime calls and canister identity use Platform's owned
 Principal. Required external Candid DTOs and native Agent inputs retain the
@@ -512,8 +512,8 @@ and ledger DTOs; every supported production graph rejects stable-memory storage.
 Platform now owns the non-cryptographic runtime adapters, call/response and
 error identities. Its `cdk` feature is Candid-free, while Query selects Candid
 separately for required external NNS methods. The full `ic-cdk` and its macros
-are excluded from production graphs. Platform 0.18 delegates the canister
-executor and IC0 to one canonical Runtime 0.18.0 owner without either registry
+are excluded from production graphs. Platform 0.19 delegates the canister
+executor and IC0 to one canonical Runtime 0.19.0 owner without either registry
 supplier. Embedders must align runtime consumers on that Runtime owner; Query
 does not copy executor or callback implementations.
 The adapter retains explicit Candid unit arguments, bounded waits, raw replies,

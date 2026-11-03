@@ -61,7 +61,7 @@ pub(super) fn topology_regions_report_from_report(
         network,
         source_endpoint,
         region_count: regions.len(),
-        data_center_count: data_center_report.data_center_count,
+        data_center_count: data_center_report.data_centers.len(),
         node_operator_count,
         node_provider_count,
         node_count,

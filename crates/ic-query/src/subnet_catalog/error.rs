@@ -196,15 +196,6 @@ pub enum CatalogError {
         reason: String,
     },
 
-    /// Serialized raw evidence cannot establish the claimed assurance level.
-    #[error(
-        "unsupported catalog assurance {assurance} for raw validation; certified authority requires a sealed authenticated Registry archive"
-    )]
-    UnsupportedAssurance {
-        /// Unsupported assurance label.
-        assurance: String,
-    },
-
     /// Classification policy schema is not supported by this build.
     #[error("classification policy schema {found} is unsupported; expected {supported}")]
     ClassificationPolicyVersionMismatch {

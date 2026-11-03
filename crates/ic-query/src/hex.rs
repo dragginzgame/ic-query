@@ -10,6 +10,13 @@ pub fn hex_bytes(bytes: &[u8]) -> String {
 }
 
 #[must_use]
+#[cfg(any(
+    test,
+    feature = "dashboard-host",
+    feature = "nns-host",
+    feature = "sns-host",
+    feature = "cmc-host"
+))]
 pub fn is_lowercase_hex(value: &str) -> bool {
     value
         .bytes()
@@ -17,11 +24,18 @@ pub fn is_lowercase_hex(value: &str) -> bool {
 }
 
 #[must_use]
+#[cfg(any(
+    test,
+    feature = "dashboard-host",
+    feature = "nns-host",
+    feature = "sns-host"
+))]
 pub fn is_lowercase_hex_32_bytes(value: &str) -> bool {
     value.len() == 64 && is_lowercase_hex(value)
 }
 
 #[must_use]
+#[cfg(any(test, feature = "sns-host"))]
 pub fn is_canonical_lowercase_hex(value: &str) -> bool {
     !value.is_empty() && value.len().is_multiple_of(2) && is_lowercase_hex(value)
 }
@@ -72,7 +86,7 @@ fn decode_hex_pairs(value: &str, allow_uppercase: bool) -> Option<Vec<u8>> {
 /// Shape failure for nonempty, byte-counted lowercase hexadecimal evidence.
 ///
 
-#[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
+#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HexEvidenceError {
     Empty,
@@ -82,7 +96,7 @@ pub enum HexEvidenceError {
 }
 
 /// Admit encoded evidence without decoding or allocating its bytes.
-#[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
+#[cfg(any(feature = "cmc-host", feature = "nns-host"))]
 pub fn validate_nonempty_hex_evidence(
     value: &str,
     byte_count: usize,
@@ -105,11 +119,11 @@ pub fn validate_nonempty_hex_evidence(
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
+    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
     use HexEvidenceError::{ByteCountOverflow, Empty, LengthMismatch, NonLowercaseHex};
 
     #[test]
-    #[cfg(any(feature = "cmc-host", feature = "certified-subnet-catalog-host"))]
+    #[cfg(any(feature = "cmc-host", feature = "nns-host"))]
     fn encoded_evidence_requires_consistent_nonempty_bytes() {
         for (value, bytes, expected) in [
             ("", 0, Err(Empty)),

@@ -8,9 +8,8 @@ use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
     MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
-    MainnetSnsRewardNeuronPage, MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsGovernanceParameters, SnsHostError, SnsNeuronDetail, SnsNeuronId, SnsNeuronRow,
-    SnsProposalRow, SnsProposalTopicFilter, SnsRewardEvent, SnsRunningVersionResponse,
+    MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError,
+    SnsNeuronDetail, SnsNeuronId, SnsNeuronRow, SnsProposalRow, SnsProposalTopicFilter,
 };
 
 ///
@@ -108,44 +107,6 @@ pub trait SnsNeuronsSource: SnsDiscoverySource + Sync {
         start_page_at: Option<&'a SnsNeuronId>,
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>>;
-}
-
-///
-/// SnsRewardSource
-///
-/// Source contract for bracketed API-exhausted SNS reward checkpoint collection.
-///
-
-pub trait SnsRewardSource: SnsDiscoverySource + Sync {
-    /// Fetch the complete native running-version response for one bracket position.
-    fn fetch_sns_reward_running_version<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsRunningVersionResponse, SnsHostError>>;
-
-    /// Fetch the complete native nervous-system parameters for one bracket position.
-    fn fetch_sns_reward_parameters<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>>;
-
-    /// Fetch the complete latest reward event for one bracket position.
-    fn fetch_sns_reward_event<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsRewardEvent, SnsHostError>>;
-
-    /// Fetch one strict full-evidence neuron page using an exclusive native cursor.
-    fn fetch_sns_reward_neuron_page<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        limit: u32,
-        start_page_at: Option<&'a SnsNeuronId>,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsRewardNeuronPage, SnsHostError>>;
 }
 
 ///

@@ -5,9 +5,12 @@
 //! Boundary: preserves variable-size native neuron evidence outside fixed-size list caches.
 
 use super::SnsNeuronRow;
+#[cfg(feature = "sns-host")]
+use crate::hex::is_lowercase_hex_32_bytes;
+use crate::report::ReportDataSource;
 use crate::sns::report::SnsReportContext;
-use crate::{hex::is_lowercase_hex_32_bytes, report::ReportDataSource};
 use serde::{Deserialize as SerdeDeserialize, Serialize};
+#[cfg(feature = "sns-host")]
 use std::collections::HashSet;
 
 ///
@@ -276,9 +279,9 @@ pub const fn sns_neuron_permission_name(code: i32) -> &'static str {
     }
 }
 
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn validate_neuron_permissions(
     permissions: &[SnsNeuronPermissionRow],
-    require_principal: bool,
 ) -> Result<(), String> {
     let mut principals = HashSet::new();
     for permission in permissions {
@@ -290,10 +293,9 @@ pub(in crate::sns::report) fn validate_neuron_permissions(
                 }
                 principal
             }
-            None if require_principal => {
+            None => {
                 return Err("permission principal is missing".to_string());
             }
-            None => "missing principal",
         };
         let mut codes = HashSet::new();
         for code in &permission.permission_types {
@@ -307,6 +309,7 @@ pub(in crate::sns::report) fn validate_neuron_permissions(
     Ok(())
 }
 
+#[cfg(feature = "sns-host")]
 pub(in crate::sns::report) fn validate_maturity_disbursements(
     disbursements: &[SnsMaturityDisbursementRow],
 ) -> Result<(), String> {
@@ -328,6 +331,7 @@ pub(in crate::sns::report) fn validate_maturity_disbursements(
     Ok(())
 }
 
+#[cfg(feature = "sns-host")]
 pub(super) fn validate_canonical_principal(value: &str, field: &str) -> Result<(), String> {
     crate::principal_text::validate_canonical(
         value,

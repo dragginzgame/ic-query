@@ -34,9 +34,6 @@ mod neurons_cache;
 #[cfg(feature = "sns-host")]
 mod proposals_cache;
 #[cfg(feature = "sns-host")]
-mod reward_checkpoint_file;
-mod reward_diff;
-#[cfg(feature = "sns-host")]
 mod source;
 #[cfg(feature = "sns-host")]
 mod view;
@@ -52,12 +49,10 @@ use crate::icrc::{IcrcMetadataValueKind, ledger::metadata_row};
 use crate::subnet_catalog::MAINNET_NETWORK;
 #[cfg(all(test, feature = "sns-host"))]
 use neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION;
-#[cfg(all(test, feature = "sns-host"))]
-pub(in crate::sns::report) use source::validate_mainnet_sns_reward_neuron_page;
+
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use source::{
     JoinedMainnetSnsInventory, SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT,
-    SnsRewardCollectionState,
 };
 
 #[cfg(feature = "sns-host")]
@@ -69,8 +64,7 @@ pub use build::{
     build_sns_neurons_report_with_source, build_sns_params_report,
     build_sns_params_report_with_source, build_sns_proposal_report,
     build_sns_proposal_report_with_source, build_sns_proposals_report,
-    build_sns_proposals_report_with_source_and_progress, build_sns_reward_checkpoint_report,
-    build_sns_reward_checkpoint_report_with_source, build_sns_swap_report,
+    build_sns_proposals_report_with_source_and_progress, build_sns_swap_report,
     build_sns_swap_report_with_source, build_sns_token_report, build_sns_token_report_with_source,
     build_sns_upgrade_report, build_sns_upgrade_report_with_source,
 };
@@ -104,15 +98,11 @@ pub use model::{
     SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
     SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
     SnsProposalViewError, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsReportContext, SnsRewardAllocationStatus, SnsRewardCheckpointReport, SnsRewardCheckpointRow,
-    SnsRewardCheckpointSummary, SnsRewardCheckpointValidationError, SnsRewardCollectionStatus,
-    SnsRewardDiffCheckpointRef, SnsRewardDiffInvalidReason, SnsRewardDiffInvalidReasonKind,
-    SnsRewardDiffNeuronEvidence, SnsRewardDiffReport, SnsRewardDiffRow, SnsRewardEvent,
-    SnsRewardProposalId, SnsRunningVersionResponse, SnsSwapComponent, SnsSwapDerivedState,
-    SnsSwapLifecycle, SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
+    SnsReportContext, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
+    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
     SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
     SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
-    sns_neuron_permission_name, validate_sns_reward_checkpoint_report,
+    sns_neuron_permission_name,
 };
 #[cfg(feature = "sns-host")]
 pub(in crate::sns::report) use model::{
@@ -127,35 +117,28 @@ pub use model::{
     SnsCacheAdmission, SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport,
     SnsCacheStatusRequest, SnsCacheSummary, SnsHostError, SnsNeuronCollection, SnsNeuronRequest,
     SnsNeuronsCacheSort, SnsNeuronsReport, SnsNeuronsRequest, SnsRefreshAttemptStatus,
-    SnsRewardCheckpointRequest, SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
-    SnsValidCacheSummary,
+    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsValidCacheSummary,
 };
 #[cfg(feature = "sns-host")]
 pub use neurons_cache::{
     build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_progress,
-    refresh_sns_neurons_cache_with_source, sns_neurons_cache_path,
-    sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
+    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_source_and_progress,
+    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
 };
 #[cfg(feature = "sns-host")]
 pub use proposals_cache::{
     build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_progress,
-    refresh_sns_proposals_cache_with_source, sns_proposals_cache_path,
-    sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
+    refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_source_and_progress,
+    sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
 };
-#[cfg(feature = "sns-host")]
-pub use reward_checkpoint_file::{
-    build_sns_reward_diff_report_from_paths, load_sns_reward_checkpoint,
-};
-pub use reward_diff::build_sns_reward_diff_report;
+
 #[cfg(feature = "sns-host")]
 pub use source::{
     MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
-    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource,
-    SnsNeuronId, SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource,
-    SnsProposalsSource, SnsRewardSource, SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronId,
+    SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
+    SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
 };
 
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
@@ -188,11 +171,6 @@ const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
 const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "sns-host")]
 const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
-const SNS_REWARD_CHECKPOINT_REPORT_SCHEMA_VERSION: u32 = 1;
-const SNS_REWARD_CHECKPOINT_MAX_NEURONS: u64 = 200_000;
-#[cfg(feature = "sns-host")]
-const SNS_REWARD_CHECKPOINT_PAGE_SIZE: u32 = 100;
-const SNS_REWARD_DIFF_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "sns-host")]
 const SNS_METADATA_CONCURRENCY: usize = 16;
 #[cfg(feature = "sns-host")]

@@ -165,19 +165,11 @@ fn validate_domain(domain: &str) -> Result<(), IcApiBoundaryNodeHostError> {
 #[cfg(feature = "ic-state-host")]
 fn map_certificate_time_error(error: CertifiedDataError) -> IcApiBoundaryNodeHostError {
     match error {
-        #[cfg(any(
-            feature = "certified-subnet-catalog-host",
-            feature = "cmc-host",
-            feature = "icrc-host"
-        ))]
+        #[cfg(any(feature = "nns-host", feature = "cmc-host", feature = "icrc-host"))]
         CertifiedDataError::Authentication { reason } | CertifiedDataError::Invalid { reason } => {
             invalid_source_value(reason)
         }
-        #[cfg(not(any(
-            feature = "certified-subnet-catalog-host",
-            feature = "cmc-host",
-            feature = "icrc-host"
-        )))]
+        #[cfg(not(any(feature = "nns-host", feature = "cmc-host", feature = "icrc-host")))]
         CertifiedDataError::Invalid { reason } => invalid_source_value(reason),
     }
 }

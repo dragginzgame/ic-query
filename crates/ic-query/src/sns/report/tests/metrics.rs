@@ -19,7 +19,7 @@ async fn sns_metrics_preserves_native_cached_evidence_and_canonicalizes_rows() {
     assert_eq!(report.metrics.time_window_seconds, 30 * 24 * 60 * 60);
     assert!(!report.metrics.point_in_time_guaranteed);
     assert!(report.metrics.treasury_metrics_cached);
-    assert_eq!(report.treasury_metric_count, 2);
+    assert_eq!(report.metrics.treasury_metrics.len(), 2);
     assert_eq!(
         report
             .metrics

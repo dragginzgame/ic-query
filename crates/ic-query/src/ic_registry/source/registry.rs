@@ -3,9 +3,7 @@ use crate::nns::registry::NnsRegistryVersionData;
 use crate::{
     certification::{CertifiedDataError, validate_certificate_time},
     ic_registry::{
-        MainnetRegistryFetchRequest, RegistryFetchError,
-        model::CertifiedRegistryDeltaBatch,
-        transport::{get_certified_changes_since, get_certified_latest_version},
+        MainnetRegistryFetchRequest, RegistryFetchError, transport::get_certified_latest_version,
     },
 };
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
@@ -21,18 +19,6 @@ pub async fn fetch_mainnet_registry_version(
         provenance: request.inventory_provenance(certified.registry_version),
         certification: certified.certification,
     })
-}
-
-/// Fetch one authenticated, bounded Registry delta batch on the caller's async runtime.
-pub async fn fetch_mainnet_certified_registry_delta_batch_async(
-    request: &MainnetRegistryFetchRequest,
-    requested_version: u64,
-) -> Result<CertifiedRegistryDeltaBatch, RegistryFetchError> {
-    let agent = mainnet_agent(request)?;
-    let registry_canister = mainnet_registry_canister()?;
-    let batch = get_certified_changes_since(&agent, &registry_canister, requested_version).await?;
-    validate_live_certificate_time(request, batch.certification.certificate_time_nanos)?;
-    Ok(batch)
 }
 
 fn validate_live_certificate_time(

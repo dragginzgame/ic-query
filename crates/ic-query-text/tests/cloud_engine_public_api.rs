@@ -56,7 +56,7 @@ use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use ic_query::cloud_engine::build_cloud_engine_list_report;
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::cloud_engine::build_cloud_engine_list_report_with_sources;
+use ic_query::cloud_engine::build_cloud_engine_list_report_with_sources_and_progress;
 #[cfg(feature = "dashboard-host")]
 use ic_query::cloud_engine::build_cloud_engine_node_info_report;
 #[cfg(feature = "dashboard-host")]
@@ -353,7 +353,7 @@ fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
         Result<CloudEngineListReport, CloudEngineHostError>,
     > = |arg0, arg1| Box::pin(build_cloud_engine_list_report(arg0, arg1));
     assert_eq!(
-        std::mem::size_of_val(&build_cloud_engine_list_report_with_sources),
+        std::mem::size_of_val(&build_cloud_engine_list_report_with_sources_and_progress),
         0
     );
     let _: fn(&CloudEngineListReport) -> String = cloud_engine_list_report_text;

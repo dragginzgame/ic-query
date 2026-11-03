@@ -32,7 +32,6 @@ pub(in crate::nns::topology::report::tests) fn node_operator_report_fixture()
     NnsNodeOperatorListReport {
         schema_version: 1,
         provenance: super::inventory_provenance(45, "2026-06-04T00:03:00Z"),
-        node_operator_count: 2,
         node_operators: vec![
             NnsNodeOperatorRow {
                 node_operator_principal: "operator-a".to_string(),
@@ -55,7 +54,7 @@ pub(in crate::nns::topology::report::tests) fn node_operator_report_fixture()
 pub(in crate::nns::topology::report::tests) fn complete_node_operator_report_fixture()
 -> NnsNodeOperatorListReport {
     let mut report = node_operator_report_fixture();
-    report.node_operator_count = 3;
+
     report.node_operators.push(NnsNodeOperatorRow {
         node_operator_principal: "operator-z".to_string(),
         node_provider_principal: "provider-z".to_string(),

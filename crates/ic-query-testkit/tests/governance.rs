@@ -2,7 +2,7 @@
 
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
 use ic_platform::candid::contract::Principal;
-use ic_platform_pocket_ic::{PocketIc, PocketIcBuilder, RejectCode, Time};
+use ic_platform_pocket_ic::{ClientError, PocketIc, PocketIcBuilder, RejectCode, Time};
 use ic_query::nns::governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceSourceProvenance};
 use ic_testkit::pic::{
     CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
@@ -41,18 +41,21 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         )
         .expect("start Testkit instance");
     let pic = owned.instance();
-    pic.set_time(Time::from_nanos_since_unix_epoch(1_780_531_200_000_000_000));
+    pic.set_time(Time::from_nanos_since_unix_epoch(1_780_531_200_000_000_000))
+        .expect("set deterministic simulator time");
     let governance = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
     pic.create_canister_with_id(None, None, governance)
         .expect("fixed NNS Governance principal");
-    pic.add_cycles(governance, 2_000_000_000_000);
+    pic.add_cycles(governance, 2_000_000_000_000)
+        .expect("fund Governance fixture");
     let mut replies = governance_replies();
     pic.install_canister(
         governance,
         governance_wasm(&replies),
         ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
-    );
+    )
+    .expect("install Governance fixture");
     let probe = pic
         .try_create_and_install(InstallSpec {
             wasm: probe_wasm,
@@ -75,7 +78,10 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         let rejection = pic
             .update_call(probe, Principal::anonymous(), "report", args)
             .expect_err("invalid or over-budget entry arguments must trap");
-        assert_eq!(rejection.reject_code, RejectCode::CanisterError);
+        assert!(
+            matches!(&rejection, ClientError::Canister(response) if response.reject_code == RejectCode::CanisterError),
+            "{rejection:?}"
+        );
     }
     assert_reports(pic, probe, governance);
     replies[1].1 = candid_fixture(

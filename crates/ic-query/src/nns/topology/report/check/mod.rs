@@ -7,7 +7,7 @@
 use super::{
     NNS_TOPOLOGY_CHECK_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus, NnsTopologyCheckReport,
     NnsTopologyCheckRow, TopologyInventoryReports, coverage::topology_join_coverage_counts,
-    percent::coverage_percent_text, registry_versions::topology_registry_versions,
+    registry_versions::topology_registry_versions,
 };
 
 pub(super) fn topology_check_report_from_reports(
@@ -36,32 +36,13 @@ pub(super) fn topology_check_report_from_reports(
         .filter(|row| row.stale.is_none())
         .count();
     let (known_join_count, unknown_join_count) = join_totals(reports);
-    let join_coverage = coverage_percent_text(known_join_count, unknown_join_count);
     let checks = vec![
-        check_row(
-            "registry_versions",
-            registry_versions_aligned,
-            registry_version_detail(
-                registry_source_count,
-                registry_version_min,
-                registry_version_max,
-                registry_versions_aligned,
-            ),
-        ),
+        check_row("registry_versions", registry_versions_aligned),
         check_row(
             "cache_freshness",
             stale_source_count == 0 && unknown_freshness_source_count == 0,
-            cache_freshness_detail(
-                stale_source_count,
-                unknown_freshness_source_count,
-                &subnet_report,
-            ),
         ),
-        check_row(
-            "join_coverage",
-            unknown_join_count == 0,
-            format!("{known_join_count} known, {unknown_join_count} unknown ({join_coverage})"),
-        ),
+        check_row("join_coverage", unknown_join_count == 0),
     ];
     let status = NnsTopologyAssessmentStatus::from_ok(
         checks
@@ -84,54 +65,15 @@ pub(super) fn topology_check_report_from_reports(
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         known_join_count,
         unknown_join_count,
-        join_coverage,
         checks,
     }
 }
 
-fn check_row(check: &str, is_ok: bool, detail: String) -> NnsTopologyCheckRow {
+fn check_row(check: &str, is_ok: bool) -> NnsTopologyCheckRow {
     NnsTopologyCheckRow {
         check: check.to_string(),
         status: NnsTopologyAssessmentStatus::from_ok(is_ok),
-        detail,
     }
-}
-
-fn registry_version_detail(
-    source_count: usize,
-    min: Option<u64>,
-    max: Option<u64>,
-    aligned: bool,
-) -> String {
-    match (min, max, aligned) {
-        (Some(version), Some(_), true) => {
-            format!("{source_count} sources at registry version {version}")
-        }
-        (Some(min), Some(max), false) => {
-            format!("{source_count} sources span registry versions {min}..{max}")
-        }
-        _ => "no registry versions recorded".to_string(),
-    }
-}
-
-fn cache_freshness_detail(
-    stale_source_count: usize,
-    unknown_source_count: usize,
-    subnet_report: &crate::subnet_catalog::SubnetCatalogListReport,
-) -> String {
-    if stale_source_count == 0 && unknown_source_count == 0 {
-        return "no stale topology sources".to_string();
-    }
-    if stale_source_count == 0 {
-        return format!("{unknown_source_count} topology sources have no age policy");
-    }
-    if subnet_report.catalog_stale {
-        return format!(
-            "{stale_source_count} stale source, {unknown_source_count} without an age policy; subnet catalog {}",
-            subnet_report.stale_reason,
-        );
-    }
-    format!("{stale_source_count} stale source, {unknown_source_count} without an age policy")
 }
 
 fn join_totals(reports: &TopologyInventoryReports) -> (usize, usize) {

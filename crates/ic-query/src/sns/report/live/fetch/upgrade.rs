@@ -7,9 +7,9 @@ use crate::candid_call::query_canister;
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::{
     MAINNET_SNS_WASM_CANISTER_ID, MainnetSns, MainnetSnsUpgrade, SnsCanisterMethod, SnsHostError,
-    SnsRunningVersionResponse, SnsUpgradeQueryGap,
+    SnsUpgradeQueryGap,
     live::{
-        convert::{sns_pending_upgrade, sns_running_version_response, sns_version},
+        convert::{sns_pending_upgrade, sns_version},
         query::{principal_from_text, sns_agent},
         types::{
             GetNextSnsVersionRequest, GetNextSnsVersionResponse, GetRunningSnsVersionRequest,
@@ -83,20 +83,6 @@ pub(in crate::sns::report::live) async fn fetch_mainnet_sns_upgrade(
         next_version,
         next_version_gap,
     })
-}
-
-pub(in crate::sns::report::live) async fn fetch_mainnet_sns_running_version(
-    source: &crate::sns::LiveSnsSource,
-    request: &CollectionSourceRequest,
-    sns: &MainnetSns,
-) -> Result<SnsRunningVersionResponse, SnsHostError> {
-    let agent = sns_agent(source, request)?;
-    let governance_canister = principal_from_text(
-        &sns.canisters.governance_canister_id,
-        "governance_canister_id",
-    )?;
-    let response = query_running_sns_version(agent, &governance_canister).await?;
-    Ok(sns_running_version_response(response))
 }
 
 async fn query_running_sns_version(

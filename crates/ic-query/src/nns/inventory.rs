@@ -56,7 +56,7 @@ pub struct NnsInventoryRefreshReport {
 ///
 /// NnsInventoryReport
 ///
-/// Shared provenance and count contract for one complete NNS inventory report.
+/// Shared provenance and family-evidence contract for one complete NNS inventory report.
 ///
 
 pub(in crate::nns) trait NnsInventoryReport {
@@ -66,8 +66,6 @@ pub(in crate::nns) trait NnsInventoryReport {
 
     fn schema_version(&self) -> u32;
     fn provenance(&self) -> &super::registry::NnsRegistryInventoryProvenance;
-    fn declared_row_count(&self) -> usize;
-    fn row_count(&self) -> usize;
 
     /// Project an admitted inventory and the actual publication result.
     fn refresh_outcome(
@@ -76,7 +74,7 @@ pub(in crate::nns) trait NnsInventoryReport {
         write: RefreshCacheWriteResult,
     ) -> NnsInventoryRefreshReport;
 
-    /// Validate cache-stable provenance, count, and family-specific evidence.
+    /// Validate cache-stable provenance and family-specific evidence.
     fn validate(&self) -> Result<(), String> {
         let provenance = self.provenance();
         if self.schema_version() != Self::SCHEMA_VERSION {
@@ -106,14 +104,6 @@ pub(in crate::nns) trait NnsInventoryReport {
         }
         if provenance.source_endpoint.trim().is_empty() {
             return Err("source_endpoint must not be empty".to_string());
-        }
-        if self.declared_row_count() != self.row_count() {
-            return Err(format!(
-                "{}_count is {}, expected {} from rows",
-                Self::ITEM_NAME,
-                self.declared_row_count(),
-                self.row_count()
-            ));
         }
         self.validate_family()
     }

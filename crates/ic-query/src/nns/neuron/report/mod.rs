@@ -24,8 +24,7 @@ pub use cache::{
     build_nns_neuron_info_report_from_cache, build_nns_neuron_info_report_with_cache_and_source,
     build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_cache_and_source,
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
-    refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
-    refresh_nns_neuron_cache_with_source,
+    refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_source_and_progress,
 };
 pub use classification::{NnsNeuronState, NnsNeuronType, NnsNeuronVisibility};
 #[cfg(feature = "nns-host")]

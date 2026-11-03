@@ -32,7 +32,6 @@ pub struct SnsListReport {
     pub catalog_sns_count: usize,
     /// Number of catalog rows excluded by lifecycle filtering.
     pub excluded_sns_count: usize,
-    pub sns_count: usize,
     pub metadata_error_count: usize,
     /// Number of returned rows carrying a bounded lifecycle query error.
     pub lifecycle_error_count: usize,

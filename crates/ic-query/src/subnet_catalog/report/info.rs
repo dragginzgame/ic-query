@@ -2,7 +2,7 @@ use super::{
     SubnetCatalogInfoReport, SubnetCatalogInfoRequest, load_catalog_for_report,
     rate::{FORMULA_VERSION, catalog_cycles_per_billion, charge_applicability},
 };
-use crate::{QueryProgress, progress::IgnoreQueryProgress};
+use crate::QueryProgress;
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
@@ -14,31 +14,10 @@ use crate::{
 pub async fn build_subnet_catalog_info_report(
     request: &SubnetCatalogInfoRequest,
 ) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
-    build_subnet_catalog_info_report_with_source(request, &LiveNnsSource::default()).await
-}
-
-/// Build the report while reporting authorized live refreshes.
-pub async fn build_subnet_catalog_info_report_with_progress(
-    request: &SubnetCatalogInfoRequest,
-    progress: &mut (dyn QueryProgress + Send),
-) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
     build_subnet_catalog_info_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
-        progress,
-    )
-    .await
-}
-
-/// Resolve one subject using the selected cache policy and caller-owned refresh source.
-pub async fn build_subnet_catalog_info_report_with_source(
-    request: &SubnetCatalogInfoRequest,
-    source: &dyn SubnetCatalogSource,
-) -> Result<SubnetCatalogInfoReport, SubnetCatalogHostError> {
-    build_subnet_catalog_info_report_with_source_and_progress(
-        request,
-        source,
-        &mut IgnoreQueryProgress,
+        &mut |_| {},
     )
     .await
 }

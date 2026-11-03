@@ -77,12 +77,6 @@ pub(in crate::sns::report::live) struct ListNeuronsResponse {
 /// Candid response projected to the variable fields required by reward checkpoints.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct ListRewardNeuronsResponse {
-    pub(in crate::sns::report::live) neurons: Vec<SnsGovernanceRewardNeuron>,
-}
-
 ///
 /// SnsGovernanceNeuron
 ///
@@ -139,19 +133,6 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
 ///
 /// Native neuron projection retaining only reward-checkpoint evidence.
 ///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceRewardNeuron {
-    pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
-    pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
-    pub(in crate::sns::report::live) permissions: Vec<SnsGovernanceNeuronPermission>,
-    pub(in crate::sns::report::live) maturity_e8s_equivalent: u64,
-    pub(in crate::sns::report::live) created_timestamp_seconds: u64,
-    pub(in crate::sns::report::live) auto_stake_maturity: Option<bool>,
-    pub(in crate::sns::report::live) disburse_maturity_in_progress:
-        Vec<SnsGovernanceMaturityDisbursement>,
-}
 
 ///
 /// SnsGovernanceNeuronPermission

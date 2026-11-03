@@ -9,23 +9,22 @@ mod traits;
 
 pub(in crate::sns::report) use model::{
     JoinedMainnetSnsInventory, SNS_CANISTER_HEALTH_CALL_TYPE, SNS_METRICS_CALL_TYPE,
-    SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT, SnsRewardCollectionState,
-    canonicalize_mainnet_sns_canister_inventory, canonicalize_mainnet_sns_metrics,
-    canonicalize_mainnet_sns_swap, canonicalize_mainnet_sns_upgrade, join_mainnet_sns_inventory,
-    join_mainnet_sns_lifecycles, sns_neuron_id_from_text, sns_swap_component_method,
-    validate_joined_mainnet_sns_catalog, validate_mainnet_sns_inventory,
-    validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page, validate_mainnet_sns_neurons,
-    validate_mainnet_sns_proposal, validate_mainnet_sns_proposal_page,
-    validate_mainnet_sns_proposals, validate_mainnet_sns_reward_neuron_page,
-    validate_sns_neuron_rows, validate_sns_proposal_rows,
+    SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT, canonicalize_mainnet_sns_canister_inventory,
+    canonicalize_mainnet_sns_metrics, canonicalize_mainnet_sns_swap,
+    canonicalize_mainnet_sns_upgrade, join_mainnet_sns_inventory, join_mainnet_sns_lifecycles,
+    sns_neuron_id_from_text, sns_swap_component_method, validate_joined_mainnet_sns_catalog,
+    validate_mainnet_sns_inventory, validate_mainnet_sns_neuron, validate_mainnet_sns_neuron_page,
+    validate_mainnet_sns_neurons, validate_mainnet_sns_proposal,
+    validate_mainnet_sns_proposal_page, validate_mainnet_sns_proposals, validate_sns_neuron_rows,
+    validate_sns_proposal_rows,
 };
 pub use model::{
     MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
-    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsRewardNeuronPage, MainnetSnsToken,
-    MainnetSnsUpgrade, SnsNeuronId,
+    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
+    SnsNeuronId,
 };
 pub use traits::{
     SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronSource,
-    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsRewardSource,
-    SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
+    SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource, SnsSwapSource,
+    SnsTokenSource, SnsUpgradeSource,
 };

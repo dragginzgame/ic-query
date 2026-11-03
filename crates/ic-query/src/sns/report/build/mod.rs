@@ -12,7 +12,6 @@ mod neuron;
 mod neurons;
 mod params;
 mod proposals;
-mod reward;
 mod swap;
 mod token;
 mod upgrade;
@@ -29,9 +28,7 @@ pub use proposals::{
     build_sns_proposal_report, build_sns_proposal_report_with_source, build_sns_proposals_report,
     build_sns_proposals_report_with_source_and_progress,
 };
-pub use reward::{
-    build_sns_reward_checkpoint_report, build_sns_reward_checkpoint_report_with_source,
-};
+
 pub use swap::{build_sns_swap_report, build_sns_swap_report_with_source};
 pub use token::{build_sns_token_report, build_sns_token_report_with_source};
 pub use upgrade::{build_sns_upgrade_report, build_sns_upgrade_report_with_source};

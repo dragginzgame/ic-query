@@ -7,7 +7,6 @@
 use super::{
     NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus,
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCapacityStatus,
-    percent::ratio_percent_text,
 };
 use crate::nns::node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow};
 
@@ -21,7 +20,6 @@ pub(super) fn topology_capacity_report_from_report(
         network,
         source_endpoint,
         status: NnsTopologyAssessmentStatus::Ok,
-        node_operator_count: node_operator_report.node_operator_count,
         total_node_allowance: 0,
         assigned_node_count: 0,
         unknown_node_count_operator_count: 0,
@@ -54,10 +52,6 @@ fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapaci
         assigned_node_count.map(|count| operator_capacity(operator.node_allowance, count));
     let available_node_slots = capacity.map(|(available, _)| available);
     let over_assigned_node_count = capacity.map(|(_, over_assigned)| over_assigned);
-    let utilization = assigned_node_count.map_or_else(
-        || "-".to_string(),
-        |node_count| ratio_percent_text(node_count, operator.node_allowance),
-    );
     let status = if over_assigned_node_count.is_some_and(|count| count > 0) {
         NnsTopologyCapacityStatus::Over
     } else if available_node_slots == Some(0) {
@@ -76,7 +70,6 @@ fn capacity_row_from_operator(operator: NnsNodeOperatorRow) -> NnsTopologyCapaci
         assigned_node_count,
         available_node_slots,
         over_assigned_node_count,
-        utilization,
         status,
     }
 }

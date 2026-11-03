@@ -26,7 +26,7 @@ pub(super) fn topology_providers_report_from_reports(
         schema_version: NNS_TOPOLOGY_PROVIDERS_REPORT_SCHEMA_VERSION,
         network,
         source_endpoint,
-        registered_node_provider_count: reports.node_provider.node_provider_count,
+        registered_node_provider_count: reports.node_provider.node_providers.len(),
         referenced_node_provider_count: providers.len(),
         provider_with_nodes_count: 0,
         provider_with_node_operators_count: 0,

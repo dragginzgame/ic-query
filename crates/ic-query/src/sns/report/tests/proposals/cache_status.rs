@@ -8,9 +8,13 @@ async fn sns_proposals_refresh_rejects_invalid_public_page_size() {
     let mut request = sns_proposals_refresh_request(&root, None);
     request.page_size = 0;
 
-    let err = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect_err("zero page size is invalid");
+    let err = refresh_sns_proposals_cache_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("zero page size is invalid");
 
     assert!(matches!(
         err,
@@ -57,9 +61,13 @@ async fn sns_proposals_failed_refresh_preserves_page_progress() {
     let mut request = sns_proposals_refresh_request(&root, Some(1));
     request.page_size = 1;
 
-    let err = refresh_sns_proposals_cache_with_source(&request, &PagedSnsProposalsSource)
-        .await
-        .expect_err("capped refresh is incomplete");
+    let err = refresh_sns_proposals_cache_with_source_and_progress(
+        &request,
+        &PagedSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("capped refresh is incomplete");
 
     assert!(matches!(
         err,
@@ -101,9 +109,13 @@ async fn sns_proposals_refresh_writes_complete_cache_and_status_reports_it() {
     let root = temp_dir("ic-query-sns-proposals-refresh");
     let request = sns_proposals_refresh_request(&root, None);
 
-    let refresh = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("refresh proposals");
+    let refresh = refresh_sns_proposals_cache_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh proposals");
     let cache_path = std::path::PathBuf::from(&refresh.cache_path);
     let attempt_path = std::path::PathBuf::from(&refresh.refresh_attempt_path);
     let lock_path = std::path::PathBuf::from(&refresh.refresh_lock_path);
@@ -438,9 +450,13 @@ async fn sns_proposals_refresh_preserves_inventory_id_across_reports_and_files()
         let root = temp_dir("ic-query-sns-second-position-refresh");
         let mut request = sns_proposals_refresh_request(&root, None);
         request.lookup = info_request(input);
-        let refresh = refresh_sns_proposals_cache_with_source(&request, &SecondSnsProposalsSource)
-            .await
-            .expect("refresh second SNS");
+        let refresh = refresh_sns_proposals_cache_with_source_and_progress(
+            &request,
+            &SecondSnsProposalsSource,
+            &mut |_| {},
+        )
+        .await
+        .expect("refresh second SNS");
 
         assert_eq!(refresh.context.instance.id, 2);
         assert_eq!(refresh.context.instance.root_canister_id, ROOT_B);
@@ -528,22 +544,24 @@ async fn proposal_refresh_uses_lowest_id_and_rejects_boundary_overlap() {
     let root = temp_dir("ic-query-sns-proposals-page-boundary");
     let mut request = sns_proposals_refresh_request(&root, None);
     request.page_size = 2;
-    let report = refresh_sns_proposals_cache_with_source(
+    let report = refresh_sns_proposals_cache_with_source_and_progress(
         &request,
         &UnorderedPagedProposalsSource {
             invalid_second_page: false,
         },
+        &mut |_| {},
     )
     .await
     .unwrap();
     assert_eq!(report.row_count, 3);
     let path = sns_proposals_cache_path(&root, MAINNET_NETWORK, ROOT_A);
     let original = fs::read(&path).unwrap();
-    let error = refresh_sns_proposals_cache_with_source(
+    let error = refresh_sns_proposals_cache_with_source_and_progress(
         &request,
         &UnorderedPagedProposalsSource {
             invalid_second_page: true,
         },
+        &mut |_| {},
     )
     .await
     .expect_err("exclusive cursor rejects overlap even on a terminal page");

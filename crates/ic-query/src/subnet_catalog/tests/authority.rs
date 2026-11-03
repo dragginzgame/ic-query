@@ -73,7 +73,7 @@ fn validated_route_retains_exact_catalog_authority() {
 }
 
 #[test]
-fn assurance_minimums_are_ordered_from_query_to_certificate() {
+fn assurance_minimums_are_ordered_from_query_to_agreement() {
     let cases = [
         (
             CatalogAssurance::UncertifiedQuery,
@@ -94,16 +94,6 @@ fn assurance_minimums_are_ordered_from_query_to_certificate() {
             CatalogAssurance::UncertifiedQuery,
             CatalogAssurance::MultiEndpointAgreement,
             false,
-        ),
-        (
-            CatalogAssurance::MultiEndpointAgreement,
-            CatalogAssurance::Certified,
-            false,
-        ),
-        (
-            CatalogAssurance::Certified,
-            CatalogAssurance::MultiEndpointAgreement,
-            true,
         ),
     ];
 
@@ -135,27 +125,7 @@ fn authority_validation_rejects_future_and_unclean_source_evidence() {
 }
 
 #[test]
-fn certified_and_incomplete_agreement_claims_fail_closed() {
-    let mut raw = fixture_catalog();
-    raw.provenance.assurance = CatalogAssurance::Certified;
-    raw.provenance.certified_registry = Some(CertifiedRegistryCatalogEvidence {
-        archive_manifest_schema_version: 1,
-        delta_report_schema_version: 1,
-        replay_provenance_schema_version: 1,
-        root_key_digest: "00".repeat(32),
-        evidence_chain_digest: "11".repeat(32),
-        complete_state_digest: "22".repeat(32),
-        minimum_certificate_time_nanos: 1_780_531_200_000_000_000,
-        maximum_certificate_time_nanos: 1_780_531_200_000_000_000,
-    });
-    raw.canonicalize_and_seal()
-        .expect("seal claimed certificate");
-
-    assert!(matches!(
-        ValidatedSubnetCatalog::try_from_raw(raw, &validation_context()),
-        Err(CatalogError::UnsupportedAssurance { assurance }) if assurance == "certified"
-    ));
-
+fn incomplete_agreement_claims_fail_closed() {
     let mut agreement = fixture_catalog();
     agreement.provenance.assurance = CatalogAssurance::MultiEndpointAgreement;
     agreement.provenance.source_endpoints = vec![

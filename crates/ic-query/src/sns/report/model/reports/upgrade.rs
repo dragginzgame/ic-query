@@ -5,6 +5,7 @@
 //! Boundary: preserves native versions and validates their shared hash representation.
 
 use super::invocation::SnsCanisterMethod;
+#[cfg(any(test, feature = "sns-host"))]
 use crate::hex::is_canonical_lowercase_hex;
 use crate::sns::report::SnsReportContext;
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -32,12 +33,9 @@ pub struct SnsVersion {
     pub index_wasm_hash_hex: String,
 }
 
+#[cfg(any(test, feature = "sns-host"))]
 impl SnsVersion {
-    pub(in crate::sns::report) fn validate_hashes(
-        &self,
-        field: &str,
-        expected_bytes: Option<usize>,
-    ) -> Result<(), String> {
+    pub(in crate::sns::report) fn validate_hashes(&self, field: &str) -> Result<(), String> {
         for (role, hash) in [
             ("archive", self.archive_wasm_hash_hex.as_str()),
             ("root", self.root_wasm_hash_hex.as_str()),
@@ -46,14 +44,10 @@ impl SnsVersion {
             ("governance", self.governance_wasm_hash_hex.as_str()),
             ("index", self.index_wasm_hash_hex.as_str()),
         ] {
-            if !is_canonical_lowercase_hex(hash)
-                || expected_bytes.is_some_and(|bytes| hash.len() / 2 != bytes)
-            {
-                let expectation = expected_bytes.map_or_else(
-                    || "lowercase even-length hexadecimal text".to_string(),
-                    |bytes| format!("a {bytes}-byte lowercase hexadecimal hash"),
-                );
-                return Err(format!("{field}.{role}_wasm_hash_hex is not {expectation}"));
+            if !is_canonical_lowercase_hex(hash) {
+                return Err(format!(
+                    "{field}.{role}_wasm_hash_hex is not lowercase even-length hexadecimal text"
+                ));
             }
         }
         Ok(())
@@ -77,21 +71,6 @@ pub struct SnsPendingUpgrade {
     pub proposal_id: u64,
     /// Pending target version, when Governance returned it.
     pub target_version: Option<SnsVersion>,
-}
-
-///
-/// SnsRunningVersionResponse
-///
-/// Complete native Governance running-version response retained for bracketing.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SnsRunningVersionResponse {
-    /// Currently deployed six-role version when Governance supplied it.
-    pub deployed_version: Option<SnsVersion>,
-    /// Pending Governance upgrade state when present.
-    pub pending_version: Option<SnsPendingUpgrade>,
 }
 
 ///
@@ -148,15 +127,15 @@ mod tests {
     use super::SnsVersion;
 
     #[test]
-    fn version_hash_admission_preserves_upgrade_and_checkpoint_policies() {
-        for (hash, upgrade_valid, checkpoint_valid) in [
-            ("0a".repeat(32), true, true),
-            ("0a".to_string(), true, false),
-            ("0a".repeat(33), true, false),
-            (String::new(), false, false),
-            ("a".to_string(), false, false),
-            ("AB".repeat(32), false, false),
-            ("zz".repeat(32), false, false),
+    fn version_hash_admission_preserves_upgrade_policy() {
+        for (hash, upgrade_valid) in [
+            ("0a".repeat(32), true),
+            ("0a".to_string(), true),
+            ("0a".repeat(33), true),
+            (String::new(), false),
+            ("a".to_string(), false),
+            ("AB".repeat(32), false),
+            ("zz".repeat(32), false),
         ] {
             let version = SnsVersion {
                 archive_wasm_hash_hex: hash.clone(),
@@ -166,14 +145,7 @@ mod tests {
                 governance_wasm_hash_hex: hash.clone(),
                 index_wasm_hash_hex: hash,
             };
-            assert_eq!(
-                version.validate_hashes("version", None).is_ok(),
-                upgrade_valid
-            );
-            assert_eq!(
-                version.validate_hashes("version", Some(32)).is_ok(),
-                checkpoint_valid
-            );
+            assert_eq!(version.validate_hashes("version").is_ok(), upgrade_valid);
         }
     }
 }

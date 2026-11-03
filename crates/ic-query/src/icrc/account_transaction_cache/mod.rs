@@ -16,8 +16,8 @@ pub use refresh::{
     load_or_refresh_missing_icrc_account_transactions_with_source,
     load_or_refresh_stale_icrc_account_transactions,
     load_or_refresh_stale_icrc_account_transactions_with_source,
-    refresh_icrc_account_transaction_cache, refresh_icrc_account_transaction_cache_with_progress,
-    refresh_icrc_account_transaction_cache_with_source,
+    refresh_icrc_account_transaction_cache,
+    refresh_icrc_account_transaction_cache_with_source_and_progress,
 };
 pub use reports::{
     build_icrc_account_transaction_cache_status_report, build_icrc_account_transaction_list_report,

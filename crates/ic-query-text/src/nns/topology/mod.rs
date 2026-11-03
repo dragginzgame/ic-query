@@ -9,6 +9,7 @@ mod check;
 mod common;
 mod coverage;
 mod gaps;
+mod percent;
 mod providers;
 mod refresh;
 mod regions;

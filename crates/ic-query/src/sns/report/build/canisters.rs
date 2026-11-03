@@ -54,11 +54,9 @@ pub async fn build_sns_canister_report_with_source(
             lookup.sns.name,
             lookup.sns.canisters.root_canister_id,
         ),
-        canister_count: inventory.canisters.len(),
         health_status_count,
         reported_zero_cycles_count,
         cycles_unavailable_count,
-        gap_count: inventory.gaps.len(),
         inventory,
     })
 }

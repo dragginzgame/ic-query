@@ -2,7 +2,7 @@ use super::{
     SubnetCatalogFilters, SubnetCatalogListReport, SubnetCatalogListRequest,
     SubnetCatalogSubnetRow, load_catalog_for_report,
 };
-use crate::{QueryProgress, progress::IgnoreQueryProgress};
+use crate::QueryProgress;
 use crate::{
     nns::LiveNnsSource,
     subnet_catalog::{
@@ -16,31 +16,10 @@ use std::collections::BTreeMap;
 pub async fn build_subnet_catalog_list_report(
     request: &SubnetCatalogListRequest,
 ) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    build_subnet_catalog_list_report_with_source(request, &LiveNnsSource::default()).await
-}
-
-/// Build the report while reporting authorized live refreshes.
-pub async fn build_subnet_catalog_list_report_with_progress(
-    request: &SubnetCatalogListRequest,
-    progress: &mut (dyn QueryProgress + Send),
-) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
     build_subnet_catalog_list_report_with_source_and_progress(
         request,
         &LiveNnsSource::default(),
-        progress,
-    )
-    .await
-}
-
-/// Project filtered Subnet rows using the cache policy and caller-owned refresh source.
-pub async fn build_subnet_catalog_list_report_with_source(
-    request: &SubnetCatalogListRequest,
-    source: &dyn SubnetCatalogSource,
-) -> Result<SubnetCatalogListReport, SubnetCatalogHostError> {
-    build_subnet_catalog_list_report_with_source_and_progress(
-        request,
-        source,
-        &mut IgnoreQueryProgress,
+        &mut |_| {},
     )
     .await
 }

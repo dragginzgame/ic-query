@@ -6,7 +6,7 @@ use super::{
     build_nns_neuron_info_report_with_cache_and_source, build_nns_neuron_info_report_with_source,
     build_nns_neuron_list_report_from_cache, build_nns_neuron_list_report_with_cache_and_source,
     build_nns_neuron_list_report_with_source, nns_neuron_cache_path,
-    nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source,
+    nns_neuron_refresh_attempt_path, refresh_nns_neuron_cache_with_source_and_progress,
 };
 use crate::{
     cache::{CacheRefreshAttemptStatus, CacheValidationStatus},
@@ -53,7 +53,7 @@ async fn cache_aware_neuron_builders_preserve_fallback_and_strict_cache_errors()
             .is_none()
     );
 
-    refresh_nns_neuron_cache_with_source(
+    refresh_nns_neuron_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest::new(
             &root,
             MAINNET_NETWORK,
@@ -62,6 +62,7 @@ async fn cache_aware_neuron_builders_preserve_fallback_and_strict_cache_errors()
             2,
         ),
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .unwrap();
@@ -244,7 +245,7 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
         Err(NnsNeuronHostError::MissingNeuronCache { .. })
     ));
     assert!(!root.exists());
-    refresh_nns_neuron_cache_with_source(
+    refresh_nns_neuron_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest::new(
             &root,
             MAINNET_NETWORK,
@@ -253,6 +254,7 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
             2,
         ),
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh fixture");
@@ -296,7 +298,7 @@ async fn cached_neuron_distribution_preserves_collection_evidence_and_raw_totals
 #[tokio::test(flavor = "current_thread")]
 async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
     let root = temp_dir("ic-query-nns-cached-distribution-invalid");
-    refresh_nns_neuron_cache_with_source(
+    refresh_nns_neuron_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest::new(
             &root,
             MAINNET_NETWORK,
@@ -305,6 +307,7 @@ async fn cached_neuron_distribution_rejects_inconsistent_collection_evidence() {
             2,
         ),
         &FixtureSource,
+        &mut |_| {},
     )
     .await
     .expect("refresh fixture");
@@ -501,9 +504,13 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         2,
     );
 
-    let refresh = refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
-        .await
-        .expect("refresh complete neuron cache");
+    let refresh = refresh_nns_neuron_cache_with_source_and_progress(
+        &refresh_request,
+        &FixtureSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh complete neuron cache");
 
     assert_eq!(refresh.row_count, 3);
     assert_eq!(
@@ -583,13 +590,8 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
         summary.valid().unwrap().governance_canister_id,
         MAINNET_GOVERNANCE_CANISTER_ID
     );
-    assert!(summary.valid().is_some());
     assert!(!summary.valid().unwrap().point_in_time_guaranteed);
     assert_eq!(summary.valid().unwrap().row_count, 3);
-    assert_eq!(
-        status.cache.as_ref().expect("cache summary").cache_status(),
-        CacheValidationStatus::Valid
-    );
     assert_eq!(
         status.latest_attempt.as_ref().expect("attempt").status,
         CacheRefreshAttemptStatus::Complete
@@ -607,9 +609,13 @@ async fn cached_neuron_reports_return_typed_snapshot_identity_mismatches() {
         1_700_000_000,
         2,
     );
-    refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
-        .await
-        .expect("refresh complete neuron cache");
+    refresh_nns_neuron_cache_with_source_and_progress(
+        &refresh_request,
+        &FixtureSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh complete neuron cache");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
     let mut cache: serde_json::Value =
         serde_json::from_slice(&fs::read(&path).expect("read neuron cache"))
@@ -647,7 +653,7 @@ async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
         1_700_000_000,
         2,
     );
-    refresh_nns_neuron_cache_with_source(&request, &FixtureSource)
+    refresh_nns_neuron_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})
         .await
         .expect("publish initial complete cache");
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
@@ -657,9 +663,13 @@ async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
         (|page: &mut NnsNeuronPage| page.neurons[0].neuron_id = 2) as fn(&mut NnsNeuronPage),
         |page| page.next_start_neuron_id = Some(3),
     ] {
-        let error = refresh_nns_neuron_cache_with_source(&request, &MutatingLastPageSource(mutate))
-            .await
-            .expect_err("invalid page must stop refresh");
+        let error = refresh_nns_neuron_cache_with_source_and_progress(
+            &request,
+            &MutatingLastPageSource(mutate),
+            &mut |_| {},
+        )
+        .await
+        .expect_err("invalid page must stop refresh");
         assert!(matches!(
             error,
             NnsNeuronHostError::Neuron(NnsNeuronError::InvalidResponse { .. })
@@ -701,7 +711,7 @@ async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page()
     )
     .with_max_pages(Some(2));
     let source = MutatingLastPageSource(|page| page.neurons.clear());
-    let report = refresh_nns_neuron_cache_with_source(&request, &source)
+    let report = refresh_nns_neuron_cache_with_source_and_progress(&request, &source, &mut |_| {})
         .await
         .expect("empty terminal page proves exhaustion at the page cap");
 
@@ -737,9 +747,10 @@ async fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     )
     .with_max_pages(Some(1));
 
-    let error = refresh_nns_neuron_cache_with_source(&request, &FixtureSource)
-        .await
-        .expect_err("capped refresh must remain incomplete");
+    let error =
+        refresh_nns_neuron_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})
+            .await
+            .expect_err("capped refresh must remain incomplete");
 
     assert!(matches!(
         error,
@@ -774,9 +785,13 @@ async fn cache_status_distinguishes_invalid_attempt_evidence_from_the_snapshot()
         1_700_000_000,
         2,
     );
-    refresh_nns_neuron_cache_with_source(&refresh_request, &FixtureSource)
-        .await
-        .expect("refresh complete neuron cache");
+    refresh_nns_neuron_cache_with_source_and_progress(
+        &refresh_request,
+        &FixtureSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh complete neuron cache");
     let attempt_path = nns_neuron_refresh_attempt_path(&root, MAINNET_NETWORK);
     let mut attempt: serde_json::Value =
         serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
@@ -839,7 +854,7 @@ async fn cache_rows_reject_unknown_fields_without_rewriting_evidence() {
         1_700_000_000,
         2,
     );
-    refresh_nns_neuron_cache_with_source(&refresh, &FixtureSource)
+    refresh_nns_neuron_cache_with_source_and_progress(&refresh, &FixtureSource, &mut |_| {})
         .await
         .unwrap();
     let path = nns_neuron_cache_path(&root, MAINNET_NETWORK);
@@ -867,7 +882,7 @@ async fn cache_rows_reject_unknown_fields_without_rewriting_evidence() {
         ));
         assert_eq!(fs::read(&path).unwrap(), bytes);
     }
-    refresh_nns_neuron_cache_with_source(&refresh, &FixtureSource)
+    refresh_nns_neuron_cache_with_source_and_progress(&refresh, &FixtureSource, &mut |_| {})
         .await
         .unwrap();
     let restored = build_nns_neuron_distribution_report_from_cache(

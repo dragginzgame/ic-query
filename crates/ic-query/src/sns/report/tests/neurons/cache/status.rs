@@ -29,9 +29,13 @@ fn sns_neurons_cache_status_surfaces_malformed_attempt_sidecar() {
 async fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
     let root = temp_dir("ic-query-sns-neurons-unknown-attempt-field");
     let request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut attempt: serde_json::Value =
         serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
@@ -61,9 +65,13 @@ async fn sns_neurons_cache_status_rejects_unknown_attempt_fields() {
 async fn sns_neurons_cache_status_rejects_unknown_attempt_lifecycle_during_parsing() {
     let root = temp_dir("ic-query-sns-neurons-unknown-attempt-lifecycle");
     let request = sns_neurons_refresh_request(&root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
     let attempt_path = sns_neurons_refresh_attempt_path(&root, MAINNET_NETWORK, ROOT_A);
     let mut attempt: serde_json::Value =
         serde_json::from_slice(&fs::read(&attempt_path).expect("read attempt"))
@@ -94,9 +102,13 @@ async fn sns_neurons_cache_list_and_status_reports_complete_snapshot() {
     let root = temp_dir("ic-query-sns-neurons-cache-status");
     let request = sns_neurons_refresh_request(&root, None);
 
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
 
     let list = build_sns_neurons_cache_list_report(&SnsCacheListRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -295,9 +307,13 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
     let root = temp_dir("ic-query-sns-neurons-cache-failed-status");
     let request = sns_neurons_refresh_request(&root, Some(1));
 
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect_err("incomplete refresh");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect_err("incomplete refresh");
 
     let status = build_sns_neurons_cache_status_report(&SnsCacheStatusRequest {
         network: MAINNET_NETWORK.to_string(),
@@ -329,9 +345,13 @@ async fn sns_neurons_cache_status_reports_failed_attempt_without_complete_cache(
 
 async fn refresh_fixture_sns_neurons_cache(root: &std::path::Path) -> std::path::PathBuf {
     let request = sns_neurons_refresh_request(root, None);
-    refresh_sns_neurons_cache_with_source(&request, &PagedFixtureSnsNeuronsSource)
-        .await
-        .expect("refresh neurons");
+    refresh_sns_neurons_cache_with_source_and_progress(
+        &request,
+        &PagedFixtureSnsNeuronsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh neurons");
     sns_neurons_cache_path(root, MAINNET_NETWORK, ROOT_A)
 }
 

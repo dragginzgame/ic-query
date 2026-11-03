@@ -8,10 +8,10 @@ use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::table::Alignment;
 use ic_host_text::table::render;
 
+use super::percent::coverage_percent_text;
 use crate::text_value::yes_no;
 use ic_query::nns::topology::NnsTopologyJoinCoverageCounts;
 use ic_query::nns::topology::NnsTopologyRegistryVersionRow;
-use ic_query::nns::topology::coverage_percent_text;
 
 pub(super) fn render_join_coverage_table(counts: &NnsTopologyJoinCoverageCounts) -> String {
     let headers = ["RELATION", "KNOWN", "UNKNOWN", "COVERAGE"];

@@ -70,17 +70,9 @@ pub(in crate::ic) fn metric_report_from_source(
     super::validate_requested_query("metric", query, &source.query)?;
 
     validate_metric_series(query, &mut source.series)?;
-    let returned_observation_count = source
-        .series
-        .iter()
-        .map(|series| series.observations.len())
-        .sum();
-
     Ok(IcMetricReport {
         provenance: report_provenance(source.source),
         query: source.query,
-        returned_series_count: source.series.len(),
-        returned_observation_count,
         series: source.series,
     })
 }

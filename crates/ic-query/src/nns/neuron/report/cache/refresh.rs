@@ -14,34 +14,22 @@ use crate::{
             source::{NnsNeuronSource, validate_page_size},
         },
     },
-    progress::IgnoreQueryProgress,
 };
 
 /// Refresh the complete public neuron index using the built-in live source.
 pub async fn refresh_nns_neuron_cache(
     request: &NnsGovernanceRefreshRequest,
 ) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
-    refresh_nns_neuron_cache_with_source(request, &LiveNnsSource::default()).await
+    refresh_nns_neuron_cache_with_source_and_progress(
+        request,
+        &LiveNnsSource::default(),
+        &mut |_| {},
+    )
+    .await
 }
 
-/// Refresh the complete neuron index while emitting structured progress.
-pub async fn refresh_nns_neuron_cache_with_progress(
-    request: &NnsGovernanceRefreshRequest,
-    progress: &mut dyn QueryProgress,
-) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
-    refresh_with_source_and_progress(request, &LiveNnsSource::default(), progress).await
-}
-
-/// Refresh the complete neuron index through a custom source.
-pub async fn refresh_nns_neuron_cache_with_source(
-    request: &NnsGovernanceRefreshRequest,
-    source: &dyn NnsNeuronSource,
-) -> Result<NnsGovernanceRefreshReport, NnsNeuronHostError> {
-    let mut progress = IgnoreQueryProgress;
-    refresh_with_source_and_progress(request, source, &mut progress).await
-}
-
-async fn refresh_with_source_and_progress(
+/// Refresh with a caller-owned source and progress sink.
+pub async fn refresh_nns_neuron_cache_with_source_and_progress(
     request: &NnsGovernanceRefreshRequest,
     source: &dyn NnsNeuronSource,
     progress: &mut dyn QueryProgress,

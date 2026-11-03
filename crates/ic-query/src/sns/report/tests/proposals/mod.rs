@@ -16,9 +16,13 @@ mod live;
 
 async fn refresh_fixture_sns_proposals_cache(root: &std::path::Path) -> std::path::PathBuf {
     let request = sns_proposals_refresh_request(root, None);
-    let refresh = refresh_sns_proposals_cache_with_source(&request, &FixtureSnsProposalsSource)
-        .await
-        .expect("refresh proposals");
+    let refresh = refresh_sns_proposals_cache_with_source_and_progress(
+        &request,
+        &FixtureSnsProposalsSource,
+        &mut |_| {},
+    )
+    .await
+    .expect("refresh proposals");
     std::path::PathBuf::from(refresh.cache_path)
 }
 

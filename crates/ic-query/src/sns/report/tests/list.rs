@@ -20,7 +20,7 @@ async fn sns_list_report_uses_names_and_compact_ids_by_default() {
     assert!(!report.all_lifecycles);
     assert_eq!(report.catalog_sns_count, 1);
     assert_eq!(report.excluded_sns_count, 0);
-    assert_eq!(report.sns_count, 1);
+    assert_eq!(report.sns_instances.len(), 1);
 
     assert_eq!(report.sort, "id");
     assert_eq!(report.sns_instances[0].id, 1);
@@ -285,7 +285,7 @@ async fn sns_list_cached_views_preserve_rows_provenance_and_complete_snapshot() 
 
             assert_eq!(cached.sns_instances, live.sns_instances);
             assert_eq!(cached.catalog_sns_count, 2);
-            assert_eq!(cached.sns_count, live.sns_count);
+            assert_eq!(cached.sns_instances.len(), live.sns_instances.len());
             assert_eq!(cached.excluded_sns_count, live.excluded_sns_count);
             assert_eq!(cached.metadata_error_count, live.metadata_error_count);
             assert_eq!(cached.lifecycle_error_count, live.lifecycle_error_count);
@@ -337,7 +337,7 @@ async fn sns_catalog_capacity_rejection_is_strict_or_visibly_refreshed() {
     .await
     .unwrap();
     assert_eq!(refreshed.catalog_sns_count, 2);
-    assert_eq!(refreshed.sns_count, 1);
+    assert_eq!(refreshed.sns_instances.len(), 1);
     assert_eq!(events.len(), 1);
     assert!(matches!(events[0], QueryProgressEvent::CacheRefresh { .. }));
     let repaired: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
@@ -594,10 +594,10 @@ async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
             .expect("all list with lifecycle error");
 
     assert_eq!(default_report.catalog_sns_count, 1);
-    assert_eq!(default_report.sns_count, 0);
+    assert_eq!(default_report.sns_instances.len(), 0);
     assert_eq!(default_report.excluded_sns_count, 1);
     assert_eq!(default_report.lifecycle_error_count, 0);
-    assert_eq!(all_report.sns_count, 1);
+    assert_eq!(all_report.sns_instances.len(), 1);
     assert_eq!(all_report.lifecycle_error_count, 1);
     assert_eq!(
         all_report.sns_instances[0].lifecycle.error(),
@@ -690,12 +690,12 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
 
     assert_eq!(default_report.catalog_sns_count, 2);
     assert_eq!(default_report.excluded_sns_count, 1);
-    assert_eq!(default_report.sns_count, 1);
+    assert_eq!(default_report.sns_instances.len(), 1);
     assert_eq!(default_report.sns_instances[0].id, 1);
     assert_eq!(default_report.sns_instances[0].lifecycle.value(), Some(3));
     assert_eq!(all_report.catalog_sns_count, 2);
     assert_eq!(all_report.excluded_sns_count, 0);
-    assert_eq!(all_report.sns_count, 2);
+    assert_eq!(all_report.sns_instances.len(), 2);
     assert_eq!(all_report.sns_instances[1].id, 2);
     assert_eq!(
         all_report.sns_instances[1].canisters.root_canister_id,
@@ -769,7 +769,7 @@ async fn list_enriches_the_complete_inventory() {
         .expect("complete SNS list report");
 
     assert_eq!(report.catalog_sns_count, 2);
-    assert_eq!(report.sns_count, 1);
+    assert_eq!(report.sns_instances.len(), 1);
     assert_eq!(
         source.metadata_targets.lock().unwrap().as_slice(),
         &[vec![ROOT_A.to_string(), ROOT_B.to_string()]]

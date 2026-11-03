@@ -26,7 +26,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         format!("sns_id: {}", report.context.id),
         format!("name: {}", terminal_text(&report.context.name)),
         format!("root_canister_id: {}", report.context.root_canister_id),
-        format!("canister_count: {}", report.canister_count),
+        format!("canister_count: {}", report.inventory.canisters.len()),
         format!("health_status_count: {}", report.health_status_count),
         format!(
             "reported_zero_cycles_count: {}",
@@ -36,7 +36,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
             "cycles_unavailable_count: {}",
             report.cycles_unavailable_count
         ),
-        format!("gap_count: {}", report.gap_count),
+        format!("gap_count: {}", report.inventory.gaps.len()),
         format!(
             "health_query_status: {}",
             if report.inventory.health_query_gap.is_some() {

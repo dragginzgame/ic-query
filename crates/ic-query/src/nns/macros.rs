@@ -7,7 +7,6 @@ macro_rules! impl_nns_inventory_report {
         $schema_version:expr,
         $item_name:literal,
         $collection:expr,
-        $count_field:ident,
         $rows_field:ident,
         $governance:expr
         $(, $validate_family:expr)?
@@ -36,13 +35,7 @@ macro_rules! impl_nns_inventory_report {
                 &self.provenance
             }
 
-            fn declared_row_count(&self) -> usize {
-                self.$count_field
-            }
 
-            fn row_count(&self) -> usize {
-                self.$rows_field.len()
-            }
 
             fn refresh_outcome(
                 &self,
@@ -52,7 +45,7 @@ macro_rules! impl_nns_inventory_report {
                 $crate::nns::NnsInventoryRefreshReport {
                     schema_version: 1,
                     collection: stringify!($rows_field).to_string(),
-                    row_count: self.$count_field,
+                    row_count: self.$rows_field.len(),
                     provenance: self.provenance.clone(),
                     cache_path: write.cache_path,
                     refresh_lock_path: write.refresh_lock_path,

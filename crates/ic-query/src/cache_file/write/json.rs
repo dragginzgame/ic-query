@@ -6,8 +6,6 @@
 
 use crate::cache_file::{CacheFileError, write_managed_file_atomically};
 use ic_host_artifacts::artifact::BoundedWriter;
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
-use ic_host_artifacts::artifact::MatchingWriter;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_host_artifacts::artifact::{ArtifactIdentity, HashingWriter};
 use serde::Serialize;
@@ -20,11 +18,7 @@ use std::{
 use std::io::Write;
 
 /// Return the canonical compact JSON byte length without retaining encoded bytes.
-#[cfg(any(
-    feature = "certified-subnet-catalog-host",
-    feature = "subnet-catalog-host",
-    test
-))]
+#[cfg(any(feature = "nns-host", feature = "subnet-catalog-host", test))]
 pub fn canonical_json_serialized_len<T>(value: &T) -> Result<u64, serde_json::Error>
 where
     T: Serialize + ?Sized,
@@ -52,17 +46,6 @@ where
     let mut writer = HashingWriter::new(io::sink(), u64::MAX);
     serde_json::to_writer(&mut writer, value)?;
     Ok(writer.into_parts().1)
-}
-
-/// Return whether `bytes` are the exact canonical compact JSON encoding of `value`.
-#[cfg(any(feature = "certified-subnet-catalog-host", test))]
-pub fn canonical_json_matches<T>(value: &T, bytes: &[u8]) -> Result<bool, serde_json::Error>
-where
-    T: Serialize + ?Sized,
-{
-    let mut writer = MatchingWriter::new(bytes);
-    serde_json::to_writer(&mut writer, value)?;
-    Ok(writer.is_complete_match())
 }
 
 /// Serialize pretty JSON without retaining a complete encoded copy and publish it atomically.
@@ -245,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_json_helpers_count_and_match_without_encoding_a_second_copy() {
+    fn canonical_json_helpers_count_and_hash_without_encoding_a_second_copy() {
         let value = serde_json::json!({"schema_version": 1, "rows": ["escape\nλ", "b"]});
         let canonical = serde_json::to_vec(&value).expect("encode canonical fixture");
 
@@ -263,14 +246,5 @@ mod tests {
             canonical_json_serialized_len(&value).expect("count canonical JSON"),
             u64::try_from(canonical.len()).expect("fixture length fits u64")
         );
-        assert!(canonical_json_matches(&value, &canonical).expect("match canonical JSON"));
-        for bytes in [
-            &canonical[..canonical.len() - 1],
-            [canonical.as_slice(), b" "].concat().as_slice(),
-            b"{}",
-        ] {
-            assert!(!canonical_json_matches(&value, bytes).expect("reject different bytes"));
-        }
-        assert!(canonical_json_matches(&FailingSerialization, b"{}").is_err());
     }
 }

@@ -94,8 +94,6 @@ pub struct SnsMetricsReport {
     /// Shared record, flattened in JSON.
     #[serde(flatten)]
     pub context: crate::sns::SnsInstanceContext,
-    /// Number of returned cached treasury rows.
-    pub treasury_metric_count: usize,
 
     /// Validated source payload shared with native collection.
     #[serde(flatten)]

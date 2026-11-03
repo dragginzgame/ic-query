@@ -13,7 +13,6 @@ pub struct NnsTopologyCapacityReport {
     pub network: String,
     pub source_endpoint: String,
     pub status: NnsTopologyAssessmentStatus,
-    pub node_operator_count: usize,
     pub total_node_allowance: u64,
     pub assigned_node_count: u64,
     pub unknown_node_count_operator_count: usize,
@@ -38,6 +37,5 @@ pub struct NnsTopologyCapacityRow {
     pub assigned_node_count: Option<u64>,
     pub available_node_slots: Option<u64>,
     pub over_assigned_node_count: Option<u64>,
-    pub utilization: String,
     pub status: NnsTopologyCapacityStatus,
 }

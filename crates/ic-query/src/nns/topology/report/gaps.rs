@@ -52,7 +52,6 @@ pub(super) fn topology_gaps_report_from_reports(
         network,
         source_endpoint,
         status,
-        gap_count,
         gaps,
     }
 }

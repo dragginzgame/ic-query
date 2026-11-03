@@ -26,11 +26,11 @@ async fn sns_canister_report_resolves_inventory_health_and_typed_gaps() {
     );
     assert!(!report.inventory.health_update_canister_list);
     assert!(!report.inventory.point_in_time_guaranteed);
-    assert_eq!(report.canister_count, 2);
+    assert_eq!(report.inventory.canisters.len(), 2);
     assert_eq!(report.health_status_count, 1);
     assert_eq!(report.reported_zero_cycles_count, 1);
     assert_eq!(report.cycles_unavailable_count, 1);
-    assert_eq!(report.gap_count, 1);
+    assert_eq!(report.inventory.gaps.len(), 1);
     assert_eq!(report.inventory.health_query_gap, None);
     assert_eq!(report.inventory.canisters[0].role, SnsCanisterRole::Root);
     assert_eq!(
@@ -83,7 +83,7 @@ async fn sns_canister_report_retains_inventory_when_health_is_unavailable() {
 
     let json = serde_json::to_value(&report).expect("serialize partial SNS canister report");
 
-    assert_eq!(report.canister_count, 2);
+    assert_eq!(report.inventory.canisters.len(), 2);
     assert_eq!(report.health_status_count, 0);
     assert_eq!(report.reported_zero_cycles_count, 0);
     assert_eq!(report.cycles_unavailable_count, 2);

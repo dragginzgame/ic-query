@@ -14,8 +14,6 @@ use crate::http_endpoint::parse_http_endpoint;
 ))]
 use ic_host_tools::agent::{EndpointAgent, EndpointAgentError};
 use ic_platform::agent::Agent;
-#[cfg(feature = "certified-subnet-catalog-host")]
-use std::time::Duration;
 
 /// Maximum response-body size configured for every native IC agent call.
 pub const MAX_IC_AGENT_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
@@ -57,44 +55,8 @@ pub fn build_ic_agent<Error>(
     endpoint: &str,
     map_error: impl Fn(String) -> Error,
 ) -> Result<Agent, Error> {
-    build_ic_agent_with_options(endpoint, map_error, MAX_IC_AGENT_RESPONSE_BODY_BYTES, None)
-}
-
-/// Construct an agent that verifies retained certificate signatures without imposing live age.
-///
-/// Callers must independently bind the certificate time to the retained observation time. This
-/// agent is for local historical verification only and must not be used for live source calls.
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub fn build_historical_certificate_agent<Error>(
-    endpoint: &str,
-    map_error: impl Fn(String) -> Error,
-) -> Result<Agent, Error> {
-    build_ic_agent_with_options(
-        endpoint,
-        map_error,
-        MAX_IC_AGENT_RESPONSE_BODY_BYTES,
-        Some(Duration::from_secs(u32::MAX.into())),
-    )
-}
-
-#[cfg(any(
-    feature = "ic-state-host",
-    feature = "cmc-host",
-    feature = "subnet-catalog-host",
-    test
-))]
-fn build_ic_agent_with_options<Error>(
-    endpoint: &str,
-    map_error: impl Fn(String) -> Error,
-    max_response_body_bytes: usize,
-    certificate_age_limit: Option<std::time::Duration>,
-) -> Result<Agent, Error> {
     let endpoint = parse_http_endpoint(endpoint).map_err(&map_error)?;
-    let mut builder = ic_host_tools::agent::agent_builder(&endpoint, max_response_body_bytes);
-    if let Some(certificate_age_limit) = certificate_age_limit {
-        builder = builder.with_ingress_expiry(certificate_age_limit);
-    }
-    builder
+    ic_host_tools::agent::agent_builder(&endpoint, MAX_IC_AGENT_RESPONSE_BODY_BYTES)
         .build()
         .map_err(|error| map_error(error.to_string()))
 }
@@ -144,32 +106,6 @@ mod tests {
     fn constructs_agent_for_valid_endpoint_without_network_io() {
         build_ic_agent("https://icp-api.io", |reason| reason)
             .expect("valid HTTPS endpoint must construct an agent");
-    }
-
-    #[cfg(feature = "certified-subnet-catalog-host")]
-    #[test]
-    fn historical_builder_preserves_retained_verification_expiry() {
-        let before = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        let historical =
-            build_historical_certificate_agent("https://icp-api.io", |reason| reason).unwrap();
-        let expiry = historical
-            .query(&Principal::anonymous(), "expiry_policy")
-            .sign()
-            .unwrap()
-            .ingress_expiry
-            / 1_000_000_000;
-        let after = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        // The SDK rounds long expiries down to a minute; signing performs no IO.
-        let allowance = u64::from(u32::MAX);
-        assert!((before + allowance - 60..=after + allowance).contains(&expiry));
-        let live = build_ic_agent("https://icp-api.io", |reason| reason).unwrap();
-        assert_eq!(historical.read_root_key(), live.read_root_key());
     }
 
     #[test]

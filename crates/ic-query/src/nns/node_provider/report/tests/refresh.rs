@@ -95,5 +95,5 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
     let export: serde_json::Value =
         serde_json::from_slice(&std::fs::read(output_path).expect("read export"))
             .expect("parse export");
-    assert_eq!(export["node_provider_count"], 0);
+    assert_eq!(export["node_providers"], serde_json::json!([]));
 }

@@ -17,7 +17,7 @@ pub fn nns_node_operator_list_report_text(report: &NnsNodeOperatorListReport) ->
     lines.push(format!(
         "node_operators: {} count {} fetched_at {}",
         terminal_text(&report.provenance.network),
-        report.node_operator_count,
+        report.node_operators.len(),
         terminal_text(&report.provenance.fetched_at)
     ));
     if report.node_operators.is_empty() {

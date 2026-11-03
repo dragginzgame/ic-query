@@ -1,5 +1,5 @@
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(feature = "nns-host")]
 use crate::{
     nns::registry::NnsRegistryInventoryProvenance,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID},
@@ -30,7 +30,7 @@ impl MainnetRegistryFetchRequest {
     }
 }
 
-#[cfg(feature = "certified-subnet-catalog-host")]
+#[cfg(feature = "nns-host")]
 impl MainnetRegistryFetchRequest {
     pub(in crate::ic_registry) fn inventory_provenance(
         &self,

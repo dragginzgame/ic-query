@@ -13,10 +13,7 @@ mod reports;
 pub use paths::{
     nns_neuron_cache_path, nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
 };
-pub use refresh::{
-    refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_progress,
-    refresh_nns_neuron_cache_with_source,
-};
+pub use refresh::{refresh_nns_neuron_cache, refresh_nns_neuron_cache_with_source_and_progress};
 pub(super) use reports::AdmittedNeuronCache;
 
 pub use reports::{

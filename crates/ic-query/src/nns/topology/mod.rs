@@ -44,5 +44,3 @@ pub use report::{
     build_nns_topology_versions_report, build_nns_topology_versions_report_with_source,
     refresh_nns_topology_report, refresh_nns_topology_report_with_source,
 };
-
-pub use report::{coverage_percent_text, ratio_percent_text};

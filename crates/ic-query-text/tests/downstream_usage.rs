@@ -63,15 +63,11 @@ mod host {
     use ic_query::icrc::IcrcError;
     use ic_query::icrc::IcrcLedgerRequest;
     use ic_query::icrc::build_icrc_token_report;
-    use ic_query::nns::NnsGovernanceRefreshReport;
-    use ic_query::nns::NnsGovernanceRefreshRequest;
     use ic_query::nns::NnsInventoryCacheRequest;
     use ic_query::nns::NnsInventoryError;
     use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
     use ic_query::nns::node::NnsNodeListRequest;
     use ic_query::nns::node::build_nns_node_list_report;
-    use ic_query::nns::proposals::NnsProposalHostError;
-    use ic_query::nns::proposals::refresh_nns_proposal_cache_with_progress;
     use ic_query::nns::registry::NnsRegistryHostError;
     use ic_query::nns::registry::NnsRegistrySource;
     use ic_query::nns::registry::NnsRegistryVersionRequest;
@@ -92,15 +88,11 @@ mod host {
     use ic_query::sns::SnsNeuronsRequest;
     use ic_query::sns::SnsProposalsRequest;
     use ic_query::sns::SnsProposalsSort;
-    use ic_query::sns::SnsSnapshotRefreshReport;
-    use ic_query::sns::SnsSnapshotRefreshRequest;
     use ic_query::sns::build_sns_metrics_report;
     use ic_query::sns::build_sns_neurons_cache_status_report;
     use ic_query::sns::build_sns_neurons_report;
     use ic_query::sns::build_sns_proposals_cache_status_report;
     use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
-    use ic_query::sns::refresh_sns_neurons_cache_with_progress;
-    use ic_query::sns::refresh_sns_proposals_cache_with_progress;
     use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
     use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
     use ic_query::subnet_catalog::ResolveAs;
@@ -171,28 +163,6 @@ mod host {
             state: QueryProgressState::Running,
         });
         assert_eq!(events.len(), 1);
-
-        let _: for<'a> fn(
-            &'a NnsGovernanceRefreshRequest,
-            &'a mut dyn QueryProgress,
-        ) -> ic_query::report::SourceFuture<
-            'a,
-            Result<NnsGovernanceRefreshReport, NnsProposalHostError>,
-        > = |arg0, arg1| Box::pin(refresh_nns_proposal_cache_with_progress(arg0, arg1));
-        let _: for<'a> fn(
-            &'a SnsSnapshotRefreshRequest,
-            &'a mut dyn QueryProgress,
-        ) -> ic_query::report::SourceFuture<
-            'a,
-            Result<SnsSnapshotRefreshReport, SnsHostError>,
-        > = |arg0, arg1| Box::pin(refresh_sns_neurons_cache_with_progress(arg0, arg1));
-        let _: for<'a> fn(
-            &'a SnsSnapshotRefreshRequest,
-            &'a mut dyn QueryProgress,
-        ) -> ic_query::report::SourceFuture<
-            'a,
-            Result<SnsSnapshotRefreshReport, SnsHostError>,
-        > = |arg0, arg1| Box::pin(refresh_sns_proposals_cache_with_progress(arg0, arg1));
     }
 
     async fn render_application_nodes(

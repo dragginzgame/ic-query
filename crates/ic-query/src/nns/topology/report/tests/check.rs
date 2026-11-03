@@ -25,5 +25,4 @@ fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
     assert_eq!(report.unknown_freshness_source_count, 4);
     assert_eq!(report.known_join_count, 8);
     assert_eq!(report.unknown_join_count, 5);
-    assert_eq!(report.join_coverage, "61.5%");
 }

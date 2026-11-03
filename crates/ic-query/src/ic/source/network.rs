@@ -75,7 +75,6 @@ pub(in crate::ic) fn boundary_node_data_centers_report_from_source(
 
     Ok(IcBoundaryNodeDataCentersReport {
         provenance: report_provenance(source.source),
-        data_center_count: source.rows.len(),
         total_node_count,
         rows: source.rows,
     })
@@ -93,7 +92,6 @@ pub(in crate::ic) fn daily_stats_report_from_source(
     Ok(IcDailyStatsReport {
         provenance: report_provenance(source.source),
         query: source.query,
-        returned_day_count: source.rows.len(),
         rows: source.rows,
     })
 }

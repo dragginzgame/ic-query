@@ -8,7 +8,6 @@ mod cache;
 mod lookup;
 mod neurons;
 mod proposals;
-mod reward;
 
 use crate::{
     cli::common::{SourceOutputOptions, current_unix_secs, write_text_or_json},
@@ -50,11 +49,7 @@ pub fn command() -> clap::Command {
     sns_command()
 }
 
-pub async fn run_matches(
-    matches: &ArgMatches,
-    network: &str,
-    network_was_explicit: bool,
-) -> Result<(), SnsCommandError> {
+pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), SnsCommandError> {
     match matches.subcommand() {
         Some(("list", matches)) => run_sns_list(matches, network).await,
         Some(("refresh", matches)) => run_sns_refresh(matches, network).await,
@@ -118,9 +113,6 @@ pub async fn run_matches(
         },
         Some(("proposal", matches)) => proposals::run_sns_proposal(matches, network).await,
         Some(("neuron", matches)) => neurons::run_sns_neuron(matches, network).await,
-        Some(("reward", matches)) => {
-            reward::run_sns_reward(matches, network, network_was_explicit).await
-        }
         _ => unreachable!("clap requires a known SNS subcommand"),
     }
 }

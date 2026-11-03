@@ -40,16 +40,14 @@ pub(crate) use host::{subnet_catalog_history_lock_path, subnet_catalog_history_p
 pub use json::{catalog_to_pretty_json, parse_catalog_json};
 #[cfg(feature = "subnet-catalog-host")]
 pub use model::UncertifiedCatalogCollection;
-#[cfg(feature = "certified-subnet-catalog-host")]
-pub(crate) use model::canonicalize_subnet_catalog_content;
 #[cfg(feature = "subnet-catalog-host")]
 pub(in crate::subnet_catalog) use model::catalog_agreement_digest;
 pub use model::{
     CANISTER_RANGES_KEY_PREFIX, CLASSIFICATION_SCHEMA_VERSION, CatalogAssurance,
-    CatalogSnapshotAuthorityEvidence, CatalogValidationContext, CertifiedRegistryCatalogEvidence,
-    ClassificationSource, GeographicScope, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY,
-    RawSubnetCatalog, RoutingRange, SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX,
-    SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
+    CatalogSnapshotAuthorityEvidence, CatalogValidationContext, ClassificationSource,
+    GeographicScope, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY, RawSubnetCatalog, RoutingRange,
+    SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX, SubnetCatalogProvenance,
+    SubnetCatalogRegistryRecordEvidence, SubnetCatalogRegistryRecordKind,
     SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
     SubnetCatalogRoutingSource, SubnetClassification, SubnetInfo, SubnetKind, SubnetSpecialization,
     ValidatedSubnetCatalog,
@@ -61,9 +59,7 @@ pub use report::{
     CatalogStaleStatus, SubnetCatalogFilters, SubnetCatalogInfoReport, SubnetCatalogInfoRequest,
     SubnetCatalogListReport, SubnetCatalogListRequest, SubnetCatalogRefreshReport,
     SubnetCatalogReportMetadata, SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
-    build_subnet_catalog_info_report_with_progress, build_subnet_catalog_info_report_with_source,
     build_subnet_catalog_info_report_with_source_and_progress, build_subnet_catalog_list_report,
-    build_subnet_catalog_list_report_with_progress, build_subnet_catalog_list_report_with_source,
     build_subnet_catalog_list_report_with_source_and_progress,
 };
 pub use resolver::{ResolveAs, ResolvedCanisterRoute, ResolvedSubnet, ResolvedSubnetSubject};

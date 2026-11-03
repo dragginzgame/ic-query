@@ -45,33 +45,16 @@ const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 pub async fn refresh_icrc_account_transaction_cache(
     request: &IcrcAccountTransactionRefreshRequest,
 ) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    refresh_icrc_account_transaction_cache_with_source(request, &LiveIcrcSource::default()).await
-}
-
-/// Force a complete live refresh while emitting structured progress.
-pub async fn refresh_icrc_account_transaction_cache_with_progress(
-    request: &IcrcAccountTransactionRefreshRequest,
-    progress: &mut (dyn QueryProgress + Send),
-) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
     refresh_icrc_account_transaction_cache_with_source_and_progress(
         request,
         &LiveIcrcSource::default(),
-        progress,
+        &mut |_| {},
     )
     .await
 }
 
-/// Refresh with a caller-supplied complete-history source.
-pub async fn refresh_icrc_account_transaction_cache_with_source(
-    request: &IcrcAccountTransactionRefreshRequest,
-    source: &dyn IcrcAccountTransactionCollectionSource,
-) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
-    let mut progress = IgnoreQueryProgress;
-    refresh_icrc_account_transaction_cache_with_source_and_progress(request, source, &mut progress)
-        .await
-}
-
-async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
+/// Refresh with a caller-owned source and progress sink.
+pub async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
     request: &IcrcAccountTransactionRefreshRequest,
     source: &dyn IcrcAccountTransactionCollectionSource,
     progress: &mut (dyn QueryProgress + Send),

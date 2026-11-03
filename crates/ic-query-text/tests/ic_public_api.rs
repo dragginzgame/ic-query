@@ -26,35 +26,21 @@ use ic_query::ic::IcApiBoundaryNodeSourceData;
 use ic_query::ic::IcApiBoundaryNodeSourceRequest;
 use ic_query::ic::IcBoundaryNodeDataCenterRow;
 use ic_query::ic::IcBoundaryNodeDataCentersReport;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcBoundaryNodeDataCentersSourceData;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcCanisterCollectionSource;
 use ic_query::ic::IcCanisterCountReport;
 use ic_query::ic::IcCanisterCountRequest;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcCanisterCountSourceData;
 use ic_query::ic::IcCanisterFilters;
 use ic_query::ic::IcCanisterPageController;
 use ic_query::ic::IcCanisterPageReport;
 use ic_query::ic::IcCanisterPageRequest;
 use ic_query::ic::IcCanisterPageRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcCanisterPageSourceData;
 use ic_query::ic::IcCanisterReport;
 use ic_query::ic::IcCanisterRequest;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcCanisterSource;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcCanisterSourceData;
 use ic_query::ic::IcCanisterUpgrade;
 use ic_query::ic::IcCertifiedStateProvenance;
 use ic_query::ic::IcDailyStatsQuery;
 use ic_query::ic::IcDailyStatsReport;
 use ic_query::ic::IcDailyStatsRequest;
 use ic_query::ic::IcDailyStatsRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcDailyStatsSourceData;
 use ic_query::ic::IcDashboardReportProvenance;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::IcHostError;
@@ -109,12 +95,6 @@ use ic_query::ic::IcMetricQuery;
 use ic_query::ic::IcMetricReport;
 use ic_query::ic::IcMetricRequest;
 use ic_query::ic::IcMetricSeries;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcMetricSource;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcMetricSourceData;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcNetworkSource;
 use ic_query::ic::IcNodeCountComparison;
 use ic_query::ic::IcNodeProviderRewardHistoryObservation;
 use ic_query::ic::IcNodeProviderRewardHistoryQuery;
@@ -155,8 +135,6 @@ use ic_query::ic::IcReplicaVersionSubnetRollout;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::IcSourceRequest;
 use ic_query::ic::IcSubnetStatusReport;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::LiveIcSource;
 #[cfg(feature = "ic-state-host")]
 use ic_query::ic::LiveIcStateSource;
 use ic_query::ic::MAX_IC_CANISTER_PAGE_LIMIT;
@@ -167,30 +145,6 @@ use ic_query::ic::MAX_IC_REPLICA_VERSION_PAGE_LIMIT;
 use ic_query::ic::build_ic_api_boundary_node_report;
 #[cfg(feature = "ic-state-host")]
 use ic_query::ic::build_ic_api_boundary_node_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_boundary_node_data_centers_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_boundary_node_data_centers_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_count_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_count_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_page_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_page_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_canister_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_daily_stats_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_daily_stats_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_metric_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_metric_report_with_source;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_ic_node_provider_reward_history_report;
 #[cfg(feature = "dashboard-host")]
@@ -413,7 +367,6 @@ fn public_ic_boundary_node_api_is_constructible_serializable_and_renderable() {
     );
     let report = IcBoundaryNodeDataCentersReport {
         provenance: public_provenance(request.source_endpoint),
-        data_center_count: 1,
         total_node_count: 2,
         rows: vec![public_boundary_node_data_center()],
     };
@@ -438,7 +391,6 @@ fn public_ic_daily_stats_api_is_constructible_serializable_and_renderable() {
     let report = IcDailyStatsReport {
         provenance: public_provenance(request.dashboard.source_endpoint),
         query,
-        returned_day_count: 1,
         rows: vec![public_daily_stats_row()],
     };
 
@@ -469,7 +421,6 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
         status: IcReplicaVersionStatus::Executed,
         title: "Elect new IC/GuestOS revision".to_string(),
         url: "https://forum.dfinity.org/t/release/1".to_string(),
-        subnet_count: 1,
         subnets: vec![public_replica_version_rollout()],
     };
     let list = IcReplicaVersionListReport {
@@ -477,7 +428,6 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
         query,
         resolved_max_proposal_index: 438,
         total_proposals: 438,
-        returned_count: 1,
         next_offset: Some(1),
         rows: vec![row],
     };
@@ -496,7 +446,6 @@ fn public_ic_replica_version_api_is_constructible_serializable_and_renderable() 
             subnets: vec![public_replica_version_rollout()],
         },
         provenance: public_provenance(info_request.dashboard.source_endpoint),
-        subnet_count: 1,
     };
 
     let list_text = ic_replica_version_list_report_text(&list);
@@ -545,7 +494,6 @@ fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderab
         query: list_query,
         resolved_max_reward_index: 6_470,
         total_reward_records: 6_470,
-        returned_count: 1,
         next_offset_hint: Some(1),
         pages_may_overlap: true,
         rows: vec![reward.clone()],
@@ -567,7 +515,6 @@ fn public_ic_node_provider_reward_api_is_constructible_serializable_and_renderab
         provenance: public_provenance(history_request.dashboard.source_endpoint),
         query: history_query,
         requested_observation_limit: 5,
-        returned_observation_count: 1,
         observations: vec![IcNodeProviderRewardHistoryObservation {
             timestamp_unix_secs: 1_784_073_600,
             amount_e8s: 66_852_931_445_000,
@@ -611,8 +558,6 @@ fn public_ic_metric_api_is_constructible_serializable_and_renderable() {
     let report = IcMetricReport {
         provenance: public_provenance(request.dashboard.source_endpoint),
         query,
-        returned_series_count: 1,
-        returned_observation_count: 1,
         series: vec![IcMetricSeries {
             name: "instruction_rate".to_string(),
             observations: vec![IcMetricObservation {
@@ -651,7 +596,6 @@ fn public_icrc_analytics_api_is_constructible_serializable_and_renderable() {
         ledger_canister_id: request.analytics.ledger_canister_id,
         query,
         requested_observation_limit: 2,
-        returned_observation_count: 2,
         observations: vec![
             IcIcrcTotalSupplyObservation {
                 timestamp_unix_secs: 1_785_542_400,
@@ -743,7 +687,6 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
         provenance: public_provenance(account_request.analytics.dashboard.source_endpoint),
         ledger_canister_id: ICRC_LEDGER_ID.to_string(),
         query: account_query,
-        returned_count: 1,
         previous_cursor: Some("previous".to_string()),
         next_cursor: Some("next".to_string()),
         rows: vec![account_row.clone()],
@@ -782,7 +725,6 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
         provenance: public_provenance(holder_request.analytics.dashboard.source_endpoint),
         ledger_canister_id: ICRC_LEDGER_ID.to_string(),
         query: holder_query,
-        returned_count: 1,
         previous_cursor: None,
         next_cursor: Some("1000,aaaaa-aa".to_string()),
         rows: vec![IcIcrcHolderRow {
@@ -819,7 +761,6 @@ fn public_icrc_token_value_api_is_constructible_serializable_and_renderable() {
         provenance: public_provenance(request.analytics.dashboard.source_endpoint),
         ledger_canister_id: request.analytics.ledger_canister_id,
         query: request.query,
-        returned_row_count: 1,
         limit_reached: false,
         rows: vec![IcIcrcTokenValueRow {
             price: Some("63710.86993032754".to_string()),
@@ -910,7 +851,6 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
         provenance: public_provenance(page_request.dashboard.source_endpoint),
         filters,
         requested_limit: page_request.limit,
-        returned_count: 1,
         after: page_request.after,
         before: None,
         previous_cursor: Some(CANISTER_ID.to_string()),
@@ -925,141 +865,6 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
     let page_json = serde_json::to_value(page).expect("serializable page report");
     assert_eq!(page_json["authority"], "official_ic_dashboard_api");
     assert!(page_json.get("provenance").is_none());
-}
-
-#[cfg(feature = "dashboard-host")]
-#[tokio::test(flavor = "current_thread")]
-#[expect(
-    clippy::too_many_lines,
-    reason = "Keep the related current API/dependency admission cases together."
-)]
-async fn public_dashboard_host_api_exposes_live_and_custom_source_builders() {
-    let _: DashboardBuilder<IcCanisterRequest, IcCanisterReport> =
-        |request| Box::pin(build_ic_canister_report(request));
-    let _: for<'a> fn(
-        &'a IcCanisterRequest,
-        &'a dyn IcCanisterSource,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<IcCanisterReport, IcHostError>> =
-        |request, source| Box::pin(build_ic_canister_report_with_source(request, source));
-    let _: DashboardBuilder<IcCanisterCountRequest, IcCanisterCountReport> =
-        |arg0| Box::pin(build_ic_canister_count_report(arg0));
-    let _: for<'a> fn(
-        &'a IcCanisterCountRequest,
-        &'a dyn IcCanisterCollectionSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcCanisterCountReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_canister_count_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcCanisterPageRequest, IcCanisterPageReport> =
-        |arg0| Box::pin(build_ic_canister_page_report(arg0));
-    let _: for<'a> fn(
-        &'a IcCanisterPageRequest,
-        &'a dyn IcCanisterCollectionSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcCanisterPageReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_canister_page_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcMetricRequest, IcMetricReport> =
-        |arg0| Box::pin(build_ic_metric_report(arg0));
-    let _: for<'a> fn(
-        &'a IcMetricRequest,
-        &'a dyn IcMetricSource,
-    )
-        -> ic_query::report::SourceFuture<'a, Result<IcMetricReport, IcHostError>> =
-        |arg0, arg1| Box::pin(build_ic_metric_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<ic_query::ic::IcDashboardRequest, IcBoundaryNodeDataCentersReport> =
-        |arg0| Box::pin(build_ic_boundary_node_data_centers_report(arg0));
-    let _: for<'a> fn(
-        &'a ic_query::ic::IcDashboardRequest,
-        &'a dyn IcNetworkSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcBoundaryNodeDataCentersReport, IcHostError>,
-    > = |arg0, arg1| {
-        Box::pin(build_ic_boundary_node_data_centers_report_with_source(
-            arg0, arg1,
-        ))
-    };
-    let _: DashboardBuilder<IcDailyStatsRequest, IcDailyStatsReport> =
-        |arg0| Box::pin(build_ic_daily_stats_report(arg0));
-    let _: for<'a> fn(
-        &'a IcDailyStatsRequest,
-        &'a dyn IcNetworkSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcDailyStatsReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_daily_stats_report_with_source(arg0, arg1));
-    let _: LiveIcSource = LiveIcSource::default();
-    assert_eq!(
-        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
-        "https://ic-api.internetcomputer.org/api/v3"
-    );
-
-    let source = FixtureSource;
-    let request = IcCanisterRequest::new(
-        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000),
-        CANISTER_ID,
-    );
-    let report = build_ic_canister_report_with_source(&request, &source)
-        .await
-        .expect("custom source report");
-
-    assert_eq!(report.canister_id, CANISTER_ID);
-
-    let count_request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
-        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
-        1_700_000_000,
-    ));
-    let count = build_ic_canister_count_report_with_source(&count_request, &source)
-        .await
-        .expect("custom count source report");
-    assert_eq!(count.total, 1);
-
-    let page_request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
-        DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
-        1_700_000_000,
-    ))
-    .with_limit(1);
-    let page = build_ic_canister_page_report_with_source(&page_request, &source)
-        .await
-        .expect("custom page source report");
-    assert_eq!(page.returned_count, 1);
-
-    let metric_request = IcMetricRequest::new(
-        ic_query::ic::IcDashboardRequest::new(
-            DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
-            1_700_000_000,
-        ),
-        IcMetricQuery::new(
-            IcMetricKind::InstructionRate,
-            1_699_996_400,
-            1_700_000_000,
-            DEFAULT_IC_METRIC_STEP_SECS,
-        ),
-    );
-    let metric = build_ic_metric_report_with_source(&metric_request, &source)
-        .await
-        .expect("custom metric source report");
-    assert_eq!(metric.returned_observation_count, 1);
-
-    let network_request = ic_query::ic::IcDashboardRequest::new(
-        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
-        1_700_000_000,
-    );
-    let network = build_ic_boundary_node_data_centers_report_with_source(&network_request, &source)
-        .await
-        .expect("custom network source report");
-    assert_eq!(network.data_center_count, 1);
-
-    let daily_stats_request = IcDailyStatsRequest::new(
-        ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_785_542_400),
-        IcDailyStatsQuery::new(1_785_456_000, 1_785_542_400),
-    );
-    let daily_stats = build_ic_daily_stats_report_with_source(&daily_stats_request, &source)
-        .await
-        .expect("custom daily-statistics source report");
-    assert_eq!(daily_stats.returned_day_count, 1);
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -1259,7 +1064,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     let accounts = build_icrc_account_list_report_with_source(&account_request, &source)
         .await
         .expect("custom ICRC account source report");
-    assert_eq!(accounts.returned_count, 1);
+    assert_eq!(accounts.rows.len(), 1);
 
     let holder_request = IcIcrcHolderListRequest::new(
         ic_query::ic::IcDashboardRequest::new(
@@ -1272,7 +1077,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     let holders = build_icrc_holder_list_report_with_source(&holder_request, &source)
         .await
         .expect("custom ICRC holder source report");
-    assert_eq!(holders.returned_count, 1);
+    assert_eq!(holders.rows.len(), 1);
 
     let token_value_request = IcIcrcTokenValueRequest::new(
         ic_query::ic::IcDashboardRequest::new(
@@ -1285,7 +1090,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
     let token_values = build_icrc_token_value_report_with_source(&token_value_request, &source)
         .await
         .expect("custom ICRC token-value source report");
-    assert_eq!(token_values.returned_row_count, 1);
+    assert_eq!(token_values.rows.len(), 1);
 
     let request = IcIcrcTotalSupplyRequest::new(
         ic_query::ic::IcDashboardRequest::new(
@@ -1299,7 +1104,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builde
         .await
         .expect("custom ICRC analytics source report");
 
-    assert_eq!(report.returned_observation_count, 2);
+    assert_eq!(report.observations.len(), 2);
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -1323,93 +1128,6 @@ fn public_dashboard_host_error_preserves_oversized_response_evidence() {
 
 #[cfg(feature = "dashboard-host")]
 struct FixtureSource;
-
-#[cfg(feature = "dashboard-host")]
-impl IcCanisterSource for FixtureSource {
-    fn fetch_canister<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-        canister_id: &'a str,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterSourceData, IcHostError>> {
-        Box::pin(async move {
-            Ok(IcCanisterSourceData {
-                source: request.clone(),
-                canister_id: canister_id.to_string(),
-                dashboard_id: 1,
-                canister_type: None,
-                name: String::new(),
-                subnet_id: SUBNET_ID.to_string(),
-                controllers: Vec::new(),
-                language: String::new(),
-                module_hash: String::new(),
-                dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
-                upgrades: None,
-            })
-        })
-    }
-}
-
-#[cfg(feature = "dashboard-host")]
-impl IcCanisterCollectionSource for FixtureSource {
-    fn fetch_canister_count<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-        filters: &'a IcCanisterFilters,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterCountSourceData, IcHostError>> {
-        Box::pin(async move {
-            Ok(IcCanisterCountSourceData {
-                source: request.clone(),
-                filters: filters.clone(),
-                total: 1,
-            })
-        })
-    }
-
-    fn fetch_canister_page<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-        filters: &'a IcCanisterFilters,
-        limit: u16,
-        after: Option<&'a str>,
-        before: Option<&'a str>,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcCanisterPageSourceData, IcHostError>> {
-        Box::pin(async move {
-            Ok(IcCanisterPageSourceData {
-                source: request.clone(),
-                filters: filters.clone(),
-                requested_limit: limit,
-                after: after.map(str::to_string),
-                before: before.map(str::to_string),
-                previous_cursor: None,
-                next_cursor: Some(CANISTER_ID.to_string()),
-                rows: vec![public_page_row()],
-            })
-        })
-    }
-}
-
-#[cfg(feature = "dashboard-host")]
-impl IcMetricSource for FixtureSource {
-    fn fetch_metric<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-        query: &'a IcMetricQuery,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcMetricSourceData, IcHostError>> {
-        Box::pin(async move {
-            Ok(IcMetricSourceData {
-                source: request.clone(),
-                query: query.clone(),
-                series: vec![IcMetricSeries {
-                    name: "instruction_rate".to_string(),
-                    observations: vec![IcMetricObservation {
-                        timestamp_unix_secs: query.end_unix_secs,
-                        value: "21089992048.10834".to_string(),
-                    }],
-                }],
-            })
-        })
-    }
-}
 
 #[cfg(feature = "dashboard-host")]
 impl IcIcrcAnalyticsSource for FixtureSource {
@@ -1556,36 +1274,6 @@ fn public_icrc_account_source_row() -> IcIcrcAccountSourceRow {
         dashboard_updated_at: "2026-04-14T18:54:04.330496".to_string(),
         active_fee_collector: false,
         fee_collector_block_ranges: Vec::new(),
-    }
-}
-
-#[cfg(feature = "dashboard-host")]
-impl IcNetworkSource for FixtureSource {
-    fn fetch_boundary_node_data_centers<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcBoundaryNodeDataCentersSourceData, IcHostError>>
-    {
-        Box::pin(async move {
-            Ok(IcBoundaryNodeDataCentersSourceData {
-                source: request.clone(),
-                rows: vec![public_boundary_node_data_center()],
-            })
-        })
-    }
-
-    fn fetch_daily_stats<'a>(
-        &'a self,
-        request: &'a IcSourceRequest,
-        query: &'a IcDailyStatsQuery,
-    ) -> ic_query::report::SourceFuture<'a, Result<IcDailyStatsSourceData, IcHostError>> {
-        Box::pin(async move {
-            Ok(IcDailyStatsSourceData {
-                source: request.clone(),
-                query: query.clone(),
-                rows: vec![public_daily_stats_row()],
-            })
-        })
     }
 }
 

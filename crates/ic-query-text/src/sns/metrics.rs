@@ -63,7 +63,10 @@ pub fn sns_metrics_report_text(report: &SnsMetricsReport) -> String {
             "genesis_timestamp_seconds: {}",
             optional_u64_text(report.metrics.genesis_timestamp_seconds)
         ),
-        format!("treasury_metric_count: {}", report.treasury_metric_count),
+        format!(
+            "treasury_metric_count: {}",
+            report.metrics.treasury_metrics.len()
+        ),
         format!(
             "sns_wasm_canister_id: {}",
             report.context.sns_wasm_canister_id

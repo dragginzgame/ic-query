@@ -7,6 +7,36 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.89.0]
+
+### ⚠️ Breaking
+
+- Adopt the [Query 0.89 API and catalog contract cut](../query/0.89.md). Preserve
+  historical archives and affected catalog evidence before updating consumers.
+
+### 🧹 Cleanup
+
+- Delegate integer quantity scaling, rounding and unit promotion to Host Text
+  0.74.1. Retain Query's cycle/byte units and existing human-facing output.
+
+- Consolidate binary help assertions and retire duplicate cached inventory tests
+  while retaining command paths, renderer contracts and external source coverage.
+
+### 🗑️ Removed
+
+- Remove the SNS reward checkpoint/diff commands and renderers. Preserve existing
+  files with their former reader; no current command migrates or deletes them.
+- Adopt Query's remaining count/presentation-field removals in JSON and inventory
+  caches. Human-facing values for retained commands are derived from raw evidence.
+
+### 🔧 Changed
+
+- Align Platform 0.19, Host Tools 0.79, Testkit 0.81, Wire 0.16 and the latest
+  published Foundation/Build packages; adopt committed Shared Tooling 0.28.0.
+  Keep Rust 1.99.1 and the existing release/native qualification scope.
+
+Details: [0.89 notes](0.89.md).
+
 ## [0.88.0] - 2026-11-02
 
 ### ⚠️ Breaking
