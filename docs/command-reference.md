@@ -70,8 +70,6 @@ icq sns metrics 1
 icq sns upgrade 1
 icq sns proposal list 1 --limit 25
 icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-icq sns reward checkpoint 1 --json
-icq sns reward diff before-checkpoint.json after-checkpoint.json --json
 
 # Generic ICRC reports
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -104,7 +102,7 @@ icq nns topology summary --json
 Run `icq help`, `icq help <path>`, or append `--help` to a command for its
 current options and collection mode. A command namespace without its next
 operation displays the same complete local help as its explicit `help`
-subcommand, such as `icq sns reward`. Every
+subcommand, such as `icq sns neuron`. Every
 `Commands` section is ordered alphabetically. The complete command map and
 cache behavior are documented in
 [CLI Usage](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md).
@@ -194,8 +192,6 @@ icq sns proposal cache list
 icq sns proposal cache status <SNS>
 icq sns proposal info <SNS> <proposal-id>
 icq sns proposal list|refresh <SNS>
-icq sns reward checkpoint <SNS>
-icq sns reward diff <before.json> <after.json>
 
 icq icrc account allowance|balance
 icq icrc account transaction cache|list|page|refresh

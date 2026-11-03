@@ -61,7 +61,7 @@ icq icrc account transaction --help
 | [0.23 Bounded SNS Completeness](design/0.23/0.23-design.md) | Targeted discovery hard cut plus bounded native swap and upgrade evidence |
 | [0.24 Bounded SNS Governance Metrics](design/0.24/0.24-design.md) | Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp evidence |
 | [0.25 Fuller Fixed-Size SNS Neuron Evidence](design/0.25/0.25-design.md) | Native scalar neuron state with unchanged call and collection bounds |
-| [0.26 SNS Maturity Reward Evidence](design/0.26/0.26-design.md) | Exact neuron permission detail, bracketed reward checkpoints, and pure local reward-event reconciliation |
+| [0.26 SNS Maturity Reward Evidence](design/0.26/0.26-design.md) | Exact neuron permission detail; historical checkpoint and reconciliation contracts retired in 0.89 |
 | [0.27 Bounded Official ICRC Analytics](design/0.27/0.27-design.md) | One-request ledger total-supply/token-value history and indexed account, holder, and transaction counts with explicit off-chain authority and bounds |
 | [0.28 Observed IC Node And Subnet Status](design/0.28/0.28-design.md) | One bounded Dashboard node snapshot, short-lived atomic cache, and node/Subnet/provider operational projections |
 | [0.29 Subnet Catalog Authority And Embedder Hardening](design/0.29/0.29-design.md) | Explicit Registry assurance, raw/validated catalog separation, provenance-bound routes, freshness policy, and staged host hardening |

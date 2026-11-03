@@ -72,12 +72,6 @@ pub(in crate::sns::report::live) struct ListNeuronsResponse {
 }
 
 ///
-/// ListRewardNeuronsResponse
-///
-/// Candid response projected to the variable fields required by reward checkpoints.
-///
-
-///
 /// SnsGovernanceNeuron
 ///
 /// Candid SNS governance neuron row converted into report data.
@@ -127,12 +121,6 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
     pub(in crate::sns::report::live) topic_followees: Option<SnsGovernanceTopicFollowees>,
     pub(in crate::sns::report::live) neuron_fees_e8s: u64,
 }
-
-///
-/// SnsGovernanceRewardNeuron
-///
-/// Native neuron projection retaining only reward-checkpoint evidence.
-///
 
 ///
 /// SnsGovernanceNeuronPermission

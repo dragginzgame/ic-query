@@ -5,10 +5,9 @@
 Use `ic-query` for typed requests, reports, validation, cache behavior, source
 adapters, and renderers without spawning `icq`.
 
-The pending [0.86 consumer update](changelog/0.86.md) covers canonical catalog
-load failures, typed report origins and SNS lifecycle outcomes, account-history
-contexts, and grouped reward-diff observations. Continuation status is derived
-from admitted page/cursor facts; all schemas remain `1`.
+The [0.89 consumer update](../releases/query/0.89.md) removes Registry archives,
+SNS reward checkpoints and diffs, and redundant report fields. Continuation status
+is derived from admitted page/cursor facts; all schemas remain `1`.
 
 Pure DTO and rendering use has no host dependencies:
 
@@ -177,7 +176,7 @@ Focused host features let embedders select one reporting family:
 | `icrc-host` | Native ICRC ledger/index reports and complete account-history cache |
 | `nns-host` | Complete NNS governance, certified Registry latest-version reports, Registry inventory, component-cache, and topology APIs |
 | `nns-topology-host` | Exact-version joined NNS topology plus Subnet Catalog |
-| `sns-host` | Native SNS reports, caches, and reward evidence |
+| `sns-host` | Native SNS reports and caches |
 | `subnet-catalog-host` | Focused Subnet Catalog authority, cache, and resolution APIs |
 | `host` | Convenience union of every focused host family |
 | `certificate-host` | Bounded typed certificate/witness authentication and certified ledger tips |
