@@ -219,7 +219,7 @@ case "$*" in
     packages='[]'
     for package in ic-query ic-query-testkit ic-query-cli ic-query-text; do
       version="$("$YQ" -p toml -o json -r '.package.version' "crates/$package/Cargo.toml")"
-      packages="$(jq --arg name "$package" --arg version "$version" --arg path "$PWD/crates/$package/Cargo.toml" '. + [{id:$name,name:$name,version:$version,source:null,manifest_path:$path}]' <<< "$packages")"
+      packages="$(jq --arg name "$package" --arg version "$version" --arg path "$PWD/crates/$package/Cargo.toml" '. + [{id:$name,name:$name,version:$version,source:null,manifest_path:$path,publish:null,dependencies:[]}]' <<< "$packages")"
     done
     jq -n --arg root "$PWD" --argjson packages "$packages" '{workspace_root:$root,workspace_members:($packages|map(.id)),packages:$packages}' ;;
 
