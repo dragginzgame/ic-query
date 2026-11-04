@@ -100,7 +100,7 @@ selector, shared runner and retained-receipt check. Select it with
 Generic schema/path/event tests remain upstream. These fixtures establish dispatch
 and custody, not product execution, native macOS support or a measured speedup.
 
-## Linux mapping admission, 2026-11-04
+## Native mapping admission, 2026-11-04
 
 The current mapping `ae59229f106af387c90a41cadfeeb2832e0f21e6e10d3bff8fca8bca292447b3`
 passed full, Query and CLI/Text comparisons on Linux x86_64 with Rust 1.99.1:
@@ -114,9 +114,12 @@ The local comparison at source `075a2102e1581768d65f19e872afb1724c9d5c42`
 retains its summary at
 `target/release-validation/qualification.RgH8SK/qualification.json`. That source
 adds documentation only and has the same mapping. Linux admission records this
-observed pair. macOS pairs retain the full fallback until their own comparisons
-complete and their evidence is admitted; hosted qualification remains separate
-from the fresh local release gate.
+observed pair. macOS 15 ARM64 also passed 24 full, 21 Query and 20 CLI/Text
+stages for the same source and mapping; its
+[hosted evidence](https://github.com/dragginzgame/ic-query/actions/runs/41843201059/job/126619913040)
+is retained independently. Linux and macOS ARM64 are admitted. macOS Intel keeps
+the full fallback until its complete comparison proof is available and admitted.
+Hosted qualification remains separate from the fresh local release gate.
 
 ## Earlier mapping qualification, 2026-11-03
 
