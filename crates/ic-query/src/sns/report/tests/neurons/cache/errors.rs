@@ -1,7 +1,7 @@
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
 use crate::sns::report::tests::{fixtures::*, *};
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use std::fs;
 
 #[tokio::test(flavor = "current_thread")]

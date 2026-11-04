@@ -4,13 +4,12 @@
 //! Does not own: report DTOs, family-specific provenance, or JSON output.
 //! Boundary: formats raw metadata values for human text.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
 use crate::text_value::optional_text;
+use crate::text_value::table;
 use crate::text_value::truncate_text;
 use crate::token_amount::base_units_decimal_text;
-use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 use ic_query::icrc::IcrcTokenData;
 use ic_query::icrc::IcrcTokenMetadataRow;
 use ic_query::icrc::IcrcTokenStandardRow;
@@ -60,24 +59,24 @@ const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 
 pub fn token_summary_lines(token: &IcrcTokenData) -> Vec<String> {
     vec![
-        format!("token_name: {}", terminal_text(&token.token_name)),
-        format!("token_symbol: {}", terminal_text(&token.token_symbol)),
-        format!("decimals: {}", token.decimals),
-        format!(
-            "transfer_fee: {}",
-            base_units_decimal_text(&token.transfer_fee, token.decimals)
+        field("token_name", &token.token_name),
+        field("token_symbol", &token.token_symbol),
+        field("decimals", &(token.decimals)),
+        field(
+            "transfer_fee",
+            &(base_units_decimal_text(&token.transfer_fee, token.decimals)),
         ),
-        format!(
-            "total_supply: {}",
-            base_units_decimal_text(&token.total_supply, token.decimals)
+        field(
+            "total_supply",
+            &(base_units_decimal_text(&token.total_supply, token.decimals)),
         ),
-        format!(
-            "minting_account_owner: {}",
-            optional_text(token.minting_account_owner.as_ref())
+        field(
+            "minting_account_owner",
+            &(optional_text(token.minting_account_owner.as_ref())),
         ),
-        format!(
-            "minting_account_subaccount_hex: {}",
-            optional_text(token.minting_account_subaccount_hex.as_ref())
+        field(
+            "minting_account_subaccount_hex",
+            &(optional_text(token.minting_account_subaccount_hex.as_ref())),
         ),
     ]
 }
@@ -94,19 +93,18 @@ pub fn append_token_metadata_tables(lines: &mut Vec<String>, token: &IcrcTokenDa
 }
 
 pub fn render_standard_rows_table(standards: &[IcrcTokenStandardRow]) -> String {
-    render(
+    table(
         &["STANDARD", "URL"],
         &standards
             .iter()
             .map(|standard| [standard.name.clone(), standard.url.clone()])
             .collect::<Vec<_>>(),
-        &[Alignment::Left, Alignment::Left],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 2],
     )
 }
 
 fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> String {
-    render(
+    table(
         &["METADATA", "TYPE", "VALUE"],
         &rows
             .iter()
@@ -121,7 +119,6 @@ fn render_metadata_rows_table(rows: &[IcrcTokenMetadataRow], decimals: u8) -> St
                 ]
             })
             .collect::<Vec<_>>(),
-        &[Alignment::Left, Alignment::Left, Alignment::Left],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 3],
     )
 }

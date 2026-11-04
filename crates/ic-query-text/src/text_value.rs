@@ -5,7 +5,8 @@
 //! Boundary: delegates escaping/layout to Host while keeping report presentation choices local.
 
 use ic_host_text::escape::terminal_text;
-use ic_host_text::table::Options;
+use ic_host_text::table::{Alignment, Options};
+use std::{borrow::Cow, fmt::Display};
 
 pub const REPORT_TABLE_OPTIONS: Options = Options {
     column_gap: 3,
@@ -70,5 +71,45 @@ pub fn refresh_finalization_lines(error: Option<&str>) -> [String; 2] {
             "attempt_finalization_error: {}",
             terminal_text(error.unwrap_or("-"))
         ),
+    ]
+}
+
+/// Render one Query-labelled record line with Host's terminal escaping.
+pub fn field(name: &str, value: &dyn Display) -> String {
+    let line = format!("{name}: {value}");
+    match terminal_text(&line) {
+        Cow::Borrowed(_) => line,
+        Cow::Owned(escaped) => escaped,
+    }
+}
+
+/// Render Query's report table style through Host.
+pub fn table<const N: usize>(
+    headers: &[impl AsRef<str>; N],
+    rows: &[[impl AsRef<str>; N]],
+    alignments: &[Alignment; N],
+) -> String {
+    ic_host_text::table::render(headers, rows, alignments, REPORT_TABLE_OPTIONS)
+}
+
+/// Summarize publication and attempt-finalization evidence in one stable order.
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+pub fn refresh_outcome_lines(wrote: bool, replaced: bool, error: Option<&str>) -> [String; 4] {
+    let [finalized, error] = refresh_finalization_lines(error);
+    [
+        field("wrote_cache", &yes_no(wrote)),
+        field("replaced_existing_cache", &yes_no(replaced)),
+        finalized,
+        error,
+    ]
+}
+
+/// Identify the published cache and its coordination evidence.
+#[cfg(any(feature = "nns-host", feature = "sns-host"))]
+pub fn refresh_path_lines(cache: &str, lock: &str, attempt: &str) -> [String; 3] {
+    [
+        field("cache_path", &cache),
+        field("refresh_lock_path", &lock),
+        field("refresh_attempt_path", &attempt),
     ]
 }

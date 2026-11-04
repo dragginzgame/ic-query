@@ -114,7 +114,6 @@ pub async fn build_cloud_engine_node_list_report_with_source(
         node_reward_type: source_data.node_reward_type,
         included_statuses: source_data.included_statuses,
         requested_node_provider_id,
-        node_count: source_data.nodes.len(),
         status_counts: node_status_counts(source_data.nodes.iter()),
         node_provider_count: node_providers.len(),
         cloud_engine_subnet_count: cloud_engine_subnets.len(),

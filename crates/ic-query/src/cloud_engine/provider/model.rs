@@ -156,8 +156,6 @@ pub struct CloudEngineProviderListReport {
     pub provenance: IcDashboardReportProvenance,
     /// Number of provider rows in the complete source resource before filtering.
     pub source_node_provider_count: usize,
-    /// Number of rows with explicit CloudEngine evidence.
-    pub cloud_engine_provider_count: usize,
     /// CloudEngine-bearing providers in canonical principal order.
     pub providers: Vec<CloudEngineProviderRow>,
 }

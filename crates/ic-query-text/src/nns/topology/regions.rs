@@ -4,9 +4,8 @@
 //! Does not own: region aggregation, source reads, or JSON output.
 //! Boundary: formats data-center region rows for human inspection.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use ic_query::nns::topology::NnsTopologyRegionRow;
 use ic_query::nns::topology::NnsTopologyRegionsReport;
@@ -44,5 +43,5 @@ fn render_regions_table(rows: &[NnsTopologyRegionRow]) -> String {
         Alignment::Right,
         Alignment::Right,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

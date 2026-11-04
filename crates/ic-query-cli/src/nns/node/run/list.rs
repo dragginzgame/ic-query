@@ -7,7 +7,6 @@ use crate::{
 use clap::ArgMatches;
 use ic_query::nns::node::build_nns_node_list_report_with_source_and_progress;
 use ic_query_text::nns::node::nns_node_list_report_text;
-use ic_query_text::nns::node::nns_node_list_report_verbose_text;
 pub(super) async fn run_node_list(
     matches: &ArgMatches,
     network: &str,
@@ -20,11 +19,5 @@ pub(super) async fn run_node_list(
         &mut StderrQueryProgress::new(),
     )
     .await?;
-    write_text_or_json_verbose(
-        format,
-        &report,
-        verbose,
-        nns_node_list_report_text,
-        nns_node_list_report_verbose_text,
-    )
+    write_text_or_json_verbose(format, &report, verbose, nns_node_list_report_text)
 }

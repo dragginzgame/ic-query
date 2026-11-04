@@ -53,9 +53,10 @@ retain their separate acceptance gates.
   There is no second version list in this guide. dfx is not selected.
 - Build and Testkit executable setup and offline admission select the same
   explicit `cli` feature set. Library-only dependencies omit that feature.
-  Native fixtures import the independently published `ic-platform-pocket-ic`
-  0.19 client directly, matching Testkit 0.81 and its management DTO 0.11 identity.
-  Platform 0.19 supplies Candid fixture protocols. Testkit owns simulator startup,
+  Native fixtures import Testkit 0.85's owned `ic_testkit::pocket_ic` client,
+  retaining management DTO 0.11. Platform 0.22 supplies Query's external Candid fixture imports; Testkit retains
+  its internal Platform 0.21 Candid/management DTO dependency.
+  Testkit owns simulator startup,
   installation extensions, reply fixtures and the existing PocketIC 16.1.0 server
   selection; client compilation does not replace installed server acceptance.
 - Make uses the admitted checkout-local paths. Interactive shells can select them
@@ -108,6 +109,12 @@ consumer's selected release-runner fixtures simulate Git effects; they do not
 execute releases or create real release commits, tags or pushes.
 
 ## Native CI and qualification
+
+The [release-group mapping](query-release-validation.md) retains full repository
+CI on every declared host. Changed mapping/runner inputs select matched full and
+selected qualification; routine source changes run the full roster once. Host
+admission is tied to the actual mapping fingerprint, and unqualified release
+hosts retain the complete gate. The installed-canister lane is unchanged.
 
 The workflow runs complete checks and canister integration on each declared
 host using the same admitted Rust 1.99.1 compiler. The former separate MSRV

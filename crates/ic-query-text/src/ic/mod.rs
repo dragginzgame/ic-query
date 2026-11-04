@@ -4,10 +4,10 @@
 //! Does not own: REST calls, report construction, JSON serialization, or command output.
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::human_quantity::decimal_cycle_rate_text;
 use crate::text_value::optional_text;
@@ -41,33 +41,30 @@ const IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT: usize = 240;
 
 pub(crate) fn dashboard_provenance_lines(provenance: &IcDashboardReportProvenance) -> Vec<String> {
     vec![
-        format!("schema_version: {}", provenance.schema_version),
-        format!("network: {}", terminal_text(&provenance.network)),
-        format!("authority: {}", terminal_text(&provenance.authority)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&provenance.source_endpoint)
-        ),
-        format!("fetched_at: {}", terminal_text(&provenance.fetched_at)),
-        format!("fetched_by: {}", terminal_text(&provenance.fetched_by)),
-        format!("certified: {}", yes_no(provenance.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(provenance.point_in_time_guaranteed)
+        field("schema_version", &(provenance.schema_version)),
+        field("network", &provenance.network),
+        field("authority", &provenance.authority),
+        field("source_endpoint", &provenance.source_endpoint),
+        field("fetched_at", &provenance.fetched_at),
+        field("fetched_by", &provenance.fetched_by),
+        field("certified", &(yes_no(provenance.certified))),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(provenance.point_in_time_guaranteed)),
         ),
     ]
 }
 
 fn query_window_lines(start_unix_secs: u64, end_unix_secs: u64) -> [String; 2] {
     [
-        format!("start_unix_secs: {start_unix_secs}"),
-        format!("end_unix_secs: {end_unix_secs}"),
+        field("start_unix_secs", &(start_unix_secs)),
+        field("end_unix_secs", &(end_unix_secs)),
     ]
 }
 
 fn series_query_lines(start_unix_secs: u64, end_unix_secs: u64, step_secs: u32) -> [String; 3] {
     let [start, end] = query_window_lines(start_unix_secs, end_unix_secs);
-    [start, end, format!("step_secs: {step_secs}")]
+    [start, end, field("step_secs", &(step_secs))]
 }
 
 /// Render one official boundary-node data-center report as human-facing text.
@@ -77,8 +74,8 @@ pub fn ic_boundary_node_data_centers_report_text(
 ) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("data_center_count: {}", report.rows.len()),
-        format!("total_node_count: {}", report.total_node_count),
+        field("data_center_count", &(report.rows.len())),
+        field("total_node_count", &(report.total_node_count)),
     ]);
 
     if !report.rows.is_empty() {
@@ -108,7 +105,7 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
         report.query.start_unix_secs,
         report.query.end_unix_secs,
     ));
-    lines.extend([format!("returned_day_count: {}", report.rows.len())]);
+    lines.extend([field("returned_day_count", &(report.rows.len()))]);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -136,28 +133,28 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
 pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("limit: {}", report.query.limit),
-        format!("offset: {}", report.query.offset),
-        format!(
-            "requested_max_reward_index: {}",
-            optional_u64_text(report.query.max_reward_index)
+        field("limit", &(report.query.limit)),
+        field("offset", &(report.query.offset)),
+        field(
+            "requested_max_reward_index",
+            &(optional_u64_text(report.query.max_reward_index)),
         ),
-        format!(
-            "resolved_max_reward_index: {}",
-            report.resolved_max_reward_index
+        field(
+            "resolved_max_reward_index",
+            &(report.resolved_max_reward_index),
         ),
-        format!("total_reward_records: {}", report.total_reward_records),
-        format!("returned_count: {}", report.rows.len()),
-        format!(
-            "next_offset_hint: {}",
-            optional_u64_text(report.next_offset_hint)
+        field("total_reward_records", &(report.total_reward_records)),
+        field("returned_count", &(report.rows.len())),
+        field(
+            "next_offset_hint",
+            &(optional_u64_text(report.next_offset_hint)),
         ),
-        format!("pages_may_overlap: {}", yes_no(report.pages_may_overlap)),
+        field("pages_may_overlap", &(yes_no(report.pages_may_overlap))),
     ]);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &[
                 "ID",
                 "PROVIDER",
@@ -188,7 +185,6 @@ pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardLis
                 Alignment::Right,
                 Alignment::Right,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")
@@ -201,40 +197,37 @@ pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInf
     let details = serde_json::to_string(&reward.details).unwrap_or_else(|_| "{}".to_string());
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("reward_id: {}", reward.reward_id),
-        format!("node_provider_id: {}", reward.node_provider_id),
-        format!("amount_e8s: {}", reward.amount_e8s),
-        format!("reward_mode: {}", terminal_text(&reward.reward_mode)),
-        format!(
-            "reward_timestamp_unix_secs: {}",
-            reward.reward_timestamp_unix_secs
+        field("reward_id", &(reward.reward_id)),
+        field("node_provider_id", &(reward.node_provider_id)),
+        field("amount_e8s", &(reward.amount_e8s)),
+        field("reward_mode", &reward.reward_mode),
+        field(
+            "reward_timestamp_unix_secs",
+            &(reward.reward_timestamp_unix_secs),
         ),
-        format!(
-            "dashboard_updated_at: {}",
-            terminal_text(&reward.dashboard_updated_at)
+        field("dashboard_updated_at", &reward.dashboard_updated_at),
+        field("proposal_id", &(optional_u64_text(reward.proposal_id))),
+        field(
+            "registry_version",
+            &(optional_u64_text(reward.registry_version)),
         ),
-        format!("proposal_id: {}", optional_u64_text(reward.proposal_id)),
-        format!(
-            "registry_version: {}",
-            optional_u64_text(reward.registry_version)
+        field(
+            "maximum_node_provider_rewards_e8s",
+            &(optional_u64_text(reward.maximum_node_provider_rewards_e8s)),
         ),
-        format!(
-            "maximum_node_provider_rewards_e8s: {}",
-            optional_u64_text(reward.maximum_node_provider_rewards_e8s)
+        field(
+            "minimum_xdr_permyriad_per_icp",
+            &(optional_u64_text(reward.minimum_xdr_permyriad_per_icp)),
         ),
-        format!(
-            "minimum_xdr_permyriad_per_icp: {}",
-            optional_u64_text(reward.minimum_xdr_permyriad_per_icp)
+        field(
+            "xdr_timestamp_unix_secs",
+            &(optional_u64_text(reward.xdr_conversion_rate.timestamp_unix_secs)),
         ),
-        format!(
-            "xdr_timestamp_unix_secs: {}",
-            optional_u64_text(reward.xdr_conversion_rate.timestamp_unix_secs)
+        field(
+            "xdr_permyriad_per_icp",
+            &(optional_u64_text(reward.xdr_conversion_rate.xdr_permyriad_per_icp)),
         ),
-        format!(
-            "xdr_permyriad_per_icp: {}",
-            optional_u64_text(reward.xdr_conversion_rate.xdr_permyriad_per_icp)
-        ),
-        format!("details: {}", terminal_text(&details)),
+        field("details", &details),
     ]);
     lines.join("\n")
 }
@@ -251,16 +244,16 @@ pub fn ic_node_provider_reward_history_report_text(
         report.query.step_secs,
     ));
     lines.extend([
-        format!(
-            "requested_observation_limit: {}",
-            report.requested_observation_limit
+        field(
+            "requested_observation_limit",
+            &(report.requested_observation_limit),
         ),
-        format!("returned_observation_count: {}", report.observations.len()),
+        field("returned_observation_count", &(report.observations.len())),
     ]);
 
     if !report.observations.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &["TIMESTAMP", "AMOUNT_E8S"],
             &report
                 .observations
@@ -272,8 +265,7 @@ pub fn ic_node_provider_reward_history_report_text(
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[Alignment::Right, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
+            &[Alignment::Right; 2],
         ));
     }
     lines.join("\n")
@@ -284,24 +276,24 @@ pub fn ic_node_provider_reward_history_report_text(
 pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("limit: {}", report.query.limit),
-        format!("offset: {}", report.query.offset),
-        format!(
-            "requested_max_proposal_index: {}",
-            optional_u64_text(report.query.max_proposal_index)
+        field("limit", &(report.query.limit)),
+        field("offset", &(report.query.offset)),
+        field(
+            "requested_max_proposal_index",
+            &(optional_u64_text(report.query.max_proposal_index)),
         ),
-        format!(
-            "resolved_max_proposal_index: {}",
-            report.resolved_max_proposal_index
+        field(
+            "resolved_max_proposal_index",
+            &(report.resolved_max_proposal_index),
         ),
-        format!("total_proposals: {}", report.total_proposals),
-        format!("returned_count: {}", report.rows.len()),
-        format!("next_offset: {}", optional_u64_text(report.next_offset)),
+        field("total_proposals", &(report.total_proposals)),
+        field("returned_count", &(report.rows.len())),
+        field("next_offset", &(optional_u64_text(report.next_offset))),
     ]);
 
     if !report.rows.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &[
                 "VERSION",
                 "STATUS",
@@ -332,7 +324,6 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
                 Alignment::Right,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")
@@ -343,24 +334,21 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
 pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!(
-            "replica_version_id: {}",
-            terminal_text(&report.release.replica_version_id)
+        field("replica_version_id", &report.release.replica_version_id),
+        field("proposal_id", &(report.release.proposal_id)),
+        field(
+            "executed_timestamp_seconds",
+            &(report.release.executed_timestamp_seconds),
         ),
-        format!("proposal_id: {}", report.release.proposal_id),
-        format!(
-            "executed_timestamp_seconds: {}",
-            report.release.executed_timestamp_seconds
-        ),
-        format!("title: {}", text_or_dash(&report.release.title)),
-        format!("url: {}", text_or_dash(&report.release.url)),
-        format!("subnet_count: {}", report.release.subnets.len()),
-        format!(
-            "summary: {}",
-            truncate_text(
+        field("title", &(text_or_dash(&report.release.title))),
+        field("url", &(text_or_dash(&report.release.url))),
+        field("subnet_count", &(report.release.subnets.len())),
+        field(
+            "summary",
+            &(truncate_text(
                 &report.release.summary,
-                IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT
-            )
+                IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT,
+            )),
         ),
     ]);
 
@@ -381,21 +369,21 @@ pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) 
 #[must_use]
 pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([format!("metric: {}", report.query.metric)]);
+    lines.extend([field("metric", &(report.query.metric))]);
     lines.extend(series_query_lines(
         report.query.start_unix_secs,
         report.query.end_unix_secs,
         report.query.step_secs,
     ));
     lines.extend([
-        format!("returned_series_count: {}", report.series.len()),
-        format!(
-            "returned_observation_count: {}",
-            report
+        field("returned_series_count", &(report.series.len())),
+        field(
+            "returned_observation_count",
+            &(report
                 .series
                 .iter()
                 .map(|series| series.observations.len())
-                .sum::<usize>()
+                .sum::<usize>()),
         ),
     ]);
 
@@ -418,12 +406,9 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
 pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&report.ledger_canister_id)
-        ),
-        format!("kind: {}", report.kind),
-        format!("total: {}", report.total),
+        field("ledger_canister_id", &report.ledger_canister_id),
+        field("kind", &(report.kind)),
+        field("total", &(report.total)),
     ]);
     lines.join("\n")
 }
@@ -433,11 +418,8 @@ pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> Stri
 pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&report.ledger_canister_id)
-        ),
-        format!("owner: {}", optional_text(report.query.owner.as_ref())),
+        field("ledger_canister_id", &report.ledger_canister_id),
+        field("owner", &(optional_text(report.query.owner.as_ref()))),
     ]);
     append_cursor_page_lines(
         &mut lines,
@@ -465,7 +447,7 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
                 ]
             })
             .collect::<Vec<_>>();
-        lines.push(render(
+        lines.push(table(
             &[
                 "ACCOUNT ID",
                 "OWNER",
@@ -483,7 +465,6 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
                 Alignment::Right,
                 Alignment::Right,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")
@@ -495,38 +476,29 @@ pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String
     let account = &report.account;
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("account_id: {}", terminal_text(&account.account_id)),
-        format!("owner: {}", terminal_text(&account.owner)),
-        format!("subaccount: {}", terminal_text(&account.subaccount)),
-        format!(
-            "balance_base_units: {}",
-            terminal_text(&account.balance_base_units)
+        field("account_id", &account.account_id),
+        field("owner", &account.owner),
+        field("subaccount", &account.subaccount),
+        field("balance_base_units", &account.balance_base_units),
+        field("total_transactions", &(account.total_transactions)),
+        field("created_at_unix_secs", &(account.created_at_unix_secs)),
+        field(
+            "created_at_subsec_nanos",
+            &(account.created_at_subsec_nanos),
         ),
-        format!("total_transactions: {}", account.total_transactions),
-        format!("created_at_unix_secs: {}", account.created_at_unix_secs),
-        format!(
-            "created_at_subsec_nanos: {}",
-            account.created_at_subsec_nanos
+        field("ledger_canister_id", &account.ledger_canister_id),
+        field(
+            "latest_transaction_index",
+            &(account.latest_transaction_index),
         ),
-        format!(
-            "ledger_canister_id: {}",
-            terminal_text(&account.ledger_canister_id)
+        field("dashboard_updated_at", &account.dashboard_updated_at),
+        field(
+            "active_fee_collector",
+            &(yes_no(account.active_fee_collector)),
         ),
-        format!(
-            "latest_transaction_index: {}",
-            account.latest_transaction_index
-        ),
-        format!(
-            "dashboard_updated_at: {}",
-            terminal_text(&account.dashboard_updated_at)
-        ),
-        format!(
-            "active_fee_collector: {}",
-            yes_no(account.active_fee_collector)
-        ),
-        format!(
-            "fee_collector_block_range_count: {}",
-            account.fee_collector_block_ranges.len()
+        field(
+            "fee_collector_block_range_count",
+            &(account.fee_collector_block_ranges.len()),
         ),
     ]);
     lines.join("\n")
@@ -536,10 +508,7 @@ pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String
 #[must_use]
 pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([format!(
-        "ledger_canister_id: {}",
-        terminal_text(&report.ledger_canister_id)
-    )]);
+    lines.extend([field("ledger_canister_id", &report.ledger_canister_id)]);
     append_cursor_page_lines(
         &mut lines,
         report.query.sort_by.as_api_value(),
@@ -566,7 +535,7 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
                 ]
             })
             .collect::<Vec<_>>();
-        lines.push(render(
+        lines.push(table(
             &[
                 "PRINCIPAL",
                 "BALANCE",
@@ -584,7 +553,6 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
                 Alignment::Right,
                 Alignment::Right,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")
@@ -594,18 +562,15 @@ pub fn icrc_holder_list_report_text(report: &IcIcrcHolderListReport) -> String {
 #[must_use]
 pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([format!(
-        "ledger_canister_id: {}",
-        terminal_text(&report.ledger_canister_id)
-    )]);
+    lines.extend([field("ledger_canister_id", &report.ledger_canister_id)]);
     lines.extend(query_window_lines(
         report.query.start_unix_secs,
         report.query.end_unix_secs,
     ));
     lines.extend([
-        format!("limit: {}", report.query.limit),
-        format!("returned_row_count: {}", report.rows.len()),
-        format!("limit_reached: {}", yes_no(report.limit_reached)),
+        field("limit", &(report.query.limit)),
+        field("returned_row_count", &(report.rows.len())),
+        field("limit_reached", &(yes_no(report.limit_reached))),
     ]);
 
     if !report.rows.is_empty() {
@@ -631,21 +596,18 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
 #[must_use]
 pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([format!(
-        "ledger_canister_id: {}",
-        terminal_text(&report.ledger_canister_id)
-    )]);
+    lines.extend([field("ledger_canister_id", &report.ledger_canister_id)]);
     lines.extend(series_query_lines(
         report.query.start_unix_secs,
         report.query.end_unix_secs,
         report.query.step_secs,
     ));
     lines.extend([
-        format!(
-            "requested_observation_limit: {}",
-            report.requested_observation_limit
+        field(
+            "requested_observation_limit",
+            &(report.requested_observation_limit),
         ),
-        format!("returned_observation_count: {}", report.observations.len()),
+        field("returned_observation_count", &(report.observations.len())),
     ]);
 
     if !report.observations.is_empty() {
@@ -673,62 +635,57 @@ fn metric_observation_text(metric: IcMetricKind, value: &str) -> String {
 /// Render one official Dashboard canister report as human-facing text.
 #[must_use]
 pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
+    let data = &report.data;
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("canister_id: {}", report.canister_id),
-        format!("dashboard_id: {}", report.dashboard_id),
-        format!("name: {}", text_or_dash(&report.name)),
-        format!(
-            "canister_type: {}",
-            report
+        field("canister_id", &(data.canister_id)),
+        field("dashboard_id", &(data.dashboard_id)),
+        field("name", &(text_or_dash(&data.name))),
+        field(
+            "canister_type",
+            &(data
                 .canister_type
                 .as_deref()
-                .map_or_else(|| "-".to_string(), text_or_dash)
+                .map_or_else(|| "-".to_string(), text_or_dash)),
         ),
-        format!("subnet_id: {}", report.subnet_id),
-        format!("controller_count: {}", report.controllers.len()),
-        format!("language: {}", text_or_dash(&report.language)),
-        format!("module_hash: {}", text_or_dash(&report.module_hash)),
-        format!(
-            "dashboard_updated_at: {}",
-            terminal_text(&report.dashboard_updated_at)
+        field("subnet_id", &(data.subnet_id)),
+        field("controller_count", &(data.controllers.len())),
+        field("language", &(text_or_dash(&data.language))),
+        field("module_hash", &(text_or_dash(&data.module_hash))),
+        field("dashboard_updated_at", &data.dashboard_updated_at),
+        field(
+            "upgrade_history_available",
+            &(yes_no(data.upgrades.is_some())),
         ),
-        format!(
-            "upgrade_history_available: {}",
-            yes_no(report.upgrades.is_some())
-        ),
-        format!(
-            "upgrade_count: {}",
-            report
-                .upgrade_count
-                .map_or_else(|| "-".to_string(), |count| count.to_string())
+        field(
+            "upgrade_count",
+            &(data
+                .upgrades
+                .as_ref()
+                .map(Vec::len)
+                .map_or_else(|| "-".to_string(), |count| count.to_string())),
         ),
     ]);
 
-    if !report.controllers.is_empty() {
+    if !data.controllers.is_empty() {
         lines.push(String::new());
         lines.push("controllers:".to_string());
         lines.extend(
-            report
-                .controllers
+            data.controllers
                 .iter()
                 .map(|controller| format!("  {controller}")),
         );
     }
 
-    if let Some(latest) = report
-        .upgrades
-        .as_ref()
-        .and_then(|upgrades| upgrades.first())
-    {
+    if let Some(latest) = data.upgrades.as_ref().and_then(|upgrades| upgrades.first()) {
         lines.push(String::new());
         lines.push("latest_upgrade:".to_string());
-        lines.push(format!("  proposal_id: {}", latest.proposal_id));
-        lines.push(format!(
-            "  executed_timestamp_seconds: {}",
-            latest.executed_timestamp_seconds
+        lines.push(field("  proposal_id", &(latest.proposal_id)));
+        lines.push(field(
+            "  executed_timestamp_seconds",
+            &(latest.executed_timestamp_seconds),
         ));
-        lines.push(format!("  module_hash: {}", latest.module_hash));
+        lines.push(field("  module_hash", &(latest.module_hash)));
     }
 
     lines.join("\n")
@@ -738,7 +695,7 @@ pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
 #[must_use]
 pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.push(format!("total: {}", report.total));
+    lines.push(field("total", &(report.total)));
     append_filters(&mut lines, &report.filters);
     lines.join("\n")
 }
@@ -748,23 +705,23 @@ pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
 pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("returned_count: {}", report.rows.len()),
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "after: {}",
-            report.after.as_deref().map_or("-", |value| value)
+        field("returned_count", &(report.rows.len())),
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "after",
+            &(report.after.as_deref().map_or("-", |value| value)),
         ),
-        format!(
-            "before: {}",
-            report.before.as_deref().map_or("-", |value| value)
+        field(
+            "before",
+            &(report.before.as_deref().map_or("-", |value| value)),
         ),
-        format!(
-            "previous_cursor: {}",
-            report.previous_cursor.as_deref().map_or("-", |value| value)
+        field(
+            "previous_cursor",
+            &(report.previous_cursor.as_deref().map_or("-", |value| value)),
         ),
-        format!(
-            "next_cursor: {}",
-            report.next_cursor.as_deref().map_or("-", |value| value)
+        field(
+            "next_cursor",
+            &(report.next_cursor.as_deref().map_or("-", |value| value)),
         ),
     ]);
     append_filters(&mut lines, &report.filters);
@@ -792,38 +749,38 @@ pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
 
 fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {
     if let Some(has_name) = filters.has_name {
-        lines.push(format!("filter.has_name: {}", yes_no(has_name)));
+        lines.push(field("filter.has_name", &(yes_no(has_name))));
     }
     if let Some(subnet_id) = filters.subnet_id.as_deref() {
-        lines.push(format!("filter.subnet_id: {subnet_id}"));
+        lines.push(field("filter.subnet_id", &(subnet_id)));
     }
     if let Some(controller_id) = filters.controller_id.as_deref() {
-        lines.push(format!("filter.controller_id: {controller_id}"));
+        lines.push(field("filter.controller_id", &(controller_id)));
     }
     if !filters.languages.is_empty() {
-        lines.push(format!(
-            "filter.languages: {}",
-            filters
+        lines.push(field(
+            "filter.languages",
+            &(filters
                 .languages
                 .iter()
                 .map(|value| terminal_text(value))
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(",")),
         ));
     }
     if !filters.canister_types.is_empty() {
-        lines.push(format!(
-            "filter.canister_types: {}",
-            filters
+        lines.push(field(
+            "filter.canister_types",
+            &(filters
                 .canister_types
                 .iter()
                 .map(|value| terminal_text(value))
                 .collect::<Vec<_>>()
-                .join(",")
+                .join(",")),
         ));
     }
     if let Some(query) = filters.query.as_deref() {
-        lines.push(format!("filter.query: {}", terminal_text(query)));
+        lines.push(field("filter.query", &(query)));
     }
 }
 
@@ -844,11 +801,11 @@ fn append_cursor_page_lines(
     next_cursor: Option<&String>,
 ) {
     lines.extend([
-        format!("sort_by: {sort_by}"),
-        format!("limit: {limit}"),
-        format!("returned_count: {returned_count}"),
-        format!("previous_cursor: {}", optional_text(previous_cursor)),
-        format!("next_cursor: {}", optional_text(next_cursor)),
+        field("sort_by", &(sort_by)),
+        field("limit", &(limit)),
+        field("returned_count", &(returned_count)),
+        field("previous_cursor", &(optional_text(previous_cursor))),
+        field("next_cursor", &(optional_text(next_cursor))),
     ]);
 }
 

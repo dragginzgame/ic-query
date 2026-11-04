@@ -1,7 +1,7 @@
 use crate::cache::CacheValidationStatus;
 use crate::sns::report::tests::fixtures::*;
 use crate::sns::report::tests::*;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use std::fs;
 
 #[test]

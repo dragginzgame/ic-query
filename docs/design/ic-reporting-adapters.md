@@ -28,7 +28,8 @@ It delegates reusable escaping and tables to Host Text. The dependency direction
 is CLI → Text → Query, with a direct CLI → Query edge for collection and JSON.
 Query has no presentation dependency or renderer compatibility re-exports.
 Text and CLI share one release group; Query and its unpublished fixture package
-share the other. Both groups retain full repository CI and one dependency graph.
+share the other. Repository CI covers both groups and one dependency graph;
+releases use the qualified [group validation mapping](../query-release-validation.md).
 
 Human-facing detail and ballot visibility are caller-supplied `TextOptions`.
 Acquisition requests and typed/JSON reports do not store those display choices.
@@ -59,7 +60,7 @@ fields through `provenance`; NNS proposal and SNS list/proposal/neuron-list repo
 carry `ReportProvenance` through the same field. Catalog annotations live in
 `classification`, Dashboard release details in `release`, and detailed catalog
 failure progress in `evidence`. Custom sources and callers use these records
-directly; source, cache and restored-report validation retain their own trust
+directly; source, cache and restored-collection validation retain their own trust
 boundaries. See the [0.81 consumer update](../changelog/0.81.md).
 
 Registry collection returns the portable NNS version/evidence contract directly.
@@ -113,29 +114,34 @@ Foundation (Artifacts, FS, HTTP and Process), Build, Text, Host Tools and Testki
 Query selects published packages through one root catalog and lockfile with
 minimum and development Rust 1.99.1.
 
-Current production selections are Platform 0.19.0, canonical Types 0.18.0,
-Runtime 0.19.0, Foundation 0.74.2, Text 0.74.1
-and Host Tools 0.79.0. Build 0.74.1 is development tooling. Query and Host Tools
-share the current Platform/Types identities. Wire 0.16.0 remains development-only, selecting its core codec
-for Query’s existing string frames and budgets.
-Query selects neither Wire's `platform-types` schemas nor its endpoint integration.
+Current production selections are Platform 0.22.0, canonical Types 0.18.1,
+Runtime 0.19.1, Foundation 0.74.3, Text 0.74.2 and Host Tools 0.82.0.
+Build 0.74.3 is development tooling. Query and Host Tools share Platform 0.22's
+upstream certificate/hash-tree identities with Agent, without conversion adapters.
+Wire 0.16.2 remains development-only, selecting its core codec for Query's existing
+string frames and budgets. Query selects neither Wire's `platform-types` schemas
+nor its endpoint integration.
 
-Testkit 0.81.0 shares the current Platform, Types, Runtime and Foundation
-identities and removes its private Metrics dependency. The complete workspace
-lockfile is Metrics-free. The unpublished native fixture selects the
-independent `ic-platform-pocket-ic` 0.19 client directly, matching Testkit's
-extension traits; required Candid fixture protocols still use Platform 0.19.
-The client selects management DTOs 0.11 and retains the PocketIC 16.1.0 server
-protocol. The native fixture, server provisioning and installed acceptance remain
-separate from production Wasm graphs and source-only qualification.
+Testkit 0.85.0 owns its native PocketIC client under `ic_testkit::pocket_ic`.
+The unpublished fixture uses that client with Testkit's extension traits and
+managed startup, which supplies the explicit endpoint required since 0.85.
+The client does not discover, download or launch a server implicitly;
+`ic-platform-pocket-ic` is removed from the catalog and lockfile. Query's external
+Candid fixture imports use Platform 0.22. Testkit internally retains Platform 0.21
+for Candid and management DTOs, without its certification/runtime features; that
+independent dependency is absent from production native and Wasm graphs.
+Canonical Types, Candid and Runtime identities remain shared. The client retains
+management DTOs 0.11 and the PocketIC 16.1.0 server protocol. The workspace lockfile
+remains Metrics-free. Native fixtures, server provisioning and installed acceptance
+remain separate from production Wasm graphs and source-only qualification.
 
 Platform's root Principal is its canonical owned type. Required external Candid
 contracts and Agent/PocketIC calls retain the explicit external Principal from
 `candid::contract::Principal`. Query's existing conversions preserve raw identity
 bytes when crossing Host Registry helper and external protocol boundaries.
-Platform 0.19 supplies the current ICRC DTOs; canister runtime handles belong to
-canonical Runtime 0.19.0. Custom `IcrcTipCertificateSource` implementations return
-Platform 0.19's `ICRC3DataCertificate`; runtime consumers align on the canonical
+Platform 0.22 supplies the current ICRC DTOs; canister runtime handles belong to
+canonical Runtime 0.19.1. Custom `IcrcTipCertificateSource` implementations return
+Platform 0.22's `ICRC3DataCertificate`; runtime consumers align on the canonical
 Runtime owner.
 
 Platform's bounded Candid decoder admits at most 16 constructed wire levels
@@ -146,7 +152,7 @@ deserializer behavior or bound runtime response allocation.
 Query does not use the Candid frontend compiler exports retired by Platform 0.7.
 Required external Candid parsing and type checking remain in Testkit fixtures.
 External Agent and Candid identities remain shared. Query's canister
-runtime selects Platform 0.19's delegated canonical Runtime 0.19.0 IC0 and
+runtime selects Platform 0.22's delegated canonical Runtime 0.19.1 IC0 and
 executor, with one runtime owner and no registry executor or IC0 package in the
 Wasm normal/build graph. Embedders align their runtime suppliers, including
 timer/endpoint integrations, on this Runtime owner.
@@ -157,9 +163,10 @@ or compatibility wrapper is used in Query.
 Query's certificate API exposes Host Tools' `certificate::ParseError` through
 `CertificateVerificationError::Decode`, and `authenticate_ledger_tip` returns
 Host Tools' `ledger_evidence::LedgerTip`. Current consumers align direct Host
-Tools dependencies to 0.79 and Platform dependencies to 0.19 where these public
-identities cross their API. The [Query 0.89 consumer notes](../../releases/query/0.89.md)
-cover the independent report/cache shape changes; schema identifiers remain 1.
+Tools dependencies to 0.82 and Platform dependencies to 0.22 where these public
+identities cross their API. The [Query 0.90 consumer notes](../../releases/query/0.90.md)
+cover this dependency alignment. The [Query 0.89 notes](../../releases/query/0.89.md)
+retain the earlier report/cache shape changes; schema identifiers remain 1.
 
 Managed cache operations use published Host FS `capability::Directory` and
 `FileEntry` handles through its explicit `capability` feature. Query does not
@@ -225,8 +232,8 @@ Agent still enables Reqwest's blocking support and Futures IO transitively;
 these are not Query's direct feature selections.
 Platform now owns the imported non-cryptographic runtime and its call/error
 type identities; the full CDK and its macros are absent from Query's production
-graphs. Platform 0.19 delegates executor and IC0 ownership to canonical Runtime
-0.19.0; the canister graph excludes their former registry suppliers.
+graphs. Platform 0.22 delegates executor and IC0 ownership to canonical Runtime
+0.19.1; the canister graph excludes their former registry suppliers.
 Platform owns callback/trap handling; matching versions alone do not qualify IC
 lifecycle behavior. The compiled Governance fixture qualifies its simulator path;
 [Platform #1](https://github.com/dragginzgame/ic-platform/issues/1) retains the
@@ -240,11 +247,10 @@ and its public parse error identity; Agent retains authentication. Query keeps
 combined evidence byte allowances, freshness and
 application leaf admission. Subtree lookup results and labeled fixture hashes now
 also come from Platform; there are no remaining Agent hash-tree import exceptions.
-Platform owns these certificate/hash-tree types. Native Agent retains its external
-certificate identity; Query converts explicitly at that boundary and retains the
-external certificate for repeated Agent verification/lookup calls. There is no
-direct `ic-certification` declaration; Agent's transitive registry dependency is
-intentional.
+Platform re-exports upstream certificate/hash-tree types with the same identity
+as native Agent. Query passes them directly for authentication and lookup, with
+no recursive conversions. There is no direct `ic-certification` declaration;
+Platform and Agent select the shared registry dependency.
 
 Platform's optional ledger surface owns the maintained ICRC Rust DTOs.
 `icrc-host` and `sns-host` select it directly; Host's
@@ -903,3 +909,68 @@ family evidence independently; it no longer compares a second declared row count
 Topology Core owns numeric evidence and typed check statuses; Text owns percentage
 formatting and explanatory table details. Historical files are preserved across
 the schema-1 replacement and explicit cache refresh remains caller-controlled.
+
+
+## Node Status retention review
+
+The November 2026 cleanup traced `nns node status`, `nns subnet status`, and
+`nns node-provider status` through `nns::operational_status` to the same bounded
+Dashboard snapshot. This is observed off-chain operational health, whereas
+Registry inventory reports membership and topology. These are different evidence
+boundaries; neither replaces the other. Source inspection establishes callers,
+not real-world usage frequency.
+
+Retain the feature and its single complete snapshot/cache flow. The default
+resource accepts at most 10,000 rows and refreshes after 60 seconds. View targets,
+attention filtering and inclusion of healthy rows do not change cache identity.
+Preserve explicit Dashboard authority, scope admission, canonical node identities,
+relationship validation, quotas and complete/invalid-cache handling. CloudEngine
+uses a different query scope and must not silently share the default snapshot.
+
+Remove only returned-row counts that duplicate the emitted vectors. Preserve
+snapshot-wide and group totals that remain meaningful after view filtering, plus
+persisted integrity counts. No cache schema reset follows from these report-only
+changes. Further size reduction here should follow a feature-retirement decision
+or demonstrated duplicated behavior, rather than dropping validation or evidence.
+
+
+## Output-only Governance analytics
+
+Proposal activity and public-neuron distribution builders consume validated,
+complete collection state and raw rows. They continue to reject invalid source
+provenance, malformed/restored collection state, inconsistent row accounting,
+invalid row identities/timestamps, incomplete collections and numeric overflow.
+Both portable builders and cache-only CLI projections remain available.
+
+The derived report DTOs, dimension/count rows and `NnsGovernanceAnalyticsContext`
+are serialization outputs. Query no longer deserializes saved summaries or
+exports report validators and their validation-error types. The previous
+read-back contracts from designs 0.39/0.40 are retired in 0.90.0. Their emitted
+schema-1 JSON is unchanged. Consumers that need to recompute summaries retain
+the complete collection state and source rows. Existing caller-owned summaries
+are preserved; this change neither migrates nor deletes them.
+
+CloudEngine Type4 node-list reports retain their complete `nodes` vector and
+independent aggregate summaries. Their redundant JSON/Rust `node_count` field
+is removed; consumers derive it from `nodes.len()`. Human text still displays
+the count. No cache shape, key, scope or schema identifier changes.
+
+
+## Request configuration and derived output fields
+
+Default constructors own their existing defaults. Requests expose acquisition
+bounds, view choices and cache settings through typed fields. Assignment-only
+fluent methods over public request/query fields are retired; callers set those
+fields directly. Fallible/normalizing methods and methods that update related
+state retain their behavior. In particular, proposal sort selection resets its
+default direction, and SNS proposal cache-route selection precedes status
+admission. This cut changes Rust API surface without moving validation out of
+source, collection or cache owners.
+
+CloudEngine price/provider counts, operator binding/domain summaries and NNS
+topology region/referenced-provider counts derive from the values retained in
+the same report. Rust and JSON omit the duplicate fields; text computes them
+while preserving its current labels. Full-resource, registered-provider and
+aggregate counts remain where they represent independent evidence. Report
+schemas remain 1 and persisted cache shapes are unchanged. See the
+[0.90 API update](../../releases/query/0.90.md).

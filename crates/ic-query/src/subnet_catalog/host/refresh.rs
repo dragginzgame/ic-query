@@ -69,27 +69,6 @@ impl SubnetCatalogRefreshRequest {
             output_path: None,
         }
     }
-
-    /// Select validation and optional export without replacing the managed catalog.
-    #[must_use]
-    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
-        self.dry_run = dry_run;
-        self
-    }
-
-    /// Export the validated catalog to a path distinct from managed snapshots and locks.
-    #[must_use]
-    pub fn with_output_path(mut self, output_path: impl Into<PathBuf>) -> Self {
-        self.output_path = Some(output_path.into());
-        self
-    }
-
-    /// Override the maximum accepted future timestamp skew.
-    #[must_use]
-    pub const fn with_max_future_skew_seconds(mut self, seconds: u64) -> Self {
-        self.max_future_skew_seconds = seconds;
-        self
-    }
 }
 
 /// Refresh a catalog on the caller's async runtime using the live mainnet source.

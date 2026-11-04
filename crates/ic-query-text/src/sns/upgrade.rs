@@ -5,11 +5,11 @@
 //! Boundary: labels Governance and SNS-W evidence precisely and preserves query gaps.
 
 use crate::sns::common::sns_identity_lines;
+use crate::text_value::field;
+use crate::text_value::table;
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::text_value::yes_no;
 use ic_query::sns::SnsPendingUpgrade;
@@ -21,36 +21,30 @@ use ic_query::sns::SnsVersion;
 pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
-        format!("component_query_count: {}", report.component_query_count),
-        format!(
-            "successful_component_query_count: {}",
-            report.successful_component_query_count
+        field("component_query_count", &(report.component_query_count)),
+        field(
+            "successful_component_query_count",
+            &(report.successful_component_query_count),
         ),
-        format!("component_gap_count: {}", report.component_gap_count),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+        field("component_gap_count", &(report.component_gap_count)),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.point_in_time_guaranteed)),
         ),
-        format!(
-            "running_version_method: {}",
-            report.running_version_method.as_str()
+        field(
+            "running_version_method",
+            &(report.running_version_method.as_str()),
         ),
-        format!(
-            "next_version_method: {}",
-            report.next_version_method.as_str()
+        field(
+            "next_version_method",
+            &(report.next_version_method.as_str()),
         ),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.instance.sns_wasm_canister_id
+        field(
+            "sns_wasm_canister_id",
+            &(report.context.instance.sns_wasm_canister_id),
         ),
-        format!(
-            "fetched_at: {}",
-            terminal_text(&report.context.instance.fetched_at)
-        ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.instance.source_endpoint)
-        ),
+        field("fetched_at", &report.context.instance.fetched_at),
+        field("source_endpoint", &report.context.instance.source_endpoint),
         String::new(),
         next_version_status(report),
         String::new(),
@@ -64,14 +58,13 @@ pub fn sns_upgrade_report_text(report: &SnsUpgradeReport) -> String {
         lines.extend([
             String::new(),
             "next_version_gap:".to_string(),
-            render(
+            table(
                 &["METHOD", "REASON"],
                 &[[
                     gap.method.as_str().to_string(),
                     terminal_text(&gap.reason).into_owned(),
                 ]],
-                &[Alignment::Left, Alignment::Left],
-                REPORT_TABLE_OPTIONS,
+                &[Alignment::Left; 2],
             ),
         ]);
     }
@@ -111,16 +104,10 @@ fn comparison_table(deployed: &SnsVersion, next: Option<&SnsVersion>) -> String 
             ]
         })
         .collect::<Vec<_>>();
-    render(
+    table(
         &["ROLE", "DEPLOYED", "NEXT", "CHANGED"],
         &rows,
-        &[
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-        ],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 4],
     )
 }
 
@@ -128,7 +115,7 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
     let Some(pending) = pending else {
         return "-".to_string();
     };
-    let mut lines = vec![render(
+    let mut lines = vec![table(
         &["FIELD", "VALUE"],
         &[
             [
@@ -142,7 +129,6 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
             ["proposal_id".to_string(), pending.proposal_id.to_string()],
         ],
         &[Alignment::Left, Alignment::Right],
-        REPORT_TABLE_OPTIONS,
     )];
     if let Some(target) = &pending.target_version {
         lines.extend([
@@ -157,14 +143,13 @@ fn pending_upgrade_text(pending: Option<&SnsPendingUpgrade>) -> String {
 }
 
 fn single_version_table(version: &SnsVersion) -> String {
-    render(
+    table(
         &["ROLE", "HASH"],
         &version_hashes(version)
             .into_iter()
             .map(|(role, hash)| [role.to_string(), hash.to_string()])
             .collect::<Vec<_>>(),
-        &[Alignment::Left, Alignment::Left],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 2],
     )
 }
 

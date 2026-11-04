@@ -35,9 +35,8 @@ pub use collection::{
 };
 pub use distribution::{
     NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NnsNeuronDistributionError,
-    NnsNeuronDistributionReport, NnsNeuronDistributionValidationError, NnsNeuronStateDistribution,
-    NnsNeuronTypeDistribution, NnsNeuronVisibilityDistribution,
-    build_nns_neuron_distribution_report, validate_nns_neuron_distribution_report,
+    NnsNeuronDistributionReport, NnsNeuronStateDistribution, NnsNeuronTypeDistribution,
+    NnsNeuronVisibilityDistribution, build_nns_neuron_distribution_report,
 };
 pub use error::NnsNeuronError;
 #[cfg(feature = "nns-host")]

@@ -38,17 +38,4 @@ impl SnsListRequest {
             sort: SnsListSort::default(),
         }
     }
-
-    /// Sets whether the list view includes every lifecycle represented in the catalog.
-    #[must_use]
-    pub const fn with_all_lifecycles(mut self, all_lifecycles: bool) -> Self {
-        self.all_lifecycles = all_lifecycles;
-        self
-    }
-
-    #[must_use]
-    pub const fn with_sort(mut self, sort: SnsListSort) -> Self {
-        self.sort = sort;
-        self
-    }
 }

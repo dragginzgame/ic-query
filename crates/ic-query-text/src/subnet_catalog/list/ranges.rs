@@ -3,26 +3,23 @@ use ic_host_text::escape::terminal_text;
 use crate::subnet_catalog::compact_principal;
 use ic_query::subnet_catalog::SubnetCatalogListReport;
 
-pub(super) fn append_range_lines(report: &SubnetCatalogListReport, lines: &mut Vec<String>) {
-    append_formatted_range_lines(report, lines, |value| terminal_text(value).into_owned());
-}
-
-pub(super) fn append_compact_range_lines(
+pub(super) fn append_range_lines(
     report: &SubnetCatalogListReport,
     lines: &mut Vec<String>,
+    verbose: bool,
 ) {
-    append_formatted_range_lines(report, lines, compact_principal);
-}
-
-fn append_formatted_range_lines(
-    report: &SubnetCatalogListReport,
-    lines: &mut Vec<String>,
-    principal: impl Fn(&str) -> String,
-) {
+    let principal = |value: &str| {
+        if verbose {
+            terminal_text(value).into_owned()
+        } else {
+            compact_principal(value)
+        }
+    };
     for subnet in &report.subnets {
         if subnet.ranges.is_empty() {
             continue;
         }
+        lines.push(String::new());
         lines.push(format!(
             "ranges for {}:",
             principal(&subnet.subnet_principal)

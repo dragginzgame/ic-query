@@ -10,15 +10,14 @@ pub use report::{
     DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
     NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
     NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
-    NnsProposalActivityValidationError, NnsProposalBallotRow, NnsProposalCollectionState,
-    NnsProposalCollectionStep, NnsProposalDayCount, NnsProposalError, NnsProposalListReport,
-    NnsProposalListRequest, NnsProposalListSort, NnsProposalReport, NnsProposalRequest,
-    NnsProposalRewardStatus, NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter,
-    NnsProposalRow, NnsProposalSource, NnsProposalSourceFuture, NnsProposalStatus,
-    NnsProposalStatusCount, NnsProposalStatusFilter, NnsProposalTally, NnsProposalTopic,
-    NnsProposalTopicCount, NnsProposalTopicFilter, advance_nns_proposal_collection_with_source,
-    build_nns_proposal_activity_report, build_nns_proposal_list_report_with_source,
-    build_nns_proposal_report_with_source, validate_nns_proposal_activity_report,
+    NnsProposalBallotRow, NnsProposalCollectionState, NnsProposalCollectionStep,
+    NnsProposalDayCount, NnsProposalError, NnsProposalListReport, NnsProposalListRequest,
+    NnsProposalListSort, NnsProposalReport, NnsProposalRequest, NnsProposalRewardStatus,
+    NnsProposalRewardStatusCount, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSource,
+    NnsProposalSourceFuture, NnsProposalStatus, NnsProposalStatusCount, NnsProposalStatusFilter,
+    NnsProposalTally, NnsProposalTopic, NnsProposalTopicCount, NnsProposalTopicFilter,
+    advance_nns_proposal_collection_with_source, build_nns_proposal_activity_report,
+    build_nns_proposal_list_report_with_source, build_nns_proposal_report_with_source,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

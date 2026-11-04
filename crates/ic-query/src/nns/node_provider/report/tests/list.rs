@@ -11,13 +11,15 @@ async fn node_provider_report_uses_live_governance_source() {
         &request,
         &FixtureNodeProviderSource {
             node_providers: vec![
-                MainnetNodeProvider {
-                    principal: "aaaaa-aa".to_string(),
+                NnsNodeProviderRow {
+                    name: None,
+                    node_provider_principal: "aaaaa-aa".to_string(),
                     node_count: Some(3),
                     reward_account_hex: Some("abcd".to_string()),
                 },
-                MainnetNodeProvider {
-                    principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+                NnsNodeProviderRow {
+                    name: None,
+                    node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
                     node_count: None,
                     reward_account_hex: None,
                 },

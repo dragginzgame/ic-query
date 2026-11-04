@@ -5,8 +5,7 @@
 //! Boundary: formats complete SNS snapshot refresh results for humans.
 
 use crate::sns::common::sns_identity_lines;
-
-use ic_host_text::escape::terminal_text;
+use crate::text_value::field;
 
 use crate::text_value::yes_no;
 use ic_query::sns::SnsSnapshotRefreshReport;
@@ -14,43 +13,24 @@ use ic_query::sns::SnsSnapshotRefreshReport;
 /// Render one complete SNS snapshot refresh result, including publication warnings.
 #[must_use]
 pub fn sns_snapshot_refresh_report_text(report: &SnsSnapshotRefreshReport) -> String {
-    let [attempt_finalized, attempt_finalization_error] =
-        crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
-        format!("page_size: {}", report.page_size),
-        format!("page_count: {}", report.page_count),
-        format!("collection: {}", terminal_text(&report.collection)),
-        format!("row_count: {}", report.row_count),
-        format!("complete: {}", yes_no(report.complete)),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        attempt_finalized,
-        attempt_finalization_error,
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.instance.sns_wasm_canister_id
-        ),
-        format!(
-            "fetched_at: {}",
-            terminal_text(&report.context.instance.fetched_at)
-        ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.instance.source_endpoint)
-        ),
+        field("page_size", &(report.page_size)),
+        field("page_count", &(report.page_count)),
+        field("collection", &report.collection),
+        field("row_count", &(report.row_count)),
+        field("complete", &(yes_no(report.complete))),
     ]);
+    lines.extend(crate::sns::common::sns_collection_lines(&report.context));
+    lines.extend(crate::text_value::refresh_outcome_lines(
+        report.wrote_cache,
+        report.replaced_existing_cache,
+        report.attempt_finalization_error.as_deref(),
+    ));
+    lines.extend(crate::text_value::refresh_path_lines(
+        &report.cache_path,
+        &report.refresh_lock_path,
+        &report.refresh_attempt_path,
+    ));
     lines.join("\n")
 }

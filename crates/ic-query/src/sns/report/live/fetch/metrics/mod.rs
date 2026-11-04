@@ -1,0 +1,69 @@
+//! Module: sns::report::live::fetch::metrics
+//!
+//! Responsibility: fetch one bounded SNS Governance metrics response.
+//! Does not own: discovery, source validation, report assembly, cache IO, or rendering.
+//! Boundary: performs exactly one report-specific composite query.
+use crate::candid_call::query_canister;
+use crate::report::CollectionSourceRequest;
+use crate::sns::report::{
+    MainnetSns, MainnetSnsMetrics, SnsCanisterMethod, SnsHostError,
+    live::{
+        convert::mainnet_sns_metrics,
+        fetch::governance_canister,
+        query::sns_agent,
+        types::{GetMetricsRequest, GetMetricsResponse, GetMetricsResult},
+    },
+    model::validate_sns_metrics_time_window,
+};
+
+pub(in crate::sns::report::live) async fn fetch_mainnet_sns_metrics(
+    source: &crate::sns::LiveSnsSource,
+    request: &CollectionSourceRequest,
+    sns: &MainnetSns,
+    time_window_seconds: u64,
+) -> Result<MainnetSnsMetrics, SnsHostError> {
+    validate_sns_metrics_time_window(time_window_seconds)?;
+    let agent = sns_agent(source, request)?;
+    let governance_canister = governance_canister(sns)?;
+    let response: GetMetricsResponse = query_canister::<_, _, SnsHostError>(
+        agent,
+        &governance_canister,
+        SnsCanisterMethod::GetMetrics.as_str(),
+        "GetMetricsRequest",
+        "GetMetricsResponse",
+        &GetMetricsRequest {
+            time_window_seconds: Some(time_window_seconds),
+        },
+    )
+    .await?;
+    metrics_response(
+        &sns.canisters.governance_canister_id,
+        time_window_seconds,
+        response,
+    )
+}
+
+fn metrics_response(
+    governance_canister_id: &str,
+    time_window_seconds: u64,
+    response: GetMetricsResponse,
+) -> Result<MainnetSnsMetrics, SnsHostError> {
+    match response.get_metrics_result {
+        Some(GetMetricsResult::Ok(metrics)) => Ok(mainnet_sns_metrics(
+            governance_canister_id.to_string(),
+            time_window_seconds,
+            metrics,
+        )),
+        Some(GetMetricsResult::Err(error)) => Err(SnsHostError::GovernanceError {
+            method: SnsCanisterMethod::GetMetrics.as_str(),
+            error_type: error.error_type,
+            message: error.error_message,
+        }),
+        None => Err(SnsHostError::MissingGovernanceResult {
+            method: SnsCanisterMethod::GetMetrics.as_str(),
+        }),
+    }
+}
+
+#[cfg(test)]
+mod tests;

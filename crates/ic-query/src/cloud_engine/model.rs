@@ -58,8 +58,6 @@ pub struct CloudEngineOperatorReport {
     pub context: CloudEngineReportContext,
     /// Canonical requested Subnet principal.
     pub subnet_id: String,
-    /// Whether the control-plane registry returned an operator binding.
-    pub operator_binding_present: bool,
     /// Per-engine operator canister principal when registered.
     pub operator_canister_id: Option<String>,
     /// Public engine-owner principal returned by the operator.
@@ -68,8 +66,6 @@ pub struct CloudEngineOperatorReport {
     pub platform_admin: Option<String>,
     /// Public Caffeine integration setting; `None` means the setting is absent.
     pub caffeine_enabled: Option<bool>,
-    /// Number of claimed domains, or `None` when the operator returned no domain field.
-    pub claimed_domain_count: Option<usize>,
     /// Canonically ordered claimed custom-domain names.
     pub claimed_domains: Option<Vec<String>>,
 }
@@ -164,8 +160,6 @@ pub struct CloudEnginePricesReport {
     pub context: CloudEngineReportContext,
     /// Network-fee fraction added to provider net prices.
     pub network_fee: f64,
-    /// Number of returned marketplace rows.
-    pub price_count: usize,
     /// Canonically ordered marketplace prices.
     pub prices: Vec<CloudEnginePriceRow>,
 }

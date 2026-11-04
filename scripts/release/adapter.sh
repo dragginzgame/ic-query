@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/release/metadata.pl scripts/ci/next-release-version.sh scripts/ci/check-release-source.sh scripts/ci/cargo-release-preflight.sh scripts/ci/run-validation-targets.sh
+# Shared companions: scripts/release/metadata.pl scripts/release/validation.sh scripts/ci/next-release-version.sh scripts/ci/check-release-source.sh scripts/ci/cargo-release-preflight.sh scripts/ci/run-validation-targets.sh
 set -euo pipefail
 
 # IC Query owns gates, release files and evidence. The shared runner owns Git effects.
@@ -57,6 +57,8 @@ read_evidence() {
 load_evidence() {
   read_evidence
   identity | cmp -s - "$evidence/identity" || fail 'validation selections differ from retained evidence'
+  admit_paths "$RELEASE_SOURCE"
+  bash scripts/release/validation.sh check "$evidence"
 }
 retain_superseded_validation() {
   local saved_source saved_date archive
@@ -163,10 +165,7 @@ case "$operation" in
     fi
     CHANGELOG_VERSION="$RELEASE_VERSION" CARGO_NET_OFFLINE=true \
       VALIDATION_FAILURE_LOG_DIR="$attempt/validation-failures" \
-      bash scripts/ci/run-validation-targets.sh --fail-fast \
-        --input Cargo.toml --input Cargo.lock --input ci/cargo-release-groups.json \
-        --input crates/ic-query/Cargo.toml --input crates/ic-query-cli/Cargo.toml \
-        --input crates/ic-query-text/Cargo.toml --input crates/ic-query-testkit/Cargo.toml ci 2>&1 | tee "$attempt/validation.log"
+      bash scripts/release/validation.sh run "$attempt" 2>&1 | tee "$attempt/validation.log"
     : > "$attempt/passed"
     temporary_binding="$(mktemp "$binding.tmp.XXXXXX")"
     printf '%s\n' "$attempt" > "$temporary_binding"

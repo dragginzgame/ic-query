@@ -43,7 +43,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["host"] }
+ic-query = { version = "0.90", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -66,7 +66,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["canister"] }
+ic-query = { version = "0.90", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -146,7 +146,7 @@ Invalid timestamps return a typed
 `NnsGovernanceError::InvalidTimestamp` before a source call. Complete-collection
 projections also validate retained timestamps and require enough rows to
 account for every preceding full page. Continuations must not precede the
-previous update time; restored states and reports must satisfy start <= update.
+previous update time; restored collection states must satisfy start <= update.
 Reversed intervals return `NnsGovernanceError::InvalidTimestampOrder` before
 collection source calls.
 
@@ -252,9 +252,10 @@ fn neuron_distribution(
 
 The pure schema-1 report retains collection provenance and the false point-in-
 time guarantee while aggregating raw state, optional visibility, optional
-neuron type, effective stake, and explicit optional-field coverage. Validate
-a restored caller-owned report with
-`validate_nns_neuron_distribution_report` before publishing it.
+neuron type, effective stake, and explicit optional-field coverage. Analytics
+reports are output-only; serialize their schema-1 JSON for consumers. Retain
+complete collection state and rows when later recomputation is needed. Query
+does not deserialize or validate a saved derived summary.
 
 For official Dashboard REST reports, node-provider rewards, CloudEngine
 provider and Type4 node collection, and the shared observed default-scope
@@ -262,7 +263,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -280,7 +281,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -294,7 +295,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -307,7 +308,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -325,7 +326,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
@@ -341,7 +342,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -400,7 +401,7 @@ For native SNS discovery, targeted reports and complete proposal/neuron caches, 
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["sns-host"] }
 ```
 
 `sns-host` exposes `LiveSnsSource`, its report-specific source traits and
@@ -433,7 +434,7 @@ the narrower feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["subnet-catalog-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["subnet-catalog-host"] }
 ```
 
 `subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
@@ -461,7 +462,7 @@ For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["nns-topology-host"] }
 ```
 
 `nns-topology-host` exposes the joined topology live source, strict cache load,
@@ -477,7 +478,7 @@ component-cache, and derived topology surface, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["nns-host"] }
 ```
 
 `nns-host` includes `nns-topology-host`. It exposes
@@ -497,7 +498,7 @@ For pure model/rendering use, keep all features off:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false }
+ic-query = { version = "0.90", default-features = false }
 ```
 
 No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
@@ -899,18 +900,18 @@ async fn discover_named_canisters(now_unix_secs: u64) -> Result<Vec<String>, IcH
         has_name: Some(true),
         ..IcCanisterFilters::default()
     };
-    let request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
+    let mut request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         now_unix_secs,
-    ))
-    .with_filters(filters)
-    .with_limit(25);
+    ));
+    request.filters = filters;
+    request.limit = 25;
     let report = build_ic_canister_page_report(&request).await?;
     Ok(report.rows.into_iter().map(|row| row.canister_id).collect())
 }
 ```
 
-Callers may supply `report.next_cursor` to `with_after` on a later request.
+Callers may assign `report.next_cursor` to the `after` field on a later request.
 There is intentionally no automatic whole-catalog collection builder.
 
 The same live adapter owns bounded network metrics through one focused source
@@ -1234,14 +1235,14 @@ async fn render_subnet_info(
     now_unix_secs: u64,
 ) -> Result<String, SubnetCatalogHostError> {
     let cache = SubnetCatalogCacheRequest::new(cache_root, "ic");
-    let request = SubnetCatalogInfoRequest::new(
+    let mut request = SubnetCatalogInfoRequest::new(
         cache,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
         canister_or_subnet,
         now_unix_secs,
         DEFAULT_STALE_AFTER_SECONDS,
-    )
-    .with_forced(ResolveAs::Canister);
+    );
+    request.forced = Some(ResolveAs::Canister);
 
     let report = build_subnet_catalog_info_report(&request).await?;
     Ok(subnet_catalog_info_report_text(&report))
@@ -1256,7 +1257,7 @@ async fn render_subnet_info(
 disposition in their reports. Current single-endpoint live collection is
 always `CatalogAssurance::UncertifiedQuery`: the shared Registry version
 prevents an internally skewed join but does not certify an ordinary query.
-Callers can set `with_minimum_assurance` on the load request; evidence below
+Callers can set the load request’s `minimum_assurance` field; evidence below
 that threshold fails with `InsufficientAssurance` rather than being treated as
 missing, invalid, or stale. The
 `refresh_missing_invalid_or_older_than` constructor keeps the source and
@@ -1496,13 +1497,13 @@ use ic_query::sns::build_sns_metrics_report;
 use ic_query_text::sns::sns_metrics_report_text;
 
 async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
-    let request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
+    let mut request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
         "ic",
         DEFAULT_SNS_SOURCE_ENDPOINT,
         now_unix_secs,
         sns_input,
-    )?)
-    .with_time_window_seconds(90 * 24 * 60 * 60);
+    )?);
+    request.time_window_seconds = 90 * 24 * 60 * 60;
 
     let report = build_sns_metrics_report(&request).await?;
     Ok(sns_metrics_report_text(&report))
@@ -1542,7 +1543,7 @@ async fn render_recent_sns_proposals(
     sns_input: &str,
     now_unix_secs: u64,
 ) -> Result<String, SnsHostError> {
-    let request = SnsProposalsRequest::new(
+    let mut request = SnsProposalsRequest::new(
         ic_query::sns::SnsLookupRequest::new(
             "ic",
             DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -1552,8 +1553,8 @@ async fn render_recent_sns_proposals(
         25,
     )
     .with_cache_root(cache_root)
-    .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(ic_query::report::SortDirection::Desc);
+    .with_sort(SnsProposalsSort::Created);
+    request.sort_direction = ic_query::report::SortDirection::Desc;
 
     let report = build_sns_proposals_report(&request).await?;
     Ok(sns_proposals_report_text(&report, ic_query_text::TextOptions::default()))

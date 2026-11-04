@@ -25,33 +25,6 @@ pub fn validate_governance_request(
     parse_governance_timestamp("fetched_at", &request.fetched_at).map(|_| ())
 }
 
-/// Check the fixed identity shared by portable Governance analytics reports.
-pub fn validate_governance_report_identity(network: &str, canister_id: &str) -> Result<(), String> {
-    if network != MAINNET_NETWORK {
-        return Err(format!("network is {network}, expected {MAINNET_NETWORK}"));
-    }
-    if canister_id != MAINNET_GOVERNANCE_CANISTER_ID {
-        return Err(format!(
-            "governance_canister_id is {canister_id}, expected {MAINNET_GOVERNANCE_CANISTER_ID}"
-        ));
-    }
-    Ok(())
-}
-
-/// Retain the transport-specific context when analytics provenance is invalid.
-pub fn validate_governance_collection_source(
-    network: &str,
-    source: &NnsGovernanceSourceProvenance,
-) -> Result<(), String> {
-    validate_governance_report_source(network, source).map_err(|error| {
-        let context = match source {
-            NnsGovernanceSourceProvenance::ReplicaQuery { .. } => "source",
-            NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => "provenance",
-        };
-        format!("invalid collection {context}: {error}")
-    })
-}
-
 /// Bind a continuation request to the collection's original network and source.
 pub fn validate_governance_continuation_request<Error>(
     request: &NnsGovernanceRequest,
@@ -117,62 +90,6 @@ macro_rules! validate_governance_continuation {
 }
 
 pub(in crate::nns) use validate_governance_continuation;
-
-impl super::NnsGovernanceAnalyticsContext {
-    pub(in crate::nns) fn validate(
-        &self,
-        schema_version: u32,
-        collected_row_count: u64,
-        (report_label, row_label): (&str, &str),
-        point_in_time_error: &str,
-    ) -> Result<(), String> {
-        if self.schema_version != schema_version {
-            return Err(format!(
-                "schema version {} does not equal {schema_version}",
-                self.schema_version
-            ));
-        }
-        validate_governance_report_identity(&self.network, &self.governance_canister_id)?;
-        validate_governance_analytics_pages(
-            self.collection_page_count,
-            collected_row_count,
-            report_label,
-            row_label,
-        )?;
-        validate_governance_time_interval(
-            "collection_started_at",
-            &self.collection_started_at,
-            "collection_updated_at",
-            &self.collection_updated_at,
-        )
-        .map_err(|error| error.to_string())?;
-        if self.point_in_time_guaranteed {
-            return Err(point_in_time_error.to_string());
-        }
-        validate_governance_collection_source(&self.network, &self.source)
-    }
-}
-
-/// Admit the retained page evidence shared by complete Governance analytics reports.
-pub fn validate_governance_analytics_pages(
-    pages: u32,
-    rows: u64,
-    report_label: &str,
-    row_label: &str,
-) -> Result<(), String> {
-    if pages == 0 {
-        return Err(format!(
-            "complete {report_label} report must retain at least one collection page"
-        ));
-    }
-    let minimum = u64::from(pages - 1);
-    if rows < minimum {
-        return Err(format!(
-            "collection_page_count {pages} requires at least {minimum} collected {row_label}, found {rows}"
-        ));
-    }
-    Ok(())
-}
 
 /// Admit restored collection identity and timestamps before family page-size checks.
 pub fn validate_governance_collection_identity<Error>(
@@ -334,26 +251,6 @@ pub fn validate_source_provenance(
         _ => Err(NnsGovernanceError::SourceEvidenceMismatch {
             reason: format!("requested {selection:?}, received {provenance:?}"),
         }),
-    }
-}
-
-/// Validate the network and concrete source retained by a caller-owned Governance report.
-pub fn validate_governance_report_source(
-    network: &str,
-    provenance: &NnsGovernanceSourceProvenance,
-) -> Result<(), NnsGovernanceError> {
-    enforce_mainnet_network(network)?;
-    match provenance {
-        NnsGovernanceSourceProvenance::ReplicaQuery {
-            endpoint,
-            fetched_by,
-        } => validate_replica_query_source(endpoint, fetched_by),
-        NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall { .. } => {
-            validate_source_provenance(
-                &NnsGovernanceSourceSelection::ReplicatedInterCanisterCall,
-                provenance,
-            )
-        }
     }
 }
 

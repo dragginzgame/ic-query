@@ -98,8 +98,6 @@ pub struct IcApiBoundaryNodeReport {
     /// Certificate and retrieval provenance, flattened in serialized report JSON.
     #[serde(flatten)]
     pub provenance: IcCertifiedStateProvenance,
-    /// Number of authenticated API boundary-node rows.
-    pub node_count: usize,
     /// Rows in canonical node-principal order.
     pub rows: Vec<IcApiBoundaryNodeRow>,
 }

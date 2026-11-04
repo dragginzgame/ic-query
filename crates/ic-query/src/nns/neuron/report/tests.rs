@@ -19,7 +19,7 @@ use crate::{
         },
     },
     subnet_catalog::MAINNET_NETWORK,
-    test_support::temp_dir,
+    tests::temp_dir,
 };
 use std::{
     fs,
@@ -543,8 +543,9 @@ async fn refresh_publishes_one_complete_snapshot_for_cached_list_and_info() {
     assert_eq!(cache["completeness"]["status"], "api_exhausted");
     assert_eq!(cache["completeness"]["point_in_time_guaranteed"], false);
 
-    let list_request = NnsNeuronListRequest::new(governance_request(1_700_000_001), 2)
-        .with_exclusive_start_neuron_id(1);
+    let mut list_request = NnsNeuronListRequest::new(governance_request(1_700_000_001), 2);
+    list_request.exclusive_start_neuron_id = Some(1);
+
     let list = build_nns_neuron_list_report_from_cache(&list_request, &root)
         .expect("load cached list")
         .expect("complete cache");
@@ -702,14 +703,15 @@ async fn refresh_rejects_invalid_later_pages_and_preserves_complete_snapshot() {
 #[tokio::test(flavor = "current_thread")]
 async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page() {
     let root = temp_dir("ic-query-nns-neuron-empty-terminal-page");
-    let request = NnsGovernanceRefreshRequest::new(
+    let mut request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
         1_700_000_000,
         2,
-    )
-    .with_max_pages(Some(2));
+    );
+    request.max_pages = Some(2);
+
     let source = MutatingLastPageSource(|page| page.neurons.clear());
     let report = refresh_nns_neuron_cache_with_source_and_progress(&request, &source, &mut |_| {})
         .await
@@ -738,14 +740,14 @@ async fn refresh_completes_at_the_page_cap_after_an_empty_terminal_neuron_page()
 #[tokio::test(flavor = "current_thread")]
 async fn capped_refresh_keeps_failure_evidence_without_publishing_a_snapshot() {
     let root = temp_dir("ic-query-nns-neuron-incomplete");
-    let request = NnsGovernanceRefreshRequest::new(
+    let mut request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_NNS_NEURON_SOURCE_ENDPOINT,
         1_700_000_000,
         2,
-    )
-    .with_max_pages(Some(1));
+    );
+    request.max_pages = Some(1);
 
     let error =
         refresh_nns_neuron_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})

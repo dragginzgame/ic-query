@@ -1,16 +1,16 @@
 use super::agent::{mainnet_agent, mainnet_governance_canister, mainnet_registry_canister};
 use crate::candid_call::{encode_request, query_encoded};
 use crate::ic_registry::{
-    MainnetNodeProviderList, MainnetRegistryFetchRequest, RegistryFetchError,
-    inventory::fetch_node_provider_node_counts, projection::node_provider_list_from_response,
-    transport::get_latest_version, wire::ListNodeProvidersResponse,
+    MainnetRegistryFetchRequest, RegistryFetchError, inventory::fetch_node_provider_node_counts,
+    projection::node_provider_list_from_response, transport::get_latest_version,
+    wire::ListNodeProvidersResponse,
 };
 
 crate::candid_call::impl_candid_call_error!(RegistryFetchError);
 
 pub async fn fetch_mainnet_node_provider_list(
     request: &MainnetRegistryFetchRequest,
-) -> Result<MainnetNodeProviderList, RegistryFetchError> {
+) -> Result<crate::nns::node_provider::NnsNodeProviderListReport, RegistryFetchError> {
     let agent = mainnet_agent(request)?;
     let governance_canister = mainnet_governance_canister()?;
     let arg = encode_request::<_, RegistryFetchError>((), "list_node_providers")?;

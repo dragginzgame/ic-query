@@ -103,7 +103,6 @@
       "authority": "cloud_engine_control_plane_canister",
       "caffeine_enabled": true,
       "certified": false,
-      "claimed_domain_count": 2,
       "claimed_domains": [
         "a.example",
         "z.example"
@@ -113,7 +112,6 @@
       "fetched_at": "2026-08-08T12:00:00Z",
       "fetched_by": "test",
       "network": "ic",
-      "operator_binding_present": true,
       "operator_canister_id": "wlnge-zyaaa-aaabw-aaaaa-cai",
       "platform_admin": "bct5z-vccu4-6q4t2-3lb6l-wm43p-ulppt-o5sqq-w6het-rthdz-qp4yn-fqe",
       "point_in_time_guaranteed": false,
@@ -136,7 +134,6 @@
       "network": "ic",
       "network_fee": 0.25,
       "point_in_time_guaranteed": false,
-      "price_count": 3,
       "prices": [
         {
           "data_center_id": null,
@@ -252,7 +249,10 @@
     "text": "data_centers: ic count 1 fetched_at 2026-06-04T00:00:00Z\n\nDC    REGION    OWNER           OPS   PROVIDERS   NODES\n---   -------   -------------   ---   ---------   -----\ndc1   eu-west   example owner     2           1      13"
   },
   {
-    "renderer": "nns_data_center_list_report_verbose_text",
+    "options": {
+      "verbose": true
+    },
+    "renderer": "nns_data_center_list_report_text",
     "report": {
       "data_centers": [
         {
@@ -275,7 +275,7 @@
       "source_endpoint": "https://icp-api.io"
     },
     "report_type": "ic_query::nns::data_center::report::model::report::NnsDataCenterListReport",
-    "text": "source_endpoint: https://icp-api.io\nfetched_by: test\n\nDC    REGION    OWNER           LATITUDE   LONGITUDE   OPS   PROVIDERS   NODES   REGISTRY_VERSION   FETCHED_AT\n---   -------   -------------   --------   ---------   ---   ---------   -----   ----------------   --------------------\ndc1   eu-west   example owner    48.8566      2.3522     2           1      13                 42   2026-06-04T00:00:00Z"
+    "text": "data_centers: ic count 1 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\n\nDC    REGION    OWNER           OPS   PROVIDERS   NODES\n---   -------   -------------   ---   ---------   -----\ndc1   eu-west   example owner     2           1      13"
   },
   {
     "renderer": "nns_neuron_distribution_report_text",
@@ -312,7 +312,8 @@
       "visibility_distribution": []
     },
     "report_type": "ic_query::nns::neuron::report::distribution::NnsNeuronDistributionReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_neuron_count: 0\npoint_in_time_guaranteed: no\nearliest_retrieved_at_timestamp_seconds: -\nlatest_retrieved_at_timestamp_seconds: -\ntotal_effective_stake_e8s: 0\ntotal_effective_stake_icp: 0.00\nreported_staked_maturity_neuron_count: 0\nunreported_staked_maturity_neuron_count: 0\ntotal_reported_staked_maturity_e8s_equivalent: 0\ntotal_reported_staked_maturity_icp: 0.00\nreported_deciding_voting_power_neuron_count: 0\nunreported_deciding_voting_power_neuron_count: 0\ntotal_reported_deciding_voting_power: 0\nreported_potential_voting_power_neuron_count: 0\nunreported_potential_voting_power_neuron_count: 0\ntotal_reported_potential_voting_power: 0\nknown_neuron_metadata_count: 0\nneurons_fund_join_timestamp_present_count: 0\n\nstates:\n-\n\nvisibilities:\n-\n\nneuron_types:\n-"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_neuron_count: 0\npoint_in_time_guaranteed: no\nearliest_retrieved_at_timestamp_seconds: -\nlatest_retrieved_at_timestamp_seconds: -\ntotal_effective_stake_e8s: 0\ntotal_effective_stake_icp: 0.00\nreported_staked_maturity_neuron_count: 0\nunreported_staked_maturity_neuron_count: 0\ntotal_reported_staked_maturity_e8s_equivalent: 0\ntotal_reported_staked_maturity_icp: 0.00\nreported_deciding_voting_power_neuron_count: 0\nunreported_deciding_voting_power_neuron_count: 0\ntotal_reported_deciding_voting_power: 0\nreported_potential_voting_power_neuron_count: 0\nunreported_potential_voting_power_neuron_count: 0\ntotal_reported_potential_voting_power: 0\nknown_neuron_metadata_count: 0\nneurons_fund_join_timestamp_present_count: 0\n\nstates:\n-\n\nvisibilities:\n-\n\nneuron_types:\n-",
+    "case": "distribution-empty"
   },
   {
     "renderer": "nns_neuron_distribution_report_text",
@@ -397,7 +398,8 @@
       ]
     },
     "report_type": "ic_query::nns::neuron::report::distribution::NnsNeuronDistributionReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_neuron_count: 4\npoint_in_time_guaranteed: no\nearliest_retrieved_at_timestamp_seconds: 100\nlatest_retrieved_at_timestamp_seconds: 120\ntotal_effective_stake_e8s: 1000\ntotal_effective_stake_icp: 0.00\nreported_staked_maturity_neuron_count: 2\nunreported_staked_maturity_neuron_count: 2\ntotal_reported_staked_maturity_e8s_equivalent: 40\ntotal_reported_staked_maturity_icp: 0.00\nreported_deciding_voting_power_neuron_count: 2\nunreported_deciding_voting_power_neuron_count: 2\ntotal_reported_deciding_voting_power: 50\nreported_potential_voting_power_neuron_count: 2\nunreported_potential_voting_power_neuron_count: 2\ntotal_reported_potential_voting_power: 90\nknown_neuron_metadata_count: 2\nneurons_fund_join_timestamp_present_count: 2\n\nstates:\nSTATE_CODE   STATE            NEURONS   EFFECTIVE_STAKE_ICP\n----------   --------------   -------   -------------------\n        -7   unknown(-7)            1                  0.00\n         1   not-dissolving         2                  0.00\n         3   dissolved              1                  0.00\n\nvisibilities:\nVISIBILITY_CODE   VISIBILITY    NEURONS   EFFECTIVE_STAKE_ICP\n---------------   -----------   -------   -------------------\n              -   unknown             1                  0.00\n             -8   unknown(-8)         1                  0.00\n              2   public              2                  0.00\n\nneuron_types:\nNEURON_TYPE_CODE   NEURON_TYPE   NEURONS   EFFECTIVE_STAKE_ICP\n----------------   -----------   -------   -------------------\n               -   unknown             1                  0.00\n               1   seed                2                  0.00\n               9   unknown(9)          1                  0.00"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_neuron_count: 4\npoint_in_time_guaranteed: no\nearliest_retrieved_at_timestamp_seconds: 100\nlatest_retrieved_at_timestamp_seconds: 120\ntotal_effective_stake_e8s: 1000\ntotal_effective_stake_icp: 0.00\nreported_staked_maturity_neuron_count: 2\nunreported_staked_maturity_neuron_count: 2\ntotal_reported_staked_maturity_e8s_equivalent: 40\ntotal_reported_staked_maturity_icp: 0.00\nreported_deciding_voting_power_neuron_count: 2\nunreported_deciding_voting_power_neuron_count: 2\ntotal_reported_deciding_voting_power: 50\nreported_potential_voting_power_neuron_count: 2\nunreported_potential_voting_power_neuron_count: 2\ntotal_reported_potential_voting_power: 90\nknown_neuron_metadata_count: 2\nneurons_fund_join_timestamp_present_count: 2\n\nstates:\nSTATE_CODE   STATE            NEURONS   EFFECTIVE_STAKE_ICP\n----------   --------------   -------   -------------------\n        -7   unknown(-7)            1                  0.00\n         1   not-dissolving         2                  0.00\n         3   dissolved              1                  0.00\n\nvisibilities:\nVISIBILITY_CODE   VISIBILITY    NEURONS   EFFECTIVE_STAKE_ICP\n---------------   -----------   -------   -------------------\n              -   unknown             1                  0.00\n             -8   unknown(-8)         1                  0.00\n              2   public              2                  0.00\n\nneuron_types:\nNEURON_TYPE_CODE   NEURON_TYPE   NEURONS   EFFECTIVE_STAKE_ICP\n----------------   -----------   -------   -------------------\n               -   unknown             1                  0.00\n               1   seed                2                  0.00\n               9   unknown(9)          1                  0.00",
+    "case": "distribution-populated"
   },
   {
     "renderer": "nns_node_list_report_text",
@@ -424,7 +426,10 @@
     "text": "nodes: ic count 1 fetched_at 2026-06-04T00:00:00Z\n\nNODE    OPERATOR   PROVIDER   SUBNET   KIND          DC\n-----   --------   --------   ------   -----------   ---\nryjl3   aaaaa      rwlgt      pzp6e    application   dc1"
   },
   {
-    "renderer": "nns_node_list_report_verbose_text",
+    "options": {
+      "verbose": true
+    },
+    "renderer": "nns_node_list_report_text",
     "report": {
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
@@ -445,7 +450,7 @@
       "source_endpoint": "https://icp-api.io"
     },
     "report_type": "ic_query::nns::node::report::model::report::NnsNodeListReport",
-    "text": "source_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE                          OPERATOR   PROVIDER                      SUBNET                                                            KIND          DC    REGISTRY_VERSION   FETCHED_AT\n---------------------------   --------   ---------------------------   ---------------------------------------------------------------   -----------   ---   ----------------   --------------------\nryjl3-tyaaa-aaaaa-aaaba-cai   aaaaa-aa   rwlgt-iiaaa-aaaaa-aaaaa-cai   pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae   application   dc1                 42   2026-06-04T00:00:00Z"
+    "text": "nodes: ic count 1 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE                          OPERATOR   PROVIDER                      SUBNET                                                            KIND          DC\n---------------------------   --------   ---------------------------   ---------------------------------------------------------------   -----------   ---\nryjl3-tyaaa-aaaaa-aaaba-cai   aaaaa-aa   rwlgt-iiaaa-aaaaa-aaaaa-cai   pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae   application   dc1"
   },
   {
     "renderer": "nns_node_operator_list_report_text",
@@ -471,7 +476,10 @@
     "text": "node_operators: ic count 1 fetched_at 2026-06-04T00:00:00Z\n\nNODE_OPERATOR   PROVIDER   NODES   ALLOWANCE   DC\n-------------   --------   -----   ---------   ---\nryjl3           aaaaa         13           7   dc1"
   },
   {
-    "renderer": "nns_node_operator_list_report_verbose_text",
+    "options": {
+      "verbose": true
+    },
+    "renderer": "nns_node_operator_list_report_text",
     "report": {
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
@@ -491,7 +499,7 @@
       "source_endpoint": "https://icp-api.io"
     },
     "report_type": "ic_query::nns::node_operator::report::model::report::NnsNodeOperatorListReport",
-    "text": "source_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE_OPERATOR                 PROVIDER   NODES   ALLOWANCE   DC    REGISTRY_VERSION   FETCHED_AT\n---------------------------   --------   -----   ---------   ---   ----------------   --------------------\nryjl3-tyaaa-aaaaa-aaaba-cai   aaaaa-aa      13           7   dc1                 42   2026-06-04T00:00:00Z"
+    "text": "node_operators: ic count 1 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE_OPERATOR                 PROVIDER   NODES   ALLOWANCE   DC\n---------------------------   --------   -----   ---------   ---\nryjl3-tyaaa-aaaaa-aaaba-cai   aaaaa-aa      13           7   dc1"
   },
   {
     "renderer": "nns_node_provider_info_report_text",
@@ -538,7 +546,10 @@
     "text": "node_providers: ic count 1 fetched_at 2026-06-04T00:00:00Z\n\nNODE_PROVIDER   NODES\n-------------   -----\nryjl3              13"
   },
   {
-    "renderer": "nns_node_provider_list_report_verbose_text",
+    "options": {
+      "verbose": true
+    },
+    "renderer": "nns_node_provider_list_report_text",
     "report": {
       "fetched_at": "2026-06-04T00:00:00Z",
       "fetched_by": "test",
@@ -564,7 +575,7 @@
       "source_endpoint": "https://icp-api.io"
     },
     "report_type": "ic_query::nns::node_provider::report::model::report::NnsNodeProviderListReport",
-    "text": "source_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE_PROVIDER                 NODES   REWARD_ACCOUNT   REGISTRY_VERSION   FETCHED_AT\n---------------------------   -----   --------------   ----------------   --------------------\naaaaa-aa                          3   -                              42   2026-06-04T00:00:00Z\nryjl3-tyaaa-aaaaa-aaaba-cai      13   abcd                           42   2026-06-04T00:00:00Z"
+    "text": "node_providers: ic count 2 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE_PROVIDER                 NODES\n---------------------------   -----\naaaaa-aa                          3\nryjl3-tyaaa-aaaaa-aaaba-cai      13"
   },
   {
     "renderer": "nns_proposal_activity_report_text",
@@ -595,9 +606,13 @@
       "until_proposal_timestamp_seconds": 3
     },
     "report_type": "ic_query::nns::proposals::report::activity::NnsProposalActivityReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_proposal_count: 1\npoint_in_time_guaranteed: no\nfrom_proposal_timestamp_seconds: 2\nuntil_proposal_timestamp_seconds: 3\nincluded_proposal_count: 0\nexcluded_before_from_count: 1\nexcluded_at_or_after_until_count: 0\nearliest_included_proposal_timestamp_seconds: -\nlatest_included_proposal_timestamp_seconds: -\n\ntopics:\n-\n\nstatuses:\n-\n\nreward_statuses:\n-\n\ndaily_activity:\n-"
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\ncollection_started_at: 2026-08-15T00:00:00Z\ncollection_updated_at: 2026-08-15T00:00:01Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: fixture\nexecution_assurance: unreplicated_query\ncollection_page_count: 1\ncollected_proposal_count: 1\npoint_in_time_guaranteed: no\nfrom_proposal_timestamp_seconds: 2\nuntil_proposal_timestamp_seconds: 3\nincluded_proposal_count: 0\nexcluded_before_from_count: 1\nexcluded_at_or_after_until_count: 0\nearliest_included_proposal_timestamp_seconds: -\nlatest_included_proposal_timestamp_seconds: -\n\ntopics:\n-\n\nstatuses:\n-\n\nreward_statuses:\n-\n\ndaily_activity:\n-",
+    "case": "activity-window-empty"
   },
   {
+    "options": {
+      "verbose": false
+    },
     "renderer": "nns_proposal_list_report_text",
     "report": {
       "before_proposal_id": 3,
@@ -657,13 +672,12 @@
       "topic_filter": "governance"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 1\nbefore_proposal_id: 3\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: PrOpOsAl 1\nsort: title\nsort_direction: asc\nresult_scope: complete-cache\nverbose: no\nproposal_count: 1\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-list-cache-301-136/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nID   TOPIC        STATUS     PROPOSED_AT            TITLE\n--   ----------   --------   --------------------   ----------\n 1   governance   executed   2023-11-14T22:13:21Z   Proposal 1",
-    "options": {
-      "verbose": false,
-      "show_ballots": false
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 1\nbefore_proposal_id: 3\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: PrOpOsAl 1\nsort: title\nsort_direction: asc\nresult_scope: complete-cache\nverbose: no\nproposal_count: 1\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-list-cache-301-136/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nID   TOPIC        STATUS     PROPOSED_AT            TITLE\n--   ----------   --------   --------------------   ----------\n 1   governance   executed   2023-11-14T22:13:21Z   Proposal 1"
   },
   {
+    "options": {
+      "verbose": false
+    },
     "renderer": "nns_proposal_list_report_text",
     "report": {
       "before_proposal_id": 200,
@@ -764,13 +778,12 @@
       "topic_filter": "any"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: 99\nquery_filter: -\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 2\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----------------\n103   governance   executed   2023-11-14T22:15:03Z   Proposer proposal\n101   governance   executed   2023-11-14T22:15:01Z   Proposer proposal",
-    "options": {
-      "verbose": false,
-      "show_ballots": false
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: 99\nquery_filter: -\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 2\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----------------\n103   governance   executed   2023-11-14T22:15:03Z   Proposer proposal\n101   governance   executed   2023-11-14T22:15:01Z   Proposer proposal"
   },
   {
+    "options": {
+      "verbose": false
+    },
     "renderer": "nns_proposal_list_report_text",
     "report": {
       "before_proposal_id": 200,
@@ -834,13 +847,12 @@
       "topic_filter": "any"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: -\nquery_filter: SuBnEt\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   --------------\n101   governance   executed   2023-11-14T22:15:01Z   Subnet upgrade",
-    "options": {
-      "verbose": false,
-      "show_ballots": false
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: any\nreward_status_filter: any\ntopic_filter: any\nproposer_filter: -\nquery_filter: SuBnEt\nsort: id\nsort_direction: desc\nresult_scope: bounded-live\nverbose: no\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   --------------\n101   governance   executed   2023-11-14T22:15:01Z   Subnet upgrade"
   },
   {
+    "options": {
+      "verbose": true
+    },
     "renderer": "nns_proposal_list_report_text",
     "report": {
       "before_proposal_id": 200,
@@ -904,13 +916,12 @@
       "topic_filter": "governance"
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalListReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: -\nsort: title\nsort_direction: asc\nresult_scope: bounded-live\nverbose: yes\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----\n101   governance   executed   2023-11-14T22:15:01Z   Bravo\n\nproposal_details:\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary",
-    "options": {
-      "verbose": true,
-      "show_ballots": false
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nrequested_limit: 50\nbefore_proposal_id: 200\nstatus_filter: executed\nreward_status_filter: settled\ntopic_filter: governance\nproposer_filter: 99\nquery_filter: -\nsort: title\nsort_direction: asc\nresult_scope: bounded-live\nverbose: yes\nproposal_count: 1\ndata_source: live\n\n ID   TOPIC        STATUS     PROPOSED_AT            TITLE\n---   ----------   --------   --------------------   -----\n101   governance   executed   2023-11-14T22:15:01Z   Bravo"
   },
   {
+    "options": {
+      "verbose": false
+    },
     "renderer": "nns_proposal_report_text",
     "report": {
       "cache_path": "/tmp/ic-query-nns-proposal-detail-cache-301-134/nns/ic/governance/proposals/full.json",
@@ -959,13 +970,12 @@
       }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 2\nshow_ballots: yes\nverbose: no\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-detail-cache-301-134/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nproposal_id: 2\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Proposal 2\nurl: https://dashboard.internetcomputer.org/proposal/2\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:22Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 1\nlatest_tally_yes: 2\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE   VOTING_POWER\n---------   ----   ------------\n        2   yes            0.00",
-    "options": {
-      "verbose": false,
-      "show_ballots": true
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 2\nverbose: no\ndata_source: cache\ncache_path: /tmp/ic-query-nns-proposal-detail-cache-301-134/nns/ic/governance/proposals/full.json\ncache_complete: yes\n\nproposal_id: 2\ntopic: governance\nstatus: executed\ntitle: Proposal 2\nproposed_at: 2023-11-14T22:13:22Z\nsummary: Proposal summary"
   },
   {
+    "options": {
+      "verbose": true
+    },
     "renderer": "nns_proposal_report_text",
     "report": {
       "data_source": "live",
@@ -1018,13 +1028,12 @@
       }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: yes\nverbose: yes\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:13:20Z\ndeadline_at: 1970-01-01T00:00:00Z\ndecided_at: -\nexecuted_at: 2023-11-14T22:13:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: Proposal summary\n\nballots:\nNEURON_ID   VOTE          VOTING_POWER\n---------   -----------   ------------\n        1   yes                   0.00\n        2   unknown(99)           0.00",
-    "options": {
-      "verbose": true,
-      "show_ballots": true
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nverbose: yes\ndata_source: live\n\nproposal_id: 101\ntopic: governance\nstatus: executed\ntitle: Bravo\nproposed_at: 2023-11-14T22:13:20Z\nsummary: Proposal summary"
   },
   {
+    "options": {
+      "verbose": false
+    },
     "renderer": "nns_proposal_report_text",
     "report": {
       "data_source": "live",
@@ -1077,11 +1086,7 @@
       }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nshow_ballots: no\nverbose: no\ndata_source: live\n\nproposal_id: 101\nproposer_neuron_id: 99\ntopic: governance (4)\nstatus: executed (4)\nreward_status: settled (3)\naction: motion\ntitle: Bravo\nurl: https://dashboard.internetcomputer.org/proposal/101\nreject_cost: 1.00\nproposed_at: 2023-11-14T22:15:01Z\ndeadline_at: 2023-11-15T01:00:00Z\ndecided_at: 2023-11-14T22:16:40Z\nexecuted_at: 2023-11-14T22:18:20Z\nfailed_at: -\nreward_event_round: 7\ntotal_potential_voting_power: 100\nballot_count: 2\nlatest_tally_yes: 20\nlatest_tally_no: 1\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...",
-    "options": {
-      "verbose": false,
-      "show_ballots": false
-    }
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nverbose: no\ndata_source: live\n\nproposal_id: 101\ntopic: governance\nstatus: executed\ntitle: Bravo\nproposed_at: 2023-11-14T22:15:01Z\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
   },
   {
     "renderer": "nns_registry_version_report_text",
@@ -1336,7 +1341,6 @@
           "total_node_allowance": 1
         }
       ],
-      "referenced_node_provider_count": 2,
       "registered_node_provider_count": 1,
       "registry_versions": [
         {
@@ -1467,7 +1471,6 @@
       "node_count": 3,
       "node_operator_count": 2,
       "node_provider_count": 1,
-      "region_count": 1,
       "regions": [
         {
           "data_center_count": 1,
@@ -1935,10 +1938,13 @@
       ]
     },
     "report_type": "ic_query::subnet_catalog::report::model::list::SubnetCatalogListReport",
-    "text": "catalog: ic version 123456 stale no assurance uncertified_query cache cache_hit\n\nSUBNET   KIND          SPEC        GEO      NODES   CHG   RANGES   STALE\n------   -----------   ---------   ------   -----   ---   ------   -----\npzp6e    application   fiduciary   global      34   yes        2   no\nrwlgt    system        none        global      13   no         1   no\nranges for pzp6e:\n  rrkah..rrkah\n  showing 1 of 2 ranges; use --range-limit or --json\nranges for rwlgt:\n  r7inp..r7inp"
+    "text": "catalog: ic version 123456 stale no assurance uncertified_query cache cache_hit\n\nSUBNET   KIND          SPEC        GEO      NODES   CHG   RANGES   STALE\n------   -----------   ---------   ------   -----   ---   ------   -----\npzp6e    application   fiduciary   global      34   yes        2   no\nrwlgt    system        none        global      13   no         1   no\n\nranges for pzp6e:\n  rrkah..rrkah\n  showing 1 of 2 ranges; use --range-limit or --json\n\nranges for rwlgt:\n  r7inp..r7inp"
   },
   {
-    "renderer": "subnet_catalog_list_report_verbose_text",
+    "options": {
+      "verbose": true
+    },
+    "renderer": "subnet_catalog_list_report_text",
     "report": {
       "agreement_digest": null,
       "assurance": "uncertified_query",
@@ -2075,6 +2081,6 @@
       ]
     },
     "report_type": "ic_query::subnet_catalog::report::model::list::SubnetCatalogListReport",
-    "text": "catalog_path: /tmp/ic-query-subnet-list-verbose-301-324/nns/ic/subnet-catalog/catalog.json\nassurance: uncertified_query\ncache_disposition: cache_hit\ncatalog_digest: 6451c65b62c972d157bef89c0e10e076fd05cd98f27c03e6cd56dd3dc3319fae\nsource_endpoints: https://icp-api.io\nagreement_digest: -\nregistry_query_call_count: 5\nrouting_source: legacy_routing_table\nregistry_record_count: 4\ncollector_version: test\nclassification_schema_version: 1\nclassification_policy_digest: a3a544eb8c5a54a93b06583a16e3952598cee5ec7d9629e2678c5ed85bd58a2c\nresolver_schema_version: 1\nresolver_backend: local-nns-subnet-catalog\nstale_reason: fresh\n\nSUBNET                                                            KIND          SPECIALIZATION   GEO      NODES   CHARGES   RANGES   VERSION   FETCHED_AT             STALE\n---------------------------------------------------------------   -----------   --------------   ------   -----   -------   ------   -------   --------------------   -----\npzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae   application   fiduciary        global      34   yes            2    123456   2026-06-04T00:00:00Z   no\nrwlgt-iiaaa-aaaaa-aaaaa-cai                                       system        none             global      13   no             1    123456   2026-06-04T00:00:00Z   no\nranges for pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae:\n  rrkah-fqaaa-aaaaa-aaaaq-cai..rrkah-fqaaa-aaaaa-aaaaq-cai\n  showing 1 of 2 ranges; use --range-limit or --json\nranges for rwlgt-iiaaa-aaaaa-aaaaa-cai:\n  r7inp-6aaaa-aaaaa-aaabq-cai..r7inp-6aaaa-aaaaa-aaabq-cai"
+    "text": "catalog: ic version 123456 stale no assurance uncertified_query cache cache_hit\ncatalog_path: /tmp/ic-query-subnet-list-verbose-301-324/nns/ic/subnet-catalog/catalog.json\nassurance: uncertified_query\ncache_disposition: cache_hit\ncatalog_digest: 6451c65b62c972d157bef89c0e10e076fd05cd98f27c03e6cd56dd3dc3319fae\nsource_endpoints: https://icp-api.io\nagreement_digest: -\nregistry_query_call_count: 5\nrouting_source: legacy_routing_table\nregistry_record_count: 4\ncollector_version: test\nclassification_schema_version: 1\nclassification_policy_digest: a3a544eb8c5a54a93b06583a16e3952598cee5ec7d9629e2678c5ed85bd58a2c\nresolver_schema_version: 1\nresolver_backend: local-nns-subnet-catalog\nstale_reason: fresh\n\nSUBNET                                                            KIND          SPEC        GEO      NODES   CHG   RANGES   STALE\n---------------------------------------------------------------   -----------   ---------   ------   -----   ---   ------   -----\npzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae   application   fiduciary   global      34   yes        2   no\nrwlgt-iiaaa-aaaaa-aaaaa-cai                                       system        none        global      13   no         1   no\n\nranges for pzp6e-ekpqk-3c5x7-2h6so-njoeq-mt45d-h3h6c-q3mxf-vpeq5-fk5o7-yae:\n  rrkah-fqaaa-aaaaa-aaaaq-cai..rrkah-fqaaa-aaaaa-aaaaq-cai\n  showing 1 of 2 ranges; use --range-limit or --json\n\nranges for rwlgt-iiaaa-aaaaa-aaaaa-cai:\n  r7inp-6aaaa-aaaaa-aaabq-cai..r7inp-6aaaa-aaaaa-aaabq-cai"
   }
 ]

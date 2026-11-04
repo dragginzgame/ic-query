@@ -137,14 +137,14 @@ mod host {
         now_unix_secs: u64,
     ) -> Result<String, SubnetCatalogHostError> {
         let cache = SubnetCatalogCacheRequest::new(cache_root, "ic");
-        let request = SubnetCatalogInfoRequest::new(
+        let mut request = SubnetCatalogInfoRequest::new(
             cache,
             DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
             canister_or_subnet,
             now_unix_secs,
             DEFAULT_STALE_AFTER_SECONDS,
-        )
-        .with_forced(ResolveAs::Canister);
+        );
+        request.forced = Some(ResolveAs::Canister);
 
         let report = build_subnet_catalog_info_report(&request).await?;
         Ok(subnet_catalog_info_report_text(&report))
@@ -175,7 +175,10 @@ mod host {
                 .with_subnet_kind(SubnetKind::Application);
 
         let report = build_nns_node_list_report(&request).await?;
-        Ok(nns_node_list_report_text(&report))
+        Ok(nns_node_list_report_text(
+            &report,
+            ic_query_text::TextOptions::default(),
+        ))
     }
 
     async fn render_token(
@@ -205,7 +208,7 @@ mod host {
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
-        let request = SnsProposalsRequest::new(
+        let mut request = SnsProposalsRequest::new(
             ic_query::sns::SnsLookupRequest::new(
                 "ic",
                 DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -216,8 +219,8 @@ mod host {
             25,
         )
         .with_cache_root(cache_root)
-        .with_sort(SnsProposalsSort::Created)
-        .with_sort_direction(SortDirection::Desc);
+        .with_sort(SnsProposalsSort::Created);
+        request.sort_direction = SortDirection::Desc;
 
         let report = build_sns_proposals_report_with_source_and_progress(
             &request,
@@ -235,7 +238,7 @@ mod host {
         sns_input: &str,
         now_unix_secs: u64,
     ) -> Result<String, SnsHostError> {
-        let request = SnsMetricsRequest::new(
+        let mut request = SnsMetricsRequest::new(
             ic_query::sns::SnsLookupRequest::new(
                 "ic",
                 DEFAULT_SNS_SOURCE_ENDPOINT,
@@ -243,8 +246,8 @@ mod host {
                 sns_input,
             )
             .expect("valid SNS selector"),
-        )
-        .with_time_window_seconds(90 * 24 * 60 * 60);
+        );
+        request.time_window_seconds = 90 * 24 * 60 * 60;
 
         let report = build_sns_metrics_report(&request).await?;
         Ok(sns_metrics_report_text(&report))

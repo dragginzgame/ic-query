@@ -21,7 +21,6 @@ fn text_separates_dashboard_provenance_from_type4_nodes() {
         node_reward_type: CLOUD_ENGINE_NODE_REWARD_TYPE.to_string(),
         included_statuses: included_statuses(),
         requested_node_provider_id: None,
-        node_count: 1,
         status_counts: IcNodeStatusCounts {
             total: 1,
             up: 1,

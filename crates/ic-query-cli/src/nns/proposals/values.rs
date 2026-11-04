@@ -10,7 +10,6 @@ use ic_query::nns::proposals::NnsProposalStatusFilter;
 use ic_query::nns::proposals::NnsProposalTopicFilter;
 
 pub(in crate::nns::proposals) const NNS_PROPOSAL_ID_ARG: &str = "proposal-id";
-pub(in crate::nns::proposals) const NNS_PROPOSAL_BALLOTS_FLAG: &str = "ballots";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_VERBOSE_FLAG: &str = "verbose";
 pub(in crate::nns::proposals) const NNS_PROPOSAL_LIST_REWARD_STATUS_ARG: &str = "reward-status";
 pub(in crate::nns) const NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL: &str =

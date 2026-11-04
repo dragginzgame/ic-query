@@ -10,7 +10,7 @@ use crate::nns::LiveNnsSource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 
 #[tokio::test(flavor = "current_thread")]
 async fn live_data_center_source_rejects_non_mainnet_before_agent_construction() {

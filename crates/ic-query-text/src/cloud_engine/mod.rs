@@ -4,10 +4,10 @@
 //! Does not own: report construction, JSON output, live calls, or process output.
 //! Boundary: formats cycle amounts only for text while JSON retains raw decimal fields.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::human_quantity::decimal_cycle_count_text;
 use crate::text_value::optional_text;
@@ -37,60 +37,48 @@ pub fn cloud_engine_list_report_text(report: &CloudEngineListReport) -> String {
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 fn list_context_lines(report: &CloudEngineListReport) -> Vec<String> {
     vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!(
-            "registry_authority: {}",
-            terminal_text(&report.registry_authority)
-        ),
-        format!("registry_canister_id: {}", report.registry_canister_id),
-        format!("registry_version: {}", report.registry_version),
-        format!("registry_assurance: {}", report.registry_assurance.as_str()),
-        format!(
-            "registry_source_endpoints: {}",
-            report
+        field("network", &report.network),
+        field("registry_authority", &report.registry_authority),
+        field("registry_canister_id", &(report.registry_canister_id)),
+        field("registry_version", &(report.registry_version)),
+        field("registry_assurance", &(report.registry_assurance.as_str())),
+        field(
+            "registry_source_endpoints",
+            &(report
                 .registry_source_endpoints
                 .iter()
                 .map(|endpoint| terminal_text(endpoint))
                 .collect::<Vec<_>>()
-                .join(", ")
+                .join(", ")),
         ),
-        format!(
-            "catalog_fetched_at: {}",
-            terminal_text(&report.catalog_fetched_at)
+        field("catalog_fetched_at", &report.catalog_fetched_at),
+        field(
+            "catalog_cache_disposition",
+            &(report.catalog_cache_disposition.as_str()),
         ),
-        format!(
-            "catalog_cache_disposition: {}",
-            report.catalog_cache_disposition.as_str()
-        ),
-        format!("catalog_stale: {}", yes_no(report.catalog_stale)),
+        field("catalog_stale", &(yes_no(report.catalog_stale))),
         String::new(),
-        format!(
-            "control_plane_authority: {}",
-            terminal_text(&report.control_plane_authority)
+        field("control_plane_authority", &report.control_plane_authority),
+        field(
+            "control_plane_canister_id",
+            &(report.control_plane_canister_id),
         ),
-        format!(
-            "control_plane_canister_id: {}",
-            report.control_plane_canister_id
+        field(
+            "control_plane_source_endpoint",
+            &report.control_plane_source_endpoint,
         ),
-        format!(
-            "control_plane_source_endpoint: {}",
-            terminal_text(&report.control_plane_source_endpoint)
+        field("control_plane_fetched_at", &report.control_plane_fetched_at),
+        field(
+            "control_plane_certified",
+            &(yes_no(report.control_plane_certified)),
         ),
-        format!(
-            "control_plane_fetched_at: {}",
-            terminal_text(&report.control_plane_fetched_at)
+        field(
+            "control_plane_point_in_time_guaranteed",
+            &(yes_no(report.control_plane_point_in_time_guaranteed)),
         ),
-        format!(
-            "control_plane_certified: {}",
-            yes_no(report.control_plane_certified)
-        ),
-        format!(
-            "control_plane_point_in_time_guaranteed: {}",
-            yes_no(report.control_plane_point_in_time_guaranteed)
-        ),
-        format!(
-            "control_plane_lookup_attempt_count: {}",
-            report.control_plane_lookup_attempt_count
+        field(
+            "control_plane_lookup_attempt_count",
+            &(report.control_plane_lookup_attempt_count),
         ),
         format!(
             "operator_bindings: {} resolved, {} absent, {} failed",
@@ -134,7 +122,7 @@ fn list_table(report: &CloudEngineListReport) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }
 
 #[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
@@ -160,34 +148,36 @@ fn append_lookup_failures(report: &CloudEngineListReport, lines: &mut Vec<String
 pub fn cloud_engine_operator_report_text(report: &CloudEngineOperatorReport) -> String {
     let mut lines = context_lines(&report.context);
     lines.extend([
-        format!("subnet_id: {}", report.subnet_id),
-        format!(
-            "operator_binding_present: {}",
-            yes_no(report.operator_binding_present)
+        field("subnet_id", &(report.subnet_id)),
+        field(
+            "operator_binding_present",
+            &(yes_no(report.operator_canister_id.is_some())),
         ),
-        format!(
-            "operator_canister_id: {}",
-            optional_text(report.operator_canister_id.as_ref())
+        field(
+            "operator_canister_id",
+            &(optional_text(report.operator_canister_id.as_ref())),
         ),
-        format!(
-            "engine_owner: {}",
-            optional_text(report.engine_owner.as_ref())
+        field(
+            "engine_owner",
+            &(optional_text(report.engine_owner.as_ref())),
         ),
-        format!(
-            "platform_admin: {}",
-            optional_text(report.platform_admin.as_ref())
+        field(
+            "platform_admin",
+            &(optional_text(report.platform_admin.as_ref())),
         ),
-        format!(
-            "caffeine_enabled: {}",
-            report
+        field(
+            "caffeine_enabled",
+            &(report
                 .caffeine_enabled
-                .map_or_else(|| "-".to_string(), |enabled| yes_no(enabled).to_string())
+                .map_or_else(|| "-".to_string(), |enabled| yes_no(enabled).to_string())),
         ),
-        format!(
-            "claimed_domain_count: {}",
-            report
-                .claimed_domain_count
-                .map_or_else(|| "-".to_string(), |count| count.to_string())
+        field(
+            "claimed_domain_count",
+            &(report
+                .claimed_domains
+                .as_ref()
+                .map(Vec::len)
+                .map_or_else(|| "-".to_string(), |count| count.to_string())),
         ),
     ]);
 
@@ -210,8 +200,8 @@ pub fn cloud_engine_operator_report_text(report: &CloudEngineOperatorReport) -> 
 pub fn cloud_engine_prices_report_text(report: &CloudEnginePricesReport) -> String {
     let mut lines = context_lines(&report.context);
     lines.extend([
-        format!("network_fee: {}", report.network_fee),
-        format!("price_count: {}", report.price_count),
+        field("network_fee", &(report.network_fee)),
+        field("price_count", &(report.prices.len())),
     ]);
 
     if !report.prices.is_empty() {
@@ -253,28 +243,25 @@ pub fn cloud_engine_prices_report_text(report: &CloudEnginePricesReport) -> Stri
             .collect::<Vec<_>>();
         lines.push(String::new());
         lines.push("Marketplace prices".to_string());
-        lines.push(render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS));
+        lines.push(table(&headers, &rows, &alignments));
     }
     lines.join("\n")
 }
 
 fn context_lines(context: &CloudEngineReportContext) -> Vec<String> {
     vec![
-        format!("network: {}", terminal_text(&context.network)),
-        format!("authority: {}", terminal_text(&context.authority)),
-        format!("engine_canister_id: {}", context.engine_canister_id),
-        format!("fetched_at: {}", terminal_text(&context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&context.source_endpoint)
+        field("network", &context.network),
+        field("authority", &context.authority),
+        field("engine_canister_id", &(context.engine_canister_id)),
+        field("fetched_at", &context.fetched_at),
+        field("source_endpoint", &context.source_endpoint),
+        field("fetched_by", &context.fetched_by),
+        field("certified", &(yes_no(context.certified))),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(context.point_in_time_guaranteed)),
         ),
-        format!("fetched_by: {}", terminal_text(&context.fetched_by)),
-        format!("certified: {}", yes_no(context.certified)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(context.point_in_time_guaranteed)
-        ),
-        format!("query_call_count: {}", context.query_call_count),
+        field("query_call_count", &(context.query_call_count)),
     ]
 }
 

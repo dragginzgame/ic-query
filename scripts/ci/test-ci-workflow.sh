@@ -42,8 +42,15 @@ jq="$repo_root/.tools/host/bin/jq"
   ($workflow.jobs.canister.steps | any(.[]; .run == "make canister-test")) and
   ($workflow.jobs.canister.steps | any(.[]; .if == "always()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
-  ($workflow.jobs.checks.steps | all(.[] | select((.uses // "") | startswith("actions/upload-artifact@"));
+  ($workflow.jobs.checks.steps | all(.[] | select(.if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")));
     (.with.path | split("\n") | map(select(length > 0))) == ["${{ runner.temp }}/ic-query-tool-evidence.*/"])) and
+  ($workflow.jobs.checks.steps | any(.[];
+    .run == "make ci" and .if == "steps.qualification.outputs.needed != '\''true'\''")) and
+  ($workflow.jobs.checks.steps | any(.[];
+    .run == "make qualify-release-groups" and .if == "steps.qualification.outputs.needed == '\''true'\''")) and
+  ($workflow.jobs.checks.steps | any(.[];
+    .with.name == "release-group-qualification-${{ matrix.host }}" and
+    .with.path == "target/release-validation/" and .with["include-hidden-files"] == true)) and
   ([$workflow.jobs.checks, $workflow.jobs.canister] | all(.[];
     any(.steps[]; ((.uses // "") | startswith("actions/upload-artifact@")) and
       ((.with.path // "") | contains("ic-query-tool-evidence.*/")) and

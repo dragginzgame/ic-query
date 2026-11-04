@@ -249,19 +249,20 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(ledger.now_unix_secs, FETCHED_AT_UNIX_SECS);
     assert_eq!(ledger.ledger_canister_id, LEDGER_CANISTER_ID);
 
-    let balance = IcrcBalanceRequest::new(
+    let mut balance = IcrcBalanceRequest::new(
         ic_query::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
             LEDGER_CANISTER_ID,
         ),
         ACCOUNT_OWNER,
-    )
-    .with_subaccount_hex(SUBACCOUNT_HEX);
+    );
+    balance.subaccount_hex = Some(SUBACCOUNT_HEX.into());
+
     assert_eq!(balance.account_owner, ACCOUNT_OWNER);
     assert_eq!(balance.subaccount_hex.as_deref(), Some(SUBACCOUNT_HEX));
 
-    let allowance = IcrcAllowanceRequest::new(
+    let mut allowance = IcrcAllowanceRequest::new(
         ic_query::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -269,9 +270,10 @@ fn public_icrc_request_constructors_set_expected_fields() {
         ),
         ACCOUNT_OWNER,
         ARCHIVE_CANISTER_ID,
-    )
-    .with_account_subaccount_hex(SUBACCOUNT_HEX)
-    .with_spender_subaccount_hex(SUBACCOUNT_HEX);
+    );
+    allowance.account_subaccount_hex = Some(SUBACCOUNT_HEX.into());
+    allowance.spender_subaccount_hex = Some(SUBACCOUNT_HEX.into());
+
     assert_eq!(allowance.account_owner, ACCOUNT_OWNER);
     assert_eq!(allowance.spender_owner, ARCHIVE_CANISTER_ID);
     assert_eq!(
@@ -283,7 +285,7 @@ fn public_icrc_request_constructors_set_expected_fields() {
         Some(SUBACCOUNT_HEX)
     );
 
-    let account_transactions = IcrcAccountTransactionPageRequest::new(
+    let mut account_transactions = IcrcAccountTransactionPageRequest::new(
         ic_query::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -291,10 +293,11 @@ fn public_icrc_request_constructors_set_expected_fields() {
         ),
         ACCOUNT_OWNER,
         25,
-    )
-    .with_index_canister_id(ARCHIVE_CANISTER_ID)
-    .with_subaccount_hex(SUBACCOUNT_HEX)
-    .with_start("100");
+    );
+    account_transactions.index_canister_id = Some(ARCHIVE_CANISTER_ID.into());
+    account_transactions.subaccount_hex = Some(SUBACCOUNT_HEX.into());
+    account_transactions.start = Some("100".into());
+
     assert_eq!(
         account_transactions.index_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)
@@ -307,24 +310,27 @@ fn public_icrc_request_constructors_set_expected_fields() {
     assert_eq!(account_transactions.start.as_deref(), Some("100"));
     assert_eq!(account_transactions.limit, 25);
 
-    let cache = IcrcAccountTransactionCacheRequest::new(
+    let mut cache = IcrcAccountTransactionCacheRequest::new(
         "/tmp/ic-query-cache",
         SOURCE_ENDPOINT,
         LEDGER_CANISTER_ID,
         ACCOUNT_OWNER,
-    )
-    .with_subaccount_hex(SUBACCOUNT_HEX);
-    let refresh =
-        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100)
-            .with_index_canister_id(ARCHIVE_CANISTER_ID)
-            .with_max_pages(Some(50));
-    let list = IcrcAccountTransactionListRequest::new(cache, 25)
-        .with_sort(IcrcAccountTransactionSort::Oldest);
+    );
+    cache.subaccount_hex = Some(SUBACCOUNT_HEX.into());
+
+    let mut refresh =
+        IcrcAccountTransactionRefreshRequest::new(cache.clone(), FETCHED_AT_UNIX_SECS, 100);
+    refresh.index_canister_id = Some(ARCHIVE_CANISTER_ID.into());
+    refresh.max_pages = Some(50);
+
+    let mut list = IcrcAccountTransactionListRequest::new(cache, 25);
+    list.sort = IcrcAccountTransactionSort::Oldest;
+
     assert_eq!(refresh.page_size, 100);
     assert_eq!(refresh.max_pages, Some(50));
     assert_eq!(list.sort, IcrcAccountTransactionSort::Oldest);
 
-    let transactions = IcrcTransactionsRequest::new(
+    let mut transactions = IcrcTransactionsRequest::new(
         ic_query::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -332,18 +338,20 @@ fn public_icrc_request_constructors_set_expected_fields() {
         ),
         100,
         25,
-    )
-    .with_follow_archives(true);
+    );
+    transactions.follow_archives = true;
+
     assert_eq!(transactions.start, 100);
     assert_eq!(transactions.limit, 25);
     assert!(transactions.follow_archives);
 
-    let archives = IcrcArchivesRequest::new(ic_query::icrc::IcrcLedgerRequest::new(
+    let mut archives = IcrcArchivesRequest::new(ic_query::icrc::IcrcLedgerRequest::new(
         SOURCE_ENDPOINT,
         FETCHED_AT_UNIX_SECS,
         LEDGER_CANISTER_ID,
-    ))
-    .with_from_canister_id(ARCHIVE_CANISTER_ID);
+    ));
+    archives.from_canister_id = Some(ARCHIVE_CANISTER_ID.into());
+
     assert_eq!(
         archives.from_canister_id.as_deref(),
         Some(ARCHIVE_CANISTER_ID)

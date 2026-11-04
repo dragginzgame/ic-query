@@ -5,10 +5,10 @@
 //! Boundary: formats live or cache-backed neuron report rows for humans.
 
 use crate::sns::common::sns_identity_lines;
+use crate::text_value::field;
+use crate::text_value::table;
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 use crate::sns::common::dissolve_state_text;
@@ -26,23 +26,23 @@ use ic_query::sns::SnsNeuronsReport;
 pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOptions) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "owner_principal_id: {}",
-            optional_text(report.owner_principal_id.as_ref())
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "owner_principal_id",
+            &(optional_text(report.owner_principal_id.as_ref())),
         ),
-        format!("verbose: {}", yes_no(options.verbose)),
+        field("verbose", &(yes_no(options.verbose))),
     ]);
     push_report_provenance_lines(&mut lines, &report.provenance);
     lines.extend([
-        format!("sort: {}", report.sort),
-        format!("total_neuron_count: {}", report.total_neuron_count),
-        format!("neuron_count: {}", report.neurons.len()),
+        field("sort", &(report.sort)),
+        field("total_neuron_count", &(report.total_neuron_count)),
+        field("neuron_count", &(report.neurons.len())),
     ]);
     lines.extend(crate::sns::common::sns_collection_lines(&report.context));
     if !report.neurons.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &[
                 "NEURON_ID",
                 "STAKE",
@@ -82,7 +82,6 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOp
                 Alignment::Right,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
     lines.join("\n")

@@ -1,0 +1,298 @@
+//! Module: nns::inventory
+//!
+//! Responsibility: share Registry-inventory lifecycle and row-resolution mechanics.
+//! Does not own: family row DTOs, source implementations, cache identity, or public errors.
+//! Boundary: one lifecycle and publication outcome serve node, provider, operator, and data-center reports.
+
+use super::{
+    NnsInventoryCacheRequest, NnsInventoryCollection, NnsInventoryError, NnsInventoryListRequest,
+    NnsInventoryRefreshRequest,
+};
+use crate::identifier_match::{IdentifierMatch, match_identifier};
+use crate::report::CollectionSourceRequest;
+use crate::{
+    QueryProgress, QueryProgressEvent,
+    cache_file::{RefreshCacheWriteResult, load_or_refresh_cache},
+    nns::leaf::write_nns_leaf_json_refresh_cache,
+    subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text},
+};
+use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
+use serde::Serialize;
+use std::{borrow::Cow, path::PathBuf};
+
+///
+/// NnsInventoryRefreshReport
+///
+/// Publication outcome shared by Registry-derived NNS inventory refreshes.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, Serialize)]
+pub struct NnsInventoryRefreshReport {
+    /// Serialized report schema version, currently 1.
+    pub schema_version: u32,
+    /// Registry inventory represented by this refresh.
+    pub collection: String,
+    /// Number of rows collected before any view filtering.
+    pub row_count: usize,
+    /// Registry acquisition metadata, flattened in JSON.
+    #[serde(flatten)]
+    pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
+    /// Managed complete inventory cache path.
+    pub cache_path: String,
+    /// Refresh lock path.
+    pub refresh_lock_path: String,
+    /// Explicit export path, when requested.
+    pub output_path: Option<String>,
+    /// Governance principal supplying provider metadata, when applicable.
+    pub governance_canister_id: Option<String>,
+    /// Whether managed-cache publication was disabled.
+    pub dry_run: bool,
+    /// Whether the managed complete cache was published.
+    pub wrote_cache: bool,
+    /// Whether a cache existed at write admission, including during a dry run.
+    pub replaced_existing_cache: bool,
+}
+
+///
+/// NnsInventoryReport
+///
+/// Shared provenance and family-evidence contract for one complete NNS inventory report.
+///
+
+pub(in crate::nns) trait NnsInventoryReport {
+    const SCHEMA_VERSION: u32;
+    const ITEM_NAME: &'static str;
+    const COLLECTION: NnsInventoryCollection;
+
+    fn schema_version(&self) -> u32;
+    fn provenance(&self) -> &super::registry::NnsRegistryInventoryProvenance;
+
+    /// Project an admitted inventory and the actual publication result.
+    fn refresh_outcome(
+        &self,
+        request: &NnsInventoryRefreshRequest,
+        write: RefreshCacheWriteResult,
+    ) -> NnsInventoryRefreshReport;
+
+    /// Validate cache-stable provenance and family-specific evidence.
+    fn validate(&self) -> Result<(), String> {
+        let provenance = self.provenance();
+        if self.schema_version() != Self::SCHEMA_VERSION {
+            return Err(format!(
+                "schema_version is {}, expected {}",
+                self.schema_version(),
+                Self::SCHEMA_VERSION
+            ));
+        }
+        if provenance.network != MAINNET_NETWORK {
+            return Err(format!(
+                "network is {}, expected {MAINNET_NETWORK}",
+                provenance.network
+            ));
+        }
+        if provenance.registry_canister_id != MAINNET_REGISTRY_CANISTER_ID {
+            return Err(format!(
+                "registry_canister_id is {}, expected {MAINNET_REGISTRY_CANISTER_ID}",
+                provenance.registry_canister_id
+            ));
+        }
+        if parse_utc_timestamp_secs(&provenance.fetched_at).is_none() {
+            return Err(format!(
+                "fetched_at is invalid: {:?}",
+                provenance.fetched_at
+            ));
+        }
+        if provenance.source_endpoint.trim().is_empty() {
+            return Err("source_endpoint must not be empty".to_string());
+        }
+        self.validate_family()
+    }
+
+    /// Validate evidence owned only by one inventory family.
+    fn validate_family(&self) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// Validate source provenance against the exact request used for refresh.
+    fn validate_source(&self, request: &CollectionSourceRequest) -> Result<(), String> {
+        self.validate()?;
+        let provenance = self.provenance();
+        if provenance.network != request.network {
+            return Err(format!(
+                "network is {}, requested {}",
+                provenance.network, request.network
+            ));
+        }
+        if provenance.fetched_at != request.fetched_at {
+            return Err(format!(
+                "fetched_at is {:?}, requested {:?}",
+                provenance.fetched_at, request.fetched_at
+            ));
+        }
+        if provenance.source_endpoint != request.endpoint {
+            return Err(format!(
+                "source_endpoint is {:?}, requested {:?}",
+                provenance.source_endpoint, request.endpoint
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Load one Registry inventory cache, refreshing missing or invalid local content.
+pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report>(
+    request: &NnsInventoryListRequest,
+    expected_cache_path: PathBuf,
+
+    progress: &mut dyn QueryProgress,
+    mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, NnsInventoryError>,
+    refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), NnsInventoryError>,
+) -> Result<Report, NnsInventoryError>
+where
+    Report: NnsInventoryReport,
+{
+    load_or_refresh_cache(
+        || load(&request.cache),
+        |_| false,
+        |error| error.cache_refresh_reason(expected_cache_path.clone()),
+        async |_| {
+            progress.report(QueryProgressEvent::CacheRefresh {
+                component: Report::ITEM_NAME.replace('_', "-"),
+                path: expected_cache_path.clone(),
+                source_endpoint: request.source_endpoint.clone(),
+            });
+            let refresh_request = NnsInventoryRefreshRequest::new(
+                request.cache.clone(),
+                &request.source_endpoint,
+                request.now_unix_secs,
+            );
+            refresh(&refresh_request).await
+        },
+    )
+    .await
+}
+
+/// Fetch and atomically publish one network-validated Registry inventory cache.
+#[expect(
+    clippy::future_not_send,
+    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
+)]
+pub(in crate::nns) async fn refresh_nns_inventory_cache<Report>(
+    request: &NnsInventoryRefreshRequest,
+    component_dir: &'static str,
+    cache_file: &str,
+    fetch: impl AsyncFnOnce(&CollectionSourceRequest) -> Result<Report, NnsInventoryError>,
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError>
+where
+    Report: NnsInventoryReport + Serialize,
+{
+    let source_request = CollectionSourceRequest::new(
+        &request.cache.network,
+        &request.source_endpoint,
+        format_utc_timestamp_secs(request.now_unix_secs),
+        "ic-query",
+    );
+    let report = fetch(&source_request).await?;
+    report.validate_source(&source_request).map_err(|reason| {
+        NnsInventoryError::InvalidSourceData {
+            collection: Report::COLLECTION,
+            reason,
+        }
+    })?;
+    let write_result =
+        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report)
+            .await
+            .map_err(|source| NnsInventoryError::Cache {
+                collection: Report::COLLECTION,
+                source,
+            })?;
+    Ok(report.refresh_outcome(request, write_result))
+}
+
+///
+/// NnsInventoryInputKind
+///
+/// Identifier normalization used by one Registry inventory family.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::nns) enum NnsInventoryInputKind {
+    /// Canonical IC principal with principal-prefix fallback.
+    Principal,
+    /// Trimmed, lowercase textual identifier.
+    Text,
+}
+
+///
+/// NnsInventoryResolveError
+///
+/// Family-independent failure from exact-or-unique-prefix row resolution.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::nns) enum NnsInventoryResolveError {
+    /// No row matched the original input.
+    NotFound {
+        /// Original caller input retained for the family error.
+        input: String,
+    },
+    /// More than one row matched the normalized prefix.
+    Ambiguous {
+        /// Normalized lowercase prefix.
+        prefix: String,
+        /// Canonically ordered identifiers that matched.
+        matches: Vec<String>,
+    },
+}
+
+impl NnsInventoryResolveError {
+    pub(super) fn for_collection(self, collection: NnsInventoryCollection) -> NnsInventoryError {
+        match self {
+            Self::NotFound { input } => NnsInventoryError::NotFound { collection, input },
+            Self::Ambiguous { prefix, matches } => NnsInventoryError::AmbiguousPrefix {
+                collection,
+                prefix,
+                matches,
+            },
+        }
+    }
+}
+
+/// Resolve a Registry inventory row by exact normalized identifier or unique prefix.
+pub(in crate::nns) fn resolve_nns_inventory_row<Row>(
+    rows: &[Row],
+    identifier: impl Fn(&Row) -> &str,
+    input: &str,
+    input_kind: NnsInventoryInputKind,
+    exact_source: &'static str,
+) -> Result<(usize, String), NnsInventoryResolveError> {
+    let prefix = input.trim().to_ascii_lowercase();
+    let exact = match input_kind {
+        NnsInventoryInputKind::Principal => canonical_principal_text(input).ok().map(Cow::Owned),
+        NnsInventoryInputKind::Text => {
+            (!prefix.is_empty()).then_some(Cow::Borrowed(prefix.as_str()))
+        }
+    };
+    match match_identifier(
+        rows.iter().enumerate(),
+        |(_, row)| identifier(row),
+        exact.as_deref(),
+        &prefix,
+    ) {
+        IdentifierMatch::Exact((index, _)) => Ok((index, exact_source.to_string())),
+        IdentifierMatch::Prefix((index, _)) => Ok((index, format!("{exact_source}_prefix"))),
+        IdentifierMatch::Missing => Err(NnsInventoryResolveError::NotFound {
+            input: input.to_string(),
+        }),
+        IdentifierMatch::Ambiguous(matches) => Err(NnsInventoryResolveError::Ambiguous {
+            prefix,
+            matches: matches
+                .into_iter()
+                .map(|(_, row)| identifier(row).to_string())
+                .collect(),
+        }),
+    }
+}
+
+#[cfg(test)]
+mod tests;

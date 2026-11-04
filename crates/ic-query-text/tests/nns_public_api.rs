@@ -32,7 +32,6 @@ use ic_query::nns::data_center::nns_data_center_refresh_lock_path;
 use ic_query::nns::data_center::refresh_nns_data_center_report_with_source;
 use ic_query_text::nns::data_center::nns_data_center_info_report_text;
 use ic_query_text::nns::data_center::nns_data_center_list_report_text;
-use ic_query_text::nns::data_center::nns_data_center_list_report_verbose_text;
 
 #[cfg(feature = "nns-host")]
 use ic_query::nns::NnsGovernanceCacheRequest;
@@ -65,7 +64,6 @@ use ic_query::nns::neuron::NnsNeuronCollectionState;
 use ic_query::nns::neuron::NnsNeuronCollectionStep;
 use ic_query::nns::neuron::NnsNeuronDistributionError;
 use ic_query::nns::neuron::NnsNeuronDistributionReport;
-use ic_query::nns::neuron::NnsNeuronDistributionValidationError;
 use ic_query::nns::neuron::NnsNeuronError;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::neuron::NnsNeuronHostError;
@@ -93,11 +91,11 @@ use ic_query::nns::neuron::nns_neuron_cache_path;
 use ic_query::nns::neuron::nns_neuron_refresh_attempt_path;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::neuron::nns_neuron_refresh_lock_path;
-use ic_query::nns::neuron::validate_nns_neuron_distribution_report;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
 use ic_query::nns::node::NnsNodeInfoReport;
 use ic_query::nns::node::NnsNodeListReport;
+#[cfg(feature = "nns-host")]
 use ic_query::nns::node::NnsNodeListRequest;
 use ic_query::nns::node::NnsNodeRow;
 #[cfg(feature = "nns-host")]
@@ -153,7 +151,6 @@ use ic_query::nns::proposals::NNS_PROPOSAL_MAX_PAGE_SIZE;
 use ic_query::nns::proposals::NnsProposalActivityError;
 use ic_query::nns::proposals::NnsProposalActivityReport;
 use ic_query::nns::proposals::NnsProposalActivityRequest;
-use ic_query::nns::proposals::NnsProposalActivityValidationError;
 use ic_query::nns::proposals::NnsProposalBallotRow;
 use ic_query::nns::proposals::NnsProposalCollectionState;
 use ic_query::nns::proposals::NnsProposalDayCount;
@@ -203,7 +200,6 @@ use ic_query::nns::proposals::nns_proposal_refresh_lock_path;
 use ic_query::nns::proposals::refresh_nns_proposal_cache;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
-use ic_query::nns::proposals::validate_nns_proposal_activity_report;
 use ic_query::nns::registry::NnsRegistryCertification;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::registry::NnsRegistryHostError;
@@ -285,13 +281,10 @@ use ic_query_text::nns::neuron::nns_neuron_info_report_text;
 use ic_query_text::nns::neuron::nns_neuron_list_report_text;
 use ic_query_text::nns::node::nns_node_info_report_text;
 use ic_query_text::nns::node::nns_node_list_report_text;
-use ic_query_text::nns::node::nns_node_list_report_verbose_text;
 use ic_query_text::nns::node_operator::nns_node_operator_info_report_text;
 use ic_query_text::nns::node_operator::nns_node_operator_list_report_text;
-use ic_query_text::nns::node_operator::nns_node_operator_list_report_verbose_text;
 use ic_query_text::nns::node_provider::nns_node_provider_info_report_text;
 use ic_query_text::nns::node_provider::nns_node_provider_list_report_text;
-use ic_query_text::nns::node_provider::nns_node_provider_list_report_verbose_text;
 use ic_query_text::nns::proposals::nns_proposal_activity_report_text;
 #[cfg(feature = "nns-host")]
 use ic_query_text::nns::proposals::nns_proposal_cache_list_report_text;
@@ -319,14 +312,15 @@ use std::{
 #[test]
 fn public_nns_governance_collection_contracts_are_shared() {
     let cache = NnsGovernanceCacheRequest::new("/tmp/ic-query-governance-contract", "ic");
-    let refresh = NnsGovernanceRefreshRequest::new(
+    let mut refresh = NnsGovernanceRefreshRequest::new(
         cache.cache_root(),
         &cache.network,
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
         1_700_000_000,
         100,
-    )
-    .with_max_pages(Some(2));
+    );
+    refresh.max_pages = Some(2);
+
     assert_eq!(refresh.max_pages, Some(2));
 
     let query_error = || NnsGovernanceError::AgentCall {
@@ -416,10 +410,11 @@ async fn public_nns_governance_builder_rejects_invalid_replica_selection_before_
 
 #[tokio::test(flavor = "current_thread")]
 async fn public_nns_proposal_portable_api_accepts_custom_source() {
-    let request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
-        .with_status(NnsProposalStatusFilter::Executed)
-        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-        .with_topic(NnsProposalTopicFilter::Governance);
+    let mut request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25);
+    request.status = NnsProposalStatusFilter::Executed;
+    request.reward_status = NnsProposalRewardStatusFilter::Settled;
+    request.topic = NnsProposalTopicFilter::Governance;
+
     let report = build_nns_proposal_list_report_with_source(&request, &FixtureNnsProposalSource)
         .await
         .expect("portable proposal source");
@@ -556,9 +551,6 @@ fn assert_public_nns_proposal_activity(
     let _: &[NnsProposalStatusCount] = &activity.status_counts;
     let _: &[NnsProposalRewardStatusCount] = &activity.reward_status_counts;
     let _: &[NnsProposalDayCount] = &activity.day_counts;
-    let validation: Result<(), NnsProposalActivityValidationError> =
-        validate_nns_proposal_activity_report(&activity);
-    validation.expect("validate activity through public API");
     assert!(nns_proposal_activity_report_text(&activity).contains("topics:"));
     let activity_json = serde_json::to_value(&activity).expect("serialize activity report");
     assert_eq!(activity_json["source"]["source_transport"], "replica_query");
@@ -825,8 +817,9 @@ fn run_ready<T>(future: impl Future<Output = T>) -> T {
 
 #[test]
 fn public_nns_neuron_api_is_constructible_and_renderable() {
-    let request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 25)
-        .with_exclusive_start_neuron_id(10);
+    let mut request = NnsNeuronListRequest::new(neuron_governance_request(1_700_000_000), 25);
+    request.exclusive_start_neuron_id = Some(10);
+
     assert_eq!(request.limit, 25);
     assert_eq!(request.exclusive_start_neuron_id, Some(10));
     assert_eq!(NNS_NEURON_MAX_PAGE_SIZE, 300);
@@ -856,14 +849,8 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
         neurons: vec![row.clone()],
     };
     assert!(
-        nns_neuron_list_report_text(
-            &report,
-            ic_query_text::TextOptions {
-                verbose: true,
-                show_ballots: false
-            }
-        )
-        .contains("Neuron 11")
+        nns_neuron_list_report_text(&report, ic_query_text::TextOptions { verbose: true })
+            .contains("Neuron 11")
     );
     let report_json = serde_json::to_value(&report).expect("serialize NNS neuron list report");
     assert_eq!(report_json["schema_version"], 1);
@@ -886,7 +873,13 @@ fn public_nns_neuron_api_is_constructible_and_renderable() {
 
         neuron: row,
     };
-    assert!(nns_neuron_info_report_text(&info).contains("neuron_id: 11"));
+    let text = nns_neuron_info_report_text(&info);
+    assert!(text.contains("STAKE ICP"));
+    assert!(text.contains("11"));
+    assert_eq!(
+        serde_json::to_value(&info).unwrap()["neuron"]["neuron_id"],
+        11
+    );
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -1028,9 +1021,6 @@ fn assert_public_nns_neuron_distribution(
     let _: &[NnsNeuronStateDistribution] = &distribution.state_distribution;
     let _: &[NnsNeuronVisibilityDistribution] = &distribution.visibility_distribution;
     let _: &[NnsNeuronTypeDistribution] = &distribution.neuron_type_distribution;
-    let validation: Result<(), NnsNeuronDistributionValidationError> =
-        validate_nns_neuron_distribution_report(&distribution);
-    validation.expect("validate neuron distribution through public API");
     assert!(nns_neuron_distribution_report_text(&distribution).contains("states:"));
     let json = serde_json::to_value(&distribution).expect("serialize neuron distribution");
     assert_eq!(json["source"]["source_transport"], "replica_query");
@@ -1417,29 +1407,12 @@ fn public_registry_certification() -> NnsRegistryCertification {
 #[test]
 fn public_nns_node_api_is_constructible_and_renderable() {
     let cache = NnsInventoryCacheRequest::new(".", "ic");
-    let list_request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000)
-        .with_subnet("tdb26-jop6g")
-        .with_subnet_kind(SubnetKind::Application)
-        .with_data_center("zh1");
+    let list_report = sample_nns_node_list_report();
+    let node = list_report.nodes[0].clone();
 
-    assert_eq!(
-        list_request.filters.subnet_kind,
-        Some(SubnetKind::Application)
-    );
-
-    let node = sample_nns_node_row();
-    let list_report = NnsNodeListReport {
-        schema_version: 1,
-        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: list_request.inventory.cache.network,
-            source_endpoint: list_request.inventory.source_endpoint,
-            ..sample_registry_provenance()
-        },
-        nodes: vec![node.clone()],
-    };
-
-    let list_text = nns_node_list_report_text(&list_report);
-    let verbose_text = nns_node_list_report_verbose_text(&list_report);
+    let list_text = nns_node_list_report_text(&list_report, ic_query_text::TextOptions::default());
+    let verbose_text =
+        nns_node_list_report_text(&list_report, ic_query_text::TextOptions { verbose: true });
 
     assert!(list_text.contains("nodes: ic count 1"));
     assert!(list_text.contains(SubnetKind::Application.as_str()));
@@ -1473,24 +1446,16 @@ fn public_nns_node_api_is_constructible_and_renderable() {
 #[test]
 fn public_nns_data_center_api_is_constructible_and_renderable() {
     let cache = NnsInventoryCacheRequest::new(".", "ic");
-    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
-    let data_center = sample_nns_data_center_row();
-    let list = NnsDataCenterListReport {
-        schema_version: 1,
-        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: request.cache.network,
-            source_endpoint: request.source_endpoint,
-            ..sample_registry_provenance()
-        },
-        data_centers: vec![data_center.clone()],
-    };
+    let list = sample_nns_data_center_list_report();
+    let data_center = list.data_centers[0].clone();
 
-    let text = nns_data_center_list_report_text(&list);
-    let verbose_text = nns_data_center_list_report_verbose_text(&list);
+    let text = nns_data_center_list_report_text(&list, ic_query_text::TextOptions::default());
+    let verbose_text =
+        nns_data_center_list_report_text(&list, ic_query_text::TextOptions { verbose: true });
 
     assert!(text.contains("data_centers: ic count 1"));
     assert!(text.contains("Zurich"));
-    assert!(verbose_text.contains("REGISTRY_VERSION"));
+    assert!(verbose_text.contains("registry_version:"));
 
     let info_request = NnsInventoryInfoRequest::new(
         cache,
@@ -1519,25 +1484,20 @@ fn public_nns_data_center_api_is_constructible_and_renderable() {
 #[test]
 fn public_nns_node_provider_api_is_constructible_and_renderable() {
     let cache = NnsInventoryCacheRequest::new(".", "ic");
-    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
-    let provider = sample_nns_node_provider_row();
-    let list = NnsNodeProviderListReport {
-        schema_version: 1,
-        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: request.cache.network,
-            source_endpoint: request.source_endpoint,
-            ..sample_registry_provenance()
-        },
-        governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
-        node_providers: vec![provider.clone()],
-    };
+    let list = sample_nns_node_provider_list_report();
+    let provider = list.node_providers[0].clone();
 
-    let text = nns_node_provider_list_report_text(&list);
-    let verbose_text = nns_node_provider_list_report_verbose_text(&list);
+    let text = nns_node_provider_list_report_text(&list, ic_query_text::TextOptions::default());
+    let verbose_text =
+        nns_node_provider_list_report_text(&list, ic_query_text::TextOptions { verbose: true });
 
     assert!(text.contains("node_providers: ic count 1"));
     assert!(text.contains("12"));
-    assert!(verbose_text.contains("deadbeef"));
+    assert!(verbose_text.contains(&provider.node_provider_principal));
+    assert_eq!(
+        serde_json::to_value(&list).unwrap()["node_providers"][0]["reward_account_hex"],
+        "deadbeef"
+    );
 
     let info_request = NnsInventoryInfoRequest::new(
         cache,
@@ -1567,20 +1527,12 @@ fn public_nns_node_provider_api_is_constructible_and_renderable() {
 #[test]
 fn public_nns_node_operator_api_is_constructible_and_renderable() {
     let cache = NnsInventoryCacheRequest::new(".", "ic");
-    let request = NnsInventoryListRequest::new(cache.clone(), "https://icp-api.io", 1_700_000_000);
-    let operator = sample_nns_node_operator_row();
-    let list = NnsNodeOperatorListReport {
-        schema_version: 1,
-        provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            network: request.cache.network,
-            source_endpoint: request.source_endpoint,
-            ..sample_registry_provenance()
-        },
-        node_operators: vec![operator.clone()],
-    };
+    let list = sample_nns_node_operator_list_report();
+    let operator = list.node_operators[0].clone();
 
-    let text = nns_node_operator_list_report_text(&list);
-    let verbose_text = nns_node_operator_list_report_verbose_text(&list);
+    let text = nns_node_operator_list_report_text(&list, ic_query_text::TextOptions::default());
+    let verbose_text =
+        nns_node_operator_list_report_text(&list, ic_query_text::TextOptions { verbose: true });
 
     assert!(text.contains("node_operators: ic count 1"));
     assert!(text.contains("zh1"));
@@ -1637,12 +1589,13 @@ async fn assert_public_nns_node_custom_source_api(root: &Path) {
         sample_nns_node_row().node_principal,
         1_700_000_000,
     );
-    let node_refresh_request = NnsInventoryRefreshRequest::new(
+    let mut node_refresh_request = NnsInventoryRefreshRequest::new(
         node_cache,
         DEFAULT_NNS_NODE_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
-    .with_dry_run(true);
+    );
+    node_refresh_request.dry_run = true;
+
     let node_list = build_nns_node_list_report_with_source_and_progress(
         &node_list_request,
         &FixtureNnsNodeSource,
@@ -1686,12 +1639,13 @@ async fn assert_public_nns_data_center_custom_source_api(root: &Path) {
         sample_nns_data_center_row().data_center_id,
         1_700_000_000,
     );
-    let data_center_refresh_request = NnsInventoryRefreshRequest::new(
+    let mut data_center_refresh_request = NnsInventoryRefreshRequest::new(
         data_center_cache,
         DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
-    .with_dry_run(true);
+    );
+    data_center_refresh_request.dry_run = true;
+
     let data_center_list = build_nns_data_center_list_report_with_source_and_progress(
         &data_center_list_request,
         &FixtureNnsDataCenterSource,
@@ -1737,12 +1691,13 @@ async fn assert_public_nns_node_provider_custom_source_api(root: &Path) {
         sample_nns_node_provider_row().node_provider_principal,
         1_700_000_000,
     );
-    let node_provider_refresh_request = NnsInventoryRefreshRequest::new(
+    let mut node_provider_refresh_request = NnsInventoryRefreshRequest::new(
         node_provider_cache,
         DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
-    .with_dry_run(true);
+    );
+    node_provider_refresh_request.dry_run = true;
+
     let node_provider_list = build_nns_node_provider_list_report_with_source_and_progress(
         &node_provider_list_request,
         &FixtureNnsNodeProviderSource,
@@ -1788,12 +1743,13 @@ async fn assert_public_nns_node_operator_custom_source_api(root: &Path) {
         sample_nns_node_operator_row().node_operator_principal,
         1_700_000_000,
     );
-    let node_operator_refresh_request = NnsInventoryRefreshRequest::new(
+    let mut node_operator_refresh_request = NnsInventoryRefreshRequest::new(
         node_operator_cache,
         DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
         1_700_000_000,
-    )
-    .with_dry_run(true);
+    );
+    node_operator_refresh_request.dry_run = true;
+
     let node_operator_list = build_nns_node_operator_list_report_with_source_and_progress(
         &node_operator_list_request,
         &FixtureNnsNodeOperatorSource,
@@ -1959,15 +1915,15 @@ fn assert_inventory_source_request(
 
 #[test]
 fn public_nns_proposal_api_is_constructible_and_renderable() {
-    let request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
-        .with_before_proposal_id(132_500)
-        .with_status(NnsProposalStatusFilter::Executed)
-        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-        .with_topic(NnsProposalTopicFilter::Governance)
-        .with_proposer_neuron_id(12_345)
-        .with_query("subnet")
-        .with_sort(NnsProposalListSort::TallyTime)
-        .with_sort_direction(SortDirection::Desc);
+    let mut request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25);
+    request.before_proposal_id = Some(132_500);
+    request.status = NnsProposalStatusFilter::Executed;
+    request.reward_status = NnsProposalRewardStatusFilter::Settled;
+    request.topic = NnsProposalTopicFilter::Governance;
+    request.proposer_neuron_id = Some(12_345);
+    request.query = Some("subnet".into());
+    request = request.with_sort(NnsProposalListSort::TallyTime);
+    request.sort_direction = SortDirection::Desc;
 
     assert_eq!(request.status.as_str(), "executed");
     assert_eq!(request.reward_status.as_str(), "settled");
@@ -1998,13 +1954,8 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     };
 
     let list_json = serde_json::to_value(&list_report).expect("serialize NNS proposal list report");
-    let list_text = nns_proposal_list_report_text(
-        &list_report,
-        ic_query_text::TextOptions {
-            verbose: true,
-            show_ballots: true,
-        },
-    );
+    let list_text =
+        nns_proposal_list_report_text(&list_report, ic_query_text::TextOptions { verbose: true });
 
     assert_eq!(list_json["proposals"][0]["topic"], 4);
     assert_eq!(list_json["proposals"][0]["status"], 4);
@@ -2012,8 +1963,8 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
     assert_eq!(list_json["proposals"][0]["ballots"][0]["vote"], 1);
     assert!(list_text.contains("proposal_count: 1"));
     assert!(list_text.contains("topic_filter: governance"));
-    assert!(list_text.contains("proposal_details:"));
-    assert!(list_text.contains("title: Upgrade subnet"));
+    assert!(!list_text.contains("proposal_details:"));
+    assert!(list_text.contains("Upgrade subnet"));
 
     let detail_request =
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
@@ -2025,19 +1976,17 @@ fn public_nns_proposal_api_is_constructible_and_renderable() {
         proposal,
     };
 
-    let detail_text = nns_proposal_report_text(
-        &detail_report,
-        ic_query_text::TextOptions {
-            verbose: true,
-            show_ballots: true,
-        },
-    );
+    let detail_text =
+        nns_proposal_report_text(&detail_report, ic_query_text::TextOptions { verbose: true });
 
     assert!(detail_text.contains("proposal_id: 132411"));
-    assert!(detail_text.contains("show_ballots: yes"));
-    assert!(detail_text.contains("reject_cost: 1.00"));
-    assert!(detail_text.contains("ballots:"));
-    assert!(detail_text.contains("yes"));
+    assert!(!detail_text.contains("show_ballots:"));
+    assert_eq!(
+        serde_json::to_value(&detail_report).unwrap()["proposal"]["reject_cost_e8s"],
+        100_000_000
+    );
+    assert!(!detail_text.contains("ballots:"));
+    assert!(detail_text.contains("Upgrade subnet"));
 }
 
 #[test]
@@ -2209,7 +2158,6 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
         schema_version: 1,
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
-        region_count: 1,
         data_center_count: 1,
         node_operator_count: 1,
         node_provider_count: 1,
@@ -2229,7 +2177,6 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
         network: "ic".to_string(),
         source_endpoint: "https://icp-api.io".to_string(),
         registered_node_provider_count: 1,
-        referenced_node_provider_count: 1,
         provider_with_nodes_count: 1,
         provider_with_node_operators_count: 1,
         total_node_count: 3,
@@ -2262,12 +2209,13 @@ fn public_nns_topology_region_provider_and_refresh_api_is_constructible_and_rend
     };
     assert!(nns_topology_providers_report_text(&providers).contains("over"));
 
-    let refresh_request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
+    let mut refresh_request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
         ic_query::nns::NnsInventoryCacheRequest::new(".", "ic"),
         "https://icp-api.io",
         1_700_000_000,
-    ))
-    .with_dry_run(true);
+    ));
+    refresh_request.dry_run = true;
+
     let refresh = NnsTopologyRefreshReport {
         schema_version: 1,
         network: refresh_request.read.cache.network,
@@ -2342,12 +2290,13 @@ async fn public_nns_topology_host_api_accepts_custom_source_adapter() {
 #[cfg(feature = "nns-host")]
 #[tokio::test(flavor = "current_thread")]
 async fn public_topology_refresh_rejects_mismatched_inventory_scope_before_next_source_call() {
-    let request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
+    let mut request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
         ic_query::nns::NnsInventoryCacheRequest::new(".", "ic"),
         DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_dry_run(true);
+    ));
+    request.dry_run = true;
+
     for collection in ["node_providers", ""] {
         let source = FixtureNnsTopologySource {
             node_refresh_collection: Some(collection),
@@ -2382,12 +2331,16 @@ async fn topology_refresh_report_with_source(
     source: &dyn NnsTopologyRefreshSource,
 ) -> NnsTopologyRefreshReport {
     refresh_nns_topology_report_with_source(
-        &NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
-            ic_query::nns::NnsInventoryCacheRequest::new(".", "ic"),
-            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
-            1_700_000_000,
-        ))
-        .with_dry_run(true),
+        &{
+            let mut configured_request =
+                NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
+                    ic_query::nns::NnsInventoryCacheRequest::new(".", "ic"),
+                    DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT,
+                    1_700_000_000,
+                ));
+            configured_request.dry_run = true;
+            configured_request
+        },
         source,
     )
     .await
@@ -2415,7 +2368,7 @@ async fn assert_topology_direct_reports_with_source(source: &dyn NnsTopologySour
 
     assert_eq!(gaps.network, "ic");
     assert_eq!(capacity.capacity.len(), 1);
-    assert_eq!(regions.region_count, 1);
+    assert_eq!(regions.regions.len(), 1);
     assert_eq!(providers.registered_node_provider_count, 1);
 }
 
@@ -2673,24 +2626,26 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 
     let cache_list_request = NnsGovernanceCacheRequest::new(&root, "ic");
     let cache_status_request = NnsGovernanceCacheRequest::new(&root, "ic");
-    let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
-        .with_status(NnsProposalStatusFilter::Executed)
-        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-        .with_topic(NnsProposalTopicFilter::Governance)
-        .with_proposer_neuron_id(12_345)
-        .with_query("subnet")
-        .with_sort(NnsProposalListSort::TallyTime)
-        .with_sort_direction(SortDirection::Desc);
+    let mut list_request =
+        NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25);
+    list_request.status = NnsProposalStatusFilter::Executed;
+    list_request.reward_status = NnsProposalRewardStatusFilter::Settled;
+    list_request.topic = NnsProposalTopicFilter::Governance;
+    list_request.proposer_neuron_id = Some(12_345);
+    list_request.query = Some("subnet".into());
+    list_request = list_request.with_sort(NnsProposalListSort::TallyTime);
+    list_request.sort_direction = SortDirection::Desc;
+
     let detail_request =
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
-    let refresh_request = NnsGovernanceRefreshRequest::new(
+    let mut refresh_request = NnsGovernanceRefreshRequest::new(
         &root,
         "ic",
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT,
         1_700_000_000,
         100,
-    )
-    .with_max_pages(Some(1));
+    );
+    refresh_request.max_pages = Some(1);
 
     let cache_list =
         build_nns_proposal_cache_list_report(&cache_list_request).expect("cache list report");
@@ -2744,10 +2699,12 @@ fn public_nns_proposal_host_api_reads_complete_cache_without_cli() {
 async fn public_nns_proposal_host_api_accepts_custom_source_adapter() {
     let root = temp_root("nns-proposal-source-public-api");
     let source = FixtureNnsProposalSource;
-    let list_request = NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25)
-        .with_status(NnsProposalStatusFilter::Executed)
-        .with_reward_status(NnsProposalRewardStatusFilter::Settled)
-        .with_topic(NnsProposalTopicFilter::Governance);
+    let mut list_request =
+        NnsProposalListRequest::new(proposal_governance_request(1_700_000_000), 25);
+    list_request.status = NnsProposalStatusFilter::Executed;
+    list_request.reward_status = NnsProposalRewardStatusFilter::Settled;
+    list_request.topic = NnsProposalTopicFilter::Governance;
+
     let detail_request =
         NnsProposalRequest::new(proposal_governance_request(1_700_000_000), 132_411);
     let refresh_request = NnsGovernanceRefreshRequest::new(
@@ -3096,39 +3053,36 @@ fn sample_subnet_catalog_row() -> SubnetCatalogSubnetRow {
     }
 }
 
-#[cfg(feature = "nns-host")]
 fn sample_nns_node_list_report() -> NnsNodeListReport {
     let node = sample_nns_node_row();
     NnsNodeListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            source_endpoint: DEFAULT_NNS_NODE_SOURCE_ENDPOINT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
             ..sample_registry_provenance()
         },
         nodes: vec![node],
     }
 }
 
-#[cfg(feature = "nns-host")]
 fn sample_nns_data_center_list_report() -> NnsDataCenterListReport {
     let data_center = sample_nns_data_center_row();
     NnsDataCenterListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            source_endpoint: DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
             ..sample_registry_provenance()
         },
         data_centers: vec![data_center],
     }
 }
 
-#[cfg(feature = "nns-host")]
 fn sample_nns_node_provider_list_report() -> NnsNodeProviderListReport {
     let provider = sample_nns_node_provider_row();
     NnsNodeProviderListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            source_endpoint: DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
             ..sample_registry_provenance()
         },
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
@@ -3136,13 +3090,12 @@ fn sample_nns_node_provider_list_report() -> NnsNodeProviderListReport {
     }
 }
 
-#[cfg(feature = "nns-host")]
 fn sample_nns_node_operator_list_report() -> NnsNodeOperatorListReport {
     let operator = sample_nns_node_operator_row();
     NnsNodeOperatorListReport {
         schema_version: 1,
         provenance: ic_query::nns::registry::NnsRegistryInventoryProvenance {
-            source_endpoint: DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT.to_string(),
+            source_endpoint: "https://icp-api.io".to_string(),
             ..sample_registry_provenance()
         },
         node_operators: vec![operator],

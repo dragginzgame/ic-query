@@ -31,12 +31,6 @@ impl IcrcTransactionsRequest {
             follow_archives: false,
         }
     }
-
-    #[must_use]
-    pub const fn with_follow_archives(mut self, follow_archives: bool) -> Self {
-        self.follow_archives = follow_archives;
-        self
-    }
 }
 
 ///
@@ -59,11 +53,5 @@ impl IcrcArchivesRequest {
             ledger,
             from_canister_id: None,
         }
-    }
-
-    #[must_use]
-    pub fn with_from_canister_id(mut self, from_canister_id: impl Into<String>) -> Self {
-        self.from_canister_id = Some(from_canister_id.into());
-        self
     }
 }

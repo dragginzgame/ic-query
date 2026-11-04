@@ -5,18 +5,15 @@
 //! Boundary: formats live or cache-backed proposal rows for humans.
 
 use crate::sns::common::sns_identity_lines;
+use crate::text_value::field;
+use crate::text_value::table;
 
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_query::sns::sns_proposal_action_label;
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
-use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::sns::common::push_report_provenance_lines;
-use crate::sns::proposals::SNS_PROPOSAL_DETAIL_TEXT_LIMIT;
-use crate::sns::proposals::detail::proposal_detail_lines;
 use crate::sns::proposals::detail::proposal_title_for_list;
 use crate::text_value::optional_u64_text;
 use crate::text_value::yes_no;
@@ -30,32 +27,32 @@ pub fn sns_proposals_report_text(
 ) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend([
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "before_proposal_id: {}",
-            optional_u64_text(report.before_proposal_id)
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "before_proposal_id",
+            &(optional_u64_text(report.before_proposal_id)),
         ),
-        format!("status_filter: {}", report.status_filter),
-        format!("topic_filter: {}", report.topic_filter),
-        format!("eligibility_filter: {}", report.eligibility_filter),
-        format!(
-            "proposer_filter: {}",
-            terminal_text(report.proposer_filter.as_deref().unwrap_or("-"))
+        field("status_filter", &(report.status_filter)),
+        field("topic_filter", &(report.topic_filter)),
+        field("eligibility_filter", &(report.eligibility_filter)),
+        field(
+            "proposer_filter",
+            &(report.proposer_filter.as_deref().unwrap_or("-")),
         ),
-        format!(
-            "query_filter: {}",
-            terminal_text(report.query_filter.as_deref().unwrap_or("-"))
+        field(
+            "query_filter",
+            &(report.query_filter.as_deref().unwrap_or("-")),
         ),
-        format!("sort: {}", report.sort),
-        format!("sort_direction: {}", report.sort_direction),
-        format!("verbose: {}", yes_no(options.verbose)),
+        field("sort", &(report.sort)),
+        field("sort_direction", &(report.sort_direction)),
+        field("verbose", &(yes_no(options.verbose))),
     ]);
     push_report_provenance_lines(&mut lines, &report.provenance);
-    lines.extend([format!("proposal_count: {}", report.proposals.len())]);
+    lines.extend([field("proposal_count", &(report.proposals.len()))]);
     lines.extend(crate::sns::common::sns_collection_lines(&report.context));
     if !report.proposals.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &["ID", "ACTION", "DECISION", "CREATED_AT", "TITLE"],
             &report
                 .proposals
@@ -77,18 +74,8 @@ pub fn sns_proposals_report_text(
                 Alignment::Left,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
-    if options.verbose && !report.proposals.is_empty() {
-        lines.push(String::new());
-        lines.push("proposal_details:".to_string());
-        for proposal in &report.proposals {
-            lines.extend(proposal_detail_lines(
-                proposal,
-                Some(SNS_PROPOSAL_DETAIL_TEXT_LIMIT),
-            ));
-        }
-    }
+
     lines.join("\n")
 }

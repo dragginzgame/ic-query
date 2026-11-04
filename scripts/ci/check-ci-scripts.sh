@@ -199,7 +199,7 @@ cat > "${ci_gate_case}/bin/make" <<'EOF'
 set -euo pipefail
 if [[ "${2:-}" == -f && "${3:-}" == - ]]; then exec "$CI_FIXTURE_REAL_MAKE" "$@"; fi
 printf 'make %s\n' "$*" >> "${TRACE_FILE}"
-if [[ "${!#}" == test ]]; then
+if [[ "${!#}" == cli-test ]]; then
   printf '%s\n' 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'
 fi
 if [[ "${!#}" == "${FAIL_TARGET:-}" ]]; then
@@ -210,7 +210,9 @@ fi
   || "${CHANGELOG_VERSION:-}" == "${EXPECTED_CHANGELOG_VERSION}" ]] || exit 42
 EOF
 chmod +x "${ci_gate_case}/bin/make"
+# These recipes are no-ops; the dedicated drift fixture below tests inheritance.
 (
+  unset VALIDATION_INPUT_ROOT VALIDATION_INPUT_BASELINE
   cd "${repo_root}"
   PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
     "${make_bin}" --no-print-directory ci
@@ -219,39 +221,18 @@ for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... 
   grep -Fxq "$line" "${ci_gate_case}/passed-output" \
     || fail 'make ci labelled a successful or ignored namespaced test as an error'
 done
-expected_ci_targets=(
-  shared-tooling-check
-  compiler-check
-  tools-check
-  clippy
-  changelog-check
-  dependency-pins-check
-  dependency-boundary-check
-  package-contents-check
-  feature-boundary-check
-  library-process-boundary-check
-  ci-scripts-check
-  publish-guards-check
-  release-guards-check
-  type-docs-check
-  doc-links-check
-  public-docs-check
-  dependency-check
-  schema-version-check
-  fmt-check
-  check
-  test
-  package
-)
+expected_ci_targets=()
+while IFS= read -r target; do expected_ci_targets+=("$target"); done < <(jq -r '.stages[]' "$repo_root/ci/release-validation.json")
 for target in "${expected_ci_targets[@]}"; do
   printf 'make --no-print-directory -C %s -- %s\n' "${repo_root}" "${target}"
 done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in tools-check clippy changelog-check dependency-pins-check dependency-boundary-check doc-links-check test; do
+for failed_target in tools-check clippy changelog-check dependency-pins-check dependency-boundary-check doc-links-check query-test cli-test; do
   : > "${ci_gate_case}/trace"
   if (
+    unset VALIDATION_INPUT_ROOT VALIDATION_INPUT_BASELINE
     cd "${repo_root}"
     PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" FAIL_TARGET="${failed_target}" \
       EXPECTED_CHANGELOG_VERSION=0.8.1 CHANGELOG_VERSION=0.8.1 \
@@ -270,24 +251,18 @@ for failed_target in tools-check clippy changelog-check dependency-pins-check de
     || fail 'make ci lost a real validation diagnostic'
 done
 for line in 'test error::tests::passing ... ok' 'test error::tests::ignored ... ignored'; do
-  grep -Fxq "[test] $line" "${ci_gate_case}/failure-logs/latest-errors.log" \
+  grep -Fxq "[cli-test] $line" "${ci_gate_case}/failure-logs/latest-errors.log" \
     || fail 'make ci discarded or mislabelled namespaced test failure context'
 done
 
-# Validate the consumer's configurable goal list before dispatching any recipe.
-for invalid_goal in -n --ignore-errors MAKEFLAGS=i VALUE=1; do
-  : > "${ci_gate_case}/trace"
-  if PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
-    VALIDATION_LOG_DIR="${ci_gate_case}/refused-logs" \
-    "${make_bin}" --no-print-directory -C "${repo_root}" ci \
-    "CI_TARGETS=changelog-check ${invalid_goal}" > "${ci_gate_case}/refused-output" 2>&1; then
-    fail 'make ci accepted a goal list containing Make controls'
-  fi
-  [[ ! -s "${ci_gate_case}/trace" && ! -e "${ci_gate_case}/refused-logs" ]] \
-    || fail 'make ci dispatched part of an invalid goal list or created run evidence'
-  grep -Fq 'validation requires named Make targets' "${ci_gate_case}/refused-output" \
-    || fail 'make ci lost goal admission diagnostics'
-done
+# Full CI always uses the complete declared roster, including under old overrides.
+: > "${ci_gate_case}/trace"
+(
+  unset VALIDATION_INPUT_ROOT VALIDATION_INPUT_BASELINE
+  PATH="${ci_gate_case}/bin:${PATH}" TRACE_FILE="${ci_gate_case}/trace" \
+    "${make_bin}" --no-print-directory -C "${repo_root}" ci CI_TARGETS=changelog-check
+) > "${ci_gate_case}/override-output" 2>&1
+cmp "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace"
 
 drift_case="$work_dir/input-drift"
 git clone --quiet --shared "$repo_root" "$drift_case"
@@ -309,7 +284,7 @@ fi
 printf '\nfixture input edit\n' >> "$DRIFT_INPUT"
 EOF
 chmod +x "$drift_case/bin/make"
-for input in Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-text/Cargo.toml ci/cargo-release-groups.json crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
+for input in ci/release-validation-scopes.json Cargo.lock crates/ic-query/Cargo.toml crates/ic-query-text/Cargo.toml ci/cargo-release-groups.json crates/ic-query-testkit/Cargo.toml ci/library-feature-cases.tsv ci/tool-versions.env rust-toolchain.toml ci/ic-tools.tsv ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt; do
   cp "$drift_case/$input" "$drift_case/original-input"
   : > "$drift_case/trace"
   if PATH="$drift_case/bin:$PATH" TRACE_FILE="$drift_case/trace" \
@@ -482,7 +457,7 @@ printf 'cargo %s\n' "$*" >> "$TRACE_FILE"
 [[ "${FAIL_CARGO:-}" != yes ]] || exit 57
 EOF
 chmod +x "$offline_validation_case/bin/"{git,cargo}
-for target in build check clippy test package; do
+for target in build check clippy test query-test cli-test package; do
   : > "$offline_validation_case/trace"
   PATH="$offline_validation_case/bin:$PATH" TRACE_FILE="$offline_validation_case/trace" \
     CARGO_NET_OFFLINE=false MAKEFLAGS='' MAKEOVERRIDES='' \

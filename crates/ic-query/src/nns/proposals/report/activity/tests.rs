@@ -7,16 +7,6 @@ use crate::nns::proposals::NnsProposalTally;
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[test]
-fn report_rejects_reversed_collection_timestamps() {
-    let mut report = fixture_activity_report();
-    report.context.collection_started_at = "2026-01-02T00:00:00Z".to_string();
-    report.context.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
-    assert!(validate_nns_proposal_activity_report(&report).is_err());
-    report.context.collection_updated_at = report.context.collection_started_at.clone();
-    validate_nns_proposal_activity_report(&report).unwrap();
-}
-
-#[test]
 fn complete_activity_is_canonical_and_input_order_independent() {
     let collection = complete_collection(3);
     let proposals = vec![
@@ -98,18 +88,11 @@ fn complete_activity_is_canonical_and_input_order_independent() {
         serde_json::to_vec(&report).expect("serialize activity report"),
         serde_json::to_vec(&permuted_report).expect("serialize permuted activity report")
     );
-    validate_nns_proposal_activity_report(&report).expect("validate built activity report");
 }
 
 #[test]
-fn serialized_activity_report_round_trips_through_pure_validation() {
+fn activity_json_preserves_flat_context() {
     let report = fixture_activity_report();
-    let encoded = serde_json::to_vec(&report).expect("serialize activity report");
-    let restored: NnsProposalActivityReport =
-        serde_json::from_slice(&encoded).expect("deserialize activity report");
-
-    validate_nns_proposal_activity_report(&restored).expect("validate restored activity report");
-    assert_eq!(restored, report);
     let json = serde_json::to_value(&report).expect("analytics JSON");
     let context = serde_json::to_value(&report.context).expect("analytics context JSON");
     for (key, value) in context.as_object().unwrap() {
@@ -119,102 +102,6 @@ fn serialized_activity_report_round_trips_through_pure_validation() {
             "flat analytics context field {key}"
         );
     }
-}
-
-#[test]
-fn retained_activity_validation_rejects_header_and_selection_corruption() {
-    let mut report = fixture_activity_report();
-    report.context.schema_version = 2;
-    assert_invalid_report(&report, "schema version");
-
-    let mut report = fixture_activity_report();
-    report.context.network = "local".to_string();
-    assert_invalid_report(&report, "network");
-
-    let mut report = fixture_activity_report();
-    report.context.governance_canister_id = "aaaaa-aa".to_string();
-    assert_invalid_report(&report, "governance_canister_id");
-
-    let mut report = fixture_activity_report();
-    report.context.collection_page_count = 0;
-    assert_invalid_report(&report, "at least one collection page");
-
-    let mut report = fixture_activity_report();
-    report.context.point_in_time_guaranteed = true;
-    assert_invalid_report(&report, "point-in-time");
-
-    let mut report = fixture_activity_report();
-    report.context.source = NnsGovernanceSourceProvenance::ReplicaQuery {
-        endpoint: "not-an-endpoint".to_string(),
-        fetched_by: "fixture".to_string(),
-    };
-    assert_invalid_report(&report, "invalid collection source");
-
-    let mut report = fixture_activity_report();
-    report.context.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
-        collector_canister_id: "not-a-principal".to_string(),
-    };
-    assert_invalid_report(&report, "invalid collection provenance");
-
-    let mut report = fixture_activity_report();
-    report.from_proposal_timestamp_seconds = Some(200_000);
-    report.until_proposal_timestamp_seconds = Some(100_000);
-    assert_invalid_report(&report, "must be below");
-
-    let mut report = fixture_activity_report();
-    report.excluded_before_from_count = 1;
-    assert_invalid_report(&report, "without a lower bound");
-
-    let mut report = fixture_activity_report();
-    report.collected_proposal_count += 1;
-    assert_invalid_report(&report, "selection accounts");
-
-    let mut report = fixture_activity_report();
-    report.earliest_included_proposal_timestamp_seconds = None;
-    assert_invalid_report(&report, "range presence");
-
-    let mut report = fixture_activity_report();
-    report.from_proposal_timestamp_seconds = Some(86_400);
-    assert_invalid_report(&report, "precedes the lower bound");
-}
-
-#[test]
-fn retained_activity_validation_rejects_noncanonical_dimensions() {
-    let mut report = fixture_activity_report();
-    report.topic_counts.swap(0, 1);
-    assert_invalid_report(&report, "topic count rows");
-
-    let mut report = fixture_activity_report();
-    report.topic_counts[0].proposal_count = 0;
-    assert_invalid_report(&report, "topic count row must be nonzero");
-
-    let mut report = fixture_activity_report();
-    report.topic_counts[0].proposal_count += 1;
-    assert_invalid_report(&report, "topic counts sum");
-
-    let mut report = fixture_activity_report();
-    report.reward_status_counts.swap(0, 1);
-    assert_invalid_report(&report, "reward-status count rows");
-
-    let mut report = fixture_activity_report();
-    report.day_counts[0].day_start_timestamp_seconds = 1;
-    assert_invalid_report(&report, "00:00:00 UTC");
-
-    let mut report = fixture_activity_report();
-    report.day_counts.swap(0, 1);
-    assert_invalid_report(&report, "day count rows");
-
-    let mut report = fixture_activity_report();
-    report.earliest_included_proposal_timestamp_seconds = Some(86_400);
-    assert_invalid_report(&report, "day count endpoints");
-
-    let mut report = fixture_activity_report();
-    report.status_counts[0].proposal_count = u64::MAX;
-    assert_invalid_report(&report, "status count total overflow");
-
-    let mut report = fixture_activity_report();
-    report.reward_status_counts[0].proposal_count = 0;
-    assert_invalid_report(&report, "reward-status count row must be nonzero");
 }
 
 #[test]
@@ -245,7 +132,6 @@ fn half_open_window_counts_both_exclusion_sides_and_empty_windows() {
         Some(86_400)
     );
     assert_eq!(report.day_counts[0].day_start_timestamp_seconds, 86_400);
-    validate_nns_proposal_activity_report(&report).expect("validate windowed activity report");
 
     let empty = build_nns_proposal_activity_report(
         &NnsProposalActivityRequest {
@@ -265,7 +151,6 @@ fn half_open_window_counts_both_exclusion_sides_and_empty_windows() {
     assert_eq!(empty.status_counts, Vec::new());
     assert_eq!(empty.reward_status_counts, Vec::new());
     assert_eq!(empty.day_counts, Vec::new());
-    validate_nns_proposal_activity_report(&empty).expect("validate empty activity window");
 }
 
 #[test]
@@ -372,7 +257,7 @@ fn builder_rejects_malformed_rows_before_applying_the_view() {
 }
 
 #[test]
-fn empty_report_json_retains_raw_fields_and_text_retains_every_section() {
+fn empty_report_json_retains_raw_fields() {
     let report = build_nns_proposal_activity_report(
         &NnsProposalActivityRequest {
             from_proposal_timestamp_seconds: Some(2),
@@ -382,7 +267,6 @@ fn empty_report_json_retains_raw_fields_and_text_retains_every_section() {
         &[proposal_row(1, 1, 4, 1, 3)],
     )
     .expect("empty activity projection");
-    validate_nns_proposal_activity_report(&report).expect("validate empty activity projection");
     let json = serde_json::to_value(&report).expect("serialize activity report");
 
     assert_eq!(json["schema_version"], 1);
@@ -418,15 +302,6 @@ fn fixture_activity_report() -> NnsProposalActivityReport {
     .expect("fixture activity report")
 }
 
-fn assert_invalid_report(report: &NnsProposalActivityReport, expected_reason: &str) {
-    let error = validate_nns_proposal_activity_report(report).expect_err("invalid report");
-    assert!(
-        error.reason.contains(expected_reason),
-        "unexpected validation reason: {}",
-        error.reason
-    );
-}
-
 #[test]
 fn activity_rejects_malformed_collection_timestamps() {
     for field in ["started_at", "updated_at"] {
@@ -438,31 +313,6 @@ fn activity_rejects_malformed_collection_timestamps() {
             Err(NnsProposalActivityError::InvalidCollectionState { .. })
         ));
     }
-    for field in ["collection_started_at", "collection_updated_at"] {
-        let mut value = serde_json::to_value(fixture_activity_report()).expect("serialize report");
-        value[field] = serde_json::json!("invalid timestamp");
-        let report = serde_json::from_value(value).expect("restore caller report");
-        assert_invalid_report(&report, field);
-    }
-}
-
-#[test]
-fn activity_collection_pages_require_rows_from_preceding_full_pages() {
-    let mut report = build_nns_proposal_activity_report(
-        &NnsProposalActivityRequest::default(),
-        &complete_collection(0),
-        &[],
-    )
-    .expect("one exhausted empty page is valid");
-    report.context.collection_page_count = 100;
-    assert_invalid_report(&report, "requires at least 99 collected proposals");
-
-    let mut report = fixture_activity_report();
-    report.context.collection_page_count =
-        u32::try_from(report.collected_proposal_count + 1).expect("small fixture");
-    validate_nns_proposal_activity_report(&report).expect("full pages followed by one empty page");
-    report.context.collection_page_count += 1;
-    assert_invalid_report(&report, "requires at least");
 }
 
 fn complete_collection(proposals_fetched: usize) -> NnsProposalCollectionState {

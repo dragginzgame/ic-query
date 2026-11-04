@@ -33,6 +33,16 @@ bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
 cp "$repo_root/Cargo.toml" "$repo_root/Cargo.lock" .
 cp -R "$repo_root/crates" "$repo_root/releases" .
 cp "$repo_root/ci/cargo-release-groups.json" ci/
+# Metadata fixtures substitute the successful gate; actual evidence admission
+# belongs to check-release-validation.sh.
+cat > scripts/release/validation.sh <<'STUB'
+set -euo pipefail
+case "$1" in
+  check) [[ -f "$2/passed" ]] ;;
+  run) bash scripts/ci/run-validation-targets.sh --fail-fast ci ;;
+  *) exit 2 ;;
+esac
+STUB
 cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail

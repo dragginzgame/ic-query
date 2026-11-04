@@ -5,7 +5,7 @@ use crate::report::CollectionSourceRequest;
 use crate::report::SortDirection;
 use crate::sns::report::SnsProposalRow;
 use crate::sns::report::source::validate_sns_proposal_rows;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use std::fs;
 
 mod cache_status;

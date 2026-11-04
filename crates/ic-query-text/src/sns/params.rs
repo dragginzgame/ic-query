@@ -5,10 +5,9 @@
 //! Boundary: groups governance parameter rows into a human-readable table.
 
 use crate::sns::common::sns_identity_lines;
+use crate::text_value::table;
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::sns::common::comma_join_u64;
 use crate::sns::common::optional_basis_points_text;
@@ -28,11 +27,10 @@ pub fn sns_params_report_text(report: &SnsParamsReport) -> String {
     let mut lines = sns_identity_lines(&report.context);
     lines.extend(crate::sns::common::sns_collection_lines(&report.context));
     lines.push(String::new());
-    lines.push(render(
+    lines.push(table(
         &["PARAMETER", "VALUE"],
         &sns_params_text_rows(&report.parameters),
         &[Alignment::Left, Alignment::Right],
-        REPORT_TABLE_OPTIONS,
     ));
     lines.join("\n")
 }

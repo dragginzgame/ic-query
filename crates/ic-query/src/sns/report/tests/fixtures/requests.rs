@@ -84,11 +84,13 @@ pub(in crate::sns::report::tests) fn proposal_request(input: &str) -> SnsProposa
 }
 
 pub(in crate::sns::report::tests) fn proposals_request(input: &str) -> SnsProposalsRequest {
-    SnsProposalsRequest::new(info_request(input), 10)
-        .with_before_proposal_id(99)
+    let mut configured_request = SnsProposalsRequest::new(info_request(input), 10);
+    configured_request.before_proposal_id = Some(99);
+    configured_request = configured_request
         .with_status(SnsProposalStatusFilter::Open)
-        .unwrap()
-        .with_topic(SnsProposalTopicFilter::Governance)
+        .unwrap();
+    configured_request.topic = SnsProposalTopicFilter::Governance;
+    configured_request
 }
 
 pub(in crate::sns::report::tests) fn sns_proposals_refresh_request(

@@ -65,7 +65,13 @@ mod host {
             .expect("Type4 nodes");
 
         assert_eq!((*source.list_calls.lock().unwrap()), 1);
-        assert_eq!(report.node_count, 2);
+        assert_eq!(report.nodes.len(), 2);
+        assert!(
+            serde_json::to_value(&report)
+                .unwrap()
+                .get("node_count")
+                .is_none()
+        );
         assert_eq!(report.nodes[0].node_id, NODE_A);
         assert_eq!(report.nodes[1].node_id, NODE_B);
         assert_eq!(report.status_counts.up, 1);
@@ -227,7 +233,11 @@ mod host {
             crate::ic::IcDashboardRequest::new(DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, NOW),
         );
         match node_provider_id {
-            Some(provider) => request.with_node_provider_id(provider),
+            Some(provider) => {
+                let mut configured_request = request;
+                configured_request.node_provider_id = Some(provider.into());
+                configured_request
+            }
             None => request,
         }
     }

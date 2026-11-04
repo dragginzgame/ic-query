@@ -23,12 +23,6 @@ pub use error::SubnetCatalogRegistryFailure;
 use ic_host_tools::registry::proto::{CanisterId, SubnetId};
 pub use model::MainnetRegistryFetchRequest;
 #[cfg(feature = "nns-host")]
-pub use model::{MainnetNodeProvider, MainnetNodeProviderList};
-#[cfg(feature = "nns-topology-host")]
-pub use model::{
-    MainnetSubnetTopology, MainnetSubnetTopologyNodeProvider, MainnetSubnetTopologySubnet,
-};
-#[cfg(feature = "nns-host")]
 pub use source::fetch_mainnet_registry_version;
 pub use source::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]

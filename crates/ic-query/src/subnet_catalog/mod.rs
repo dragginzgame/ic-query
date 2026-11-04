@@ -95,6 +95,4 @@ pub(crate) const SUBNET_CATALOG_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
 pub(crate) const SUBNET_CATALOG_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
 
 #[cfg(test)]
-mod core_tests;
-#[cfg(all(test, feature = "subnet-catalog-host"))]
 mod tests;

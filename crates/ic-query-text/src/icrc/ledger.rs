@@ -4,10 +4,9 @@
 //! Does not own: transaction history, account views, live reads, or JSON output.
 //! Boundary: formats token metadata and capability or certificate evidence for humans.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
-use ic_host_text::escape::terminal_text;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::human_quantity::byte_count_text;
 use crate::icrc::push_table_section;
@@ -27,9 +26,9 @@ const ICRC_DETAIL_TEXT_LIMIT: usize = 160;
 #[must_use]
 /// Render the ICRC token report as human-facing text.
 pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
-    let mut lines = vec![format!(
-        "ledger_canister_id: {}",
-        report.provenance.ledger_canister_id
+    let mut lines = vec![field(
+        "ledger_canister_id",
+        &(report.provenance.ledger_canister_id),
     )];
     lines.extend(token_summary_lines(&report.token));
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
@@ -41,18 +40,18 @@ pub fn icrc_token_report_text(report: &IcrcTokenReport) -> String {
 /// Render the ICRC index report as human-facing text.
 pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!(
-            "index_canister_id: {}",
-            terminal_text(report.index.canister_id().unwrap_or("-"))
+        field(
+            "index_canister_id",
+            &(report.index.canister_id().unwrap_or("-")),
         ),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     if let Some(error) = report.index.unavailable_reason() {
-        lines.push(format!("index_error: {}", terminal_text(error)));
+        lines.push(field("index_error", &(error)));
     }
     lines.join("\n")
 }
@@ -61,48 +60,48 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
 /// Render the ICRC tip certificate report as human-facing text.
 pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("certificate_present: {}", report.certificate.is_some()),
-        format!(
-            "certificate_bytes: {}",
-            optional_byte_count_text(
+        field("certificate_present", &(report.certificate.is_some())),
+        field(
+            "certificate_bytes",
+            &(optional_byte_count_text(
                 report
                     .certificate
                     .as_ref()
-                    .map(|evidence| evidence.certificate_bytes)
-            )
+                    .map(|evidence| evidence.certificate_bytes),
+            )),
         ),
-        format!(
-            "hash_tree_bytes: {}",
-            optional_byte_count_text(
+        field(
+            "hash_tree_bytes",
+            &(optional_byte_count_text(
                 report
                     .certificate
                     .as_ref()
-                    .map(|evidence| evidence.hash_tree_bytes)
-            )
+                    .map(|evidence| evidence.hash_tree_bytes),
+            )),
         ),
-        format!(
-            "certificate_hex: {}",
-            optional_truncated_text(
+        field(
+            "certificate_hex",
+            &(optional_truncated_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| &evidence.certificate_hex),
-                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
-            )
+                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT,
+            )),
         ),
-        format!(
-            "hash_tree_hex: {}",
-            optional_truncated_text(
+        field(
+            "hash_tree_hex",
+            &(optional_truncated_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| &evidence.hash_tree_hex),
-                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT
-            )
+                ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT,
+            )),
         ),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
@@ -113,12 +112,12 @@ pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> St
 /// Render the ICRC capabilities report as human-facing text.
 pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("standard_count: {}", report.supported_standards.len()),
-        format!("capability_count: {}", report.capabilities.len()),
+        field("standard_count", &(report.supported_standards.len())),
+        field("capability_count", &(report.capabilities.len())),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     push_table_section(
@@ -135,7 +134,7 @@ pub fn icrc_capabilities_report_text(report: &IcrcCapabilitiesReport) -> String 
 }
 
 fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
-    render(
+    table(
         &["CAPABILITY", "METHOD", "STATUS", "DETAIL"],
         &rows
             .iter()
@@ -148,13 +147,7 @@ fn render_capability_rows_table(rows: &[IcrcCapabilityRow]) -> String {
                 ]
             })
             .collect::<Vec<_>>(),
-        &[
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-        ],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 4],
     )
 }
 

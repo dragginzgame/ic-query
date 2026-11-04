@@ -105,18 +105,15 @@ fn public_cloud_engine_reports_are_constructible_serializable_and_renderable() {
     let operator = CloudEngineOperatorReport {
         context: context(5),
         subnet_id: SUBNET_ID.to_string(),
-        operator_binding_present: true,
         operator_canister_id: Some(OPERATOR_ID.to_string()),
         engine_owner: Some("aaaaa-aa".to_string()),
         platform_admin: None,
         caffeine_enabled: Some(true),
-        claimed_domain_count: Some(1),
         claimed_domains: Some(vec!["example.com".to_string()]),
     };
     let prices = CloudEnginePricesReport {
         context: context(2),
         network_fee: 0.25,
-        price_count: 1,
         prices: vec![price_row()],
     };
 
@@ -156,7 +153,6 @@ fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
     let list = CloudEngineProviderListReport {
         provenance: dashboard_provenance(),
         source_node_provider_count: 2,
-        cloud_engine_provider_count: 1,
         providers: vec![provider.clone()],
     };
     let info = CloudEngineProviderInfoReport {
@@ -181,14 +177,15 @@ fn public_cloud_engine_provider_reports_preserve_raw_dashboard_evidence() {
 
 #[test]
 fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
-    let list_request = CloudEngineNodeListRequest::new(
+    let mut list_request = CloudEngineNodeListRequest::new(
         "ic",
         ic_query::ic::IcDashboardRequest::new(
             DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
             1_800_000_000,
         ),
-    )
-    .with_node_provider_id(provider_row().principal_id);
+    );
+    list_request.node_provider_id = Some(provider_row().principal_id);
+
     let info_request = CloudEngineNodeInfoRequest::new(
         "ic",
         ic_query::ic::IcDashboardRequest::new(
@@ -205,7 +202,6 @@ fn public_cloud_engine_node_reports_preserve_raw_type4_evidence() {
             .map(str::to_string)
             .to_vec(),
         requested_node_provider_id: Some(node.node_provider_id.clone()),
-        node_count: 1,
         status_counts: IcNodeStatusCounts {
             total: 1,
             up: 1,
@@ -262,7 +258,7 @@ async fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
         .expect("custom provider info source");
 
     assert_eq!(list.source_node_provider_count, 1);
-    assert_eq!(list.cloud_engine_provider_count, 1);
+    assert_eq!(list.providers.len(), 1);
     assert!(info.cloud_engine_evidence_present);
     let _: for<'a> fn(
         &'a CloudEngineProviderListRequest,
@@ -303,7 +299,7 @@ async fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
         .await
         .expect("custom exact Type4 node source");
 
-    assert_eq!(list.node_count, 1);
+    assert_eq!(list.nodes.len(), 1);
     assert_eq!(list.status_counts.up, 1);
     assert_eq!(info.node.node_id, NODE_ID);
     let _: for<'a> fn(

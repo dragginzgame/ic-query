@@ -4,12 +4,12 @@
 //! Does not own: live Governance calls, cache IO, or JSON serialization.
 //! Boundary: formats raw public neuron values without changing report data.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
 use crate::text_value::push_titled_table_section;
+use crate::text_value::table;
 use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::nns::governance::collection_context_lines as governance_collection_context_lines;
 use crate::nns::governance::context_lines as governance_context_lines;
@@ -51,78 +51,78 @@ fn distribution_preamble(report: &NnsNeuronDistributionReport) -> Vec<String> {
         &report.context.source,
     );
     lines.extend([
-        format!(
-            "collection_page_count: {}",
-            report.context.collection_page_count
+        field(
+            "collection_page_count",
+            &(report.context.collection_page_count),
         ),
-        format!("collected_neuron_count: {}", report.collected_neuron_count),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.context.point_in_time_guaranteed)
+        field("collected_neuron_count", &(report.collected_neuron_count)),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.context.point_in_time_guaranteed)),
         ),
-        format!(
-            "earliest_retrieved_at_timestamp_seconds: {}",
-            optional_u64_text(report.earliest_retrieved_at_timestamp_seconds)
+        field(
+            "earliest_retrieved_at_timestamp_seconds",
+            &(optional_u64_text(report.earliest_retrieved_at_timestamp_seconds)),
         ),
-        format!(
-            "latest_retrieved_at_timestamp_seconds: {}",
-            optional_u64_text(report.latest_retrieved_at_timestamp_seconds)
+        field(
+            "latest_retrieved_at_timestamp_seconds",
+            &(optional_u64_text(report.latest_retrieved_at_timestamp_seconds)),
         ),
-        format!(
-            "total_effective_stake_e8s: {}",
-            report.total_effective_stake_e8s
+        field(
+            "total_effective_stake_e8s",
+            &(report.total_effective_stake_e8s),
         ),
-        format!(
-            "total_effective_stake_icp: {}",
-            e8s_decimal_text(report.total_effective_stake_e8s)
+        field(
+            "total_effective_stake_icp",
+            &(e8s_decimal_text(report.total_effective_stake_e8s)),
         ),
-        format!(
-            "reported_staked_maturity_neuron_count: {}",
-            report.reported_staked_maturity_neuron_count
+        field(
+            "reported_staked_maturity_neuron_count",
+            &(report.reported_staked_maturity_neuron_count),
         ),
-        format!(
-            "unreported_staked_maturity_neuron_count: {}",
-            report.unreported_staked_maturity_neuron_count
+        field(
+            "unreported_staked_maturity_neuron_count",
+            &(report.unreported_staked_maturity_neuron_count),
         ),
-        format!(
-            "total_reported_staked_maturity_e8s_equivalent: {}",
-            report.total_reported_staked_maturity_e8s_equivalent
+        field(
+            "total_reported_staked_maturity_e8s_equivalent",
+            &(report.total_reported_staked_maturity_e8s_equivalent),
         ),
-        format!(
-            "total_reported_staked_maturity_icp: {}",
-            e8s_decimal_text(report.total_reported_staked_maturity_e8s_equivalent)
+        field(
+            "total_reported_staked_maturity_icp",
+            &(e8s_decimal_text(report.total_reported_staked_maturity_e8s_equivalent)),
         ),
-        format!(
-            "reported_deciding_voting_power_neuron_count: {}",
-            report.reported_deciding_voting_power_neuron_count
+        field(
+            "reported_deciding_voting_power_neuron_count",
+            &(report.reported_deciding_voting_power_neuron_count),
         ),
-        format!(
-            "unreported_deciding_voting_power_neuron_count: {}",
-            report.unreported_deciding_voting_power_neuron_count
+        field(
+            "unreported_deciding_voting_power_neuron_count",
+            &(report.unreported_deciding_voting_power_neuron_count),
         ),
-        format!(
-            "total_reported_deciding_voting_power: {}",
-            report.total_reported_deciding_voting_power
+        field(
+            "total_reported_deciding_voting_power",
+            &(report.total_reported_deciding_voting_power),
         ),
-        format!(
-            "reported_potential_voting_power_neuron_count: {}",
-            report.reported_potential_voting_power_neuron_count
+        field(
+            "reported_potential_voting_power_neuron_count",
+            &(report.reported_potential_voting_power_neuron_count),
         ),
-        format!(
-            "unreported_potential_voting_power_neuron_count: {}",
-            report.unreported_potential_voting_power_neuron_count
+        field(
+            "unreported_potential_voting_power_neuron_count",
+            &(report.unreported_potential_voting_power_neuron_count),
         ),
-        format!(
-            "total_reported_potential_voting_power: {}",
-            report.total_reported_potential_voting_power
+        field(
+            "total_reported_potential_voting_power",
+            &(report.total_reported_potential_voting_power),
         ),
-        format!(
-            "known_neuron_metadata_count: {}",
-            report.known_neuron_metadata_count
+        field(
+            "known_neuron_metadata_count",
+            &(report.known_neuron_metadata_count),
         ),
-        format!(
-            "neurons_fund_join_timestamp_present_count: {}",
-            report.neurons_fund_join_timestamp_present_count
+        field(
+            "neurons_fund_join_timestamp_present_count",
+            &(report.neurons_fund_join_timestamp_present_count),
         ),
     ]);
     lines
@@ -188,7 +188,7 @@ fn distribution_table(
 ) -> Option<String> {
     let rows = rows.collect::<Vec<_>>();
     (!rows.is_empty()).then(|| {
-        render(
+        table(
             &headers,
             &rows,
             &[
@@ -197,7 +197,6 @@ fn distribution_table(
                 Alignment::Right,
                 Alignment::Right,
             ],
-            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -210,45 +209,40 @@ pub fn nns_neuron_list_report_text(
 ) -> String {
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
-        format!(
-            "from_cache: {}",
-            yes_no(report.provenance.cache_path().is_some())
+        field(
+            "from_cache",
+            &(yes_no(report.provenance.cache_path().is_some())),
         ),
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "exclusive_start_neuron_id: {}",
-            optional_u64_text(report.exclusive_start_neuron_id)
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "exclusive_start_neuron_id",
+            &(optional_u64_text(report.exclusive_start_neuron_id)),
         ),
-        format!(
-            "next_start_neuron_id: {}",
-            optional_u64_text(report.next_start_neuron_id)
+        field(
+            "next_start_neuron_id",
+            &(optional_u64_text(report.next_start_neuron_id)),
         ),
-        format!(
-            "total_neuron_count: {}",
-            report
+        field(
+            "total_neuron_count",
+            &(report
                 .total_neuron_count
-                .map_or_else(|| "-".to_string(), |count| count.to_string())
+                .map_or_else(|| "-".to_string(), |count| count.to_string())),
         ),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.point_in_time_guaranteed)),
         ),
-        format!("returned_neuron_count: {}", report.neurons.len()),
-        format!("verbose: {}", yes_no(options.verbose)),
+        field("returned_neuron_count", &(report.neurons.len())),
+        field("verbose", &(yes_no(options.verbose))),
     ]);
     if let Some(cache_path) = report.provenance.cache_path() {
-        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
+        lines.push(field("cache_path", &(cache_path)));
     }
     if !report.neurons.is_empty() {
         lines.push(String::new());
         lines.push(neuron_table(&report.neurons));
     }
-    if options.verbose {
-        for neuron in &report.neurons {
-            lines.push(String::new());
-            lines.extend(neuron_detail_lines(neuron));
-        }
-    }
+
     lines.join("\n")
 }
 
@@ -256,20 +250,20 @@ pub fn nns_neuron_list_report_text(
 #[must_use]
 pub fn nns_neuron_info_report_text(report: &NnsNeuronInfoReport) -> String {
     let mut lines = governance_context_lines(&report.context);
-    lines.extend([format!(
-        "from_cache: {}",
-        yes_no(report.provenance.cache_path().is_some())
+    lines.extend([field(
+        "from_cache",
+        &(yes_no(report.provenance.cache_path().is_some())),
     )]);
     if let Some(cache_path) = report.provenance.cache_path() {
-        lines.push(format!("cache_path: {}", terminal_text(cache_path)));
+        lines.push(field("cache_path", &(cache_path)));
     }
     lines.push(String::new());
-    lines.extend(neuron_detail_lines(&report.neuron));
+    lines.push(neuron_table(std::slice::from_ref(&report.neuron)));
     lines.join("\n")
 }
 
 fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
-    render(
+    table(
         &[
             "ID",
             "STATE",
@@ -305,101 +299,5 @@ fn neuron_table(neurons: &[NnsNeuronRow]) -> String {
             Alignment::Right,
             Alignment::Left,
         ],
-        REPORT_TABLE_OPTIONS,
     )
-}
-
-fn neuron_detail_lines(neuron: &NnsNeuronRow) -> Vec<String> {
-    let known = neuron.known_neuron_data.as_ref();
-    vec![
-        format!("neuron_id: {}", neuron.neuron_id),
-        format!(
-            "state: {} ({})",
-            NnsNeuronState::from_code(neuron.state),
-            neuron.state
-        ),
-        format!(
-            "visibility: {} ({})",
-            NnsNeuronVisibility::from_code(neuron.visibility),
-            neuron
-                .visibility
-                .map_or_else(|| "-".to_string(), |value| value.to_string())
-        ),
-        format!(
-            "neuron_type: {} ({})",
-            NnsNeuronType::from_code(neuron.neuron_type),
-            neuron
-                .neuron_type
-                .map_or_else(|| "-".to_string(), |value| value.to_string())
-        ),
-        format!("stake_e8s: {}", neuron.stake_e8s),
-        format!("stake_icp: {}", e8s_decimal_text(neuron.stake_e8s)),
-        format!(
-            "staked_maturity_e8s_equivalent: {}",
-            optional_u64_text(neuron.staked_maturity_e8s_equivalent)
-        ),
-        format!(
-            "dissolve_delay: {}",
-            display_duration_seconds(neuron.dissolve_delay_seconds)
-        ),
-        format!("age: {}", display_duration_seconds(neuron.age_seconds)),
-        format!(
-            "created_timestamp_seconds: {}",
-            neuron.created_timestamp_seconds
-        ),
-        format!(
-            "retrieved_at_timestamp_seconds: {}",
-            neuron.retrieved_at_timestamp_seconds
-        ),
-        format!("voting_power: {}", neuron.voting_power),
-        format!(
-            "deciding_voting_power: {}",
-            optional_u64_text(neuron.deciding_voting_power)
-        ),
-        format!(
-            "potential_voting_power: {}",
-            optional_u64_text(neuron.potential_voting_power)
-        ),
-        format!(
-            "voting_power_refreshed_timestamp_seconds: {}",
-            optional_u64_text(neuron.voting_power_refreshed_timestamp_seconds)
-        ),
-        format!(
-            "joined_community_fund_timestamp_seconds: {}",
-            optional_u64_text(neuron.joined_community_fund_timestamp_seconds)
-        ),
-        format!(
-            "eight_year_gang_bonus_base_e8s: {}",
-            optional_u64_text(neuron.eight_year_gang_bonus_base_e8s)
-        ),
-        format!(
-            "known_name: {}",
-            known.map_or_else(
-                || "-".to_string(),
-                |known| terminal_text(&known.name).into_owned()
-            )
-        ),
-        format!(
-            "known_description: {}",
-            known
-                .and_then(|known| known.description.as_deref())
-                .map_or_else(
-                    || "-".to_string(),
-                    |value| terminal_text(value).into_owned()
-                )
-        ),
-        format!(
-            "known_links: {}",
-            known.map_or_else(
-                || "-".to_string(),
-                |known| known
-                    .links
-                    .iter()
-                    .map(|link| terminal_text(link))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        ),
-        format!("recent_ballot_count: {}", neuron.recent_ballots.len()),
-    ]
 }

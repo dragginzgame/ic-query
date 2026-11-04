@@ -9,7 +9,7 @@ use super::{
     source::validate_neuron_rows,
 };
 use crate::nns::governance::{NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::BTreeMap;
 use thiserror::Error as ThisError;
 
@@ -22,8 +22,7 @@ pub const NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION: u32 = 1;
 /// Public neuron count and effective stake for one raw Governance state code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronStateDistribution {
     /// Raw native Governance state code.
     pub state: i32,
@@ -39,8 +38,7 @@ pub struct NnsNeuronStateDistribution {
 /// Public neuron count and effective stake for one optional Governance visibility code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronVisibilityDistribution {
     /// Raw optional native Governance visibility code.
     pub visibility: Option<i32>,
@@ -56,8 +54,7 @@ pub struct NnsNeuronVisibilityDistribution {
 /// Public neuron count and effective stake for one optional Governance neuron-type code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronTypeDistribution {
     /// Raw optional native Governance neuron-type code.
     pub neuron_type: Option<i32>,
@@ -73,7 +70,7 @@ pub struct NnsNeuronTypeDistribution {
 /// Deterministic local distribution over one complete public NNS neuron collection.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsNeuronDistributionReport {
     /// Shared record, flattened in JSON.
     #[serde(flatten)]
@@ -114,19 +111,6 @@ pub struct NnsNeuronDistributionReport {
     pub visibility_distribution: Vec<NnsNeuronVisibilityDistribution>,
     /// Canonically optional-raw-code-ordered distribution by neuron type.
     pub neuron_type_distribution: Vec<NnsNeuronTypeDistribution>,
-}
-
-///
-/// NnsNeuronDistributionValidationError
-///
-/// Pure validation failure for an untrusted serialized or in-memory distribution report.
-///
-
-#[derive(Debug, Eq, PartialEq, ThisError)]
-#[error("invalid NNS neuron distribution report: {reason}")]
-pub struct NnsNeuronDistributionValidationError {
-    /// Deterministic invariant failure.
-    pub reason: String,
 }
 
 ///
@@ -239,216 +223,6 @@ fn aggregate_distribution(
         distribution.observe(neuron)?;
     }
     Ok(distribution.into_report(collection, source))
-}
-
-/// Validate every distribution-report invariant available without source rows or live host calls.
-pub fn validate_nns_neuron_distribution_report(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    validate_distribution_header(report)?;
-    validate_distribution_summary(report)?;
-    validate_distribution(
-        report,
-        "state",
-        "raw-code",
-        report
-            .state_distribution
-            .iter()
-            .map(|row| (row.state, row.neuron_count, row.effective_stake_e8s)),
-    )?;
-    validate_distribution(
-        report,
-        "visibility",
-        "optional-raw-code",
-        report
-            .visibility_distribution
-            .iter()
-            .map(|row| (row.visibility, row.neuron_count, row.effective_stake_e8s)),
-    )?;
-    validate_distribution(
-        report,
-        "neuron-type",
-        "optional-raw-code",
-        report
-            .neuron_type_distribution
-            .iter()
-            .map(|row| (row.neuron_type, row.neuron_count, row.effective_stake_e8s)),
-    )
-}
-
-fn validate_distribution_header(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    report
-        .context
-        .validate(
-            NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION,
-            report.collected_neuron_count,
-            ("distribution", "neurons"),
-            "sequential public-neuron collection cannot claim a point-in-time snapshot",
-        )
-        .map_err(invalid_validation)?;
-    validate_retrieval_range(report)
-}
-
-fn validate_retrieval_range(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    match (
-        report.earliest_retrieved_at_timestamp_seconds,
-        report.latest_retrieved_at_timestamp_seconds,
-    ) {
-        (None, None) if report.collected_neuron_count == 0 => Ok(()),
-        (Some(earliest), Some(latest))
-            if report.collected_neuron_count > 0 && earliest <= latest =>
-        {
-            Ok(())
-        }
-        _ => Err(invalid_validation(
-            "retrieval timestamp range disagrees with collected_neuron_count or is reversed",
-        )),
-    }
-}
-
-fn validate_distribution_summary(
-    report: &NnsNeuronDistributionReport,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    validate_optional_summary(
-        report.reported_staked_maturity_neuron_count,
-        report.unreported_staked_maturity_neuron_count,
-        report.total_reported_staked_maturity_e8s_equivalent,
-        report.collected_neuron_count,
-        "staked maturity",
-    )?;
-    validate_optional_summary(
-        report.reported_deciding_voting_power_neuron_count,
-        report.unreported_deciding_voting_power_neuron_count,
-        report.total_reported_deciding_voting_power,
-        report.collected_neuron_count,
-        "deciding voting power",
-    )?;
-    validate_optional_summary(
-        report.reported_potential_voting_power_neuron_count,
-        report.unreported_potential_voting_power_neuron_count,
-        report.total_reported_potential_voting_power,
-        report.collected_neuron_count,
-        "potential voting power",
-    )?;
-    for (field, count) in [
-        (
-            "known_neuron_metadata_count",
-            report.known_neuron_metadata_count,
-        ),
-        (
-            "neurons_fund_join_timestamp_present_count",
-            report.neurons_fund_join_timestamp_present_count,
-        ),
-    ] {
-        if count > report.collected_neuron_count {
-            return Err(invalid_validation(format!(
-                "{field} {count} exceeds collected_neuron_count {}",
-                report.collected_neuron_count
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn validate_optional_summary(
-    reported: u64,
-    unreported: u64,
-    total: u64,
-    collected: u64,
-    field: &'static str,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    let accounted = reported
-        .checked_add(unreported)
-        .ok_or_else(|| invalid_validation(format!("{field} coverage count overflow")))?;
-    if accounted != collected {
-        return Err(invalid_validation(format!(
-            "{field} coverage accounts for {accounted} neurons, expected {collected}"
-        )));
-    }
-    if reported == 0 && total != 0 {
-        return Err(invalid_validation(format!(
-            "{field} total must be zero when no rows report the field"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_distribution<Key: Copy + Ord + std::fmt::Debug>(
-    report: &NnsNeuronDistributionReport,
-    dimension: &'static str,
-    order: &'static str,
-    rows: impl Iterator<Item = (Key, u64, u64)>,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    let mut previous = None;
-    let mut neuron_count = 0_u64;
-    let mut stake = 0_u64;
-    for (key, count, effective_stake) in rows {
-        if previous.is_some_and(|previous| previous >= key) {
-            return Err(invalid_validation(format!(
-                "{dimension} distribution is not strictly {order} ordered"
-            )));
-        }
-        neuron_count = add_distribution_count(neuron_count, count, dimension)?;
-        stake = stake
-            .checked_add(effective_stake)
-            .ok_or_else(|| invalid_validation(format!("{dimension} stake total overflow")))?;
-        previous = Some(key);
-    }
-    validate_distribution_totals(report, neuron_count, stake, dimension)
-}
-
-fn add_distribution_count(
-    total: u64,
-    count: u64,
-    dimension: &'static str,
-) -> Result<u64, NnsNeuronDistributionValidationError> {
-    if count == 0 {
-        return Err(invalid_validation(format!(
-            "{dimension} distribution row must contain at least one neuron"
-        )));
-    }
-    add_validation_total(total, count, dimension)
-}
-
-fn add_validation_total(
-    total: u64,
-    value: u64,
-    field: &'static str,
-) -> Result<u64, NnsNeuronDistributionValidationError> {
-    total
-        .checked_add(value)
-        .ok_or_else(|| invalid_validation(format!("{field} total overflow")))
-}
-
-fn validate_distribution_totals(
-    report: &NnsNeuronDistributionReport,
-    neuron_count: u64,
-    stake: u64,
-    dimension: &'static str,
-) -> Result<(), NnsNeuronDistributionValidationError> {
-    if neuron_count != report.collected_neuron_count {
-        return Err(invalid_validation(format!(
-            "{dimension} neuron counts sum to {neuron_count}, expected {}",
-            report.collected_neuron_count
-        )));
-    }
-    if stake != report.total_effective_stake_e8s {
-        return Err(invalid_validation(format!(
-            "{dimension} effective stake sums to {stake}, expected {}",
-            report.total_effective_stake_e8s
-        )));
-    }
-    Ok(())
-}
-
-fn invalid_validation(reason: impl Into<String>) -> NnsNeuronDistributionValidationError {
-    NnsNeuronDistributionValidationError {
-        reason: reason.into(),
-    }
 }
 
 #[derive(Default)]

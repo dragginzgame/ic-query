@@ -101,20 +101,6 @@ impl SubnetCatalogListRequest {
         }
     }
 
-    /// Select the exact cache and network behavior authorized for this report.
-    #[must_use]
-    pub fn with_read_policy(mut self, read_policy: CatalogReadPolicy) -> Self {
-        self.read_policy = read_policy;
-        self
-    }
-
-    /// Replace all classification filters used for this list view.
-    #[must_use]
-    pub const fn with_filters(mut self, filters: SubnetCatalogFilters) -> Self {
-        self.filters = filters;
-        self
-    }
-
     /// Require the selected IC-native Subnet kind.
     #[must_use]
     pub const fn with_kind(mut self, kind: SubnetKind) -> Self {
@@ -133,27 +119,6 @@ impl SubnetCatalogListRequest {
     #[must_use]
     pub const fn with_geographic_scope(mut self, geographic_scope: GeographicScope) -> Self {
         self.filters.geographic_scope = Some(geographic_scope);
-        self
-    }
-
-    /// Include or omit routing-range detail in the list view.
-    #[must_use]
-    pub const fn with_show_ranges(mut self, show_ranges: bool) -> Self {
-        self.show_ranges = show_ranges;
-        self
-    }
-
-    /// Limit the routing ranges shown per Subnet without changing the cached snapshot.
-    #[must_use]
-    pub const fn with_range_limit(mut self, range_limit: usize) -> Self {
-        self.range_limit = range_limit;
-        self
-    }
-
-    /// Skip routing ranges per Subnet without changing the cached snapshot.
-    #[must_use]
-    pub const fn with_range_offset(mut self, range_offset: usize) -> Self {
-        self.range_offset = range_offset;
         self
     }
 }

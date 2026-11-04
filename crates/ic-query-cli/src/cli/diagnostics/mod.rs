@@ -1,0 +1,60 @@
+//! Actionable command advice for typed library failures.
+
+use crate::{nns::NnsCommandError, sns::SnsCommandError};
+use ic_query::nns::neuron::NnsNeuronHostError;
+use ic_query::nns::proposals::NnsProposalHostError;
+use ic_query::nns::registry::NnsRegistryHostError;
+use ic_query::nns::topology::NnsTopologyHostError;
+use ic_query::nns::{NnsInventoryCollection, NnsInventoryError};
+use ic_query::sns::SnsHostError;
+
+pub const fn nns_advice(error: &NnsCommandError) -> &'static str {
+    match error {
+        NnsCommandError::InventoryHost(NnsInventoryError::UnsupportedNetwork {
+            collection,
+            ..
+        }) => match collection {
+            NnsInventoryCollection::Node => "\n\nTry:\n  icq --network ic nns node list",
+            NnsInventoryCollection::NodeProvider => {
+                "\n\nTry:\n  icq --network ic nns node-provider list"
+            }
+            NnsInventoryCollection::NodeOperator => {
+                "\n\nTry:\n  icq --network ic nns node-operator list"
+            }
+            NnsInventoryCollection::DataCenter => {
+                "\n\nTry:\n  icq --network ic nns data-center list"
+            }
+        },
+        NnsCommandError::RegistryHost(NnsRegistryHostError::UnsupportedNetwork { .. }) => {
+            "\n\nTry:\n  icq --network ic nns registry version"
+        }
+        NnsCommandError::TopologyHost(NnsTopologyHostError::UnsupportedNetwork { .. }) => {
+            "\n\nTry:\n  icq --network ic nns topology help"
+        }
+        NnsCommandError::ProposalHost(NnsProposalHostError::MissingProposalCache { .. }) => {
+            "\n\nRun `icq nns proposal refresh` to fetch a complete snapshot."
+        }
+        NnsCommandError::NeuronHost(NnsNeuronHostError::MissingNeuronCache { .. }) => {
+            "\n\nRun `icq nns neuron refresh` to fetch a complete snapshot."
+        }
+        _ => "",
+    }
+}
+
+pub const fn sns_advice(error: &SnsCommandError) -> &'static str {
+    match error {
+        SnsCommandError::Host(SnsHostError::UnsupportedNetwork { .. }) => {
+            "\n\nTry:\n  icq --network ic sns list"
+        }
+        SnsCommandError::Host(SnsHostError::MissingNeuronsCache { .. }) => {
+            "\n\nRun `icq sns neuron refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting."
+        }
+        SnsCommandError::Host(SnsHostError::MissingProposalsCache { .. }) => {
+            "\n\nRun `icq sns proposal refresh <id|root-principal>` to fetch a complete snapshot."
+        }
+        _ => "",
+    }
+}
+
+#[cfg(test)]
+mod tests;

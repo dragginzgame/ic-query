@@ -17,13 +17,13 @@ pub(in crate::nns) fn topology_refresh_request(
     now_unix_secs: u64,
 ) -> (OutputFormat, NnsTopologyRefreshRequest) {
     let common = NnsCommonOptions::from_matches(matches, network);
-    (
-        common.format,
-        NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
+    (common.format, {
+        let mut configured_request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
             NnsInventoryCacheRequest::new(cache_root, common.network),
             common.source_endpoint,
             now_unix_secs,
-        ))
-        .with_dry_run(matches.get_flag(DRY_RUN_ARG)),
-    )
+        ));
+        configured_request.dry_run = matches.get_flag(DRY_RUN_ARG);
+        configured_request
+    })
 }

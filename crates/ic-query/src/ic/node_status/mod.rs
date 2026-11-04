@@ -1,6 +1,6 @@
 //! Module: ic::node_status
 //!
-//! Responsibility: observed Dashboard node-status snapshots, caches, projections, and text.
+//! Responsibility: observed Dashboard node-status snapshots, caches, and projections.
 //! Does not own: HTTP transport, Registry authority, command parsing, or process output.
 //! Boundary: derives node, Subnet, and provider views from one finite off-chain snapshot.
 

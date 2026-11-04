@@ -32,8 +32,9 @@ async fn load_catalog_for_report(
     source: &dyn SubnetCatalogSource,
     progress: &mut (dyn QueryProgress + Send),
 ) -> Result<(CatalogLoadOutcome, CatalogStaleStatus), SubnetCatalogHostError> {
-    let request = SubnetCatalogLoadRequest::cache_only(cache.clone(), now_unix_secs)
-        .with_policy(policy.clone());
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache.clone(), now_unix_secs);
+    request.policy = policy.clone();
+
     let cached = load_subnet_catalog_with_source_and_progress(&request, source, progress)
         .await
         .map_err(SubnetCatalogLoadFailure::into_source)?;

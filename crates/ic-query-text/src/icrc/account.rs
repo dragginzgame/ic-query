@@ -4,10 +4,10 @@
 //! Does not own: ledger-wide reports, live source reads, JSON output, or command parsing.
 //! Boundary: formats account identities and base-unit amounts for humans.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::icrc::push_table_section;
 use crate::text_value::optional_text;
@@ -35,26 +35,23 @@ const ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS: [Alignment; 8] = [
 /// Render the ICRC balance report as human-facing text.
 pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("account_owner: {}", report.account_owner),
-        format!(
-            "subaccount_hex: {}",
-            optional_text(report.subaccount_hex.as_ref())
+        field("account_owner", &(report.account_owner)),
+        field(
+            "subaccount_hex",
+            &(optional_text(report.subaccount_hex.as_ref())),
         ),
-        format!(
-            "token_symbol: {}",
-            terminal_text(&report.value.token_symbol)
-        ),
-        format!("decimals: {}", report.value.decimals),
+        field("token_symbol", &report.value.token_symbol),
+        field("decimals", &(report.value.decimals)),
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.value.balance, report.value.decimals),
             terminal_text(&report.value.token_symbol)
         ),
-        format!("balance_base_units: {}", report.value.balance),
+        field("balance_base_units", &(report.value.balance)),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     lines.join("\n")
@@ -64,34 +61,31 @@ pub fn icrc_balance_report_text(report: &IcrcBalanceReport) -> String {
 /// Render the ICRC allowance report as human-facing text.
 pub fn icrc_allowance_report_text(report: &IcrcAllowanceReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("account_owner: {}", report.account_owner),
-        format!(
-            "account_subaccount_hex: {}",
-            optional_text(report.account_subaccount_hex.as_ref())
+        field("account_owner", &(report.account_owner)),
+        field(
+            "account_subaccount_hex",
+            &(optional_text(report.account_subaccount_hex.as_ref())),
         ),
-        format!("spender_owner: {}", report.spender_owner),
-        format!(
-            "spender_subaccount_hex: {}",
-            optional_text(report.spender_subaccount_hex.as_ref())
+        field("spender_owner", &(report.spender_owner)),
+        field(
+            "spender_subaccount_hex",
+            &(optional_text(report.spender_subaccount_hex.as_ref())),
         ),
-        format!(
-            "token_symbol: {}",
-            terminal_text(&report.value.token_symbol)
-        ),
-        format!("decimals: {}", report.value.decimals),
+        field("token_symbol", &report.value.token_symbol),
+        field("decimals", &(report.value.decimals)),
         format!(
             "allowance: {} {}",
             base_units_decimal_text(&report.value.allowance, report.value.decimals),
             terminal_text(&report.value.token_symbol)
         ),
-        format!("allowance_base_units: {}", report.value.allowance),
-        format!(
-            "expires_at_unix_nanos: {}",
-            optional_text(report.value.expires_at_unix_nanos.as_ref())
+        field("allowance_base_units", &(report.value.allowance)),
+        field(
+            "expires_at_unix_nanos",
+            &(optional_text(report.value.expires_at_unix_nanos.as_ref())),
         ),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
@@ -104,36 +98,36 @@ pub fn icrc_account_transaction_page_report_text(
     report: &IcrcAccountTransactionPageReport,
 ) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("index_canister_id: {}", report.page.index_canister_id),
-        format!("account_owner: {}", report.account_owner),
-        format!(
-            "subaccount_hex: {}",
-            optional_text(report.subaccount_hex.as_ref())
+        field("index_canister_id", &(report.page.index_canister_id)),
+        field("account_owner", &(report.account_owner)),
+        field(
+            "subaccount_hex",
+            &(optional_text(report.subaccount_hex.as_ref())),
         ),
-        format!(
-            "requested_start: {}",
-            optional_text(report.requested_start.as_ref())
+        field(
+            "requested_start",
+            &(optional_text(report.requested_start.as_ref())),
         ),
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "next_start: {}",
-            optional_text(report.page.next_start.as_ref())
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "next_start",
+            &(optional_text(report.page.next_start.as_ref())),
         ),
-        format!(
-            "oldest_transaction_id: {}",
-            optional_text(report.page.oldest_transaction_id.as_ref())
+        field(
+            "oldest_transaction_id",
+            &(optional_text(report.page.oldest_transaction_id.as_ref())),
         ),
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.page.balance, report.page.decimals),
             terminal_text(&report.page.token_symbol)
         ),
-        format!("balance_base_units: {}", report.page.balance),
-        format!("returned_transactions: {}", report.page.transactions.len()),
+        field("balance_base_units", &(report.page.balance)),
+        field("returned_transactions", &(report.page.transactions.len())),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.page.transactions, |transactions| {
@@ -152,51 +146,48 @@ pub fn icrc_account_transaction_list_report_text(
     report: &IcrcAccountTransactionListReport,
 ) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.context.ledger_canister_id),
-        format!("index_canister_id: {}", report.context.index_canister_id),
-        format!("account_owner: {}", report.context.account_owner),
-        format!(
-            "subaccount_hex: {}",
-            optional_text(report.context.subaccount_hex.as_ref())
+        field("ledger_canister_id", &(report.context.ledger_canister_id)),
+        field("index_canister_id", &(report.context.index_canister_id)),
+        field("account_owner", &(report.context.account_owner)),
+        field(
+            "subaccount_hex",
+            &(optional_text(report.context.subaccount_hex.as_ref())),
         ),
-        format!("requested_limit: {}", report.requested_limit),
-        format!("sort: {}", report.sort),
-        format!("returned_transactions: {}", report.transactions.len()),
-        format!("total_transactions: {}", report.total_transaction_count),
-        format!(
-            "newest_transaction_id: {}",
-            optional_text(report.newest_transaction_id.as_ref())
+        field("requested_limit", &(report.requested_limit)),
+        field("sort", &(report.sort)),
+        field("returned_transactions", &(report.transactions.len())),
+        field("total_transactions", &(report.total_transaction_count)),
+        field(
+            "newest_transaction_id",
+            &(optional_text(report.newest_transaction_id.as_ref())),
         ),
-        format!(
-            "oldest_transaction_id: {}",
-            optional_text(report.oldest_transaction_id.as_ref())
+        field(
+            "oldest_transaction_id",
+            &(optional_text(report.oldest_transaction_id.as_ref())),
         ),
         format!(
             "balance: {} {}",
             base_units_decimal_text(&report.balance, report.decimals),
             terminal_text(&report.token_symbol)
         ),
-        format!("balance_base_units: {}", report.balance),
-        format!("complete: {}", report.complete),
-        format!(
-            "point_in_time_guaranteed: {}",
-            report.point_in_time_guaranteed
+        field("balance_base_units", &(report.balance)),
+        field("complete", &(report.complete)),
+        field(
+            "point_in_time_guaranteed",
+            &(report.point_in_time_guaranteed),
         ),
-        format!("page_size: {}", report.page_size),
-        format!("page_count: {}", report.page_count),
-        format!(
-            "collection_started_at: {}",
-            terminal_text(&report.context.collection_started_at)
+        field("page_size", &(report.page_size)),
+        field("page_count", &(report.page_count)),
+        field(
+            "collection_started_at",
+            &report.context.collection_started_at,
         ),
-        format!(
-            "collection_completed_at: {}",
-            terminal_text(&report.context.collection_completed_at)
+        field(
+            "collection_completed_at",
+            &report.context.collection_completed_at,
         ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
+        field("source_endpoint", &report.context.source_endpoint),
+        field("cache_path", &report.cache_path),
     ];
     push_table_section(&mut lines, &report.transactions, |transactions| {
         render_account_transactions_table(
@@ -214,57 +205,45 @@ pub fn icrc_account_transaction_refresh_report_text(
     report: &IcrcAccountTransactionRefreshReport,
 ) -> String {
     [
-        format!("ledger_canister_id: {}", report.context.ledger_canister_id),
-        format!("index_canister_id: {}", report.context.index_canister_id),
-        format!("account_owner: {}", report.context.account_owner),
-        format!(
-            "subaccount_hex: {}",
-            optional_text(report.context.subaccount_hex.as_ref())
+        field("ledger_canister_id", &(report.context.ledger_canister_id)),
+        field("index_canister_id", &(report.context.index_canister_id)),
+        field("account_owner", &(report.context.account_owner)),
+        field(
+            "subaccount_hex",
+            &(optional_text(report.context.subaccount_hex.as_ref())),
         ),
-        format!("transaction_count: {}", report.transaction_count),
-        format!(
-            "newest_transaction_id: {}",
-            optional_text(report.newest_transaction_id.as_ref())
+        field("transaction_count", &(report.transaction_count)),
+        field(
+            "newest_transaction_id",
+            &(optional_text(report.newest_transaction_id.as_ref())),
         ),
-        format!(
-            "oldest_transaction_id: {}",
-            optional_text(report.oldest_transaction_id.as_ref())
+        field(
+            "oldest_transaction_id",
+            &(optional_text(report.oldest_transaction_id.as_ref())),
         ),
-        format!("page_size: {}", report.page_size),
-        format!("page_count: {}", report.page_count),
-        format!(
-            "point_in_time_guaranteed: {}",
-            report.point_in_time_guaranteed
+        field("page_size", &(report.page_size)),
+        field("page_count", &(report.page_count)),
+        field(
+            "point_in_time_guaranteed",
+            &(report.point_in_time_guaranteed),
         ),
-        format!(
-            "replaced_existing_cache: {}",
-            report.replaced_existing_cache
+        field("replaced_existing_cache", &(report.replaced_existing_cache)),
+        field(
+            "attempt_finalization_error",
+            &(optional_text(report.attempt_finalization_error.as_ref())),
         ),
-        format!(
-            "attempt_finalization_error: {}",
-            optional_text(report.attempt_finalization_error.as_ref())
+        field(
+            "collection_started_at",
+            &report.context.collection_started_at,
         ),
-        format!(
-            "collection_started_at: {}",
-            terminal_text(&report.context.collection_started_at)
+        field(
+            "collection_completed_at",
+            &report.context.collection_completed_at,
         ),
-        format!(
-            "collection_completed_at: {}",
-            terminal_text(&report.context.collection_completed_at)
-        ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
+        field("source_endpoint", &report.context.source_endpoint),
+        field("cache_path", &report.cache_path),
+        field("refresh_attempt_path", &report.refresh_attempt_path),
+        field("refresh_lock_path", &report.refresh_lock_path),
     ]
     .join("\n")
 }
@@ -275,60 +254,42 @@ pub fn icrc_account_transaction_cache_status_report_text(
     report: &IcrcAccountTransactionCacheStatusReport,
 ) -> String {
     let mut lines = vec![
-        format!("ledger_canister_id: {}", report.ledger_canister_id),
-        format!("account_owner: {}", report.account_owner),
-        format!(
-            "subaccount_hex: {}",
-            optional_text(report.subaccount_hex.as_ref())
+        field("ledger_canister_id", &(report.ledger_canister_id)),
+        field("account_owner", &(report.account_owner)),
+        field(
+            "subaccount_hex",
+            &(optional_text(report.subaccount_hex.as_ref())),
         ),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-        format!("found: {}", report.found),
-        format!(
-            "expected_cache_path: {}",
-            terminal_text(&report.expected_cache_path)
-        ),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
+        field("source_endpoint", &report.source_endpoint),
+        field("found", &(report.found)),
+        field("expected_cache_path", &report.expected_cache_path),
+        field("refresh_attempt_path", &report.refresh_attempt_path),
+        field("refresh_lock_path", &report.refresh_lock_path),
     ];
     match report.cache.as_ref() {
         Some(ic_query::icrc::IcrcAccountTransactionCacheSummary::Valid { data: cache }) => {
             lines.extend([
                 "cache_status: valid".to_string(),
                 "cache_error: -".to_string(),
-                format!("index_canister_id: {}", cache.index_canister_id),
-                format!("transaction_count: {}", cache.transaction_count),
-                format!(
-                    "newest_transaction_id: {}",
-                    optional_text(cache.newest_transaction_id.as_ref())
+                field("index_canister_id", &(cache.index_canister_id)),
+                field("transaction_count", &(cache.transaction_count)),
+                field(
+                    "newest_transaction_id",
+                    &(optional_text(cache.newest_transaction_id.as_ref())),
                 ),
-                format!(
-                    "oldest_transaction_id: {}",
-                    optional_text(cache.oldest_transaction_id.as_ref())
+                field(
+                    "oldest_transaction_id",
+                    &(optional_text(cache.oldest_transaction_id.as_ref())),
                 ),
-                format!("page_size: {}", cache.page_size),
-                format!("page_count: {}", cache.page_count),
+                field("page_size", &(cache.page_size)),
+                field("page_count", &(cache.page_count)),
                 "complete: true".to_string(),
-                format!(
-                    "point_in_time_guaranteed: {}",
-                    cache.point_in_time_guaranteed
+                field(
+                    "point_in_time_guaranteed",
+                    &(cache.point_in_time_guaranteed),
                 ),
-                format!(
-                    "collection_started_at: {}",
-                    terminal_text(&cache.collection_started_at)
-                ),
-                format!(
-                    "collection_completed_at: {}",
-                    terminal_text(&cache.collection_completed_at)
-                ),
+                field("collection_started_at", &cache.collection_started_at),
+                field("collection_completed_at", &cache.collection_completed_at),
             ]);
         }
         Some(ic_query::icrc::IcrcAccountTransactionCacheSummary::Invalid {
@@ -337,37 +298,31 @@ pub fn icrc_account_transaction_cache_status_report_text(
         }) => {
             lines.extend([
                 "cache_status: invalid".to_string(),
-                format!("cache_path: {}", terminal_text(cache_path)),
-                format!("cache_error: {}", terminal_text(cache_error)),
+                field("cache_path", &(cache_path)),
+                field("cache_error", &(cache_error)),
             ]);
         }
         None => {}
     }
     if let Some(attempt) = report.latest_attempt.as_ref() {
         lines.extend([
-            format!("latest_attempt_status: {}", attempt.lifecycle.status),
-            format!(
-                "latest_attempt_started_at: {}",
-                attempt.lifecycle.started_at
+            field("latest_attempt_status", &(attempt.lifecycle.status)),
+            field("latest_attempt_started_at", &(attempt.lifecycle.started_at)),
+            field("latest_attempt_updated_at", &(attempt.lifecycle.updated_at)),
+            field(
+                "latest_attempt_index_canister_id",
+                &(optional_text(attempt.index_canister_id.as_ref())),
             ),
-            format!(
-                "latest_attempt_updated_at: {}",
-                attempt.lifecycle.updated_at
+            field("latest_attempt_page_size", &(attempt.lifecycle.page_size)),
+            field("latest_attempt_pages", &(attempt.lifecycle.pages_fetched)),
+            field("latest_attempt_rows", &(attempt.lifecycle.rows_fetched)),
+            field(
+                "latest_attempt_cursor",
+                &(optional_text(attempt.lifecycle.last_cursor.as_ref())),
             ),
-            format!(
-                "latest_attempt_index_canister_id: {}",
-                optional_text(attempt.index_canister_id.as_ref())
-            ),
-            format!("latest_attempt_page_size: {}", attempt.lifecycle.page_size),
-            format!("latest_attempt_pages: {}", attempt.lifecycle.pages_fetched),
-            format!("latest_attempt_rows: {}", attempt.lifecycle.rows_fetched),
-            format!(
-                "latest_attempt_cursor: {}",
-                optional_text(attempt.lifecycle.last_cursor.as_ref())
-            ),
-            format!(
-                "latest_attempt_error: {}",
-                optional_text(attempt.lifecycle.last_error.as_ref())
+            field(
+                "latest_attempt_error",
+                &(optional_text(attempt.lifecycle.last_error.as_ref())),
             ),
         ]);
     }
@@ -379,7 +334,7 @@ fn render_account_transactions_table(
     decimals: u8,
     token_symbol: &str,
 ) -> String {
-    render(
+    table(
         &[
             "ID",
             "KIND",
@@ -414,7 +369,6 @@ fn render_account_transactions_table(
             })
             .collect::<Vec<_>>(),
         &ICRC_ACCOUNT_TRANSACTION_TABLE_ALIGNMENTS,
-        REPORT_TABLE_OPTIONS,
     )
 }
 

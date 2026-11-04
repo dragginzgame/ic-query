@@ -21,10 +21,9 @@ mod wire;
 
 pub use activity::{
     NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION, NnsProposalActivityError,
-    NnsProposalActivityReport, NnsProposalActivityRequest, NnsProposalActivityValidationError,
-    NnsProposalDayCount, NnsProposalRewardStatusCount, NnsProposalStatusCount,
-    NnsProposalTopicCount, build_nns_proposal_activity_report,
-    validate_nns_proposal_activity_report,
+    NnsProposalActivityReport, NnsProposalActivityRequest, NnsProposalDayCount,
+    NnsProposalRewardStatusCount, NnsProposalStatusCount, NnsProposalTopicCount,
+    build_nns_proposal_activity_report,
 };
 #[cfg(feature = "nns-host")]
 pub use cache::{

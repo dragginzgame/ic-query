@@ -3,7 +3,7 @@ use super::*;
 use crate::QueryProgressEvent;
 use crate::report::CollectionSourceRequest;
 
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use std::fs;
 use std::sync::Mutex;
@@ -539,7 +539,8 @@ async fn sns_catalog_preserves_unknown_lifecycle_and_rejects_invalid_refresh() {
     let source = MutatingLifecycleSource(|rows| {
         rows[0].outcome = Ok(99);
     });
-    let request = list_request().with_all_lifecycles(true);
+    let mut request = list_request();
+    request.all_lifecycles = true;
     let live = build_sns_list_report_with_source(&request, &source)
         .await
         .expect("live unknown lifecycle");
@@ -588,10 +589,11 @@ async fn sns_list_all_surfaces_lifecycle_query_errors_hidden_by_default() {
     let default_report = build_sns_list_report_with_source(&list_request(), &source)
         .await
         .expect("default list with lifecycle error");
-    let all_report =
-        build_sns_list_report_with_source(&list_request().with_all_lifecycles(true), &source)
-            .await
-            .expect("all list with lifecycle error");
+    let mut all_request = list_request();
+    all_request.all_lifecycles = true;
+    let all_report = build_sns_list_report_with_source(&all_request, &source)
+        .await
+        .expect("all list with lifecycle error");
 
     assert_eq!(default_report.catalog_sns_count, 1);
     assert_eq!(default_report.sns_instances.len(), 0);
@@ -632,7 +634,8 @@ async fn sns_info_resolves_root_principal() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_list_ids_follow_source_order() {
-    let request = list_request().with_all_lifecycles(true);
+    let mut request = list_request();
+    request.all_lifecycles = true;
     let report = build_sns_list_report_with_source(&request, &UnsortedFixtureSnsDiscoverySource)
         .await
         .expect("sns list report");
@@ -681,12 +684,12 @@ async fn sns_list_filters_to_committed_by_default_and_all_preserves_stable_ids()
         build_sns_list_report_with_source(&list_request(), &UnsortedFixtureSnsDiscoverySource)
             .await
             .expect("default SNS list report");
-    let all_report = build_sns_list_report_with_source(
-        &list_request().with_all_lifecycles(true),
-        &UnsortedFixtureSnsDiscoverySource,
-    )
-    .await
-    .expect("all-lifecycle SNS list report");
+    let mut all_request = list_request();
+    all_request.all_lifecycles = true;
+    let all_report =
+        build_sns_list_report_with_source(&all_request, &UnsortedFixtureSnsDiscoverySource)
+            .await
+            .expect("all-lifecycle SNS list report");
 
     assert_eq!(default_report.catalog_sns_count, 2);
     assert_eq!(default_report.excluded_sns_count, 1);

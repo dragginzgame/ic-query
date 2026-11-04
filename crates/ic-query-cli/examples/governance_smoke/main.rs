@@ -21,8 +21,6 @@ use command::CommandOptions;
 use ic_host_artifacts::artifact::Sha256Digest;
 use ic_host_fs::path::canonicalize_allow_missing;
 use ic_platform::candid::contract::Principal;
-#[cfg(test)]
-use serde_json::{Value, json};
 use std::{
     env,
     error::Error,

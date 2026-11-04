@@ -1,5 +1,5 @@
 use super::*;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use std::{
     fs,
     io::{self, Write},

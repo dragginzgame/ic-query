@@ -5,6 +5,52 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.90.0]
+
+### ⚠️ Breaking
+
+- Align public certificate/hash-tree and Host error identities on Platform 0.22
+  and Host Tools 0.82. Rust consumers passing those values must align their direct
+  dependencies. Certificates and hash trees share upstream identity with Agent;
+  remove the former conversions. Types 0.18, Runtime 0.19 and schema-1 formats remain.
+
+- Share Dashboard canister payloads through `IcCanisterData` and remove redundant
+  `upgrade_count`, status returned-row counts and API-boundary-node `node_count`
+  fields. Derive counts from retained rows; independent snapshot totals remain.
+  Report schemas stay at 1; consumers must adopt the replacement shape.
+
+- Make NNS proposal-activity and neuron-distribution reports output-only. Remove
+  report read-back validators, their error types and analytics deserialization;
+  retain source/collection validation, builders and unchanged schema-1 JSON output.
+- Remove CloudEngine Type4 node-list `node_count`; derive it from `nodes`. Human
+  output and the independent aggregate summaries remain.
+
+- Remove 62 assignment-only request/query setters over public fields. Configure
+  those fields after construction; retain validating setters, proposal sort
+  direction resets and cache-route selection. Update Rust callers for this cut.
+- Remove redundant CloudEngine price/provider counts, operator binding/domain
+  summary fields, and topology region/referenced-provider counts. Derive them
+  from retained values; independent source totals and human output remain.
+
+### 🔧 Changed
+
+- Align Foundation requirements with locked 0.74.3 and Build with 0.74.3;
+  retain Runtime/macros/guard 0.19.1, existing report formats and the compiler floor.
+- Adopt Testkit 0.85's owned PocketIC client and explicit server endpoint
+  contract; retain Query's managed startup and remove the separate client
+  dependency. Prepare the matching CLI with `make install-testkit`; the
+  PocketIC 16.1.0 server and Wire 0.16 selection remain.
+- Use Shared Tooling 0.29.3's release plans and evidence checks to scope qualified
+  CLI/Text-only releases to their product tests and real library integration.
+  Query changes retain CLI consumers; full CI, native and archive obligations
+  remain. Unknown scope or unqualified hosts keep the full gate. See
+  [#112 — Query/CLI release plans](https://github.com/dragginzgame/ic-query/issues/112) and the [0.90 notes](0.90.md).
+
+### 🧪 Testing
+
+- Keep unit tests and shared fixtures in dedicated test files so source-size
+  reports separate production code from tests.
+
 ## [0.89.0] - 2026-11-03
 
 ### ⚠️ Breaking

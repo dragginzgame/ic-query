@@ -11,6 +11,7 @@ use ic_host_fs::{
 };
 use ic_host_process::tool::{ExecutionFailure, ToolError};
 use protocol::Probe;
+use serde_json::{Value, json};
 use std::{
     fmt,
     os::unix::{
@@ -254,7 +255,7 @@ fn probe_workspace() -> FixtureDirectory {
     .unwrap();
     fs::write(
         directory.path().join("Cargo.toml"),
-        "[package]\nname = 'ic-query'\nversion = '0.0.0'\nedition = '2024'\n\
+        "[workspace]\n[package]\nname = 'ic-query'\nversion = '0.0.0'\nedition = '2024'\n\
          [features]\ncanister = []\n\
          [[example]]\nname = 'governance_probe'\npath = 'probe.rs'\ncrate-type = ['cdylib']\n",
     )

@@ -127,12 +127,12 @@ async fn operator_report_preserves_public_settings_and_provenance() {
     assert!(!report.context.point_in_time_guaranteed);
     assert_eq!(report.context.query_call_count, 5);
     assert_eq!(report.subnet_id, SUBNET_ID);
-    assert!(report.operator_binding_present);
+    assert!(report.operator_canister_id.is_some());
     assert_eq!(report.operator_canister_id.as_deref(), Some(OPERATOR_ID));
     assert_eq!(report.engine_owner.as_deref(), Some(OWNER_ID));
     assert_eq!(report.platform_admin.as_deref(), Some(ADMIN_ID));
     assert_eq!(report.caffeine_enabled, Some(true));
-    assert_eq!(report.claimed_domain_count, Some(2));
+    assert_eq!(report.claimed_domains.as_ref().map(Vec::len), Some(2));
     assert_eq!(
         report.claimed_domains,
         Some(vec!["a.example".to_string(), "z.example".to_string()])
@@ -140,7 +140,8 @@ async fn operator_report_preserves_public_settings_and_provenance() {
 
     let json = serde_json::to_value(&report).expect("serialize operator report");
     assert_eq!(json["query_call_count"], 5);
-    assert_eq!(json["operator_binding_present"], true);
+    assert!(json.get("operator_binding_present").is_none());
+    assert!(json.get("claimed_domain_count").is_none());
     assert_eq!(json["claimed_domains"][0], "a.example");
 }
 
@@ -162,9 +163,9 @@ async fn absent_operator_binding_is_a_visible_one_call_result() {
         .await
         .expect("absent operator binding is reportable");
 
-    assert!(!report.operator_binding_present);
+    assert!(report.operator_canister_id.is_none());
     assert_eq!(report.context.query_call_count, 1);
-    assert_eq!(report.claimed_domain_count, None);
+    assert_eq!(report.claimed_domains.as_ref().map(Vec::len), None);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -178,13 +179,14 @@ async fn price_report_sorts_rows_and_preserves_raw_cycle_text() {
     assert_eq!((*source.calls.lock().unwrap()), 1);
     assert_eq!(report.context.query_call_count, 2);
     assert!((report.network_fee - 0.25).abs() < f64::EPSILON);
-    assert_eq!(report.price_count, 3);
+    assert_eq!(report.prices.len(), 3);
     assert_eq!(report.prices[0].key, "aaaaa-aa,type4.3");
     assert_eq!(report.prices[1].key, "type4.1");
     assert_eq!(report.prices[2].key, "type4.2,de-fr-001");
     assert_eq!(report.prices[1].net_cycles_per_month, "471065106452");
 
     let json = serde_json::to_value(&report).expect("serialize prices report");
+    assert!(json.get("price_count").is_none());
     assert_eq!(json["prices"][1]["net_cycles_per_month"], "471065106452");
     assert_eq!(
         json["prices"][1]["updated_at_unix_nanos"],

@@ -11,8 +11,9 @@ async fn node_provider_info_resolves_exact_principal() {
     let report = build_nns_node_provider_info_report_with_source_and_progress(
         &request,
         &FixtureNodeProviderSource {
-            node_providers: vec![MainnetNodeProvider {
-                principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+            node_providers: vec![NnsNodeProviderRow {
+                name: None,
+                node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
                 node_count: Some(13),
                 reward_account_hex: Some("abcd".to_string()),
             }],

@@ -29,12 +29,6 @@ impl IcrcBalanceRequest {
             subaccount_hex: None,
         }
     }
-
-    #[must_use]
-    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
-        self.subaccount_hex = Some(subaccount_hex.into());
-        self
-    }
 }
 
 ///
@@ -67,23 +61,5 @@ impl IcrcAllowanceRequest {
             spender_owner: spender_owner.into(),
             spender_subaccount_hex: None,
         }
-    }
-
-    #[must_use]
-    pub fn with_account_subaccount_hex(
-        mut self,
-        account_subaccount_hex: impl Into<String>,
-    ) -> Self {
-        self.account_subaccount_hex = Some(account_subaccount_hex.into());
-        self
-    }
-
-    #[must_use]
-    pub fn with_spender_subaccount_hex(
-        mut self,
-        spender_subaccount_hex: impl Into<String>,
-    ) -> Self {
-        self.spender_subaccount_hex = Some(spender_subaccount_hex.into());
-        self
     }
 }

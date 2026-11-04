@@ -2,7 +2,7 @@ use super::fixtures::*;
 use super::*;
 use crate::nns::NnsInventoryListRequest;
 use crate::subnet_catalog::SubnetKind;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 
 #[test]
 fn topology_summary_counts_existing_reports() {

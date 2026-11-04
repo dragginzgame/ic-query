@@ -1,6 +1,6 @@
 use crate::report::CollectionSourceRequest;
 use crate::sns::report::SnsNeuronRow;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use crate::{
     HostCacheError,
     cache_file::CacheFileError,

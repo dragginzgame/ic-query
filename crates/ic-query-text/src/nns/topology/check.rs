@@ -5,9 +5,8 @@
 //! Boundary: formats consistency-check rows and report status for humans.
 
 use super::percent::coverage_percent_text;
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use ic_query::nns::topology::NnsTopologyCheckReport;
 use ic_query::nns::topology::NnsTopologyCheckRow;
@@ -31,8 +30,8 @@ fn render_check_table(report: &NnsTopologyCheckReport) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    let alignments = [Alignment::Left, Alignment::Left, Alignment::Left];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    let alignments = [Alignment::Left; 3];
+    table(&headers, &rows, &alignments)
 }
 
 fn check_detail(report: &NnsTopologyCheckReport, row: &NnsTopologyCheckRow) -> String {

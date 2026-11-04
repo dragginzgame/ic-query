@@ -774,7 +774,7 @@ async fn index_report_builds_text_and_json_friendly_fields() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_preserves_index_provenance_and_cursor() {
-    let request = IcrcAccountTransactionPageRequest::new(
+    let mut request = IcrcAccountTransactionPageRequest::new(
         crate::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -782,10 +782,10 @@ async fn account_transaction_page_report_preserves_index_provenance_and_cursor()
         ),
         ACCOUNT_OWNER,
         2,
-    )
-    .with_index_canister_id(INDEX_CANISTER_ID)
-    .with_subaccount_hex(UPPER_SUBACCOUNT_HEX)
-    .with_start("00042");
+    );
+    request.index_canister_id = Some(INDEX_CANISTER_ID.into());
+    request.subaccount_hex = Some(UPPER_SUBACCOUNT_HEX.into());
+    request.start = Some("00042".into());
 
     let report = build_icrc_account_transaction_page_report_with_source(
         &request,
@@ -847,7 +847,7 @@ async fn account_transaction_page_report_rejects_zero_limit_before_source_call()
 
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_rejects_explicit_index_mismatch() {
-    let request = IcrcAccountTransactionPageRequest::new(
+    let mut request = IcrcAccountTransactionPageRequest::new(
         crate::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -855,8 +855,9 @@ async fn account_transaction_page_report_rejects_explicit_index_mismatch() {
         ),
         ACCOUNT_OWNER,
         2,
-    )
-    .with_index_canister_id(INDEX_CANISTER_ID);
+    );
+    request.index_canister_id = Some(INDEX_CANISTER_ID.into());
+
     let mut page = fixture_account_transaction_page();
     page.index_canister_id = ARCHIVE_CANISTER_ID.to_string();
 
@@ -961,7 +962,7 @@ async fn account_transaction_page_report_rejects_excess_or_unordered_rows() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
-    let request = IcrcAccountTransactionPageRequest::new(
+    let mut request = IcrcAccountTransactionPageRequest::new(
         crate::icrc::IcrcLedgerRequest::new(
             SOURCE_ENDPOINT,
             FETCHED_AT_UNIX_SECS,
@@ -969,8 +970,9 @@ async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
         ),
         ACCOUNT_OWNER,
         2,
-    )
-    .with_start("42");
+    );
+    request.start = Some("42".into());
+
     for (id, oldest) in [("42", "7"), ("43", "7"), ("6", "7")] {
         let mut page = fixture_account_transaction_page();
         page.transactions[0].id = id.into();
@@ -1012,7 +1014,11 @@ async fn account_transaction_page_report_enforces_cursor_and_oldest_bounds() {
     empty.transactions.clear();
     empty.next_start = None;
     build_icrc_account_transaction_page_report_with_source(
-        &request.with_start("0"),
+        &{
+            let mut configured_request = request;
+            configured_request.start = Some("0".into());
+            configured_request
+        },
         &AccountTransactionsDataSource(empty),
     )
     .await

@@ -4,7 +4,7 @@ use crate::{
         CacheFileError, create_managed_parent_directory, inspect_refresh_lock,
         write_managed_text_atomically,
     },
-    test_support::temp_dir,
+    tests::temp_dir,
 };
 #[cfg(unix)]
 use std::os::unix::fs::{PermissionsExt, symlink};

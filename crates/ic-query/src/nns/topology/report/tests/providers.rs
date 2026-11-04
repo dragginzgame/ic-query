@@ -16,7 +16,13 @@ fn topology_providers_report_summarizes_provider_distribution() {
 
     assert_eq!(report.schema_version, 1);
     assert_eq!(report.registered_node_provider_count, 1);
-    assert_eq!(report.referenced_node_provider_count, 2);
+    assert_eq!(report.providers.len(), 2);
+    assert!(
+        serde_json::to_value(&report)
+            .unwrap()
+            .get("referenced_node_provider_count")
+            .is_none()
+    );
     assert_eq!(report.provider_with_nodes_count, 2);
     assert_eq!(report.provider_with_node_operators_count, 2);
     assert_eq!(report.total_node_count, 3);
@@ -125,7 +131,7 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
     assert_eq!(unused.data_center_count, 0);
     assert_eq!(unused.status, NnsTopologyProviderStatus::Unused);
     assert_eq!(report.registered_node_provider_count, 2);
-    assert_eq!(report.referenced_node_provider_count, 3);
+    assert_eq!(report.providers.len(), 3);
     assert_eq!(report.unknown_provider_count, 1);
     assert_eq!(report.over_assigned_provider_count, 1);
 }

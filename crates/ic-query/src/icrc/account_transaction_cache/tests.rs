@@ -10,7 +10,7 @@ use crate::icrc::IcrcAccountTransactionListRequest;
 use crate::icrc::IcrcAccountTransactionRefreshRequest;
 use crate::icrc::IcrcAccountTransactionRow;
 use crate::icrc::IcrcAccountTransactionSort;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use ic_platform::candid::contract::Principal;
 use serde_json::json;
@@ -47,8 +47,12 @@ fn cache_entity_changes_with_collection_identity_and_normalizes_subaccounts() {
         storage::cache_entity(&different_endpoint)
     );
 
-    let lowercase = first.clone().with_subaccount_hex("ab".repeat(32));
-    let uppercase = first.with_subaccount_hex("AB".repeat(32));
+    let mut lowercase = first.clone();
+    lowercase.subaccount_hex = Some("ab".repeat(32));
+
+    let mut uppercase = first;
+    uppercase.subaccount_hex = Some("AB".repeat(32));
+
     assert_eq!(
         icrc_account_transaction_cache_path(&lowercase).expect("lowercase cache path"),
         icrc_account_transaction_cache_path(&uppercase).expect("uppercase cache path")
@@ -70,10 +74,11 @@ async fn complete_refresh_publishes_canonical_cache_and_cache_only_views() {
     .await
     .expect("refresh complete cache");
     let cached = load_cached_icrc_account_transactions(&cache).expect("load complete cache");
-    let oldest = build_icrc_account_transaction_list_report(
-        &IcrcAccountTransactionListRequest::new(cache.clone(), 2)
-            .with_sort(IcrcAccountTransactionSort::Oldest),
-    )
+    let oldest = build_icrc_account_transaction_list_report(&{
+        let mut configured_request = IcrcAccountTransactionListRequest::new(cache.clone(), 2);
+        configured_request.sort = IcrcAccountTransactionSort::Oldest;
+        configured_request
+    })
     .expect("list cache oldest first");
     let status =
         build_icrc_account_transaction_cache_status_report(&cache).expect("cache status report");
@@ -353,8 +358,8 @@ async fn source_claiming_completion_with_wrong_final_cursor_is_not_published() {
 async fn custom_source_must_return_the_explicitly_requested_index() {
     let root = temp_dir("ic-query-icrc-account-index-mismatch");
     let cache = cache_request(&root);
-    let request = refresh_request(cache.clone(), 1_700_000_000)
-        .with_index_canister_id(Principal::management_canister().to_text());
+    let mut request = refresh_request(cache.clone(), 1_700_000_000);
+    request.index_canister_id = Some(Principal::management_canister().to_text());
 
     let error = refresh_icrc_account_transaction_cache_with_source_and_progress(
         &request,
@@ -399,7 +404,9 @@ async fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
     for (page_count, page_size, max_pages) in [(1, 1, None), (2, 100, Some(1))] {
         let mut source = SuccessSource::new(vec![row("7"), row("6")]);
         source.page_count = page_count;
-        let mut bounded = request.clone().with_max_pages(max_pages);
+        let mut bounded = request.clone();
+        bounded.max_pages = max_pages;
+
         bounded.page_size = page_size;
         let error = refresh_icrc_account_transaction_cache_with_source_and_progress(
             &bounded,
@@ -427,7 +434,9 @@ async fn custom_completion_must_fit_page_capacity_and_the_requested_page_cap() {
 
     let mut source = SuccessSource::new(vec![row("7"), row("6")]);
     source.page_count = 2;
-    let mut bounded = request.with_max_pages(Some(2));
+    let mut bounded = request;
+    bounded.max_pages = Some(2);
+
     bounded.page_size = 1;
     let report = refresh_icrc_account_transaction_cache_with_source_and_progress(
         &bounded,

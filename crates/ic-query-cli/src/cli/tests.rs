@@ -2,6 +2,10 @@ use super::clap::{parse_matches, required_string, typed_option, value_arg};
 use clap::Command;
 use std::ffi::OsString;
 
+pub fn render_help(mut command: Command) -> String {
+    command.render_help().to_string()
+}
+
 pub fn parse_test_args(command: Command, args: &[&str]) -> Result<clap::ArgMatches, clap::Error> {
     parse_matches(command, args.iter().copied().map(OsString::from))
 }

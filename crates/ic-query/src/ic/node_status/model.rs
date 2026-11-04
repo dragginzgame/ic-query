@@ -401,8 +401,6 @@ pub struct IcNodeStatusReport {
     pub resolved_target: Option<String>,
     /// Stable label describing how the target resolved.
     pub resolved_from: Option<String>,
-    /// Number of returned node rows.
-    pub returned_node_count: usize,
     /// Selected canonical node rows.
     pub nodes: Vec<IcNodeStatusRow>,
 }
@@ -460,8 +458,6 @@ pub struct IcSubnetStatusReport {
     pub resolved_target: Option<String>,
     /// Stable label describing how the target resolved.
     pub resolved_from: Option<String>,
-    /// Number of returned Subnet rows.
-    pub returned_subnet_count: usize,
     /// Canonically ordered selected Subnet rows.
     pub subnets: Vec<IcSubnetStatusRow>,
 }
@@ -517,8 +513,6 @@ pub struct IcNodeProviderStatusReport {
     pub resolved_target: Option<String>,
     /// Stable label describing how the target resolved.
     pub resolved_from: Option<String>,
-    /// Number of returned provider rows.
-    pub returned_provider_count: usize,
     /// Canonically ordered selected provider rows.
     pub providers: Vec<IcNodeProviderStatusRow>,
 }
@@ -662,20 +656,6 @@ impl IcNodeStatusReadRequest {
             view: IcNodeStatusView::attention(),
             force_refresh: false,
         }
-    }
-
-    /// Apply one target and attention selection.
-    #[must_use]
-    pub fn with_view(mut self, view: IcNodeStatusView) -> Self {
-        self.view = view;
-        self
-    }
-
-    /// Select a forced refresh before projecting the report.
-    #[must_use]
-    pub const fn with_force_refresh(mut self, force_refresh: bool) -> Self {
-        self.force_refresh = force_refresh;
-        self
     }
 }
 

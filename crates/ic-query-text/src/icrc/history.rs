@@ -4,9 +4,9 @@
 //! Does not own: account history, token metadata, live reads, or JSON output.
 //! Boundary: formats bounded ledger blocks and archive evidence for humans.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::icrc::LEFT_2_ALIGNMENTS;
 use crate::icrc::push_table_section;
@@ -42,29 +42,29 @@ const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [Alignment; 4] = [
 /// Render the ICRC transactions report as human-facing text.
 pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("requested_start: {}", report.requested_start),
-        format!("requested_limit: {}", report.requested_limit),
-        format!("follow_archives: {}", report.follow_archives),
-        format!(
-            "log_length: {}",
-            optional_text(report.transactions.log_length.as_ref())
+        field("requested_start", &(report.requested_start)),
+        field("requested_limit", &(report.requested_limit)),
+        field("follow_archives", &(report.follow_archives)),
+        field(
+            "log_length",
+            &(optional_text(report.transactions.log_length.as_ref())),
         ),
-        format!("returned_blocks: {}", report.transactions.blocks.len()),
-        format!(
-            "archived_callbacks: {}",
-            report.transactions.archived_blocks.len()
+        field("returned_blocks", &(report.transactions.blocks.len())),
+        field(
+            "archived_callbacks",
+            &(report.transactions.archived_blocks.len()),
         ),
-        format!(
-            "followed_archive_blocks: {}",
-            report.transactions.followed_archive_blocks.len()
+        field(
+            "followed_archive_blocks",
+            &(report.transactions.followed_archive_blocks.len()),
         ),
-        format!(
-            "archive_follow_errors: {}",
-            report.transactions.archive_follow_errors.len()
+        field(
+            "archive_follow_errors",
+            &(report.transactions.archive_follow_errors.len()),
         ),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
@@ -92,19 +92,18 @@ pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String 
 }
 
 fn render_transaction_blocks_table(blocks: &[IcrcTransactionBlockRow]) -> String {
-    render(
+    table(
         &ICRC3_BLOCK_TABLE_HEADERS,
         &blocks
             .iter()
             .map(transaction_block_cells)
             .collect::<Vec<_>>(),
         &ICRC3_BLOCK_TABLE_ALIGNMENTS,
-        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_followed_archive_blocks_table(blocks: &[IcrcFollowedArchiveBlockRow]) -> String {
-    render(
+    table(
         &[
             "ARCHIVE_CANISTER",
             "METHOD",
@@ -139,12 +138,11 @@ fn render_followed_archive_blocks_table(blocks: &[IcrcFollowedArchiveBlockRow]) 
             Alignment::Right,
             Alignment::Right,
         ],
-        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_archive_callbacks_table(archives: &[IcrcArchivedBlocksRow]) -> String {
-    render(
+    table(
         &["ARCHIVE_CANISTER", "METHOD", "START", "LENGTH"],
         &archives
             .iter()
@@ -159,12 +157,11 @@ fn render_archive_callbacks_table(archives: &[IcrcArchivedBlocksRow]) -> String 
             })
             .collect::<Vec<_>>(),
         &ARCHIVE_RANGE_TABLE_ALIGNMENTS,
-        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> String {
-    render(
+    table(
         &["ARCHIVE_CANISTER", "METHOD", "START", "LENGTH", "ERROR"],
         &errors
             .iter()
@@ -192,7 +189,6 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
             Alignment::Right,
             Alignment::Left,
         ],
-        REPORT_TABLE_OPTIONS,
     )
 }
 
@@ -200,22 +196,21 @@ fn render_archive_follow_errors_table(errors: &[IcrcArchiveFollowErrorRow]) -> S
 /// Render the ICRC block types report as human-facing text.
 pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!("block_type_count: {}", report.block_types.len()),
+        field("block_type_count", &(report.block_types.len())),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.block_types, |rows| {
-        render(
+        table(
             &["BLOCK_TYPE", "URL"],
             &rows
                 .iter()
                 .map(|block_type| [block_type.block_type.clone(), block_type.url.clone()])
                 .collect::<Vec<_>>(),
             &LEFT_2_ALIGNMENTS,
-            REPORT_TABLE_OPTIONS,
         )
     });
     lines.join("\n")
@@ -225,19 +220,19 @@ pub fn icrc_block_types_report_text(report: &IcrcBlockTypesReport) -> String {
 /// Render the ICRC archives report as human-facing text.
 pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
     let mut lines = vec![
-        format!(
-            "ledger_canister_id: {}",
-            report.provenance.ledger_canister_id
+        field(
+            "ledger_canister_id",
+            &(report.provenance.ledger_canister_id),
         ),
-        format!(
-            "from_canister_id: {}",
-            optional_text(report.from_canister_id.as_ref())
+        field(
+            "from_canister_id",
+            &(optional_text(report.from_canister_id.as_ref())),
         ),
-        format!("archive_count: {}", report.archives.len()),
+        field("archive_count", &(report.archives.len())),
     ];
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     push_table_section(&mut lines, &report.archives, |rows| {
-        render(
+        table(
             &["ARCHIVE_CANISTER", "START", "END"],
             &rows
                 .iter()
@@ -250,7 +245,6 @@ pub fn icrc_archives_report_text(report: &IcrcArchivesReport) -> String {
                 })
                 .collect::<Vec<_>>(),
             &[Alignment::Left, Alignment::Right, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
         )
     });
     lines.join("\n")

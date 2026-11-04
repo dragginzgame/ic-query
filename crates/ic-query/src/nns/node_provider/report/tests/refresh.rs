@@ -14,8 +14,9 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
     let refresh_report = refresh_nns_node_provider_report_with_source(
         &refresh_request,
         &FixtureNodeProviderSource {
-            node_providers: vec![MainnetNodeProvider {
-                principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
+            node_providers: vec![NnsNodeProviderRow {
+                name: None,
+                node_provider_principal: "ryjl3-tyaaa-aaaaa-aaaba-cai".to_string(),
                 node_count: Some(13),
                 reward_account_hex: Some("abcd".to_string()),
             }],
@@ -73,9 +74,12 @@ async fn node_provider_refresh_writes_cache_and_list_reads_it() {
         .join("exports")
         .join("providers.json");
     let dry_run = refresh_nns_node_provider_report_with_source(
-        &refresh_request
-            .with_dry_run(true)
-            .with_output_path(&output_path),
+        &{
+            let mut configured_request = refresh_request;
+            configured_request.dry_run = true;
+            configured_request.output_path = Some((&output_path).into());
+            configured_request
+        },
         &FixtureNodeProviderSource {
             node_providers: Vec::new(),
         },

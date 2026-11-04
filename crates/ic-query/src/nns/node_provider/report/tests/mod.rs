@@ -1,5 +1,4 @@
 use super::*;
-use crate::ic_registry::MainnetNodeProvider;
 use crate::nns::{LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID};
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID};

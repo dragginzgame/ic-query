@@ -1,10 +1,7 @@
-use super::{
-    NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION, NnsSubnetNodeProviderRow,
-    NnsSubnetTopologyHostError, NnsSubnetTopologyReport, NnsSubnetTopologyRow,
-};
+use super::{NnsSubnetTopologyHostError, NnsSubnetTopologyReport};
 use crate::report::CollectionSourceRequest;
 use crate::{
-    ic_registry::{MainnetSubnetTopology, fetch_mainnet_subnet_topology},
+    ic_registry::fetch_mainnet_subnet_topology,
     nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
@@ -33,7 +30,9 @@ impl NnsSubnetTopologySource for LiveNnsSource {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
                 NnsSubnetTopologyHostError::UnsupportedNetwork { network }
             })?;
-            report_from_mainnet_topology(fetch_mainnet_subnet_topology(&fetch_request).await?)
+            let report = fetch_mainnet_subnet_topology(&fetch_request).await?;
+            report.validate()?;
+            Ok(report)
         })
     }
 }
@@ -49,37 +48,4 @@ pub(super) fn source_request(
         format_utc_timestamp_secs(now_unix_secs),
         "ic-query",
     )
-}
-
-fn report_from_mainnet_topology(
-    topology: MainnetSubnetTopology,
-) -> Result<NnsSubnetTopologyReport, NnsSubnetTopologyHostError> {
-    let subnets = topology
-        .subnets
-        .into_iter()
-        .map(|subnet| NnsSubnetTopologyRow {
-            subnet_principal: subnet.subnet_principal,
-            subnet_kind: subnet.subnet_kind,
-            node_providers: subnet
-                .node_providers
-                .into_iter()
-                .map(|provider| NnsSubnetNodeProviderRow {
-                    node_provider_principal: provider.node_provider_principal,
-                    node_count: provider.node_count,
-                })
-                .collect(),
-        })
-        .collect::<Vec<_>>();
-    let report = NnsSubnetTopologyReport {
-        schema_version: NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION,
-        network: topology.network,
-        registry_canister_id: topology.registry_canister_id,
-        registry_version: topology.registry_version,
-        fetched_at: topology.fetched_at,
-        source_endpoint: topology.source_endpoint,
-        fetched_by: topology.fetched_by,
-        subnets,
-    };
-    report.validate()?;
-    Ok(report)
 }

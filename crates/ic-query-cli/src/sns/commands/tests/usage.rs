@@ -64,7 +64,7 @@ fn sns_help_is_advertised() {
     assert!(proposal_info.contains("Collection mode: Cache-preferred read"));
     assert!(proposal_info.contains("id|root-principal"));
     assert!(proposal_info.contains("proposal-id"));
-    assert!(proposal_info.contains("--ballots"));
+    assert!(!proposal_info.contains("--ballots"));
     assert!(proposal_info.contains("--verbose"));
     assert!(proposal_list.contains("icq sns proposal list"));
     assert!(proposal_list.contains("Collection mode: Cache-backed read"));

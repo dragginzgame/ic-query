@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use super::{
     reports::{
-        IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcCanisterUpgrade, IcDailyStatsRow,
+        IcBoundaryNodeDataCenterRow, IcCanisterPageRow, IcDailyStatsRow,
         IcIcrcTotalSupplyObservation, IcMetricSeries, IcNodeProviderRewardHistoryObservation,
         IcNodeProviderRewardRow, IcReplicaVersionListRow,
     },
@@ -61,26 +61,8 @@ impl IcSourceRequest {
 pub struct IcCanisterSourceData {
     /// Source request and provenance preserved by the source.
     pub source: IcSourceRequest,
-    /// Canister principal returned by the Dashboard.
-    pub canister_id: String,
-    /// Dashboard database row identifier.
-    pub dashboard_id: u64,
-    /// Raw optional Dashboard canister classification.
-    pub canister_type: Option<String>,
-    /// Raw Dashboard canister name.
-    pub name: String,
-    /// Subnet principal returned by the Dashboard.
-    pub subnet_id: String,
-    /// Controller principals returned by the Dashboard.
-    pub controllers: Vec<String>,
-    /// Raw Dashboard language label.
-    pub language: String,
-    /// Raw current module hash.
-    pub module_hash: String,
-    /// Raw Dashboard row update timestamp.
-    pub dashboard_updated_at: String,
-    /// Proposal-linked upgrades, or `None` when the Dashboard returned `null`.
-    pub upgrades: Option<Vec<IcCanisterUpgrade>>,
+    /// Dashboard payload retained through validation.
+    pub data: super::reports::IcCanisterData,
 }
 
 ///

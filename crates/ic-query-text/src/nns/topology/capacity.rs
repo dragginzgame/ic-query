@@ -5,9 +5,8 @@
 //! Boundary: combines summary and attention capacity tables for humans.
 
 use super::percent::ratio_percent_text;
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::nns::render::compact_text;
 use crate::nns::topology::COMPACT_PRINCIPAL_CHARS;
@@ -60,7 +59,7 @@ fn render_capacity_summary_table(report: &NnsTopologyCapacityReport) -> String {
         ],
     ];
     let alignments = [Alignment::Left, Alignment::Right];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }
 
 fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String {
@@ -81,8 +80,8 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
             report.status.as_str().to_string(),
             "no capacity attention rows".to_string(),
         ]];
-        let alignments = [Alignment::Left, Alignment::Left];
-        return render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS);
+        let alignments = [Alignment::Left; 2];
+        return table(&headers, &rows, &alignments);
     }
 
     let headers = [
@@ -126,5 +125,5 @@ fn render_capacity_attention_table(report: &NnsTopologyCapacityReport) -> String
         Alignment::Right,
         Alignment::Left,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

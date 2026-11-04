@@ -56,20 +56,6 @@ impl SubnetCatalogInfoRequest {
             stale_after_seconds,
         }
     }
-
-    /// Require the supplied subject to be interpreted as the selected principal kind.
-    #[must_use]
-    pub const fn with_forced(mut self, forced: ResolveAs) -> Self {
-        self.forced = Some(forced);
-        self
-    }
-
-    /// Select the exact cache and network behavior authorized for this report.
-    #[must_use]
-    pub fn with_read_policy(mut self, read_policy: CatalogReadPolicy) -> Self {
-        self.read_policy = read_policy;
-        self
-    }
 }
 
 ///

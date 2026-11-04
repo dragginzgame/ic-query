@@ -15,7 +15,7 @@ use crate::{
     nns::{
         leaf,
         proposals::values::{
-            NNS_PROPOSAL_BALLOTS_FLAG, NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
+            NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
             NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, NNS_PROPOSAL_SORT_API_LABEL,
             NNS_PROPOSAL_SORT_ASC_LABEL, NNS_PROPOSAL_SORT_DESC_LABEL,
             NNS_PROPOSAL_STATUS_ANY_LABEL, NNS_PROPOSAL_TOPIC_ANY_LABEL, NNS_PROPOSAL_VERBOSE_FLAG,
@@ -64,19 +64,17 @@ Examples:
   icq nns proposal activity --from 1700000000 --until 1700100000 --json
   icq nns proposal list
   icq nns proposal info 132411
-  icq nns proposal info 132411 --ballots
+  icq nns proposal info 132411 --json
   icq nns proposal info 132411 --verbose
   icq nns proposal refresh
   icq nns proposal cache status
-  icq nns proposal info 132411 --json
   icq nns proposal info 132411 --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_INFO_HELP_AFTER: &str = "\
 Examples:
   icq nns proposal info 132411
-  icq nns proposal info 132411 --ballots
-  icq nns proposal info 132411 --verbose
   icq nns proposal info 132411 --json
+  icq nns proposal info 132411 --verbose
   icq nns proposal info 132411 --source-endpoint https://icp-api.io";
 
 const NNS_PROPOSAL_REFRESH_HELP_AFTER: &str = "\
@@ -238,11 +236,6 @@ pub(in crate::nns) fn nns_proposal_info_command() -> ClapCommand {
         .arg(
             leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
                 .help("IC API endpoint used for the native NNS governance query"),
-        )
-        .arg(
-            flag_arg(NNS_PROPOSAL_BALLOTS_FLAG)
-                .long(NNS_PROPOSAL_BALLOTS_FLAG)
-                .help("Show NNS proposal ballot rows in text output"),
         )
         .arg(
             flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)

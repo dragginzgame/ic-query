@@ -59,63 +59,11 @@ impl NnsProposalListRequest {
         }
     }
 
-    /// Start strictly before the selected proposal id.
-    #[must_use]
-    pub const fn with_before_proposal_id(mut self, before_proposal_id: u64) -> Self {
-        self.before_proposal_id = Some(before_proposal_id);
-        self
-    }
-
-    /// Select the required decision status.
-    #[must_use]
-    pub const fn with_status(mut self, status: NnsProposalStatusFilter) -> Self {
-        self.status = status;
-        self
-    }
-
-    /// Select the required reward-settlement status.
-    #[must_use]
-    pub const fn with_reward_status(
-        mut self,
-        reward_status: NnsProposalRewardStatusFilter,
-    ) -> Self {
-        self.reward_status = reward_status;
-        self
-    }
-
-    /// Select the required proposal topic.
-    #[must_use]
-    pub const fn with_topic(mut self, topic: NnsProposalTopicFilter) -> Self {
-        self.topic = topic;
-        self
-    }
-
-    /// Require the exact proposer neuron id.
-    #[must_use]
-    pub const fn with_proposer_neuron_id(mut self, proposer_neuron_id: u64) -> Self {
-        self.proposer_neuron_id = Some(proposer_neuron_id);
-        self
-    }
-
-    /// Search title, summary, action, and URL using case-insensitive substring matching.
-    #[must_use]
-    pub fn with_query(mut self, query: impl Into<String>) -> Self {
-        self.query = Some(query.into());
-        self
-    }
-
     /// Select a sort key and reset its direction to the key's default.
     #[must_use]
     pub const fn with_sort(mut self, sort: NnsProposalListSort) -> Self {
         self.sort = sort;
         self.sort_direction = sort.default_direction();
-        self
-    }
-
-    /// Override the direction used by local sorting.
-    #[must_use]
-    pub const fn with_sort_direction(mut self, sort_direction: SortDirection) -> Self {
-        self.sort_direction = sort_direction;
         self
     }
 }

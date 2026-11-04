@@ -4,9 +4,8 @@
 //! Does not own: gap detection, source reads, or JSON output.
 //! Boundary: formats known topology relation gaps for human inspection.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use ic_query::nns::topology::NnsTopologyGapRow;
 use ic_query::nns::topology::NnsTopologyGapsReport;
@@ -26,8 +25,8 @@ fn render_gaps_status_table(report: &NnsTopologyGapsReport) -> String {
         report.status.as_str().to_string(),
         "no topology join gaps".to_string(),
     ]];
-    let alignments = [Alignment::Left, Alignment::Left];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    let alignments = [Alignment::Left; 2];
+    table(&headers, &rows, &alignments)
 }
 
 fn render_gaps_table(rows: &[NnsTopologyGapRow]) -> String {
@@ -48,11 +47,6 @@ fn render_gaps_table(rows: &[NnsTopologyGapRow]) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    let alignments = [
-        Alignment::Left,
-        Alignment::Left,
-        Alignment::Left,
-        Alignment::Left,
-    ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    let alignments = [Alignment::Left; 4];
+    table(&headers, &rows, &alignments)
 }

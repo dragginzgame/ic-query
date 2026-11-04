@@ -46,7 +46,7 @@ use crate::nns::proposals::report::wire::NnsProposalInfo;
 use crate::nns::proposals::report::wire::NnsProposalTallyWire;
 use crate::report::SortDirection;
 use crate::subnet_catalog::MAINNET_NETWORK;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use ic_platform::candid::contract::Reserved;
 use std::fs;
 
@@ -254,14 +254,14 @@ async fn nns_proposal_refresh_rejects_invalid_public_page_size() {
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_failed_refresh_preserves_page_progress() {
     let root = temp_dir("ic-query-nns-proposal-failed-progress");
-    let request = NnsGovernanceRefreshRequest::new(
+    let mut request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_MAINNET_ENDPOINT,
         1_700_000_000,
         2,
-    )
-    .with_max_pages(Some(1));
+    );
+    request.max_pages = Some(1);
 
     let err =
         refresh_nns_proposal_cache_with_source_and_progress(&request, &FixtureSource, &mut |_| {})
@@ -302,14 +302,15 @@ async fn nns_proposal_failed_refresh_preserves_page_progress() {
 #[tokio::test(flavor = "current_thread")]
 async fn nns_proposal_refresh_completes_at_the_page_cap_when_full_page_reaches_id_one() {
     let root = temp_dir("ic-query-nns-proposal-full-terminal-page");
-    let request = NnsGovernanceRefreshRequest::new(
+    let mut request = NnsGovernanceRefreshRequest::new(
         &root,
         MAINNET_NETWORK,
         DEFAULT_MAINNET_ENDPOINT,
         1_700_000_000,
         2,
-    )
-    .with_max_pages(Some(1));
+    );
+    request.max_pages = Some(1);
+
     let report = refresh_nns_proposal_cache_with_source_and_progress(
         &request,
         &FullTerminalPageSource,

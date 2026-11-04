@@ -4,9 +4,8 @@
 //! Does not own: report construction, source reads, or command parsing.
 //! Boundary: centralizes repeated table formatting for topology renderers.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use super::percent::coverage_percent_text;
 use crate::text_value::yes_no;
@@ -32,7 +31,7 @@ pub(super) fn render_join_coverage_table(counts: &NnsTopologyJoinCoverageCounts)
         Alignment::Right,
         Alignment::Right,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }
 
 pub(super) fn render_registry_version_table(rows: &[NnsTopologyRegistryVersionRow]) -> String {
@@ -57,7 +56,7 @@ pub(super) fn render_registry_version_table(rows: &[NnsTopologyRegistryVersionRo
         Alignment::Left,
         Alignment::Left,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }
 
 const fn relationships(

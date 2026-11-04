@@ -89,6 +89,11 @@ jobs:
         with:
           clean: true
           fetch-depth: 0
+      - name: Select mapping qualification
+        id: qualification
+        env:
+          CI_QUALIFICATION_BASE: ${{ github.event.before || github.event.pull_request.base.sha }}
+        run: bash scripts/ci/release-qualification-needed.sh >> "$GITHUB_OUTPUT"
       - name: Prepare the declared development compiler
         run: |
           rustup toolchain install --profile minimal --no-self-update --component rustfmt --component clippy
@@ -120,9 +125,24 @@ jobs:
           /bin/bash --version
           printf '%s\n' "$RUNNER_TEMP/ic-query-system-bash" >> "$GITHUB_PATH"
       - name: Run complete CI gate
+        if: steps.qualification.outputs.needed != 'true'
         env:
           CARGO_NET_OFFLINE: 'true'
         run: make ci
+      - name: Qualify release-group mapping
+        if: steps.qualification.outputs.needed == 'true'
+        env:
+          CARGO_NET_OFFLINE: 'true'
+        run: make qualify-release-groups
+      - name: Retain mapping qualification
+        if: always() && steps.qualification.outputs.needed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-group-qualification-${{ matrix.host }}
+          path: target/release-validation/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - name: Archive retained tool evidence
         if: failure()
         shell: bash

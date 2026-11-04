@@ -5,6 +5,7 @@
 //! Boundary: formats scalar, bucket, and neuron-subset metrics without changing data.
 
 use crate::nns::governance::context_lines;
+use crate::text_value::field;
 use crate::text_value::optional_u64_text;
 use ic_query::nns::governance::NnsGovernanceMetricBucket;
 use ic_query::nns::governance::NnsGovernanceMetricsReport;
@@ -68,13 +69,13 @@ pub fn nns_governance_metrics_report_text(report: &NnsGovernanceMetricsReport) -
         total_maturity_disbursements_in_progress_e8s_equivalent
     );
     lines.extend([
-        format!(
-            "total_voting_power_non_self_authenticating_controller: {}",
-            optional_u64_text(metrics.total_voting_power_non_self_authenticating_controller)
+        field(
+            "total_voting_power_non_self_authenticating_controller",
+            &(optional_u64_text(metrics.total_voting_power_non_self_authenticating_controller)),
         ),
-        format!(
-            "total_staked_e8s_non_self_authenticating_controller: {}",
-            optional_u64_text(metrics.total_staked_e8s_non_self_authenticating_controller)
+        field(
+            "total_staked_e8s_non_self_authenticating_controller",
+            &(optional_u64_text(metrics.total_staked_e8s_non_self_authenticating_controller)),
         ),
     ]);
     push_metric_buckets!(

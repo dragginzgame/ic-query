@@ -2,11 +2,13 @@
 
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
 use ic_platform::candid::contract::Principal;
-use ic_platform_pocket_ic::{ClientError, PocketIc, PocketIcBuilder, RejectCode, Time};
 use ic_query::nns::governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceSourceProvenance};
-use ic_testkit::pic::{
-    CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
-    fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
+use ic_testkit::{
+    pic::{
+        CanisterInstallExt, InstallSpec, PocketIcStartupConfig,
+        fixtures::{RawReplyLimits, RawReplyMethod, ReplyMode, raw_reply_canister},
+    },
+    pocket_ic::{ClientError, PocketIc, PocketIcBuilder, RejectCode, Time},
 };
 use serde_json::Value;
 use std::{collections::BTreeSet, env, fs, time::Duration};

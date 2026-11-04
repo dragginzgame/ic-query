@@ -4,10 +4,11 @@
 //! Does not own: source collection, cache policy, projection, or JSON output.
 //! Boundary: keeps compact operational display separate from raw report fields.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+#[cfg(feature = "dashboard-host")]
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::text_value::yes_no;
 use ic_query::ic::IcNodeAssignmentStatusCounts;
@@ -41,7 +42,7 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
         "subnets: total={} attention={} returned={} assigned_nodes={}",
         report.subnet_count,
         report.attention_subnet_count,
-        report.returned_subnet_count,
+        report.subnets.len(),
         report.assigned_node_count
     ));
     let headers = [
@@ -78,7 +79,7 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
         .collect::<Vec<_>>();
     push_table_section(
         &mut sections,
-        render(
+        table(
             &headers,
             &rows,
             &[
@@ -93,7 +94,6 @@ pub fn ic_subnet_status_report_text(report: &IcSubnetStatusReport) -> String {
                 Alignment::Right,
                 Alignment::Right,
             ],
-            REPORT_TABLE_OPTIONS,
         ),
     );
     let mut non_up = report
@@ -115,7 +115,9 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
     let mut sections = observation_lines(&report.observation);
     sections.push(format!(
         "node_providers: total={} attention={} returned={}",
-        report.provider_count, report.attention_provider_count, report.returned_provider_count
+        report.provider_count,
+        report.attention_provider_count,
+        report.providers.len()
     ));
     sections.push(format!(
         "unassigned_vs_assigned providers (less/equal/greater): up={} non_up={}",
@@ -164,7 +166,7 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
         .collect::<Vec<_>>();
     push_table_section(
         &mut sections,
-        render(
+        table(
             &headers,
             &rows,
             &[
@@ -182,7 +184,6 @@ pub fn ic_node_provider_status_report_text(report: &IcNodeProviderStatusReport) 
                 Alignment::Right,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ),
     );
     sections.join("\n")
@@ -198,23 +199,17 @@ fn push_table_section(sections: &mut Vec<String>, table: String) {
 #[must_use]
 pub fn ic_node_status_refresh_report_text(report: &IcNodeStatusRefreshReport) -> String {
     [
-        format!("network: {}", terminal_text(&report.network)),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
+        field("network", &report.network),
+        field("fetched_at", &report.fetched_at),
+        field("source_endpoint", &report.source_endpoint),
         counts_line("nodes", &report.counts.statuses),
         assignment_status_line(&report.counts.assignment_statuses),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
+        field(
+            "replaced_existing_cache",
+            &(yes_no(report.replaced_existing_cache)),
         ),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
+        field("cache_path", &report.cache_path),
+        field("refresh_lock_path", &report.refresh_lock_path),
     ]
     .join("\n")
 }
@@ -304,19 +299,7 @@ fn render_node_table<'a>(nodes: impl IntoIterator<Item = &'a IcNodeStatusRow>) -
             ]
         })
         .collect::<Vec<_>>();
-    render(
-        &headers,
-        &rows,
-        &[
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-        ],
-        REPORT_TABLE_OPTIONS,
-    )
+    table(&headers, &rows, &[Alignment::Left; 6])
 }
 
 fn compact(value: &str) -> String {

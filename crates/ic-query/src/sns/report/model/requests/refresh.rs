@@ -36,11 +36,4 @@ impl SnsSnapshotRefreshRequest {
             max_pages: None,
         }
     }
-
-    /// Bound refresh pagination; truncated collections are not published as complete.
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
-        self
-    }
 }

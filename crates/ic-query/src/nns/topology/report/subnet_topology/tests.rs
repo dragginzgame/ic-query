@@ -4,7 +4,7 @@ use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
 use crate::subnet_catalog::SubnetKind;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use ic_platform::candid::contract::Principal;
 use std::fs;
 use std::path::PathBuf;

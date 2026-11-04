@@ -12,7 +12,7 @@ async fn sns_proposal_detail_reads_existing_complete_cache_before_live_lookup() 
     .await
     .expect("refresh proposals cache");
     let mut request = proposal_request(ROOT_A);
-    request = request.with_cache_root(root.clone());
+    request.cache_root = Some(root.clone());
 
     let report = build_sns_proposal_report_with_source(&request, &NoLiveSnsProposalsSource)
         .await

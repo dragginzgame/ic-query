@@ -1,10 +1,7 @@
-use super::{
-    NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsNodeProviderListReport,
-    NnsNodeProviderRow,
-};
+use super::{NnsInventoryError, NnsNodeProviderListReport};
 use crate::report::CollectionSourceRequest;
 use crate::{
-    ic_registry::{MainnetNodeProviderList, fetch_mainnet_node_provider_list},
+    ic_registry::fetch_mainnet_node_provider_list,
     nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
@@ -33,33 +30,12 @@ impl NnsNodeProviderSource for LiveNnsSource {
                     network,
                 }
             })?;
-            Ok(node_provider_report_from_list(
-                fetch_mainnet_node_provider_list(&fetch_request)
-                    .await
-                    .map_err(|source| NnsInventoryError::Registry {
-                        collection: super::COLLECTION,
-                        source,
-                    })?,
-            ))
+            fetch_mainnet_node_provider_list(&fetch_request)
+                .await
+                .map_err(|source| NnsInventoryError::Registry {
+                    collection: super::COLLECTION,
+                    source,
+                })
         })
-    }
-}
-
-fn node_provider_report_from_list(list: MainnetNodeProviderList) -> NnsNodeProviderListReport {
-    let node_providers = list
-        .node_providers
-        .into_iter()
-        .map(|provider| NnsNodeProviderRow {
-            node_provider_principal: provider.principal,
-            name: None,
-            node_count: provider.node_count,
-            reward_account_hex: provider.reward_account_hex,
-        })
-        .collect::<Vec<_>>();
-    NnsNodeProviderListReport {
-        schema_version: NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
-        provenance: list.provenance,
-        governance_canister_id: list.governance_canister_id,
-        node_providers,
     }
 }

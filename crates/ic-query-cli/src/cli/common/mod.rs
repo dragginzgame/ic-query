@@ -1,0 +1,266 @@
+//! Module: cli::common
+//!
+//! Responsibility: shared CLI output format and clock helpers.
+//! Does not own: command parsing, report construction, or command-specific rendering.
+//! Boundary: writes text/JSON reports and builds common CLI arguments.
+
+use crate::{
+    cli::clap::{flag_arg, required_string, value_arg},
+    output::{write_pretty_json, write_text},
+};
+use clap::{ArgMatches, builder::RangedU64ValueParser};
+use serde::Serialize;
+use std::{
+    io,
+    time::{SystemTime, SystemTimeError, UNIX_EPOCH},
+};
+use thiserror::Error as ThisError;
+
+pub const JSON_ARG: &str = "json";
+
+/// Keep display choices at the CLI/Text boundary rather than in collected reports.
+pub fn report_text_options(matches: &ArgMatches) -> ic_query_text::TextOptions {
+    ic_query_text::TextOptions {
+        verbose: matches
+            .try_get_one::<bool>("verbose")
+            .ok()
+            .flatten()
+            .copied()
+            .unwrap_or(false),
+    }
+}
+pub const SOURCE_ENDPOINT_ARG: &str = "source-endpoint";
+pub const COLLECTION_MODE_CACHE_ONLY: &str =
+    "Local cache inspection; does not make a network request.";
+pub const COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK: &str = "Cache-preferred read; uses a complete local snapshot when available and otherwise makes a live query.";
+pub const COLLECTION_MODE_CACHE_REFRESH_MISSING: &str =
+    "Cache-backed read; refreshes and stores a complete snapshot only when the cache is missing.";
+/// Cache-backed read that repairs absent or recoverably invalid content.
+pub const COLLECTION_MODE_CACHE_REFRESH_MISSING_OR_INVALID: &str = "Cache-backed read; refreshes and stores a complete snapshot when the cache is missing or recoverably invalid.";
+/// Cache-backed collection that visibly refreshes a missing or stale snapshot.
+pub const COLLECTION_MODE_CACHE_REFRESH_STALE: &str = "Cache-backed read; refreshes and stores a complete snapshot when the cache is missing or older than its documented age policy.";
+pub const COLLECTION_MODE_FORCE_REFRESH: &str = "Forced live refresh; fetches and validates a complete snapshot before any atomic cache replacement.";
+pub const COLLECTION_MODE_LIVE: &str = "Live query; does not read or write a report cache.";
+pub const COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW: &str = "View-dependent read; --sort api makes a bounded live query and other sorts use a complete local cache.";
+
+///
+/// OutputFormat
+///
+/// User-selected CLI output format for report rendering.
+///
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputFormat {
+    Text,
+    Json,
+}
+
+///
+/// SourceOutputOptions
+///
+/// Common explicit source endpoint and output format for report commands.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SourceOutputOptions {
+    pub(crate) format: OutputFormat,
+    pub(crate) source_endpoint: String,
+}
+
+impl SourceOutputOptions {
+    pub(crate) fn from_matches(matches: &ArgMatches) -> Self {
+        Self {
+            format: output_format(matches),
+            source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
+        }
+    }
+
+    pub(crate) fn into_dashboard_request(
+        self,
+        now_unix_secs: u64,
+    ) -> (OutputFormat, ic_query::ic::IcDashboardRequest) {
+        (
+            self.format,
+            ic_query::ic::IcDashboardRequest::new(self.source_endpoint, now_unix_secs),
+        )
+    }
+}
+
+///
+/// NetworkOutputOptions
+///
+/// Network and output options for local cache and analytics views.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NetworkOutputOptions {
+    pub(crate) network: String,
+    pub(crate) format: OutputFormat,
+}
+
+impl NetworkOutputOptions {
+    pub(crate) fn from_matches(matches: &ArgMatches, network: &str) -> Self {
+        Self {
+            network: network.to_string(),
+            format: output_format(matches),
+        }
+    }
+}
+
+///
+/// CurrentUnixSecsError
+///
+/// Error returned when the system clock cannot be represented as Unix seconds.
+///
+
+#[derive(Debug, ThisError)]
+pub enum CurrentUnixSecsError {
+    #[error("system clock before unix epoch: {source}")]
+    BeforeUnixEpoch { source: SystemTimeError },
+}
+
+pub fn write_text_or_json<T, E>(
+    format: OutputFormat,
+    report: &T,
+    render_text: impl FnOnce(&T) -> String,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: From<io::Error> + From<serde_json::Error>,
+{
+    match format {
+        OutputFormat::Text => {
+            let text = render_text(report);
+            write_text::<E>(&text)
+        }
+        OutputFormat::Json => write_pretty_json(report),
+    }
+}
+
+/// Resolve omitted bounds without altering explicitly supplied timestamps.
+pub fn resolve_time_bounds(
+    start: Option<u64>,
+    end: Option<u64>,
+    now_unix_secs: u64,
+    default_window_secs: u64,
+    minimum_default_start: u64,
+) -> (u64, u64) {
+    let end = end.unwrap_or(now_unix_secs);
+    let start = start.unwrap_or_else(|| {
+        end.saturating_sub(default_window_secs)
+            .max(minimum_default_start)
+    });
+    (start, end)
+}
+
+/// Admit shared direction flags while the family owns sort semantics and defaults.
+pub fn resolve_proposal_sort_direction(
+    matches: &ArgMatches,
+    uses_local_direction: bool,
+    default_direction: ic_query::report::SortDirection,
+    local_sort_names: impl FnOnce() -> String,
+) -> Result<ic_query::report::SortDirection, String> {
+    let explicit = if matches.get_flag("asc") {
+        Some(("asc", ic_query::report::SortDirection::Asc))
+    } else if matches.get_flag("desc") {
+        Some(("desc", ic_query::report::SortDirection::Desc))
+    } else {
+        None
+    };
+    match explicit {
+        Some((_, direction)) if uses_local_direction => Ok(direction),
+        Some((flag, _)) => Err(format!("--{flag} requires --sort {}", local_sort_names())),
+        None => Ok(default_direction),
+    }
+}
+
+pub fn write_text_or_json_verbose<T, E>(
+    format: OutputFormat,
+    report: &T,
+    verbose: bool,
+    render_text: impl FnOnce(&T, ic_query_text::TextOptions) -> String,
+) -> Result<(), E>
+where
+    T: Serialize,
+    E: From<io::Error> + From<serde_json::Error>,
+{
+    write_text_or_json(format, report, |report| {
+        render_text(report, ic_query_text::TextOptions { verbose })
+    })
+}
+
+pub fn current_unix_secs() -> Result<u64, CurrentUnixSecsError> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .map_err(|source| CurrentUnixSecsError::BeforeUnixEpoch { source })
+}
+
+pub fn json_arg() -> clap::Arg {
+    flag_arg(JSON_ARG)
+        .long(JSON_ARG)
+        .help("Print raw JSON instead of human-readable text")
+}
+
+pub fn output_format(matches: &clap::ArgMatches) -> OutputFormat {
+    if matches.get_flag(JSON_ARG) {
+        OutputFormat::Json
+    } else {
+        OutputFormat::Text
+    }
+}
+
+pub fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
+    value_arg(SOURCE_ENDPOINT_ARG)
+        .long(SOURCE_ENDPOINT_ARG)
+        .value_name("url")
+        .default_value(default_source_endpoint)
+}
+
+pub fn collection_help(mode: &str, examples: &str) -> String {
+    format!("Collection mode: {mode}\n\n{examples}")
+}
+
+pub fn page_size_arg(default: &'static str, maximum: u32) -> clap::Arg {
+    value_arg("page-size")
+        .long("page-size")
+        .value_name("count")
+        .default_value(default)
+        .value_parser(RangedU64ValueParser::<u32>::new().range(1..=u64::from(maximum)))
+}
+
+pub fn max_pages_arg() -> clap::Arg {
+    value_arg("max-pages")
+        .long("max-pages")
+        .value_name("count")
+        .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
+}
+
+/// Build a bounded row limit while the command family owns its default and maximum.
+pub fn page_limit_arg(default: &'static str, maximum: u16) -> clap::Arg {
+    value_arg("limit")
+        .long("limit")
+        .value_name("rows")
+        .default_value(default)
+        .value_parser(RangedU64ValueParser::<u16>::new().range(1..=u64::from(maximum)))
+}
+
+/// Build an explicit zero-based offset for a single Dashboard page.
+pub fn page_offset_arg() -> clap::Arg {
+    value_arg("offset")
+        .long("offset")
+        .value_name("rows")
+        .default_value("0")
+        .value_parser(clap::value_parser!(u64))
+}
+
+/// Build the optional index ceiling selected by a Dashboard command family.
+pub fn index_ceiling_arg(name: &'static str) -> clap::Arg {
+    value_arg(name)
+        .long(name)
+        .value_name("index")
+        .value_parser(clap::value_parser!(u64))
+}
+
+#[cfg(test)]
+mod tests;

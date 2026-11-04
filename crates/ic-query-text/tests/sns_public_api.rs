@@ -7,12 +7,8 @@ use ic_query::icrc::IcrcTokenStandardRow;
 use ic_query::report::CollectionSourceRequest;
 use ic_query::report::ReportDataSource;
 use ic_query::report::SortDirection;
-use ic_query::sns::DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::LiveSnsSource;
-use ic_query::sns::MAX_SNS_METRICS_TIME_WINDOW_SECONDS;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::MainnetSns;
 use ic_query::sns::MainnetSnsCanisters;
@@ -57,7 +53,6 @@ use ic_query::sns::SnsListSort;
 use ic_query::sns::SnsLookupRequest;
 use ic_query::sns::SnsMaturityDisbursementRow;
 use ic_query::sns::SnsMetricsReport;
-use ic_query::sns::SnsMetricsRequest;
 use ic_query::sns::SnsNeuronAccount;
 use ic_query::sns::SnsNeuronDetail;
 use ic_query::sns::SnsNeuronDetailReport;
@@ -74,8 +69,6 @@ use ic_query::sns::SnsNeuronRow;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsNeuronSource;
 use ic_query::sns::SnsNeuronTopicFolloweesRow;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::SnsNeuronsCacheSort;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::SnsNeuronsReport;
 #[cfg(feature = "sns-host")]
@@ -121,19 +114,11 @@ use ic_query::sns::SnsVersion;
 use ic_query::sns::SnsVotingPowerMetrics;
 use ic_query::sns::SnsVotingRewardsParameters;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_canister_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_info_report;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_list_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_list_report_from_cache;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_list_report_from_cache_or_refresh;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_metrics_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_neuron_detail_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_neuron_detail_report_with_source;
 #[cfg(feature = "sns-host")]
@@ -141,13 +126,7 @@ use ic_query::sns::build_sns_neurons_cache_list_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_neurons_cache_status_report;
 #[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_neurons_report;
-#[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_neurons_report_with_source;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_params_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_proposal_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_proposal_report_with_source;
 #[cfg(feature = "sns-host")]
@@ -159,15 +138,6 @@ use ic_query::sns::build_sns_proposals_report;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
 
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_swap_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_token_report;
-#[cfg(feature = "sns-host")]
-use ic_query::sns::build_sns_upgrade_report;
-
-#[cfg(feature = "sns-host")]
-use ic_query::sns::refresh_sns_catalog;
 #[cfg(feature = "sns-host")]
 use ic_query::sns::refresh_sns_neurons_cache;
 #[cfg(feature = "sns-host")]
@@ -239,68 +209,6 @@ const SAMPLE_SNS_NEURON_ID: &str =
 #[cfg(feature = "sns-host")]
 type SnsBuilder<Request, Report> =
     for<'a> fn(&'a Request) -> ic_query::report::SourceFuture<'a, Result<Report, SnsHostError>>;
-
-#[test]
-fn public_sns_request_constructors_set_expected_fields() {
-    let list =
-        SnsListRequest::new("ic", "https://icp-api.io", 1_700_000_000).with_sort(SnsListSort::Name);
-    assert_eq!(list.network, "ic");
-    assert_eq!(list.sort, SnsListSort::Name);
-
-    let lookup = SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
-        .expect("valid SNS selector");
-    assert_eq!(lookup.input(), "1");
-    let token = SnsLookupRequest::new(
-        "ic",
-        "https://icp-api.io",
-        1_700_000_000,
-        "be2us-64aaa-aaaaa-qaabq-cai",
-    )
-    .expect("valid SNS selector");
-    assert_eq!(token.source_endpoint, "https://icp-api.io");
-
-    let metrics = SnsMetricsRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
-            .expect("valid SNS selector"),
-    )
-    .with_time_window_seconds(86_400);
-    assert_eq!(metrics.time_window_seconds, 86_400);
-    assert_eq!(DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, 30 * 86_400);
-    assert_eq!(MAX_SNS_METRICS_TIME_WINDOW_SECONDS, 365 * 86_400);
-
-    let proposal = SnsProposalRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
-            .expect("valid SNS selector"),
-        42,
-    );
-    assert_eq!(proposal.proposal_id, 42);
-
-    assert!(proposal.cache_root.is_none());
-
-    let proposals = SnsProposalsRequest::new(
-        ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
-            .expect("valid SNS selector"),
-        25,
-    )
-    .with_before_proposal_id(100)
-    .with_status(SnsProposalStatusFilter::Open)
-    .unwrap()
-    .with_topic(SnsProposalTopicFilter::Governance)
-    .with_eligibility(SnsProposalEligibilityFilter::Yes)
-    .with_proposer_neuron_id("010203")
-    .with_query("upgrade")
-    .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(SortDirection::Asc);
-    assert_eq!(proposals.limit, 25);
-    assert_eq!(proposals.before_proposal_id, Some(100));
-    assert_eq!(proposals.status(), SnsProposalStatusFilter::Open);
-    assert_eq!(proposals.topic, SnsProposalTopicFilter::Governance);
-    assert_eq!(proposals.eligibility, SnsProposalEligibilityFilter::Yes);
-    assert_eq!(proposals.proposer_neuron_id.as_deref(), Some("010203"));
-    assert_eq!(proposals.query.as_deref(), Some("upgrade"));
-    assert_eq!(proposals.sort, SnsProposalsSort::Created);
-    assert_eq!(proposals.sort_direction, SortDirection::Asc);
-}
 
 #[test]
 fn public_sns_neuron_detail_models_are_constructible_and_renderable() {
@@ -817,20 +725,19 @@ fn public_sns_upgrade_api_is_constructible_serializable_and_renderable() {
 
 #[test]
 fn public_sns_proposals_api_is_constructible_and_renderable() {
-    let request = SnsProposalsRequest::new(
+    let mut request = SnsProposalsRequest::new(
         ic_query::sns::SnsLookupRequest::new("ic", "https://icp-api.io", 1_700_000_000, "1")
             .unwrap(),
         10,
-    )
-    .with_before_proposal_id(100)
-    .with_status(SnsProposalStatusFilter::Any)
-    .unwrap()
-    .with_topic(SnsProposalTopicFilter::Governance)
-    .with_eligibility(SnsProposalEligibilityFilter::Yes)
-    .with_proposer_neuron_id("010203")
-    .with_query("upgrade")
-    .with_sort(SnsProposalsSort::Created)
-    .with_sort_direction(SortDirection::Desc);
+    );
+    request.before_proposal_id = Some(100);
+    request = request.with_status(SnsProposalStatusFilter::Any).unwrap();
+    request.topic = SnsProposalTopicFilter::Governance;
+    request.eligibility = SnsProposalEligibilityFilter::Yes;
+    request.proposer_neuron_id = Some("010203".into());
+    request.query = Some("upgrade".into());
+    request = request.with_sort(SnsProposalsSort::Created);
+    request.sort_direction = SortDirection::Desc;
 
     assert_eq!(request.sort.as_str(), "created");
     assert_eq!(request.topic.as_str(), "governance");
@@ -863,19 +770,13 @@ fn public_sns_proposals_api_is_constructible_and_renderable() {
         proposals: vec![sample_sns_proposal_row()],
     };
 
-    let text = sns_proposals_report_text(
-        &report,
-        ic_query_text::TextOptions {
-            verbose: true,
-            show_ballots: false,
-        },
-    );
+    let text = sns_proposals_report_text(&report, ic_query_text::TextOptions { verbose: true });
     let json = serde_json::to_value(&report).expect("serialize SNS proposals report");
 
     assert!(text.contains("proposal_count: 1"));
     assert!(text.contains("topic_filter: governance"));
-    assert!(text.contains("proposal_details:"));
-    assert!(text.contains("title: Upgrade SNS"));
+    assert!(!text.contains("proposal_details:"));
+    assert!(text.contains("Upgrade SNS"));
     assert_eq!(json["proposals"][0]["action_id"], 7);
     assert_eq!(json["proposals"][0]["ballots"][0]["vote"], 1);
 }
@@ -925,18 +826,12 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
         proposal: sample_sns_proposal_row(),
     };
 
-    let text = sns_proposal_report_text(
-        &report,
-        ic_query_text::TextOptions {
-            verbose: false,
-            show_ballots: true,
-        },
-    );
+    let text = sns_proposal_report_text(&report, ic_query_text::TextOptions { verbose: false });
     let json = serde_json::to_value(&report).expect("serialize SNS proposal report");
 
     assert!(text.contains("proposal_id: 42"));
-    assert!(text.contains("show_ballots: yes"));
-    assert!(text.contains("ballots:"));
+    assert!(!text.contains("show_ballots:"));
+    assert!(!text.contains("ballots:"));
     assert!(text.contains("Upgrade SNS"));
     assert_eq!(json["proposal"]["action_id"], 7);
     assert_eq!(json["proposal"]["ballots"][0]["vote"], 1);
@@ -944,42 +839,12 @@ fn public_sns_proposal_api_is_constructible_and_renderable() {
 
 #[cfg(feature = "sns-host")]
 #[test]
-fn public_sns_host_api_exposes_live_builder_entry_points() {
+fn public_sns_host_api_exposes_catalog_and_collection_entry_points() {
     accepts_public_function::<SnsBuilder<SnsListRequest, SnsListReport>>(|arg0| {
         Box::pin(build_sns_list_report(arg0))
     });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsInfoReport>>(|arg0| {
-        Box::pin(build_sns_info_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsMetricsRequest, SnsMetricsReport>>(|arg0| {
-        Box::pin(build_sns_metrics_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsCanisterReport>>(|arg0| {
-        Box::pin(build_sns_canister_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsTokenReport>>(|arg0| {
-        Box::pin(build_sns_token_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsParamsReport>>(|arg0| {
-        Box::pin(build_sns_params_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsSwapReport>>(|arg0| {
-        Box::pin(build_sns_swap_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsLookupRequest, SnsUpgradeReport>>(|arg0| {
-        Box::pin(build_sns_upgrade_report(arg0))
-    });
     accepts_public_function::<SnsBuilder<SnsProposalsRequest, SnsProposalsReport>>(|arg0| {
         Box::pin(build_sns_proposals_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsProposalRequest, SnsProposalReport>>(|arg0| {
-        Box::pin(build_sns_proposal_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsNeuronRequest, SnsNeuronDetailReport>>(|arg0| {
-        Box::pin(build_sns_neuron_detail_report(arg0))
-    });
-    accepts_public_function::<SnsBuilder<SnsNeuronsRequest, SnsNeuronsReport>>(|arg0| {
-        Box::pin(build_sns_neurons_report(arg0))
     });
     accepts_public_function::<SnsBuilder<SnsSnapshotRefreshRequest, SnsSnapshotRefreshReport>>(
         |arg0| Box::pin(refresh_sns_neurons_cache(arg0)),
@@ -987,11 +852,6 @@ fn public_sns_host_api_exposes_live_builder_entry_points() {
     accepts_public_function::<SnsBuilder<SnsSnapshotRefreshRequest, SnsSnapshotRefreshReport>>(
         |arg0| Box::pin(refresh_sns_proposals_cache(arg0)),
     );
-    accepts_public_function::<SnsBuilder<SnsCatalogRefreshRequest, SnsCatalogRefreshReport>>(
-        |arg0| Box::pin(refresh_sns_catalog(arg0)),
-    );
-    let live_source = LiveSnsSource::default();
-    accepts_public_function(live_source);
 }
 
 #[cfg(feature = "sns-host")]
@@ -1007,15 +867,17 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
     assert_eq!(detail.proposal.proposal_id, 42);
     assert_eq!(detail.provenance.data_source().as_str(), "live");
 
-    let list_request = SnsProposalsRequest::new(
+    let mut list_request = SnsProposalsRequest::new(
         ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
             .expect("valid SNS selector"),
         10,
-    )
-    .with_before_proposal_id(99)
-    .with_status(SnsProposalStatusFilter::Open)
-    .unwrap()
-    .with_topic(SnsProposalTopicFilter::Governance);
+    );
+    list_request.before_proposal_id = Some(99);
+    list_request = list_request
+        .with_status(SnsProposalStatusFilter::Open)
+        .unwrap();
+    list_request.topic = SnsProposalTopicFilter::Governance;
+
     let list =
         build_sns_proposals_report_with_source_and_progress(&list_request, &source, &mut |_| {})
             .await?;
@@ -1024,13 +886,14 @@ async fn public_sns_host_api_accepts_custom_proposal_source_adapters() -> Result
 
     let cache_root = proposal_source_cache_root();
     let _ = fs::remove_dir_all(&cache_root);
-    let refresh_request = SnsSnapshotRefreshRequest::new(
+    let mut refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root.clone(),
         ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
             .expect("valid SNS selector"),
         100,
-    )
-    .with_max_pages(Some(1));
+    );
+    refresh_request.max_pages = Some(1);
+
     let refresh = refresh_sns_proposals_cache_with_source_and_progress(
         &refresh_request,
         &source,
@@ -1086,13 +949,14 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
 
     let cache_root = neuron_source_cache_root();
     let _ = fs::remove_dir_all(&cache_root);
-    let refresh_request = SnsSnapshotRefreshRequest::new(
+    let mut refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root.clone(),
         ic_query::sns::SnsLookupRequest::new("ic", DEFAULT_SNS_SOURCE_ENDPOINT, 1_700_000_000, "1")
             .expect("valid SNS selector"),
         100,
-    )
-    .with_max_pages(Some(1));
+    );
+    refresh_request.max_pages = Some(1);
+
     let refresh =
         refresh_sns_neurons_cache_with_source_and_progress(&refresh_request, &source, &mut |_| {})
             .await?;
@@ -1102,42 +966,6 @@ async fn public_sns_host_api_accepts_custom_neuron_source_adapters() -> Result<(
     let _ = fs::remove_dir_all(cache_root);
 
     Ok(())
-}
-
-#[cfg(feature = "sns-host")]
-#[test]
-fn public_sns_host_api_exposes_neuron_request_constructor() {
-    let detail = SnsNeuronRequest::new(
-        ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            1_700_000_000,
-            SAMPLE_SNS_ROOT_CANISTER_ID,
-        )
-        .expect("valid SNS selector"),
-        SAMPLE_SNS_NEURON_ID,
-    );
-    assert_eq!(detail.neuron_id, SAMPLE_SNS_NEURON_ID);
-
-    let cache_root = PathBuf::from("target/ic-query-sns-public-api-empty-root");
-    let request = SnsNeuronsRequest::cached(
-        ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            1_700_000_000,
-            SAMPLE_SNS_ROOT_CANISTER_ID,
-        )
-        .expect("valid SNS selector"),
-        50,
-        cache_root.clone(),
-        SnsNeuronsCacheSort::Stake,
-    );
-
-    assert_eq!(request.lookup.input(), SAMPLE_SNS_ROOT_CANISTER_ID);
-    assert_eq!(request.limit, 50);
-    assert!(
-        matches!(&request.collection, ic_query::sns::SnsNeuronCollection::Cached { cache_root: root, sort: SnsNeuronsCacheSort::Stake } if root == &cache_root)
-    );
 }
 
 #[cfg(feature = "sns-host")]
@@ -1296,7 +1124,7 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
     let proposals_attempt_path =
         sns_proposals_refresh_attempt_path(&cache_root, "ic", SAMPLE_SNS_ROOT_CANISTER_ID);
 
-    let neurons_refresh_request = SnsSnapshotRefreshRequest::new(
+    let mut neurons_refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root.clone(),
         ic_query::sns::SnsLookupRequest::new(
             "ic",
@@ -1306,11 +1134,12 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
         )
         .expect("valid SNS selector"),
         500,
-    )
-    .with_max_pages(Some(2));
+    );
+    neurons_refresh_request.max_pages = Some(2);
+
     assert_eq!(neurons_refresh_request.max_pages, Some(2));
 
-    let proposals_refresh_request = SnsSnapshotRefreshRequest::new(
+    let mut proposals_refresh_request = SnsSnapshotRefreshRequest::new(
         cache_root,
         ic_query::sns::SnsLookupRequest::new(
             "ic",
@@ -1320,8 +1149,9 @@ fn public_sns_host_api_exposes_refresh_requests_and_renderers() {
         )
         .expect("valid SNS selector"),
         100,
-    )
-    .with_max_pages(Some(3));
+    );
+    proposals_refresh_request.max_pages = Some(3);
+
     assert_eq!(proposals_refresh_request.max_pages, Some(3));
 
     let neurons_report = sample_sns_neurons_report();

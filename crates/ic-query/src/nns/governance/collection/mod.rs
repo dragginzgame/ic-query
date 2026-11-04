@@ -72,13 +72,6 @@ impl NnsGovernanceRefreshRequest {
             max_pages: None,
         }
     }
-
-    /// Stop diagnostically before fetching more than the given pages.
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
-        self
-    }
 }
 
 ///

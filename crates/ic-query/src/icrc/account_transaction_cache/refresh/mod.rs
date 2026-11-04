@@ -1,0 +1,366 @@
+//! Module: icrc::account_transaction_cache::refresh
+//!
+//! Responsibility: orchestrate complete account-history refreshes and atomic publication.
+//! Does not own: index collection, cache identity, strict cache reads, or report views.
+//! Boundary: publishes only validated API-exhausted collections under one refresh lock.
+
+use super::{
+    ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, ICRC_ACCOUNT_TRANSACTION_FETCHED_BY,
+    attempt::{write_complete_attempt, write_failed_attempt, write_starting_attempt},
+    storage::{
+        ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION, cache_paths, load_snapshot_at,
+        normalize_cache_request, snapshot_is_stale, validate_collection_timestamps,
+    },
+};
+use crate::cache_file::write_collection_snapshot;
+use crate::{
+    HostCacheError, QueryProgress,
+    cache::{CacheCollectionCompleteness, validate_cache_collection_completeness},
+    cache_file::{CacheRefreshReason, host_cache_refresh_reason, load_or_refresh_cache},
+    icrc::{
+        IcrcAccountTransactionCollectionSource, LiveIcrcSource,
+        ledger::principal_from_text,
+        live::account_transactions::{
+            normalize_optional_index_canister_id, validate_account_transaction_page_size,
+            validate_canonical_account_transactions,
+        },
+        model::{
+            CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionCollectionData,
+            IcrcAccountTransactionError, IcrcAccountTransactionRefreshReport,
+            IcrcAccountTransactionRefreshRequest, IcrcAccountTransactionSnapshot,
+        },
+    },
+    progress::IgnoreQueryProgress,
+    snapshot_cache::{
+        LockedSnapshotRefreshRequest, SnapshotJsonPaths, publish_snapshot_with_attempt,
+        run_snapshot_refresh_with_attempts, with_locked_snapshot_refresh,
+    },
+};
+use ic_host_text::timestamp::format_utc_timestamp_secs;
+use std::time::{Duration, Instant};
+
+const ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION: u32 = 1;
+
+/// Force a complete live refresh and atomically replace its cache.
+pub async fn refresh_icrc_account_transaction_cache(
+    request: &IcrcAccountTransactionRefreshRequest,
+) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
+    refresh_icrc_account_transaction_cache_with_source_and_progress(
+        request,
+        &LiveIcrcSource::default(),
+        &mut |_| {},
+    )
+    .await
+}
+
+/// Refresh with a caller-owned source and progress sink.
+pub async fn refresh_icrc_account_transaction_cache_with_source_and_progress(
+    request: &IcrcAccountTransactionRefreshRequest,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
+    let index_canister_id = validate_refresh_options(request)?;
+    let request = IcrcAccountTransactionRefreshRequest {
+        cache: normalize_cache_request(&request.cache)?,
+        now_unix_secs: request.now_unix_secs,
+        index_canister_id,
+        page_size: request.page_size,
+        max_pages: request.max_pages,
+    };
+    let paths = cache_paths(&request.cache);
+    refresh_normalized_account_transactions(&request, &paths, source, progress).await
+}
+
+async fn refresh_normalized_account_transactions(
+    request: &IcrcAccountTransactionRefreshRequest,
+    paths: &SnapshotJsonPaths,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+    progress: &mut (dyn QueryProgress + Send),
+) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
+    let collection_started = Instant::now();
+    with_locked_snapshot_refresh(
+        LockedSnapshotRefreshRequest {
+            cache_root: &request.cache.cache_root,
+            snapshot_path: &paths.snapshot_path,
+            refresh_lock_path: &paths.refresh_lock_path,
+        },
+        cache_operation_error,
+        async |replaced_existing_snapshot| {
+            run_snapshot_refresh_with_attempts(
+                || write_starting_attempt(&paths.refresh_attempt_path, request),
+                async || {
+                    let complete = source
+                        .fetch_complete_account_transactions(request, progress)
+                        .await?;
+                    publish_complete_snapshot(
+                        request,
+                        paths,
+                        replaced_existing_snapshot,
+                        complete,
+                        collection_started.elapsed(),
+                    )
+                },
+                |error| write_failed_attempt(&paths.refresh_attempt_path, request, error),
+            )
+            .await
+        },
+    )
+    .await
+}
+
+/// Load a complete cache, refreshing when it is missing or invalid.
+pub async fn load_or_refresh_missing_icrc_account_transactions(
+    request: &IcrcAccountTransactionRefreshRequest,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    load_or_refresh_missing_icrc_account_transactions_with_source(
+        request,
+        &LiveIcrcSource::default(),
+    )
+    .await
+}
+
+/// Load a complete cache or replace missing or invalid content with the supplied source.
+pub async fn load_or_refresh_missing_icrc_account_transactions_with_source(
+    request: &IcrcAccountTransactionRefreshRequest,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    load_or_refresh_account_transactions_with_source(request, source, |_| false).await
+}
+
+/// Load a complete cache, refreshing when it is missing, invalid, or stale.
+pub async fn load_or_refresh_stale_icrc_account_transactions(
+    request: &IcrcAccountTransactionRefreshRequest,
+    stale_after_seconds: u64,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    load_or_refresh_stale_icrc_account_transactions_with_source(
+        request,
+        stale_after_seconds,
+        &LiveIcrcSource::default(),
+    )
+    .await
+}
+
+/// Load a complete cache or use the supplied source when it is unusable or stale.
+pub async fn load_or_refresh_stale_icrc_account_transactions_with_source(
+    request: &IcrcAccountTransactionRefreshRequest,
+    stale_after_seconds: u64,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    load_or_refresh_account_transactions_with_source(request, source, |snapshot| {
+        snapshot_is_stale(
+            &snapshot.snapshot,
+            request.now_unix_secs,
+            stale_after_seconds,
+        )
+    })
+    .await
+}
+
+async fn load_or_refresh_account_transactions_with_source(
+    request: &IcrcAccountTransactionRefreshRequest,
+    source: &dyn IcrcAccountTransactionCollectionSource,
+    is_stale: impl Fn(&CachedIcrcAccountTransactionSnapshot) -> bool,
+) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError> {
+    let cache = normalize_cache_request(&request.cache)?;
+    let paths = cache_paths(&cache);
+    load_or_refresh_cache(
+        || load_snapshot_at(&paths.snapshot_path, &cache, None),
+        is_stale,
+        |error| account_transaction_cache_refresh_reason(error, &paths.snapshot_path),
+        async |_| {
+            let request = IcrcAccountTransactionRefreshRequest {
+                cache: cache.clone(),
+                now_unix_secs: request.now_unix_secs,
+                index_canister_id: validate_refresh_options(request)?,
+                page_size: request.page_size,
+                max_pages: request.max_pages,
+            };
+            let mut progress = IgnoreQueryProgress;
+            refresh_normalized_account_transactions(&request, &paths, source, &mut progress)
+                .await?;
+            Ok(())
+        },
+    )
+    .await
+}
+
+fn publish_complete_snapshot(
+    request: &IcrcAccountTransactionRefreshRequest,
+    paths: &SnapshotJsonPaths,
+    replaced_existing_cache: bool,
+    complete: IcrcAccountTransactionCollectionData,
+    collection_elapsed: Duration,
+) -> Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError> {
+    let completeness = validate_collection_data(request, &complete)?;
+    let collection_started_at = format_utc_timestamp_secs(request.now_unix_secs);
+    let collection_completed_unix_secs = request
+        .now_unix_secs
+        .checked_add(collection_elapsed.as_secs())
+        .ok_or_else(|| IcrcAccountTransactionError::InvalidCache {
+            path: paths.snapshot_path.clone(),
+            reason: "collection completion timestamp exceeds supported seconds".to_string(),
+        })?;
+    let collection_completed_at = format_utc_timestamp_secs(collection_completed_unix_secs);
+    let newest_transaction_id = complete
+        .transactions
+        .first()
+        .map(|transaction| transaction.id.clone());
+    let oldest_transaction_id = complete
+        .transactions
+        .last()
+        .map(|transaction| transaction.id.clone());
+    let snapshot = IcrcAccountTransactionSnapshot {
+        context: crate::icrc::IcrcAccountTransactionContext {
+            ledger_canister_id: request.cache.ledger_canister_id.clone(),
+            index_canister_id: complete.index_canister_id.clone(),
+            account_owner: request.cache.account_owner.clone(),
+            subaccount_hex: request.cache.subaccount_hex.clone(),
+            source_endpoint: request.cache.source_endpoint.clone(),
+            collection_started_at,
+            collection_completed_at,
+            fetched_by: ICRC_ACCOUNT_TRANSACTION_FETCHED_BY.to_string(),
+        },
+        schema_version: ICRC_ACCOUNT_TRANSACTION_CACHE_SCHEMA_VERSION,
+        balance: complete.balance,
+        token_symbol: complete.token_symbol,
+        decimals: complete.decimals,
+        completeness,
+        transactions: complete.transactions,
+    };
+    validate_collection_timestamps(
+        &paths.snapshot_path,
+        &snapshot.context.collection_started_at,
+        &snapshot.context.collection_completed_at,
+    )?;
+    let transaction_count = snapshot.transactions.len();
+    let attempt_finalization_error = publish_snapshot_with_attempt(
+        || {
+            write_collection_snapshot(
+                ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT,
+                &request.cache.cache_root,
+                &paths.snapshot_path,
+                &snapshot,
+            )
+            .map_err(IcrcAccountTransactionError::from)
+        },
+        || {
+            write_complete_attempt(
+                &paths.refresh_attempt_path,
+                request,
+                &snapshot.context.index_canister_id,
+                complete.last_cursor,
+                complete.page_count,
+                transaction_count,
+            )
+        },
+    )?;
+
+    Ok(IcrcAccountTransactionRefreshReport {
+        context: snapshot.context,
+        schema_version: ICRC_ACCOUNT_TRANSACTION_REFRESH_REPORT_SCHEMA_VERSION,
+        transaction_count,
+        newest_transaction_id,
+        oldest_transaction_id,
+        page_size: snapshot.completeness.page_size,
+        page_count: snapshot.completeness.page_count,
+        point_in_time_guaranteed: false,
+        replaced_existing_cache,
+        attempt_finalization_error,
+        cache_path: paths.snapshot_path.display().to_string(),
+        refresh_attempt_path: paths.refresh_attempt_path.display().to_string(),
+        refresh_lock_path: paths.refresh_lock_path.display().to_string(),
+    })
+}
+
+fn validate_collection_data(
+    request: &IcrcAccountTransactionRefreshRequest,
+    complete: &IcrcAccountTransactionCollectionData,
+) -> Result<CacheCollectionCompleteness, IcrcAccountTransactionError> {
+    let completeness = CacheCollectionCompleteness::api_exhausted(
+        request.page_size,
+        complete.page_count,
+        complete.transactions.len(),
+        false,
+    );
+    validate_cache_collection_completeness(&completeness, complete.transactions.len())
+        .map_err(|reason| incomplete_collection_error(complete, reason))?;
+    if request
+        .max_pages
+        .is_some_and(|maximum| complete.page_count > maximum)
+    {
+        return Err(incomplete_collection_error(
+            complete,
+            "source returned a complete collection beyond the requested max pages",
+        ));
+    }
+    let actual_index = principal_from_text(&complete.index_canister_id, "index_canister_id")?;
+    if let Some(expected_index) = request.index_canister_id.as_deref()
+        && expected_index != actual_index.to_text()
+    {
+        return Err(IcrcAccountTransactionError::CollectionIndexMismatch {
+            expected_index_canister_id: expected_index.to_string(),
+            actual_index_canister_id: actual_index.to_text(),
+        });
+    }
+    let expected_last_cursor = complete
+        .transactions
+        .last()
+        .map(|transaction| transaction.id.as_str());
+    if complete.last_cursor.as_deref() != expected_last_cursor {
+        return Err(incomplete_collection_error(
+            complete,
+            "final cursor does not match the oldest collected transaction",
+        ));
+    }
+    validate_canonical_account_transactions(&complete.transactions)
+        .map_err(|reason| incomplete_collection_error(complete, reason))?;
+    Ok(completeness)
+}
+
+fn incomplete_collection_error(
+    complete: &IcrcAccountTransactionCollectionData,
+    reason: impl Into<String>,
+) -> IcrcAccountTransactionError {
+    IcrcAccountTransactionError::IncompleteCollection {
+        index_canister_id: Some(complete.index_canister_id.clone()),
+        pages_fetched: complete.page_count,
+        rows_fetched: complete.transactions.len(),
+        last_cursor: complete.last_cursor.clone(),
+        reason: reason.into(),
+    }
+}
+
+fn validate_refresh_options(
+    request: &IcrcAccountTransactionRefreshRequest,
+) -> Result<Option<String>, IcrcAccountTransactionError> {
+    validate_account_transaction_page_size(request.page_size)?;
+    if request.max_pages == Some(0) {
+        return Err(IcrcAccountTransactionError::InvalidMaxPages { max_pages: 0 });
+    }
+    Ok(normalize_optional_index_canister_id(
+        request.index_canister_id.as_deref(),
+    )?)
+}
+
+fn cache_operation_error(source: crate::CacheFileError) -> IcrcAccountTransactionError {
+    HostCacheError::operation(ICRC_ACCOUNT_TRANSACTION_CACHE_COMPONENT, source).into()
+}
+
+fn account_transaction_cache_refresh_reason(
+    error: IcrcAccountTransactionError,
+    expected_path: &std::path::Path,
+) -> Result<CacheRefreshReason, IcrcAccountTransactionError> {
+    match error {
+        IcrcAccountTransactionError::Cache(error) => {
+            host_cache_refresh_reason(error, expected_path)
+                .map_err(IcrcAccountTransactionError::Cache)
+        }
+        IcrcAccountTransactionError::InvalidCache { path, .. } => {
+            Ok(CacheRefreshReason::Invalid(path))
+        }
+        error => Err(error),
+    }
+}
+
+#[cfg(test)]
+mod tests;

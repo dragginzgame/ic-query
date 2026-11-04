@@ -85,9 +85,7 @@ where
 }
 
 #[cfg(test)]
-pub fn render_help(mut command: Command) -> String {
-    command.render_help().to_string()
-}
+pub use super::tests::render_help;
 
 /// Adapt a domain-owned choice list to Clap without duplicating its vocabulary.
 pub fn choice_parser<T: Copy + Send + Sync + 'static>(

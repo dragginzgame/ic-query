@@ -683,16 +683,14 @@ pub struct IcReplicaVersionInfoReport {
 }
 
 ///
-/// IcCanisterReport
+/// IcCanisterData
 ///
-/// One live canister metadata report from the official Dashboard API.
+/// Dashboard canister payload shared by source data and validated reports.
+/// Source values are validated and canonically ordered before publication.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct IcCanisterReport {
-    /// Shared Dashboard provenance, flattened in serialized report JSON.
-    #[serde(flatten)]
-    pub provenance: IcDashboardReportProvenance,
+pub struct IcCanisterData {
     /// Canonical canister principal.
     pub canister_id: String,
     /// Dashboard database row identifier.
@@ -711,10 +709,24 @@ pub struct IcCanisterReport {
     pub module_hash: String,
     /// Raw Dashboard row update timestamp.
     pub dashboard_updated_at: String,
-    /// Number of proposal-linked upgrades when history is available.
-    pub upgrade_count: Option<usize>,
     /// Proposal-linked upgrade history, or `None` when the Dashboard returned `null`.
     pub upgrades: Option<Vec<IcCanisterUpgrade>>,
+}
+
+///
+/// IcCanisterReport
+///
+/// One live canister metadata report from the official Dashboard API.
+///
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct IcCanisterReport {
+    /// Shared Dashboard provenance, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub provenance: IcDashboardReportProvenance,
+    /// Canister payload, flattened in serialized report JSON.
+    #[serde(flatten)]
+    pub data: IcCanisterData,
 }
 
 ///

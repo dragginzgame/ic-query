@@ -103,7 +103,6 @@ use ic_query_text::subnet_catalog::subnet_catalog_info_report_text;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query_text::subnet_catalog::subnet_catalog_list_report_text;
 #[cfg(feature = "subnet-catalog-host")]
-use ic_query_text::subnet_catalog::subnet_catalog_list_report_verbose_text;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query_text::subnet_catalog::subnet_catalog_refresh_report_text;
 #[cfg(all(feature = "subnet-catalog-host", unix))]
@@ -205,8 +204,10 @@ async fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
         .await
         .expect("build list report");
     let row: &SubnetCatalogSubnetRow = list_report.subnets.first().expect("subnet row");
-    let list_text = subnet_catalog_list_report_text(&list_report);
-    let list_verbose_text = subnet_catalog_list_report_verbose_text(&list_report);
+    let list_text =
+        subnet_catalog_list_report_text(&list_report, ic_query_text::TextOptions::default());
+    let list_verbose_text =
+        subnet_catalog_list_report_text(&list_report, ic_query_text::TextOptions { verbose: true });
 
     let refresh_request = host_refresh_request(&cache, now_unix_secs);
     let refresh_report = fixture_refresh_report(&root, &path);
@@ -248,8 +249,9 @@ async fn public_subnet_catalog_host_api_accepts_custom_source_adapter() {
     let now_unix_secs = unix_secs_for_test();
     let request = host_list_request(&cache, now_unix_secs);
 
-    let load_request = SubnetCatalogLoadRequest::cache_only(cache, now_unix_secs)
-        .with_policy(request.read_policy.clone());
+    let mut load_request = SubnetCatalogLoadRequest::cache_only(cache, now_unix_secs);
+    load_request.policy = request.read_policy.clone();
+
     let loaded = futures::executor::block_on(load_subnet_catalog_with_source(
         &load_request,
         &FixtureSubnetCatalogSource,
@@ -401,13 +403,12 @@ async fn public_custom_source_can_supply_exact_failure_version_and_subject() {
     }
 
     let root = temp_root("subnet-catalog-host-detailed-source-public-api");
-    let request =
-        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test())
-            .with_policy(ic_query::subnet_catalog::CatalogReadPolicy::ForceRefresh {
-                source: CatalogSourceSelection::uncertified_query(
-                    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-                ),
-            });
+    let mut request =
+        SubnetCatalogLoadRequest::cache_only(host_cache_request(&root), unix_secs_for_test());
+    request.policy = ic_query::subnet_catalog::CatalogReadPolicy::ForceRefresh {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
+
     let failure = load_subnet_catalog_with_source(&request, &DetailedSource)
         .await
         .expect_err("fixture source fails");
@@ -517,14 +518,15 @@ fn host_info_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogInfoRequest {
-    SubnetCatalogInfoRequest::new(
+    let mut configured_request = SubnetCatalogInfoRequest::new(
         cache.clone(),
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
         CANISTER_A,
         now_unix_secs,
         DEFAULT_STALE_AFTER_SECONDS,
-    )
-    .with_forced(ResolveAs::Canister)
+    );
+    configured_request.forced = Some(ResolveAs::Canister);
+    configured_request
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -533,15 +535,16 @@ fn host_list_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogListRequest {
-    SubnetCatalogListRequest::new(
+    let mut configured_request = SubnetCatalogListRequest::new(
         cache.clone(),
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
         now_unix_secs,
         DEFAULT_STALE_AFTER_SECONDS,
-    )
-    .with_filters(SubnetCatalogFilters::default())
-    .with_show_ranges(true)
-    .with_range_limit(10)
+    );
+    configured_request.filters = SubnetCatalogFilters::default();
+    configured_request.show_ranges = true;
+    configured_request.range_limit = 10;
+    configured_request
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -550,12 +553,13 @@ fn host_refresh_request(
     cache: &SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> SubnetCatalogRefreshRequest {
-    SubnetCatalogRefreshRequest::new(
+    let mut configured_request = SubnetCatalogRefreshRequest::new(
         cache.clone(),
         CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
         now_unix_secs,
-    )
-    .with_dry_run(true)
+    );
+    configured_request.dry_run = true;
+    configured_request
 }
 
 #[cfg(feature = "subnet-catalog-host")]

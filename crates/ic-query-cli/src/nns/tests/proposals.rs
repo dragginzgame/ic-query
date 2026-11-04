@@ -157,6 +157,11 @@ fn nns_proposal_list_parses_extended_local_sort_values() {
 
 #[test]
 fn nns_proposal_parses_id_and_json_format() {
+    assert!(
+        nns_proposal_info_command()
+            .try_get_matches_from(["info", "132411", "--ballots"])
+            .is_err()
+    );
     let (options_format, options) = parse_test_options(
         nns_proposal_info_command(),
         &[
@@ -164,7 +169,6 @@ fn nns_proposal_parses_id_and_json_format() {
             "--json",
             "--source-endpoint",
             "https://icp-api.io",
-            "--ballots",
             "--verbose",
         ],
         |matches, network| proposal_info_request(matches, network, TEST_NOW_UNIX_SECS),
@@ -178,7 +182,7 @@ fn nns_proposal_parses_id_and_json_format() {
 
     let (_, grouped_options) = parse_test_options(
         nns_proposal_info_command(),
-        &["132411", "--ballots", "--verbose"],
+        &["132411", "--verbose"],
         |matches, network| proposal_info_request(matches, network, TEST_NOW_UNIX_SECS),
     )
     .expect("parse nns proposal info");
@@ -308,7 +312,7 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposal_list.contains("--sort deadline"));
     assert!(proposal_list.contains("--sort voting-power"));
     assert!(proposal_list.contains("--sort title --asc"));
-    assert!(proposal_info.contains("--ballots"));
+    assert!(!proposal_info.contains("--ballots"));
     assert!(proposal_info.contains("--verbose"));
     assert!(proposal_info.contains("--json"));
 }

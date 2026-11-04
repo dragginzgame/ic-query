@@ -25,7 +25,6 @@ fn text_separates_certified_provenance_from_complete_node_table() {
             certified: true,
             point_in_time_guaranteed: true,
         },
-        node_count: 1,
         rows: vec![row(NODE_A, "api1.example.com", None, "2001:db8::1")],
     };
 

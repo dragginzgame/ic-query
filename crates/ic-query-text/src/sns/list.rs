@@ -5,10 +5,9 @@
 //! Boundary: formats list DTO rows into compact or verbose human-readable tables.
 
 use crate::sns::labels::sns_swap_lifecycle_name;
-use crate::text_value::REPORT_TABLE_OPTIONS;
-use ic_host_text::escape::terminal_text;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::sns::short_principal;
 use ic_query::sns::SnsListReport;
@@ -32,31 +31,23 @@ pub fn sns_list_report_text_with_metadata_style(
     options: crate::TextOptions,
     mut style: impl FnMut(&str, bool) -> String,
 ) -> String {
-    let mut lines = Vec::new();
-    lines.push(format!("network: {}", terminal_text(&report.network)));
-    lines.push(format!(
-        "sns_wasm_canister_id: {}",
-        report.sns_wasm_canister_id
-    ));
-    lines.push(format!("all_lifecycles: {}", yes_no(report.all_lifecycles)));
-    lines.push(format!("catalog_sns_count: {}", report.catalog_sns_count));
-    lines.push(format!("excluded_sns_count: {}", report.excluded_sns_count));
-    lines.push(format!("sns_count: {}", report.sns_instances.len()));
-    lines.push(format!("fetched_at: {}", terminal_text(&report.fetched_at)));
+    let mut lines = vec![
+        field("network", &report.network),
+        field("sns_wasm_canister_id", &(report.sns_wasm_canister_id)),
+        field("all_lifecycles", &(yes_no(report.all_lifecycles))),
+        field("catalog_sns_count", &(report.catalog_sns_count)),
+        field("excluded_sns_count", &(report.excluded_sns_count)),
+        field("sns_count", &(report.sns_instances.len())),
+        field("fetched_at", &report.fetched_at),
+    ];
     crate::sns::common::push_report_provenance_lines(&mut lines, &report.provenance);
-    lines.push(format!(
-        "source_endpoint: {}",
-        terminal_text(&report.source_endpoint)
-    ));
-    lines.push(format!("sort: {}", report.sort));
-    lines.push(format!("metadata_errors: {}", report.metadata_error_count));
-    lines.push(format!(
-        "lifecycle_errors: {}",
-        report.lifecycle_error_count
-    ));
+    lines.push(field("source_endpoint", &report.source_endpoint));
+    lines.push(field("sort", &(report.sort)));
+    lines.push(field("metadata_errors", &(report.metadata_error_count)));
+    lines.push(field("lifecycle_errors", &(report.lifecycle_error_count)));
     if !report.sns_instances.is_empty() {
         lines.push(String::new());
-        let table = render(
+        let table = table(
             &[
                 "ID",
                 "NAME",
@@ -100,7 +91,6 @@ pub fn sns_list_report_text_with_metadata_style(
                 Alignment::Left,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         );
         // Host escapes cell newlines, so each data line corresponds to one known row.
         lines.push(

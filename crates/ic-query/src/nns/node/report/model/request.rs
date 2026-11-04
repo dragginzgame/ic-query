@@ -28,12 +28,6 @@ impl NnsNodeListRequest {
     }
 
     #[must_use]
-    pub fn with_filters(mut self, filters: NnsNodeListFilters) -> Self {
-        self.filters = filters;
-        self
-    }
-
-    #[must_use]
     pub fn with_subnet(mut self, subnet: impl Into<String>) -> Self {
         self.filters.subnet = Some(subnet.into());
         self

@@ -190,27 +190,6 @@ impl IcIcrcAccountListQuery {
             sort_by,
         }
     }
-
-    /// Restrict the page to one owner principal.
-    #[must_use]
-    pub fn with_owner(mut self, owner: impl Into<String>) -> Self {
-        self.owner = Some(owner.into());
-        self
-    }
-
-    /// Continue after one opaque cursor.
-    #[must_use]
-    pub fn with_after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Continue before one opaque cursor.
-    #[must_use]
-    pub fn with_before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
-    }
 }
 
 ///
@@ -241,20 +220,6 @@ impl IcIcrcHolderListQuery {
             limit,
             sort_by,
         }
-    }
-
-    /// Continue after one opaque cursor.
-    #[must_use]
-    pub fn with_after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Continue before one opaque cursor.
-    #[must_use]
-    pub fn with_before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
     }
 }
 

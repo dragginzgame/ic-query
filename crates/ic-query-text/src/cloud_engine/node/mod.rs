@@ -4,10 +4,10 @@
 //! Does not own: JSON serialization, source validation, live calls, or process output.
 //! Boundary: separates off-chain Dashboard provenance from node tables.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::ic::dashboard_provenance_lines;
 use crate::text_value::optional_bool_text;
@@ -21,26 +21,26 @@ use ic_query::cloud_engine::CloudEngineNodeRow;
 pub fn cloud_engine_node_list_report_text(report: &CloudEngineNodeListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("node_reward_type: {}", report.node_reward_type),
-        format!("included_statuses: {}", report.included_statuses.join(",")),
-        format!(
-            "requested_node_provider_id: {}",
-            optional_text(report.requested_node_provider_id.as_ref())
+        field("node_reward_type", &(report.node_reward_type)),
+        field("included_statuses", &(report.included_statuses.join(","))),
+        field(
+            "requested_node_provider_id",
+            &(optional_text(report.requested_node_provider_id.as_ref())),
         ),
-        format!("node_count: {}", report.node_count),
-        format!("status_up: {}", report.status_counts.up),
-        format!("status_down: {}", report.status_counts.down),
-        format!("status_disabled: {}", report.status_counts.disabled),
-        format!("status_degraded: {}", report.status_counts.degraded),
-        format!("status_unknown: {}", report.status_counts.unknown),
-        format!("node_provider_count: {}", report.node_provider_count),
-        format!(
-            "cloud_engine_subnet_count: {}",
-            report.cloud_engine_subnet_count
+        field("node_count", &(report.nodes.len())),
+        field("status_up", &(report.status_counts.up)),
+        field("status_down", &(report.status_counts.down)),
+        field("status_disabled", &(report.status_counts.disabled)),
+        field("status_degraded", &(report.status_counts.degraded)),
+        field("status_unknown", &(report.status_counts.unknown)),
+        field("node_provider_count", &(report.node_provider_count)),
+        field(
+            "cloud_engine_subnet_count",
+            &(report.cloud_engine_subnet_count),
         ),
-        format!(
-            "unassigned_cloud_engine_node_count: {}",
-            report.unassigned_cloud_engine_node_count
+        field(
+            "unassigned_cloud_engine_node_count",
+            &(report.unassigned_cloud_engine_node_count),
         ),
     ]);
     if !report.nodes.is_empty() {
@@ -57,52 +57,40 @@ pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) ->
     let node = &report.node;
     let mut lines = dashboard_provenance_lines(&report.provenance);
     lines.extend([
-        format!("node_id: {}", node.node_id),
-        format!("status: {}", terminal_text(&node.status).into_owned()),
-        format!("node_type: {}", terminal_text(&node.node_type)),
-        format!(
-            "node_reward_type: {}",
-            terminal_text(&node.node_reward_type)
+        field("node_id", &(node.node_id)),
+        field("status", &node.status),
+        field("node_type", &node.node_type),
+        field("node_reward_type", &node.node_reward_type),
+        field("node_provider_id", &(node.node_provider_id)),
+        field("node_provider_name", &node.node_provider_name),
+        field("node_operator_id", &(node.node_operator_id)),
+        field(
+            "cloud_engine_subnet_id",
+            &(optional_text(node.cloud_engine_subnet_id.as_ref())),
         ),
-        format!("node_provider_id: {}", node.node_provider_id),
-        format!(
-            "node_provider_name: {}",
-            terminal_text(&node.node_provider_name)
+        field("subnet_id", &(optional_text(node.subnet_id.as_ref()))),
+        field("data_center_id", &node.data_center_id),
+        field("data_center_name", &node.data_center_name),
+        field("owner", &(node.owner.trim())),
+        field("region", &node.region),
+        field(
+            "guestos_version",
+            &(optional_text(node.guestos_version.as_ref())),
         ),
-        format!("node_operator_id: {}", node.node_operator_id),
-        format!(
-            "cloud_engine_subnet_id: {}",
-            optional_text(node.cloud_engine_subnet_id.as_ref())
+        field(
+            "guestos_tee_active",
+            &(optional_bool_text(node.guestos_tee_active)),
         ),
-        format!("subnet_id: {}", optional_text(node.subnet_id.as_ref())),
-        format!(
-            "data_center_id: {}",
-            terminal_text(&node.data_center_id).into_owned()
+        field("ip_address", &(optional_text(node.ip_address.as_ref()))),
+        field(
+            "ipv4_connectivity_status",
+            &(optional_bool_text(node.ipv4_connectivity_status)),
         ),
-        format!(
-            "data_center_name: {}",
-            terminal_text(&node.data_center_name)
+        field(
+            "node_hardware_generation",
+            &(optional_text(node.node_hardware_generation.as_ref())),
         ),
-        format!("owner: {}", terminal_text(node.owner.trim())),
-        format!("region: {}", terminal_text(&node.region)),
-        format!(
-            "guestos_version: {}",
-            optional_text(node.guestos_version.as_ref())
-        ),
-        format!(
-            "guestos_tee_active: {}",
-            optional_bool_text(node.guestos_tee_active)
-        ),
-        format!("ip_address: {}", optional_text(node.ip_address.as_ref())),
-        format!(
-            "ipv4_connectivity_status: {}",
-            optional_bool_text(node.ipv4_connectivity_status)
-        ),
-        format!(
-            "node_hardware_generation: {}",
-            optional_text(node.node_hardware_generation.as_ref())
-        ),
-        format!("alert_name: {}", optional_text(node.alert_name.as_ref())),
+        field("alert_name", &(optional_text(node.alert_name.as_ref()))),
     ]);
     lines.join("\n")
 }
@@ -126,7 +114,7 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
             ]
         })
         .collect::<Vec<_>>();
-    render(
+    table(
         &[
             "Node",
             "Status",
@@ -137,16 +125,7 @@ fn node_table(nodes: &[CloudEngineNodeRow]) -> String {
             "GuestOS",
         ],
         &rows,
-        &[
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-        ],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 7],
     )
 }
 

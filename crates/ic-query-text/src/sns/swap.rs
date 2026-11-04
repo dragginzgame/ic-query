@@ -5,10 +5,10 @@
 //! Boundary: presents native raw fields, query guarantees, and typed gaps without hiding absence.
 
 use crate::sns::labels::sns_swap_lifecycle_name;
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::text_value::optional_u64_text;
 use crate::text_value::yes_no;
@@ -49,42 +49,36 @@ pub fn sns_swap_report_text(report: &SnsSwapReport) -> String {
 
 fn swap_header_lines(report: &SnsSwapReport) -> Vec<String> {
     vec![
-        format!("network: {}", terminal_text(&report.context.network)),
-        format!("sns_id: {}", report.context.id),
-        format!("name: {}", terminal_text(&report.context.name)),
-        format!("root_canister_id: {}", report.context.root_canister_id),
-        format!("swap_canister_id: {}", report.swap.swap_canister_id),
-        format!("component_query_count: {}", report.component_query_count),
-        format!(
-            "successful_component_query_count: {}",
-            report.successful_component_query_count
+        field("network", &report.context.network),
+        field("sns_id", &(report.context.id)),
+        field("name", &report.context.name),
+        field("root_canister_id", &(report.context.root_canister_id)),
+        field("swap_canister_id", &(report.swap.swap_canister_id)),
+        field("component_query_count", &(report.component_query_count)),
+        field(
+            "successful_component_query_count",
+            &(report.successful_component_query_count),
         ),
-        format!("component_gap_count: {}", report.component_gap_count),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.swap.point_in_time_guaranteed)
+        field("component_gap_count", &(report.component_gap_count)),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.swap.point_in_time_guaranteed)),
         ),
-        format!(
-            "lifecycle_method: {}",
-            report.swap.lifecycle_method.as_str()
+        field("lifecycle_method", &(report.swap.lifecycle_method.as_str())),
+        field(
+            "sale_parameters_method",
+            &(report.swap.sale_parameters_method.as_str()),
         ),
-        format!(
-            "sale_parameters_method: {}",
-            report.swap.sale_parameters_method.as_str()
+        field(
+            "derived_state_method",
+            &(report.swap.derived_state_method.as_str()),
         ),
-        format!(
-            "derived_state_method: {}",
-            report.swap.derived_state_method.as_str()
+        field(
+            "sns_wasm_canister_id",
+            &(report.context.sns_wasm_canister_id),
         ),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
-        ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
+        field("fetched_at", &report.context.fetched_at),
+        field("source_endpoint", &report.context.source_endpoint),
     ]
 }
 
@@ -194,7 +188,7 @@ fn derived_state_text(state: &SnsSwapDerivedState) -> String {
 }
 
 fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
-    render(
+    table(
         &["COMPONENT", "METHOD", "REASON"],
         &gaps
             .iter()
@@ -206,17 +200,15 @@ fn gaps_text(gaps: &[SnsSwapQueryGap]) -> String {
                 ]
             })
             .collect::<Vec<_>>(),
-        &[Alignment::Left, Alignment::Left, Alignment::Left],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 3],
     )
 }
 
 fn key_value_table(rows: &[[String; 2]]) -> String {
-    render(
+    table(
         &["FIELD", "VALUE"],
         rows,
         &[Alignment::Left, Alignment::Right],
-        REPORT_TABLE_OPTIONS,
     )
 }
 

@@ -7,7 +7,7 @@ use crate::ic::{IcHostError, IcNodeStatusSource, IcNodeStatusSourceData, IcSourc
 #[cfg(feature = "dashboard-host")]
 use crate::progress::IgnoreQueryProgress;
 #[cfg(feature = "dashboard-host")]
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 #[cfg(feature = "dashboard-host")]
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 #[cfg(feature = "dashboard-host")]
@@ -51,9 +51,27 @@ fn all_status_views_share_one_snapshot_and_attention_filter() {
         ic_node_provider_status_report_from_snapshot(&snapshot, &IcNodeStatusView::attention())
             .expect("provider report");
 
-    assert_eq!(nodes.returned_node_count, 2);
-    assert_eq!(subnets.returned_subnet_count, 1);
-    assert_eq!(providers.returned_provider_count, 2);
+    assert_eq!(nodes.nodes.len(), 2);
+    assert_eq!(subnets.subnets.len(), 1);
+    assert_eq!(providers.providers.len(), 2);
+    assert!(
+        serde_json::to_value(&nodes)
+            .unwrap()
+            .get("returned_node_count")
+            .is_none()
+    );
+    assert!(
+        serde_json::to_value(&subnets)
+            .unwrap()
+            .get("returned_subnet_count")
+            .is_none()
+    );
+    assert!(
+        serde_json::to_value(&providers)
+            .unwrap()
+            .get("returned_provider_count")
+            .is_none()
+    );
     let assigned_provider = providers
         .providers
         .iter()
@@ -164,7 +182,7 @@ fn aggregate_status_views_keep_snapshot_totals_when_selecting_rows() {
             report.attention_subnet_count,
             all_subnets.attention_subnet_count
         );
-        assert_eq!(report.returned_subnet_count, 1);
+        assert_eq!(report.subnets.len(), 1);
         assert_eq!(report.subnets, [all_subnets.subnets[selected_row].clone()]);
     }
     for (view, selected_rows) in [
@@ -188,7 +206,7 @@ fn aggregate_status_views_keep_snapshot_totals_when_selecting_rows() {
             report.unassigned_non_up_vs_assigned_non_up_provider_counts,
             all_providers.unassigned_non_up_vs_assigned_non_up_provider_counts
         );
-        assert_eq!(report.returned_provider_count, selected_rows.len());
+        assert_eq!(report.providers.len(), selected_rows.len());
         let expected = selected_rows
             .into_iter()
             .map(|index| all_providers.providers[index].clone())
@@ -229,7 +247,7 @@ fn target_resolution_preserves_identity_and_reports_invalid_selections() {
             &IcNodeStatusView::attention().with_target(target),
         )
         .expect("unique target");
-        assert_eq!(selected.returned_node_count, 1);
+        assert_eq!(selected.nodes.len(), 1);
         assert_eq!(selected.nodes[0].status, "UP");
         assert_eq!(selected.requested_target.as_deref(), Some(target));
         assert_eq!(selected.resolved_target.as_deref(), Some(principal));

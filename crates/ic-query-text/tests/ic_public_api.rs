@@ -251,7 +251,6 @@ fn public_certified_api_boundary_node_api_is_constructible_without_host() {
             certified: true,
             point_in_time_guaranteed: true,
         },
-        node_count: 1,
         rows: vec![IcApiBoundaryNodeRow {
             node_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),
             domain: "api1.example.com".to_string(),
@@ -292,7 +291,7 @@ async fn public_certified_state_host_api_exposes_live_and_custom_builders() {
         .await
         .expect("custom certified state source");
 
-    assert_eq!(report.node_count, 1);
+    assert_eq!(report.rows.len(), 1);
     assert_eq!(report.rows[0].domain, "api1.example.com");
 }
 
@@ -672,9 +671,10 @@ fn public_icrc_account_and_holder_index_api_is_constructible_serializable_and_re
         active_fee_collector: false,
         fee_collector_block_ranges: Vec::new(),
     };
-    let account_query = IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id)
-        .with_owner("aaaaa-aa")
-        .with_after("cursor");
+    let mut account_query = IcIcrcAccountListQuery::new(20, IcIcrcAccountSort::Id);
+    account_query.owner = Some("aaaaa-aa".into());
+    account_query.after = Some("cursor".into());
+
     let account_request = IcIcrcAccountListRequest::new(
         ic_query::ic::IcDashboardRequest::new(
             DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
@@ -794,22 +794,23 @@ fn public_ic_canister_api_is_constructible_and_renderable() {
     );
     let report = IcCanisterReport {
         provenance: public_provenance(request.dashboard.source_endpoint.clone()),
-        canister_id: request.canister_id.clone(),
-        dashboard_id: 226_973,
-        canister_type: Some("ledger".to_string()),
-        name: "ICP Ledger".to_string(),
-        subnet_id: SUBNET_ID.to_string(),
-        controllers: vec!["r7inp-6aaaa-aaaaa-aaabq-cai".to_string()],
-        language: String::new(),
-        module_hash: String::new(),
-        dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
-        upgrade_count: Some(1),
-        upgrades: Some(vec![IcCanisterUpgrade {
-            executed_timestamp_seconds: 1_756_730_623,
-            module_hash: "51f4be010f23064137defacd627ffbec024c5133210c68ca3b80ab8f257101d6"
-                .to_string(),
-            proposal_id: 138_271,
-        }]),
+        data: ic_query::ic::IcCanisterData {
+            canister_id: request.canister_id.clone(),
+            dashboard_id: 226_973,
+            canister_type: Some("ledger".to_string()),
+            name: "ICP Ledger".to_string(),
+            subnet_id: SUBNET_ID.to_string(),
+            controllers: vec!["r7inp-6aaaa-aaaaa-aaabq-cai".to_string()],
+            language: String::new(),
+            module_hash: String::new(),
+            dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
+            upgrades: Some(vec![IcCanisterUpgrade {
+                executed_timestamp_seconds: 1_756_730_623,
+                module_hash: "51f4be010f23064137defacd627ffbec024c5133210c68ca3b80ab8f257101d6"
+                    .to_string(),
+                proposal_id: 138_271,
+            }]),
+        },
     };
 
     let text = ic_canister_report_text(&report);
@@ -820,6 +821,8 @@ fn public_ic_canister_api_is_constructible_and_renderable() {
     assert!(text.contains("authority: official_ic_dashboard_api"));
     assert_eq!(json["schema_version"], 1);
     assert_eq!(json["source_endpoint"], request.dashboard.source_endpoint);
+    assert!(json.get("upgrade_count").is_none());
+    assert!(json.get("data").is_none());
     assert!(json.get("provenance").is_none());
 }
 
@@ -830,18 +833,20 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
         query: Some("ICP Ledger".to_string()),
         ..IcCanisterFilters::default()
     };
-    let count_request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
+    let mut count_request = IcCanisterCountRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_filters(filters.clone());
-    let page_request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
+    ));
+    count_request.filters = filters.clone();
+
+    let mut page_request = IcCanisterPageRequest::new(ic_query::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_filters(filters.clone())
-    .with_limit(25)
-    .with_after(CANISTER_ID);
+    ));
+    page_request.filters = filters.clone();
+    page_request.limit = 25;
+    page_request.after = Some(CANISTER_ID.into());
+
     let count = IcCanisterCountReport {
         provenance: public_provenance(count_request.dashboard.source_endpoint),
         filters: filters.clone(),

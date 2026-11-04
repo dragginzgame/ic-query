@@ -4,6 +4,10 @@
     "allowed_packages": []
   },
   {
+    "dependency": "ic-platform-pocket-ic",
+    "allowed_packages": []
+  },
+  {
     "dependency": "ic-platform-macros",
     "allowed_packages": []
   },

@@ -210,13 +210,13 @@ fn detailed_agreement_mismatch_retains_every_completed_endpoint_record() {
     let alpha = "https://alpha.example";
     let beta = "https://beta.example";
     let source = AgreementFixtureSource::new(AgreementFixtureMode::PayloadMismatch, beta);
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::ForceRefresh {
-            source: CatalogSourceSelection::multi_endpoint_agreement(vec![
-                alpha.to_string(),
-                beta.to_string(),
-            ]),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::ForceRefresh {
+        source: CatalogSourceSelection::multi_endpoint_agreement(vec![
+            alpha.to_string(),
+            beta.to_string(),
+        ]),
+    };
 
     let failure = futures::executor::block_on(load_subnet_catalog_with_source(&request, &source))
         .expect_err("mismatched endpoint evidence");
@@ -390,9 +390,9 @@ async fn refresh_rejects_output_aliasing_catalog_without_changing_cache() {
         write_catalog(&root, original_catalog);
         let path = subnet_catalog_path(&root, MAINNET_NETWORK);
         let original = fs::read(&path).expect("original catalog");
-        let request = refresh_request(&root)
-            .with_dry_run(dry_run)
-            .with_output_path(&path);
+        let mut request = refresh_request(&root);
+        request.dry_run = dry_run;
+        request.output_path = Some((&path).into());
 
         let result = refresh_subnet_catalog_with_source(
             &request,
@@ -422,9 +422,9 @@ async fn refresh_rejects_output_aliases_before_fetching_or_creating_catalog_and_
         crate::subnet_catalog::subnet_catalog_history_path(&root, MAINNET_NETWORK),
         crate::subnet_catalog::subnet_catalog_history_lock_path(&root, MAINNET_NETWORK),
     ] {
-        let request = refresh_request(&root)
-            .with_dry_run(true)
-            .with_output_path(output_path);
+        let mut request = refresh_request(&root);
+        request.dry_run = true;
+        request.output_path = Some(output_path);
         let error = refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
             .await
             .expect_err("invalid output fails before the failing source is called");
@@ -477,9 +477,9 @@ async fn refresh_rechecks_output_aliases_after_source_collection() {
             fixture: FixtureRefreshSource::ok(fixture_catalog()),
             hard_link,
         };
-        let request = refresh_request(&root)
-            .with_dry_run(true)
-            .with_output_path(output_path);
+        let mut request = refresh_request(&root);
+        request.dry_run = true;
+        request.output_path = Some(output_path);
         let error = refresh_subnet_catalog_with_source(&request, &source)
             .await
             .expect_err("alias introduced during collection is rejected");
@@ -540,9 +540,9 @@ async fn refresh_dry_run_distinct_output_preserves_existing_catalog_bytes() {
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     let original = fs::read(&path).expect("original catalog");
     let output_path = root.join("catalog-export.json");
-    let request = refresh_request(&root)
-        .with_dry_run(true)
-        .with_output_path(&output_path);
+    let mut request = refresh_request(&root);
+    request.dry_run = true;
+    request.output_path = Some((&output_path).into());
     let report =
         refresh_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
             .await

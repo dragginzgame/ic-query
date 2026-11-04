@@ -15,7 +15,7 @@ use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
 use crate::subnet_catalog::SubnetKind;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use std::fs;
 
 #[tokio::test(flavor = "current_thread")]

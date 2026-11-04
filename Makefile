@@ -1,16 +1,16 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json scripts/ci/check-rust-compiler.sh
+# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check compiler-check package \
 	package-contents-check public-docs-check publish publish-guards-check \
-	release-guards-check \
+	release-guards-check release-validation-check qualify-release-groups \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
 	release-tagged-check release-push-check release-tag-check \
-	schema-version-check tags test type-docs-check version
+	schema-version-check tags test query-test cli-test type-docs-check version
 
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -56,12 +56,8 @@ format-tools-check: format-installation-check
 
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
-CI_TARGETS := shared-tooling-check compiler-check tools-check clippy changelog-check dependency-pins-check dependency-boundary-check package-contents-check \
-	feature-boundary-check library-process-boundary-check ci-scripts-check \
-	publish-guards-check release-guards-check type-docs-check doc-links-check public-docs-check dependency-check \
-	schema-version-check fmt-check check test package
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml crates/ic-query-text/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/cargo-release-groups.json ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml crates/ic-query-text/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/cargo-release-groups.json ci/release-validation.json ci/release-validation-scopes.json ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -98,6 +94,8 @@ help:
 	@echo "  check      Run cargo check with locked/offline dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
 	@echo "  test       Run all tests with locked dependencies"
+	@echo "  query-test Run Query and private Testkit tests (locked/offline)"
+	@echo "  cli-test   Run CLI/Text tests with real Query integration (locked/offline)"
 	@echo "  compiler-check  Admit and record the declared Cargo/rustc versions"
 	@echo "  package    Build a publishable crate tarball"
 	@echo "  ci         Run the local push gate"
@@ -162,6 +160,12 @@ library-process-boundary-check:
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
 
+release-validation-check:
+	bash scripts/ci/check-release-validation.sh
+
+qualify-release-groups:
+	bash scripts/release/qualify-validation.sh
+
 # Shared Tooling qualifies generic helper suites. Keep Query's actual Make,
 # hook, workflow, documentation-debt and Governance-harness compilation here.
 ci-scripts-check:
@@ -215,6 +219,12 @@ clippy:
 test:
 	cargo test --workspace --all-targets --all-features --locked --offline
 
+query-test:
+	cargo test -p ic-query -p ic-query-testkit --all-targets --all-features --locked --offline
+
+cli-test:
+	cargo test -p ic-query-cli -p ic-query-text --all-targets --all-features --locked --offline
+
 compiler-check:
 	bash scripts/ci/check-rust-compiler.sh
 
@@ -222,8 +232,7 @@ package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline
 
 ci:
-	+@bash "$(REPO_ROOT)scripts/ci/run-validation-targets.sh" --fail-fast \
-		$(foreach input,$(CI_INPUTS),--input "$(input)") $(CI_TARGETS)
+	+@bash "$(REPO_ROOT)scripts/ci/run-ci.sh" $(foreach input,$(CI_INPUTS),--input "$(input)")
 
 install:
 	cargo install --locked --force --path crates/ic-query-cli --bin icq

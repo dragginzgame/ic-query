@@ -79,13 +79,14 @@ impl NnsPagedRefreshOptions {
         cache_root: PathBuf,
         now_unix_secs: u64,
     ) -> NnsGovernanceRefreshRequest {
-        NnsGovernanceRefreshRequest::new(
+        let mut configured_request = NnsGovernanceRefreshRequest::new(
             cache_root,
             self.common.network,
             self.common.source_endpoint,
             now_unix_secs,
             self.page_size,
-        )
-        .with_max_pages(self.max_pages)
+        );
+        configured_request.max_pages = self.max_pages;
+        configured_request
     }
 }

@@ -1,6 +1,6 @@
 use super::*;
 use crate::report::CollectionSourceRequest;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 
 pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
@@ -38,7 +38,7 @@ pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
 ///
 
 pub(super) struct FixtureNodeProviderSource {
-    pub(super) node_providers: Vec<MainnetNodeProvider>,
+    pub(super) node_providers: Vec<NnsNodeProviderRow>,
 }
 
 impl NnsNodeProviderSource for FixtureNodeProviderSource {
@@ -47,16 +47,7 @@ impl NnsNodeProviderSource for FixtureNodeProviderSource {
         request: &'a CollectionSourceRequest,
     ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
         Box::pin(async move {
-            let node_providers = self
-                .node_providers
-                .iter()
-                .map(|provider| NnsNodeProviderRow {
-                    node_provider_principal: provider.principal.clone(),
-                    name: None,
-                    node_count: provider.node_count,
-                    reward_account_hex: provider.reward_account_hex.clone(),
-                })
-                .collect::<Vec<_>>();
+            let node_providers = self.node_providers.clone();
             Ok(NnsNodeProviderListReport {
                 schema_version: 1,
                 provenance: crate::nns::registry::NnsRegistryInventoryProvenance {

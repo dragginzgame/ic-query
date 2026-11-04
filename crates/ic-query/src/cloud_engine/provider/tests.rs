@@ -68,7 +68,13 @@ mod host {
         assert_eq!((*source.list_calls.lock().unwrap()), 1);
         assert_eq!((*source.info_calls.lock().unwrap()), 0);
         assert_eq!(report.source_node_provider_count, 3);
-        assert_eq!(report.cloud_engine_provider_count, 2);
+        assert_eq!(report.providers.len(), 2);
+        assert!(
+            serde_json::to_value(&report)
+                .unwrap()
+                .get("cloud_engine_provider_count")
+                .is_none()
+        );
         assert_eq!(report.providers[0].principal_id, PROVIDER_A);
         assert_eq!(report.providers[1].principal_id, PROVIDER_B);
         assert_eq!(report.provenance.authority, "official_ic_dashboard_api");

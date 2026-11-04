@@ -44,13 +44,6 @@ impl CloudEngineNodeListRequest {
             node_provider_id: None,
         }
     }
-
-    /// Restrict collection to one exact node-provider principal.
-    #[must_use]
-    pub fn with_node_provider_id(mut self, node_provider_id: impl Into<String>) -> Self {
-        self.node_provider_id = Some(node_provider_id.into());
-        self
-    }
 }
 
 ///
@@ -102,8 +95,6 @@ pub struct CloudEngineNodeListReport {
     pub included_statuses: Vec<String>,
     /// Canonical provider filter, or `None` for the complete Type4 network scope.
     pub requested_node_provider_id: Option<String>,
-    /// Number of returned Type4 node rows.
-    pub node_count: usize,
     /// Raw operational-status totals across returned rows.
     pub status_counts: IcNodeStatusCounts,
     /// Distinct provider principals represented by returned rows.

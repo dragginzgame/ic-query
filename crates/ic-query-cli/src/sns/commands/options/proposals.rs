@@ -45,13 +45,12 @@ pub(in crate::sns::commands) fn proposals_request(
     let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
     let mut request = SnsProposalsRequest::new(lookup, required_typed(matches, "limit"))
         .with_cache_root(cache_root()?)
-        .with_status(status)?
-        .with_topic(required_typed::<SnsProposalTopicFilter>(matches, "topic"))
-        .with_eligibility(required_typed::<SnsProposalEligibilityFilter>(
-            matches, "eligible",
-        ))
-        .with_sort(sort)
-        .with_sort_direction(sort_direction);
+        .with_status(status)?;
+    request.topic = required_typed::<SnsProposalTopicFilter>(matches, "topic");
+    request.eligibility = required_typed::<SnsProposalEligibilityFilter>(matches, "eligible");
+    request = request.with_sort(sort);
+    request.sort_direction = sort_direction;
+
     request.before_proposal_id = typed_option(matches, "before");
     request.proposer_neuron_id = string_option(matches, "proposer");
     request.query = string_option(matches, "query");

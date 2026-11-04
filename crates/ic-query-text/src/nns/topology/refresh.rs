@@ -4,10 +4,10 @@
 //! Does not own: refresh execution, cache writing, or JSON output.
 //! Boundary: formats component refresh outcomes for humans.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::text_value::yes_no;
 use ic_query::nns::topology::NnsTopologyRefreshReport;
@@ -24,10 +24,7 @@ pub fn nns_topology_refresh_report_text(report: &NnsTopologyRefreshReport) -> St
         report.replaced_existing_cache_count,
         yes_no(report.dry_run)
     ));
-    lines.push(format!(
-        "source_endpoint: {}",
-        terminal_text(&report.source_endpoint)
-    ));
+    lines.push(field("source_endpoint", &report.source_endpoint));
     lines.push(render_refresh_table(report));
     lines.join("\n")
 }
@@ -66,5 +63,5 @@ fn render_refresh_table(report: &NnsTopologyRefreshReport) -> String {
         Alignment::Left,
         Alignment::Left,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

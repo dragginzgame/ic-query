@@ -1,7 +1,7 @@
 # AGENTS.md
 
 For scope, delegated delivery, validation, compiler support and reporting, use
-[Shared policy at 70939d3](https://github.com/dragginzgame/shared-tooling/blob/70939d3b6ca335cb718363b47f15cc616c3bed1c/DRAGGINZGAME.md)
+[Shared policy at afccb99](https://github.com/dragginzgame/shared-tooling/blob/afccb9947d26bbae13d4c4a143d2fd5f0c2c07a4/DRAGGINZGAME.md)
 and its revision-bound references over older snapshot or local-guide wording.
 This includes Rust 1.99.1 as minimum and pinned development/release compiler;
 check local declarations and qualification before claiming adoption is complete.
@@ -149,8 +149,10 @@ repository. Preserve Query's native host matrix and release/registry checks.
 - Prepare the selected lockfile's offline cache explicitly before validation.
   Keep validation locked/offline; report missing dependencies rather than
   silently retrying online or changing versions.
-- Keep unit tests next to the code. Prefer `tests.rs` or `tests/mod.rs` for
-  large groups; small inline `mod tests { ... }` blocks are fine.
+- Keep Rust test bodies and test-only helpers in `tests.rs` or `tests/` near
+  their owner. Production files retain only test wiring. Follow the shared
+  [test layout rule](docs/principles/rust-code-hygiene.md#tests); document any
+  necessary inline exception at its owner.
 - Use fixture sources instead of live network calls in unit tests. Assert typed
   errors or observable behavior, not brittle full strings, unless exact CLI
   text is the contract.

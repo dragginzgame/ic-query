@@ -1,7 +1,7 @@
 use super::write_nns_leaf_json_refresh_cache;
 use crate::{
     nns::{NnsInventoryCacheRequest, NnsInventoryRefreshRequest},
-    test_support::temp_dir,
+    tests::temp_dir,
 };
 use serde::Serialize;
 use std::{fs, path::PathBuf};

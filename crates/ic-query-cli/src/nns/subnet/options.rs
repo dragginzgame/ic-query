@@ -17,20 +17,21 @@ pub(in crate::nns) fn catalog_list_request(
     now_unix_secs: u64,
 ) -> (OutputFormat, bool, SubnetCatalogListRequest) {
     let source = SourceOutputOptions::from_matches(matches);
-    let request = SubnetCatalogListRequest::new(
+    let mut request = SubnetCatalogListRequest::new(
         cache,
         source.source_endpoint,
         now_unix_secs,
         DEFAULT_STALE_AFTER_SECONDS,
-    )
-    .with_filters(SubnetCatalogFilters {
+    );
+    request.filters = SubnetCatalogFilters {
         kind: typed_option(matches, "kind"),
         specialization: typed_option(matches, "specialization"),
         geographic_scope: typed_option(matches, "geo"),
-    })
-    .with_show_ranges(matches.get_flag("show-ranges"))
-    .with_range_limit(required_typed(matches, "range-limit"))
-    .with_range_offset(required_typed(matches, "range-offset"));
+    };
+    request.show_ranges = matches.get_flag("show-ranges");
+    request.range_limit = required_typed(matches, "range-limit");
+    request.range_offset = required_typed(matches, "range-offset");
+
     (source.format, matches.get_flag("verbose"), request)
 }
 
@@ -48,7 +49,7 @@ pub(in crate::nns) fn catalog_info_request(
         DEFAULT_STALE_AFTER_SECONDS,
     );
     if let Some(forced) = typed_option(matches, "as") {
-        request = request.with_forced(forced);
+        request.forced = Some(forced);
     }
     (source.format, request)
 }

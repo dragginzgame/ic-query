@@ -111,13 +111,6 @@ impl NnsNeuronListRequest {
             exclusive_start_neuron_id: None,
         }
     }
-
-    /// Start strictly after the given neuron id.
-    #[must_use]
-    pub const fn with_exclusive_start_neuron_id(mut self, neuron_id: u64) -> Self {
-        self.exclusive_start_neuron_id = Some(neuron_id);
-        self
-    }
 }
 
 ///

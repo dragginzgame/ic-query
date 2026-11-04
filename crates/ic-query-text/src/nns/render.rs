@@ -1,5 +1,6 @@
 //! Shared NNS text-rendering primitives for inventory and refresh reports.
 
+use crate::text_value::field;
 use ic_host_text::escape::terminal_text;
 
 #[cfg(feature = "nns-host")]
@@ -41,17 +42,11 @@ pub fn nns_inventory_refresh_report_text(
     ] = registry_provenance_lines(&report.provenance);
     let mut lines = vec![
         network,
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
+        field("cache_path", &report.cache_path),
+        field("refresh_lock_path", &report.refresh_lock_path),
     ];
     if let Some(governance_canister_id) = &report.governance_canister_id {
-        lines.push(format!(
-            "governance_canister_id: {}",
-            terminal_text(governance_canister_id)
-        ));
+        lines.push(field("governance_canister_id", &(governance_canister_id)));
     }
     lines.extend([
         registry_id,
@@ -59,14 +54,14 @@ pub fn nns_inventory_refresh_report_text(
         fetched_at,
         endpoint,
         fetched_by,
-        format!("dry_run: {}", yes_no(report.dry_run)),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
+        field("dry_run", &(yes_no(report.dry_run))),
+        field("wrote_cache", &(yes_no(report.wrote_cache))),
+        field(
+            "replaced_existing_cache",
+            &(yes_no(report.replaced_existing_cache)),
         ),
-        format!("collection: {}", terminal_text(&report.collection)),
-        format!("row_count: {}", report.row_count),
+        field("collection", &report.collection),
+        field("row_count", &(report.row_count)),
     ]);
     lines.join("\n")
 }
@@ -76,14 +71,20 @@ pub(super) fn registry_provenance_lines(
     provenance: &ic_query::nns::registry::NnsRegistryInventoryProvenance,
 ) -> [String; 6] {
     [
-        format!("registry_canister_id: {}", provenance.registry_canister_id),
-        format!("registry_version: {}", provenance.registry_version),
-        format!("network: {}", terminal_text(&provenance.network)),
-        format!("fetched_at: {}", terminal_text(&provenance.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&provenance.source_endpoint)
-        ),
-        format!("fetched_by: {}", terminal_text(&provenance.fetched_by)),
+        field("registry_canister_id", &(provenance.registry_canister_id)),
+        field("registry_version", &(provenance.registry_version)),
+        field("network", &provenance.network),
+        field("fetched_at", &provenance.fetched_at),
+        field("source_endpoint", &provenance.source_endpoint),
+        field("fetched_by", &provenance.fetched_by),
     ]
+}
+
+/// Select full identities for verbose reports and compact prefixes otherwise.
+pub(super) fn identity(value: &str, verbose: bool) -> String {
+    if verbose {
+        terminal_text(value).into_owned()
+    } else {
+        compact_text(value, 5)
+    }
 }

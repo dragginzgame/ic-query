@@ -49,12 +49,10 @@ pub async fn build_cloud_engine_operator_report_with_source(
     Ok(CloudEngineOperatorReport {
         context: report_context(request, source.query_call_count),
         subnet_id,
-        operator_binding_present: source.operator_canister_id.is_some(),
         operator_canister_id: source.operator_canister_id,
         engine_owner: source.engine_owner,
         platform_admin: source.platform_admin,
         caffeine_enabled: source.caffeine_enabled,
-        claimed_domain_count: source.claimed_domains.as_ref().map(Vec::len),
         claimed_domains: source.claimed_domains,
     })
 }
@@ -79,7 +77,6 @@ pub async fn build_cloud_engine_prices_report_with_source(
     Ok(CloudEnginePricesReport {
         context: report_context(request, source.query_call_count),
         network_fee: source.network_fee,
-        price_count: source.prices.len(),
         prices: source.prices,
     })
 }

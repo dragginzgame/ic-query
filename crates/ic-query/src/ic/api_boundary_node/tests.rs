@@ -47,7 +47,7 @@ mod host {
         .await
         .expect("query task")
         .expect("certified fixture report");
-        assert_eq!(report.node_count, 2);
+        assert_eq!(report.rows.len(), 2);
         assert!(report.provenance.certified);
     }
 
@@ -59,7 +59,7 @@ mod host {
             .expect("certified API boundary nodes");
 
         assert_eq!((*source.calls.lock().unwrap()), 1);
-        assert_eq!(report.node_count, 2);
+        assert_eq!(report.rows.len(), 2);
         assert_eq!(report.rows[0].node_id, NODE_A);
         assert_eq!(report.rows[1].node_id, NODE_B);
         assert_eq!(
@@ -115,9 +115,8 @@ mod host {
             delegation: None,
         };
 
-        let data =
-            super::super::host::source_data_from_certificate(&source_request, certificate.into())
-                .expect("authenticated tree shape");
+        let data = super::super::host::source_data_from_certificate(&source_request, certificate)
+            .expect("authenticated tree shape");
 
         assert_eq!(data.certificate_time_unix_nanos, NOW * 1_000_000_000);
         assert_eq!(data.rows.len(), 2);
@@ -147,11 +146,9 @@ mod host {
                 signature: Vec::new(),
                 delegation: None,
             };
-            let error = super::super::host::source_data_from_certificate(
-                &source_request(),
-                certificate.into(),
-            )
-            .unwrap_err();
+            let error =
+                super::super::host::source_data_from_certificate(&source_request(), certificate)
+                    .unwrap_err();
             assert!(matches!(
                 error, IcApiBoundaryNodeHostError::InvalidCertifiedState { reason }
                     if reason.contains("certificate time")

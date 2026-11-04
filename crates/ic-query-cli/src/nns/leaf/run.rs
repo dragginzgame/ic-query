@@ -21,8 +21,7 @@ pub(in crate::nns) async fn run_cached_leaf_list<Report, Error>(
         &NnsInventoryListRequest,
         &mut dyn QueryProgress,
     ) -> Result<Report, Error>,
-    render: &(dyn Fn(&Report) -> String + Sync),
-    render_verbose: &(dyn Fn(&Report) -> String + Sync),
+    render: &(dyn Fn(&Report, ic_query_text::TextOptions) -> String + Sync),
 ) -> Result<(), NnsCommandError>
 where
     Report: Serialize,
@@ -35,13 +34,7 @@ where
     let report = build_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
-    write_text_or_json_verbose(
-        options.common.format,
-        &report,
-        options.verbose,
-        render,
-        render_verbose,
-    )
+    write_text_or_json_verbose(options.common.format, &report, options.verbose, render)
 }
 
 pub(in crate::nns) async fn run_cached_leaf_info<Report, Error>(
@@ -88,10 +81,11 @@ where
         cache,
         options.common.source_endpoint,
         current_unix_secs()?,
-    )
-    .with_dry_run(options.dry_run);
+    );
+    request.dry_run = options.dry_run;
+
     if let Some(output_path) = options.output_path {
-        request = request.with_output_path(output_path);
+        request.output_path = Some(output_path);
     }
     let report = refresh_report(&request).await.map_err(Into::into)?;
     write_text_or_json(

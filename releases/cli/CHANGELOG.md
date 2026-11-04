@@ -7,6 +7,59 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.90.0]
+
+### ⚠️ Breaking
+
+- Adopt Query's Platform 0.22/Host Tools 0.82 public dependency identities.
+  Rust embedders align Query/Text and direct certificate/error dependencies;
+  command behavior and report/cache formats are unchanged.
+
+- Use one options-aware renderer for each NNS inventory and Subnet Catalog list;
+  retire the separate verbose renderer functions. Verbose output keeps full
+  identities and report provenance without repeating metadata on every row.
+- Keep concise proposal/neuron summaries and tables. Remove exhaustive per-row
+  text dumps and proposal `--ballots`; use the existing `--json` output for raw
+  details and ballots. `TextOptions` now contains only `verbose`.
+- Adopt Query's shared canister payload and derived-count report changes; report
+  schemas stay at 1 and JSON consumers must adopt the replacement shape.
+
+- Make NNS proposal-activity and neuron-distribution reports output-only. Remove
+  report read-back validators, their error types and analytics deserialization;
+  retain source/collection validation, builders and unchanged schema-1 JSON output.
+- Remove CloudEngine Type4 node-list `node_count`; derive it from `nodes`. Human
+  output and the independent aggregate summaries remain.
+
+- Remove 62 assignment-only request/query setters over public fields. Configure
+  those fields after construction; retain validating setters, proposal sort
+  direction resets and cache-route selection. Update Rust callers for this cut.
+- Remove redundant CloudEngine price/provider counts, operator binding/domain
+  summary fields, and topology region/referenced-provider counts. Derive them
+  from retained values; independent source totals and human output remain.
+
+### 🔧 Changed
+
+- Align Foundation requirements with locked 0.74.3 and Build with 0.74.3;
+  qualify Platform 0.22.0 with Runtime/macros/guard 0.19.1. CLI commands,
+  output and the compiler floor are unchanged.
+- Adopt Testkit 0.85's owned PocketIC client and explicit server endpoint
+  contract; retain Query's managed startup and remove the separate client
+  dependency. Prepare the matching CLI with `make install-testkit`; the
+  PocketIC 16.1.0 server and Wire 0.16 selection remain.
+- Use Shared Tooling 0.29.3's release plans and evidence checks to scope qualified
+  CLI/Text-only releases to their product tests and real library integration.
+  Query changes retain CLI consumers; full CI, native and archive obligations
+  remain. Unknown scope or unqualified hosts keep the full gate. See
+  [#112 — Query/CLI release plans](https://github.com/dragginzgame/ic-query/issues/112) and the [0.90 notes](0.90.md).
+
+### 🧪 Testing
+
+- Keep standalone Governance probe fixtures independent of enclosing Cargo
+  workspaces, including when temporary directories are retained inside a checkout.
+
+- Keep unit tests and shared fixtures in dedicated test files so source-size
+  reports separate production code from tests.
+
 ## [0.89.0] - 2026-11-03
 
 ### ⚠️ Breaking

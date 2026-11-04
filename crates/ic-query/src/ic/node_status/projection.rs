@@ -90,7 +90,6 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
             requested_target: view.target.clone(),
             resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
             resolved_from: resolution.map(|value| value.resolved_from),
-            returned_node_count: nodes.len(),
             nodes,
         })
     }
@@ -136,7 +135,6 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
             requested_target: view.target.clone(),
             resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
             resolved_from: resolution.map(|value| value.resolved_from),
-            returned_subnet_count: subnets.len(),
             subnets,
         })
     }
@@ -200,7 +198,6 @@ impl<'a> ValidatedNodeStatusSnapshot<'a> {
             requested_target: view.target.clone(),
             resolved_target: resolution.as_ref().map(|value| value.resolved.clone()),
             resolved_from: resolution.map(|value| value.resolved_from),
-            returned_provider_count: providers.len(),
             providers,
         })
     }

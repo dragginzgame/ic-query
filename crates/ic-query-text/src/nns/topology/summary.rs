@@ -4,10 +4,9 @@
 //! Does not own: summary report construction, source reads, or JSON output.
 //! Boundary: keeps summary count, kind, coverage, and version tables together.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::nns::topology::common::render_join_coverage_table;
 use crate::nns::topology::common::render_registry_version_table;
@@ -61,7 +60,7 @@ fn render_count_table(report: &NnsTopologySummaryReport) -> String {
         ],
     ];
     let alignments = [Alignment::Left, Alignment::Right];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }
 
 fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
@@ -89,5 +88,5 @@ fn render_kind_table(report: &NnsTopologySummaryReport) -> String {
         ],
     ];
     let alignments = [Alignment::Left, Alignment::Right, Alignment::Right];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

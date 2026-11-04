@@ -301,6 +301,16 @@ new_fixture() {
   bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
     Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh scripts/ci/cargo-release-group.sh
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
+  # Runner recovery effects are simulated here; the real plan/custody boundary
+  # is qualified separately by check-release-validation.sh.
+  cat > scripts/release/validation.sh <<'STUB'
+set -euo pipefail
+case "$1" in
+  run) make --no-print-directory ci ;;
+  check) [[ -f "$2/passed" ]] ;;
+  *) exit 2 ;;
+esac
+STUB
   candidate="$(bash scripts/ci/next-release-version.sh 0.46.5 "$kind")"
   minor="${candidate%.*}"
   printf '%s\n' "$candidate" > candidate

@@ -7,8 +7,10 @@ explicit package version; the root catalog records the exact current version of
 every local member. Missing and unknown selections fail before setup or effects.
 
 The maintainer runs `make release-minor RELEASE_GROUP=query` (or `release-patch`
-for a compatible batch). Both groups retain the complete `make ci` gate and
-native host matrix. The shared runner stages the selected policy's explicit files,
+for a compatible batch). Both groups use the qualified
+[group validation mapping](query-release-validation.md), with full-gate fallback
+for shared/unknown inputs and unqualified hosts. Full repository CI and the native
+host matrix remain required. The shared runner stages the selected policy's explicit files,
 commits, creates an annotated `query-vX.Y.Z` or `cli-vX.Y.Z` tag, and atomically
 pushes the selected branch and tag. Publication remains separate:
 `make publish RELEASE_GROUP=query` or `make publish RELEASE_GROUP=cli`.
@@ -21,7 +23,7 @@ Group-qualified recovery journals and receipts bind the group, policy digest,
 source, versions and destination. Resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the current 0.89 hard cut, release and publish Query first, then the CLI group.
+For the pending 0.90 dependency alignment, release and publish Query first, then the CLI group.
 Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed

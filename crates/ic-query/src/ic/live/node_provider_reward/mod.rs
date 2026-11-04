@@ -1,0 +1,254 @@
+//! Module: ic::live::node_provider_reward
+//!
+//! Responsibility: live Dashboard node-provider reward URL and wire handling.
+//! Does not own: report validation, CLI parsing, provenance projection, or rendering.
+//! Boundary: performs one page, one exact record, or one bounded history request.
+
+use super::{LiveIcSource, dashboard_resource_url};
+use crate::ic::{
+    IcHostError, IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryQuery,
+    IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
+    IcNodeProviderRewardListQuery, IcNodeProviderRewardListSourceData, IcNodeProviderRewardRow,
+    IcNodeProviderRewardSource, IcNodeProviderRewardXdrConversionRate, IcSourceRequest, source,
+};
+use serde::Deserialize as SerdeDeserialize;
+use serde_json::Number;
+use std::collections::BTreeMap;
+use url::Url;
+
+const MAX_EXACT_JSON_FLOAT_INTEGER: u64 = (1_u64 << 53) - 1;
+
+impl IcNodeProviderRewardSource for LiveIcSource {
+    fn fetch_node_provider_reward_list<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardListQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardListSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            source::validate_node_provider_reward_list_query(query)?;
+            let url = node_provider_reward_list_url(&request.endpoint, query)?;
+            let wire: DashboardNodeProviderRewardList = self.fetch_live(url).await?;
+            wire.into_source_data(request, query)
+        })
+    }
+
+    fn fetch_node_provider_reward_info<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        reward_id: u64,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardInfoSourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            let url = node_provider_reward_info_url(&request.endpoint, reward_id)?;
+            let wire: DashboardNodeProviderReward = self.fetch_live(url).await?;
+            Ok(IcNodeProviderRewardInfoSourceData {
+                source: request.clone(),
+                reward: wire.into_public()?,
+            })
+        })
+    }
+
+    fn fetch_node_provider_reward_history<'a>(
+        &'a self,
+        request: &'a IcSourceRequest,
+        query: &'a IcNodeProviderRewardHistoryQuery,
+    ) -> crate::report::SourceFuture<'a, Result<IcNodeProviderRewardHistorySourceData, IcHostError>>
+    {
+        Box::pin(async move {
+            source::validate_node_provider_reward_history_query(query)?;
+            let url = node_provider_reward_history_url(&request.endpoint, query)?;
+            let wire: DashboardNodeProviderRewardHistory = self.fetch_live(url).await?;
+            Ok(IcNodeProviderRewardHistorySourceData {
+                source: request.clone(),
+                query: query.clone(),
+                observations: wire
+                    .reward_node_providers
+                    .into_iter()
+                    .map(|[amount, timestamp]| {
+                        Ok(IcNodeProviderRewardHistoryObservation {
+                            timestamp_unix_secs: number_to_u64(
+                                "reward history timestamp",
+                                timestamp,
+                            )?,
+                            amount_e8s: number_to_u64("reward history amount_e8s", amount)?,
+                        })
+                    })
+                    .collect::<Result<_, IcHostError>>()?,
+            })
+        })
+    }
+}
+
+fn node_provider_reward_list_url(
+    endpoint: &str,
+    query: &IcNodeProviderRewardListQuery,
+) -> Result<Url, IcHostError> {
+    let mut url = dashboard_resource_url(endpoint, &["reward-node-providers"])?;
+    {
+        let mut pairs = url.query_pairs_mut();
+        pairs.append_pair("format", "json");
+        pairs.append_pair("limit", &query.limit.to_string());
+        pairs.append_pair("offset", &query.offset.to_string());
+        if let Some(max_reward_index) = query.max_reward_index {
+            pairs.append_pair(
+                "max_reward_node_provider_index",
+                &max_reward_index.to_string(),
+            );
+        }
+    }
+    Ok(url)
+}
+
+fn node_provider_reward_info_url(endpoint: &str, reward_id: u64) -> Result<Url, IcHostError> {
+    dashboard_resource_url(endpoint, &["reward-node-providers", &reward_id.to_string()])
+}
+
+fn node_provider_reward_history_url(
+    endpoint: &str,
+    query: &IcNodeProviderRewardHistoryQuery,
+) -> Result<Url, IcHostError> {
+    let mut url = dashboard_resource_url(endpoint, &["timeseries", "reward-node-providers"])?;
+    {
+        let mut pairs = url.query_pairs_mut();
+        pairs.append_pair("format", "json");
+        super::append_time_series(
+            &mut pairs,
+            query.start_unix_secs,
+            query.end_unix_secs,
+            query.step_secs,
+        );
+    }
+    Ok(url)
+}
+
+#[derive(SerdeDeserialize)]
+struct DashboardNodeProviderRewardList {
+    data: Vec<DashboardNodeProviderReward>,
+    max_reward_node_provider_index: u64,
+    total_reward_node_providers: u64,
+}
+
+impl DashboardNodeProviderRewardList {
+    fn into_source_data(
+        self,
+        request: &IcSourceRequest,
+        query: &IcNodeProviderRewardListQuery,
+    ) -> Result<IcNodeProviderRewardListSourceData, IcHostError> {
+        Ok(IcNodeProviderRewardListSourceData {
+            source: request.clone(),
+            query: query.clone(),
+            resolved_max_reward_index: self.max_reward_node_provider_index,
+            total_reward_records: self.total_reward_node_providers,
+            rows: self
+                .data
+                .into_iter()
+                .map(DashboardNodeProviderReward::into_public)
+                .collect::<Result<_, _>>()?,
+        })
+    }
+}
+
+#[derive(SerdeDeserialize)]
+struct DashboardNodeProviderReward {
+    amount_e8s: u64,
+    #[serde(default)]
+    details: BTreeMap<String, serde_json::Value>,
+    maximum_node_provider_rewards_e8s: Option<u64>,
+    minimum_xdr_permyriad_per_icp: Option<u64>,
+    node_provider: String,
+    proposal_id: Option<Number>,
+    registry_version: Option<Number>,
+    reward_mode: String,
+    id: u64,
+    timestamp_seconds: u64,
+    updated_at: String,
+    #[serde(default)]
+    xdr_conversion_rate: DashboardNodeProviderRewardXdrConversionRate,
+}
+
+impl DashboardNodeProviderReward {
+    fn into_public(self) -> Result<IcNodeProviderRewardRow, IcHostError> {
+        Ok(IcNodeProviderRewardRow {
+            reward_id: self.id,
+            amount_e8s: self.amount_e8s,
+            details: self.details,
+            maximum_node_provider_rewards_e8s: self.maximum_node_provider_rewards_e8s,
+            minimum_xdr_permyriad_per_icp: self.minimum_xdr_permyriad_per_icp,
+            node_provider_id: self.node_provider,
+            proposal_id: self
+                .proposal_id
+                .map(|value| number_to_u64("proposal_id", value))
+                .transpose()?,
+            registry_version: self
+                .registry_version
+                .map(|value| number_to_u64("registry_version", value))
+                .transpose()?,
+            reward_mode: self.reward_mode,
+            reward_timestamp_unix_secs: self.timestamp_seconds,
+            dashboard_updated_at: self.updated_at,
+            xdr_conversion_rate: self.xdr_conversion_rate.into_public()?,
+        })
+    }
+}
+
+#[derive(Default, SerdeDeserialize)]
+struct DashboardNodeProviderRewardXdrConversionRate {
+    timestamp_seconds: Option<Number>,
+    xdr_permyriad_per_icp: Option<Number>,
+}
+
+impl DashboardNodeProviderRewardXdrConversionRate {
+    fn into_public(self) -> Result<IcNodeProviderRewardXdrConversionRate, IcHostError> {
+        Ok(IcNodeProviderRewardXdrConversionRate {
+            timestamp_unix_secs: self
+                .timestamp_seconds
+                .map(|value| number_to_u64("xdr timestamp_seconds", value))
+                .transpose()?,
+            xdr_permyriad_per_icp: self
+                .xdr_permyriad_per_icp
+                .map(|value| number_to_u64("xdr_permyriad_per_icp", value))
+                .transpose()?,
+        })
+    }
+}
+
+#[derive(SerdeDeserialize)]
+struct DashboardNodeProviderRewardHistory {
+    reward_node_providers: Vec<[Number; 2]>,
+}
+
+fn number_to_u64(field: &str, value: Number) -> Result<u64, IcHostError> {
+    if let Some(value) = value.as_u64() {
+        return Ok(value);
+    }
+    let raw = value.to_string();
+    let invalid_integer = || IcHostError::InvalidSourceData {
+        reason: format!("{field} is not an unsigned integer: {raw}"),
+    };
+    let Some((integer, fraction)) = raw.split_once('.') else {
+        return Err(invalid_integer());
+    };
+    if !crate::decimal::is_unsigned_decimal(integer)
+        || fraction.is_empty()
+        || !fraction.bytes().all(|byte| byte == b'0')
+    {
+        return Err(invalid_integer());
+    }
+    let parsed = integer
+        .parse()
+        .map_err(|_| IcHostError::InvalidSourceData {
+            reason: format!("{field} is outside the u64 range: {raw}"),
+        })?;
+    if parsed > MAX_EXACT_JSON_FLOAT_INTEGER {
+        return Err(IcHostError::InvalidSourceData {
+            reason: format!(
+                "{field} uses a decimal JSON number above the exact-integer range: {raw}"
+            ),
+        });
+    }
+    Ok(parsed)
+}
+
+#[cfg(test)]
+mod tests;

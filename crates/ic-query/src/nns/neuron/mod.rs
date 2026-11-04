@@ -10,14 +10,12 @@ pub use report::{
     DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
     NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE, NnsKnownNeuronData,
     NnsNeuronBallotRow, NnsNeuronCollectionState, NnsNeuronCollectionStep,
-    NnsNeuronDistributionError, NnsNeuronDistributionReport, NnsNeuronDistributionValidationError,
-    NnsNeuronError, NnsNeuronInfoReport, NnsNeuronInfoRequest, NnsNeuronListReport,
-    NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow, NnsNeuronSource, NnsNeuronSourceFuture,
-    NnsNeuronState, NnsNeuronStateDistribution, NnsNeuronType, NnsNeuronTypeDistribution,
-    NnsNeuronVisibility, NnsNeuronVisibilityDistribution,
+    NnsNeuronDistributionError, NnsNeuronDistributionReport, NnsNeuronError, NnsNeuronInfoReport,
+    NnsNeuronInfoRequest, NnsNeuronListReport, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
+    NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronStateDistribution,
+    NnsNeuronType, NnsNeuronTypeDistribution, NnsNeuronVisibility, NnsNeuronVisibilityDistribution,
     advance_nns_neuron_collection_with_source, build_nns_neuron_distribution_report,
     build_nns_neuron_info_report_with_source, build_nns_neuron_list_report_with_source,
-    validate_nns_neuron_distribution_report,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{

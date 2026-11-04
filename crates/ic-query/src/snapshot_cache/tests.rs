@@ -11,7 +11,7 @@ use crate::{
     QueryProgressEvent, QueryProgressState,
     cache::{CacheCollectionCompleteness, CacheRefreshAttemptStatus},
     cache_file::{CacheFileError, HostCacheError, LoadJsonCacheRequest},
-    test_support::temp_dir,
+    tests::temp_dir,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::{

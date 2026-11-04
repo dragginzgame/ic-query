@@ -77,8 +77,9 @@ async fn icrc_indexed_count_validates_request_and_custom_source_identity() {
 #[tokio::test(flavor = "current_thread")]
 async fn icrc_account_and_holder_index_reports_preserve_bounded_follow_up_evidence() {
     let source = IcrcIndexFixture::default();
-    let account_query = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::BalanceDescending)
-        .with_owner(ICRC_ACCOUNT_ID);
+    let mut account_query = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::BalanceDescending);
+    account_query.owner = Some(ICRC_ACCOUNT_ID.into());
+
     let account_request = IcIcrcAccountListRequest::new(
         crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
@@ -129,9 +130,12 @@ async fn icrc_index_requests_fail_before_source_calls_when_bounds_or_identity_ar
     let account_request = IcIcrcAccountListRequest::new(
         crate::ic::IcDashboardRequest::new(DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT, ICRC_SUPPLY_END),
         ICRC_LEDGER_ID,
-        IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::Id)
-            .with_after("next")
-            .with_before("previous"),
+        {
+            let mut configured_request = IcIcrcAccountListQuery::new(2, IcIcrcAccountSort::Id);
+            configured_request.after = Some("next".into());
+            configured_request.before = Some("previous".into());
+            configured_request
+        },
     );
     assert!(
         build_icrc_account_list_report_with_source(&account_request, &source)
@@ -559,12 +563,16 @@ async fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
         DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT
     );
     assert_eq!(report.provenance.fetched_at, FETCHED_AT);
-    assert_eq!(report.canister_id, CANISTER_ID);
-    assert_eq!(report.canister_type.as_deref(), Some("ledger"));
-    assert_eq!(report.controllers, [CONTROLLER_ID]);
-    assert_eq!(report.upgrade_count, Some(2));
+    assert_eq!(report.data.canister_id, CANISTER_ID);
+    assert_eq!(report.data.canister_type.as_deref(), Some("ledger"));
+    assert_eq!(report.data.controllers, [CONTROLLER_ID]);
+    assert_eq!(report.data.upgrades.as_ref().map(Vec::len), Some(2));
+    let json = serde_json::to_value(&report).unwrap();
+    assert!(json.get("upgrade_count").is_none());
+    assert!(json.get("data").is_none());
+    assert_eq!(json["canister_id"], CANISTER_ID);
     assert_eq!(
-        report.upgrades.as_ref().expect("history")[0].proposal_id,
+        report.data.upgrades.as_ref().expect("history")[0].proposal_id,
         138_271
     );
     assert!(!report.provenance.certified);
@@ -573,13 +581,13 @@ async fn canister_report_preserves_dashboard_values_and_explicit_provenance() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn canister_report_preserves_null_upgrade_history() {
-    let source = MutatingSource(|data| data.upgrades = None);
+    let source = MutatingSource(|data| data.data.upgrades = None);
     let report = build_ic_canister_report_with_source(&request(), &source)
         .await
         .expect("nullable history");
 
-    assert_eq!(report.upgrades, None);
-    assert_eq!(report.upgrade_count, None);
+    assert_eq!(report.data.upgrades, None);
+    assert_eq!(report.data.upgrades.as_ref().map(Vec::len), None);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -630,11 +638,11 @@ async fn custom_source_identity_and_provenance_are_validated() {
 #[tokio::test(flavor = "current_thread")]
 async fn projection_canonically_orders_controllers_and_upgrade_history() {
     let source = MutatingSource(|data| {
-        data.controllers = vec![
+        data.data.controllers = vec![
             "qaa6y-5yaaa-aaaaa-aaafa-cai".to_string(),
             CONTROLLER_ID.to_string(),
         ];
-        data.upgrades.as_mut().expect("history").reverse();
+        data.data.upgrades.as_mut().expect("history").reverse();
     });
 
     let report = build_ic_canister_report_with_source(&request(), &source)
@@ -642,11 +650,11 @@ async fn projection_canonically_orders_controllers_and_upgrade_history() {
         .expect("canonical report");
 
     assert_eq!(
-        report.controllers,
+        report.data.controllers,
         ["qaa6y-5yaaa-aaaaa-aaafa-cai", CONTROLLER_ID]
     );
     assert_eq!(
-        report.upgrades.as_ref().expect("history")[0].proposal_id,
+        report.data.upgrades.as_ref().expect("history")[0].proposal_id,
         138_271
     );
 }
@@ -882,11 +890,11 @@ async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
         canister_types: vec!["ledger".to_string()],
         query: Some("ICP Ledger".to_string()),
     };
-    let request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
+    let mut request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_filters(filters);
+    ));
+    request.filters = filters;
 
     let report = build_ic_canister_count_report_with_source(&request, &source)
         .await
@@ -903,11 +911,11 @@ async fn canister_count_normalizes_filters_and_preserves_bounded_provenance() {
 #[tokio::test(flavor = "current_thread")]
 async fn canister_page_returns_one_validated_slice_without_following_cursor() {
     let source = CollectionFixture::default();
-    let request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
+    let mut request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_limit(2);
+    ));
+    request.limit = 2;
 
     let report = build_ic_canister_page_report_with_source(&request, &source)
         .await
@@ -955,14 +963,14 @@ async fn canister_page_validates_bound_and_cursor_contract_before_source_call() 
 #[tokio::test(flavor = "current_thread")]
 async fn canister_collection_filters_are_validated_before_source_calls() {
     let source = CollectionFixture::default();
-    let request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
+    let mut request = IcCanisterCountRequest::new(crate::ic::IcDashboardRequest::new(
         DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
         1_700_000_000,
-    ))
-    .with_filters(IcCanisterFilters {
+    ));
+    request.filters = IcCanisterFilters {
         query: Some("x".to_string()),
         ..IcCanisterFilters::default()
-    });
+    };
 
     let error = build_ic_canister_count_report_with_source(&request, &source)
         .await
@@ -993,11 +1001,11 @@ async fn canister_page_rejects_invalid_custom_source_order_and_provenance() {
             page_mutation: Mutex::new(Some(mutation)),
             ..CollectionFixture::default()
         };
-        let request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
+        let mut request = IcCanisterPageRequest::new(crate::ic::IcDashboardRequest::new(
             DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT,
             1_700_000_000,
-        ))
-        .with_limit(3);
+        ));
+        request.limit = 3;
 
         let error = build_ic_canister_page_report_with_source(&request, &source)
             .await
@@ -1744,32 +1752,34 @@ fn invalid_page_cursor(request: &mut IcCanisterPageRequest) {
 fn source_data(request: &IcSourceRequest, canister_id: &str) -> IcCanisterSourceData {
     IcCanisterSourceData {
         source: request.clone(),
-        canister_id: canister_id.to_string(),
-        dashboard_id: 226_973,
-        canister_type: Some("ledger".to_string()),
-        name: "ICP Ledger".to_string(),
-        subnet_id: SUBNET_ID.to_string(),
-        controllers: vec![CONTROLLER_ID.to_string()],
-        language: String::new(),
-        module_hash: MODULE_HASH.to_string(),
-        dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
-        upgrades: Some(vec![
-            IcCanisterUpgrade {
-                executed_timestamp_seconds: 1_756_730_623,
-                module_hash: MODULE_HASH.to_string(),
-                proposal_id: 138_271,
-            },
-            IcCanisterUpgrade {
-                executed_timestamp_seconds: 1_755_509_658,
-                module_hash: OLDER_MODULE_HASH.to_string(),
-                proposal_id: 137_924,
-            },
-        ]),
+        data: crate::ic::IcCanisterData {
+            canister_id: canister_id.to_string(),
+            dashboard_id: 226_973,
+            canister_type: Some("ledger".to_string()),
+            name: "ICP Ledger".to_string(),
+            subnet_id: SUBNET_ID.to_string(),
+            controllers: vec![CONTROLLER_ID.to_string()],
+            language: String::new(),
+            module_hash: MODULE_HASH.to_string(),
+            dashboard_updated_at: "2026-07-30T17:47:41.745647".to_string(),
+            upgrades: Some(vec![
+                IcCanisterUpgrade {
+                    executed_timestamp_seconds: 1_756_730_623,
+                    module_hash: MODULE_HASH.to_string(),
+                    proposal_id: 138_271,
+                },
+                IcCanisterUpgrade {
+                    executed_timestamp_seconds: 1_755_509_658,
+                    module_hash: OLDER_MODULE_HASH.to_string(),
+                    proposal_id: 137_924,
+                },
+            ]),
+        },
     }
 }
 
 fn wrong_canister(data: &mut IcCanisterSourceData) {
-    data.canister_id = "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string();
+    data.data.canister_id = "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string();
 }
 
 fn wrong_endpoint(data: &mut IcCanisterSourceData) {
@@ -1777,14 +1787,18 @@ fn wrong_endpoint(data: &mut IcCanisterSourceData) {
 }
 
 fn duplicate_controller(data: &mut IcCanisterSourceData) {
-    data.controllers.push(CONTROLLER_ID.to_string());
+    data.data.controllers.push(CONTROLLER_ID.to_string());
 }
 
 fn invalid_module_hash(data: &mut IcCanisterSourceData) {
-    data.module_hash = "not a hash".to_string();
+    data.data.module_hash = "not a hash".to_string();
 }
 
 fn duplicate_upgrade(data: &mut IcCanisterSourceData) {
-    let duplicate = data.upgrades.as_ref().expect("history")[0].clone();
-    data.upgrades.as_mut().expect("history").push(duplicate);
+    let duplicate = data.data.upgrades.as_ref().expect("history")[0].clone();
+    data.data
+        .upgrades
+        .as_mut()
+        .expect("history")
+        .push(duplicate);
 }

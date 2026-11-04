@@ -7,7 +7,7 @@ use ic_host_text::{
 #[cfg(feature = "host")]
 use crate::token_amount::e8s_decimal_text;
 use crate::{
-    text_value::{optional_text, optional_u64_text, truncate_text, yes_no},
+    text_value::{field, optional_text, optional_u64_text, truncate_text, yes_no},
     token_amount::base_units_decimal_text,
 };
 
@@ -86,7 +86,7 @@ fn render_table_handles_long_left_aligned_cells() {
     let table = render(
         &["STANDARD", "URL"],
         &rows,
-        &[Alignment::Left, Alignment::Left],
+        &[Alignment::Left; 2],
         REPORT_TABLE_OPTIONS,
     );
 
@@ -130,7 +130,12 @@ fn render_table_aligns_wide_unicode_cells_by_terminal_width() {
 fn render_table_escapes_control_characters_in_values() {
     let rows = [["line one\nline two\u{1b}[31m".to_string()]];
 
-    let table = render(&["VALUE"], &rows, &[Alignment::Left], REPORT_TABLE_OPTIONS);
+    let table = render(
+        &["VALUE"],
+        &rows,
+        &[Alignment::Left; 1],
+        REPORT_TABLE_OPTIONS,
+    );
 
     assert!(table.contains("line one\\nline two\\u{1b}[31m"));
     assert_eq!(table.lines().count(), 3);
@@ -143,7 +148,7 @@ fn render_table_escapes_headers_and_cells_without_double_escaping() {
     let table = render(
         &["VALUE\n"],
         &rows,
-        &[Alignment::Left],
+        &[Alignment::Left; 1],
         REPORT_TABLE_OPTIONS,
     );
 
@@ -182,4 +187,14 @@ fn scalar_text_sanitizing_is_control_free_and_idempotent() {
     for limit in 0..=sanitized.chars().count() {
         assert!(!truncate_text(&ascii, limit).chars().any(char::is_control));
     }
+}
+
+#[test]
+fn labelled_fields_escape_values_without_changing_printable_unicode_or_numbers() {
+    assert_eq!(
+        field("title", &"界\n\u{1b}[31m\u{202e}x"),
+        "title: 界\\n\\u{1b}[31m\\u{202e}x"
+    );
+    assert_eq!(field("count", &42), "count: 42");
+    assert_eq!(field("path", &r"literal\n"), r"path: literal\n");
 }

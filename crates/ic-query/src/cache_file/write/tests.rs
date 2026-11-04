@@ -1,5 +1,5 @@
 use super::{validate_output_path, write_text_output};
-use crate::{cache_file::CacheFileError, test_support::temp_dir};
+use crate::{cache_file::CacheFileError, tests::temp_dir};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 use std::{fs, io, path::Path};

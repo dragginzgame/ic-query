@@ -23,10 +23,4 @@ impl NnsTopologyRefreshRequest {
             dry_run: false,
         }
     }
-
-    #[must_use]
-    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
-        self.dry_run = dry_run;
-        self
-    }
 }

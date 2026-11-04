@@ -4,11 +4,11 @@
 //! Does not own: live governance calls, JSON output, or report assembly.
 //! Boundary: returns formatted strings without selecting or writing to a process output sink.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
 use crate::text_value::push_titled_table_section;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 
 use crate::nns::governance::collection_context_lines as governance_collection_context_lines;
@@ -16,10 +16,7 @@ use crate::nns::governance::context_lines as governance_context_lines;
 use crate::text_value::optional_u64_text;
 use crate::text_value::truncate_text;
 use crate::text_value::yes_no;
-use crate::token_amount::e8s_decimal_text;
-use ic_query::nns::governance::NnsGovernanceVote;
 use ic_query::nns::proposals::NnsProposalActivityReport;
-use ic_query::nns::proposals::NnsProposalBallotRow;
 #[cfg(feature = "nns-host")]
 use ic_query::nns::proposals::NnsProposalCacheListReport;
 use ic_query::nns::proposals::NnsProposalListReport;
@@ -55,45 +52,42 @@ fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
         &report.context.source,
     );
     lines.extend([
-        format!(
-            "collection_page_count: {}",
-            report.context.collection_page_count
+        field(
+            "collection_page_count",
+            &(report.context.collection_page_count),
         ),
-        format!(
-            "collected_proposal_count: {}",
-            report.collected_proposal_count
+        field(
+            "collected_proposal_count",
+            &(report.collected_proposal_count),
         ),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.context.point_in_time_guaranteed)
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.context.point_in_time_guaranteed)),
         ),
-        format!(
-            "from_proposal_timestamp_seconds: {}",
-            optional_u64_text(report.from_proposal_timestamp_seconds)
+        field(
+            "from_proposal_timestamp_seconds",
+            &(optional_u64_text(report.from_proposal_timestamp_seconds)),
         ),
-        format!(
-            "until_proposal_timestamp_seconds: {}",
-            optional_u64_text(report.until_proposal_timestamp_seconds)
+        field(
+            "until_proposal_timestamp_seconds",
+            &(optional_u64_text(report.until_proposal_timestamp_seconds)),
         ),
-        format!(
-            "included_proposal_count: {}",
-            report.included_proposal_count
+        field("included_proposal_count", &(report.included_proposal_count)),
+        field(
+            "excluded_before_from_count",
+            &(report.excluded_before_from_count),
         ),
-        format!(
-            "excluded_before_from_count: {}",
-            report.excluded_before_from_count
+        field(
+            "excluded_at_or_after_until_count",
+            &(report.excluded_at_or_after_until_count),
         ),
-        format!(
-            "excluded_at_or_after_until_count: {}",
-            report.excluded_at_or_after_until_count
+        field(
+            "earliest_included_proposal_timestamp_seconds",
+            &(optional_u64_text(report.earliest_included_proposal_timestamp_seconds)),
         ),
-        format!(
-            "earliest_included_proposal_timestamp_seconds: {}",
-            optional_u64_text(report.earliest_included_proposal_timestamp_seconds)
-        ),
-        format!(
-            "latest_included_proposal_timestamp_seconds: {}",
-            optional_u64_text(report.latest_included_proposal_timestamp_seconds)
+        field(
+            "latest_included_proposal_timestamp_seconds",
+            &(optional_u64_text(report.latest_included_proposal_timestamp_seconds)),
         ),
     ]);
     lines
@@ -148,11 +142,10 @@ fn activity_count_table(
 ) -> Option<String> {
     let rows = rows.collect::<Vec<_>>();
     (!rows.is_empty()).then(|| {
-        render(
+        table(
             &headers,
             &rows,
             &[Alignment::Right, Alignment::Left, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -170,11 +163,10 @@ fn daily_activity_table(report: &NnsProposalActivityReport) -> Option<String> {
                 ]
             })
             .collect::<Vec<_>>();
-        render(
+        table(
             &["DAY_START_UTC", "DAY_START_SECONDS", "PROPOSALS"],
             &rows,
             &[Alignment::Left, Alignment::Right, Alignment::Right],
-            REPORT_TABLE_OPTIONS,
         )
     })
 }
@@ -187,32 +179,32 @@ pub fn nns_proposal_list_report_text(
 ) -> String {
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
-        format!("requested_limit: {}", report.requested_limit),
-        format!(
-            "before_proposal_id: {}",
-            optional_u64_text(report.before_proposal_id)
+        field("requested_limit", &(report.requested_limit)),
+        field(
+            "before_proposal_id",
+            &(optional_u64_text(report.before_proposal_id)),
         ),
-        format!("status_filter: {}", report.status_filter),
-        format!("reward_status_filter: {}", report.reward_status_filter),
-        format!("topic_filter: {}", report.topic_filter),
-        format!(
-            "proposer_filter: {}",
-            optional_u64_text(report.proposer_filter)
+        field("status_filter", &(report.status_filter)),
+        field("reward_status_filter", &(report.reward_status_filter)),
+        field("topic_filter", &(report.topic_filter)),
+        field(
+            "proposer_filter",
+            &(optional_u64_text(report.proposer_filter)),
         ),
-        format!(
-            "query_filter: {}",
-            terminal_text(report.query_filter.as_deref().unwrap_or("-"))
+        field(
+            "query_filter",
+            &(report.query_filter.as_deref().unwrap_or("-")),
         ),
-        format!("sort: {}", report.sort),
-        format!("sort_direction: {}", report.sort_direction),
-        format!("result_scope: {}", report.result_scope),
-        format!("verbose: {}", yes_no(options.verbose)),
-        format!("proposal_count: {}", report.proposals.len()),
+        field("sort", &(report.sort)),
+        field("sort_direction", &(report.sort_direction)),
+        field("result_scope", &(report.result_scope)),
+        field("verbose", &(yes_no(options.verbose))),
+        field("proposal_count", &(report.proposals.len())),
     ]);
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
     if !report.proposals.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &["ID", "TOPIC", "STATUS", "PROPOSED_AT", "TITLE"],
             &report
                 .proposals
@@ -238,28 +230,20 @@ pub fn nns_proposal_list_report_text(
                 Alignment::Left,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
     }
-    if options.verbose && !report.proposals.is_empty() {
-        lines.push(String::new());
-        lines.push("proposal_details:".to_string());
-        for proposal in &report.proposals {
-            lines.extend(proposal_detail_lines(proposal, None));
-        }
-    }
+
     lines.join("\n")
 }
 
-/// Render one proposal, including requested details and ballots, as human-facing text.
+/// Render one proposal summary; exhaustive fields and ballots remain in JSON.
 #[must_use]
 pub fn nns_proposal_report_text(report: &NnsProposalReport, options: crate::TextOptions) -> String {
     let proposal = &report.proposal;
     let mut lines = governance_context_lines(&report.context);
     lines.extend([
-        format!("proposal_id: {}", report.proposal_id),
-        format!("show_ballots: {}", yes_no(options.show_ballots)),
-        format!("verbose: {}", yes_no(options.verbose)),
+        field("proposal_id", &(report.proposal_id)),
+        field("verbose", &(yes_no(options.verbose))),
     ]);
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
     lines.push(String::new());
@@ -269,15 +253,7 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport, options: crate::Text
         Some(NNS_PROPOSAL_DETAIL_TEXT_LIMIT)
     };
     lines.extend(proposal_detail_lines(proposal, detail_limit));
-    if options.show_ballots {
-        lines.push(String::new());
-        lines.push("ballots:".to_string());
-        if let Some(table) = proposal_ballot_table(&proposal.ballots) {
-            lines.push(table);
-        } else {
-            lines.push("-".to_string());
-        }
-    }
+
     lines.join("\n")
 }
 
@@ -286,13 +262,13 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport, options: crate::Text
 #[cfg(feature = "nns-host")]
 pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("cache_count: {}", report.caches.len()),
+        field("network", &report.network),
+        field("cache_root", &report.cache_root),
+        field("cache_count", &(report.caches.len())),
     ];
     if !report.caches.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &["STATUS", "GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
             &report
                 .caches
@@ -319,7 +295,6 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
                 Alignment::Right,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
         for cache in &report.caches {
             if let Some(error) = cache.cache_error() {
@@ -335,77 +310,24 @@ pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) 
 }
 
 fn proposal_detail_lines(proposal: &NnsProposalRow, summary_limit: Option<usize>) -> Vec<String> {
-    let tally = proposal.latest_tally.as_ref();
     vec![
-        format!("proposal_id: {}", optional_u64_text(proposal.proposal_id)),
-        format!(
-            "proposer_neuron_id: {}",
-            optional_u64_text(proposal.proposer_neuron_id)
+        field("proposal_id", &(optional_u64_text(proposal.proposal_id))),
+        field(
+            "topic",
+            &(NnsProposalTopic::from_code(proposal.topic).as_str()),
         ),
-        format!(
-            "topic: {} ({})",
-            terminal_text(NnsProposalTopic::from_code(proposal.topic).as_str()),
-            proposal.topic
+        field(
+            "status",
+            &(NnsProposalStatus::from_code(proposal.status).as_str()),
         ),
-        format!(
-            "status: {} ({})",
-            terminal_text(NnsProposalStatus::from_code(proposal.status).as_str()),
-            proposal.status
+        field("title", &(proposal_title(proposal))),
+        field(
+            "proposed_at",
+            &(format_utc_timestamp_secs(proposal.proposal_timestamp_seconds)),
         ),
-        format!(
-            "reward_status: {} ({})",
-            terminal_text(NnsProposalRewardStatus::from_code(proposal.reward_status).as_str()),
-            proposal.reward_status
-        ),
-        format!(
-            "action: {}",
-            terminal_text(proposal.action_text.as_deref().unwrap_or("-"))
-        ),
-        format!("title: {}", proposal_title(proposal)),
-        format!("url: {}", terminal_text(empty_text(&proposal.url))),
-        format!(
-            "reject_cost: {}",
-            e8s_decimal_text(proposal.reject_cost_e8s)
-        ),
-        format!(
-            "proposed_at: {}",
-            format_utc_timestamp_secs(proposal.proposal_timestamp_seconds)
-        ),
-        format!(
-            "deadline_at: {}",
-            proposal
-                .deadline_timestamp_seconds
-                .map_or_else(|| "-".to_string(), format_utc_timestamp_secs)
-        ),
-        format!(
-            "decided_at: {}",
-            nonzero_timestamp_text(proposal.decided_timestamp_seconds)
-        ),
-        format!(
-            "executed_at: {}",
-            nonzero_timestamp_text(proposal.executed_timestamp_seconds)
-        ),
-        format!(
-            "failed_at: {}",
-            nonzero_timestamp_text(proposal.failed_timestamp_seconds)
-        ),
-        format!("reward_event_round: {}", proposal.reward_event_round),
-        format!(
-            "total_potential_voting_power: {}",
-            optional_u64_text(proposal.total_potential_voting_power)
-        ),
-        format!("ballot_count: {}", proposal.ballots.len()),
-        format!(
-            "latest_tally_yes: {}",
-            tally.map_or_else(|| "-".to_string(), |tally| tally.yes.to_string())
-        ),
-        format!(
-            "latest_tally_no: {}",
-            tally.map_or_else(|| "-".to_string(), |tally| tally.no.to_string())
-        ),
-        format!(
-            "summary: {}",
-            proposal_detail_text(&proposal.summary, summary_limit)
+        field(
+            "summary",
+            &(proposal_detail_text(&proposal.summary, summary_limit)),
         ),
     ]
 }
@@ -433,33 +355,4 @@ fn proposal_detail_text(value: &str, limit: Option<usize>) -> String {
         || terminal_text(value).into_owned(),
         |limit| truncate_text(value, limit),
     )
-}
-
-fn proposal_ballot_table(ballots: &[NnsProposalBallotRow]) -> Option<String> {
-    if ballots.is_empty() {
-        return None;
-    }
-    Some(render(
-        &["NEURON_ID", "VOTE", "VOTING_POWER"],
-        &ballots
-            .iter()
-            .map(|ballot| {
-                [
-                    ballot.neuron_id.to_string(),
-                    NnsGovernanceVote::from_code(ballot.vote).to_string(),
-                    e8s_decimal_text(ballot.voting_power),
-                ]
-            })
-            .collect::<Vec<_>>(),
-        &[Alignment::Right, Alignment::Left, Alignment::Right],
-        REPORT_TABLE_OPTIONS,
-    ))
-}
-
-fn nonzero_timestamp_text(timestamp_seconds: u64) -> String {
-    if timestamp_seconds == 0 {
-        "-".to_string()
-    } else {
-        format_utc_timestamp_secs(timestamp_seconds)
-    }
 }

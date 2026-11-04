@@ -15,7 +15,6 @@ use crate::{
 };
 use ic_host_text::timestamp::format_utc_timestamp_secs;
 use ic_host_tools::encoding::decode_canonical_unsigned_u64;
-use ic_platform::agent::ExternalCertificate;
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::SubtreeLookupResult;
 use ic_platform::certification::{Certificate, HashTree, LookupResult};
@@ -136,7 +135,7 @@ fn validate_live_request(
 
 pub(super) fn source_data_from_certificate(
     request: &IcApiBoundaryNodeSourceRequest,
-    certificate: ExternalCertificate,
+    certificate: Certificate,
 ) -> Result<IcApiBoundaryNodeSourceData, IcApiBoundaryNodeHostError> {
     let certificate_time = ic_platform::agent::lookup_value(&certificate, [b"time".as_slice()])
         .map_err(|error| {
@@ -144,7 +143,6 @@ pub(super) fn source_data_from_certificate(
         })?;
     let certificate_time_unix_nanos = decode_canonical_unsigned_u64(certificate_time)
         .map_err(|error| invalid_certified_state(format!("certificate time: {error}")))?;
-    let certificate: Certificate = certificate.into();
     let path = [API_BOUNDARY_NODES_LABEL];
     let tree = match certificate.tree.lookup_subtree(path.iter()) {
         SubtreeLookupResult::Found(tree) => tree,

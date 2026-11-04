@@ -146,7 +146,7 @@ mod text_search;
         feature = "subnet-catalog-host"
     )
 ))]
-mod test_support;
+mod tests;
 
 #[cfg(any(
     feature = "dashboard-host",

@@ -88,7 +88,7 @@ async fn sns_proposal_builders_reject_invalid_custom_source_rows() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn sns_proposal_refresh_rejects_invalid_custom_source_page() {
-    let root = crate::test_support::temp_dir("ic-query-invalid-sns-proposal-page");
+    let root = crate::tests::temp_dir("ic-query-invalid-sns-proposal-page");
     let error = refresh_sns_proposals_cache_with_source_and_progress(
         &sns_proposals_refresh_request(&root, None),
         &InvalidSnsProposalsSource,

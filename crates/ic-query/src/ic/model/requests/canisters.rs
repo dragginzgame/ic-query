@@ -78,13 +78,6 @@ impl IcCanisterCountRequest {
             filters: IcCanisterFilters::default(),
         }
     }
-
-    /// Set the Dashboard filters used by this request.
-    #[must_use]
-    pub fn with_filters(mut self, filters: IcCanisterFilters) -> Self {
-        self.filters = filters;
-        self
-    }
 }
 
 ///
@@ -118,33 +111,5 @@ impl IcCanisterPageRequest {
             after: None,
             before: None,
         }
-    }
-
-    /// Set the Dashboard filters used by this request.
-    #[must_use]
-    pub fn with_filters(mut self, filters: IcCanisterFilters) -> Self {
-        self.filters = filters;
-        self
-    }
-
-    /// Set the maximum number of returned rows.
-    #[must_use]
-    pub const fn with_limit(mut self, limit: u16) -> Self {
-        self.limit = limit;
-        self
-    }
-
-    /// Set an exclusive forward cursor.
-    #[must_use]
-    pub fn with_after(mut self, after: impl Into<String>) -> Self {
-        self.after = Some(after.into());
-        self
-    }
-
-    /// Set an exclusive backward cursor.
-    #[must_use]
-    pub fn with_before(mut self, before: impl Into<String>) -> Self {
-        self.before = Some(before.into());
-        self
     }
 }

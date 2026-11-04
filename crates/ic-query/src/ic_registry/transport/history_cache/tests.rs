@@ -9,7 +9,7 @@ use crate::{
             key_family::collect_key_family,
         },
     },
-    test_support::temp_dir,
+    tests::temp_dir,
 };
 use ic_host_tools::registry::proto::{
     HighCapacityRegistryDelta, HighCapacityRegistryGetChangesSinceResponse,

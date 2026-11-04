@@ -1,6 +1,6 @@
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::nns::render::compact_text;
 use ic_query::nns::topology::NnsSubnetTopologyReport;
@@ -25,8 +25,8 @@ pub fn nns_subnet_topology_report_text(report: &NnsSubnetTopologyReport) -> Stri
         render_subnet_provider_table(&report.subnets),
     ];
     lines.push(String::new());
-    lines.push(format!("fetched_at: {}", report.fetched_at));
-    lines.push(format!("source_endpoint: {}", report.source_endpoint));
+    lines.push(field("fetched_at", &(report.fetched_at)));
+    lines.push(field("source_endpoint", &(report.source_endpoint)));
     lines.join("\n")
 }
 
@@ -64,5 +64,5 @@ fn render_subnet_provider_table(subnets: &[NnsSubnetTopologyRow]) -> String {
         Alignment::Left,
         Alignment::Right,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

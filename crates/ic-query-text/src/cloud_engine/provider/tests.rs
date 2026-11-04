@@ -14,7 +14,6 @@ fn text_keeps_dashboard_provenance_separate_from_provider_tables() {
     let list = CloudEngineProviderListReport {
         provenance: provenance(),
         source_node_provider_count: 2,
-        cloud_engine_provider_count: 1,
         providers: vec![provider.clone()],
     };
     let info = CloudEngineProviderInfoReport {

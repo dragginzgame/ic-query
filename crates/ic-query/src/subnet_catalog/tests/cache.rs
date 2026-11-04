@@ -162,7 +162,9 @@ async fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
     {
         let root = temp_dir(&format!("ic-query-subnet-oversized-strict-{index}"));
         let path = write_oversized_catalog(&root);
-        let request = cache_only_load_request(&root).with_policy(policy);
+        let mut request = cache_only_load_request(&root);
+        request.policy = policy;
+
         let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
 
         let failure = load_subnet_catalog_with_source(&request, &source)
@@ -226,7 +228,9 @@ async fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
     {
         let root = temp_dir(&format!("ic-query-subnet-oversized-refresh-{index}"));
         write_oversized_catalog(&root);
-        let request = cache_only_load_request(&root).with_policy(policy);
+        let mut request = cache_only_load_request(&root);
+        request.policy = policy;
+
         let source = AgreementFixtureSource::new(AgreementFixtureMode::Matching, "");
 
         let outcome = load_subnet_catalog_with_source(&request, &source)
@@ -245,12 +249,11 @@ async fn oversized_catalog_refresh_obeys_explicit_repair_policies() {
 async fn oversized_catalog_failed_repair_preserves_cache_and_rejection_trigger() {
     let root = temp_dir("ic-query-subnet-oversized-failed-repair");
     let path = write_oversized_catalog(&root);
-    let request =
-        cache_only_load_request(&root).with_policy(CatalogReadPolicy::RefreshMissingOrInvalid {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = cache_only_load_request(&root);
+    request.policy = CatalogReadPolicy::RefreshMissingOrInvalid {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
+
     let source = AgreementFixtureSource::new(
         AgreementFixtureMode::EndpointFailure,
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
@@ -296,10 +299,11 @@ fn write_oversized_catalog(root: &Path) -> PathBuf {
 async fn detailed_refresh_failure_retains_request_version_subject_and_unknown_retryability() {
     let root = temp_dir("ic-query-subnet-detailed-refresh-failure");
     let endpoint = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissing {
-            source: CatalogSourceSelection::uncertified_query(endpoint),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::RefreshMissing {
+        source: CatalogSourceSelection::uncertified_query(endpoint),
+    };
+
     let subject = SubnetCatalogSubject::RegistryRecord(SubnetCatalogRegistryRecordSubject {
         kind: SubnetCatalogRegistryRecordKind::SubnetList,
         key: crate::ic_registry::SUBNET_LIST_KEY.to_string(),
@@ -402,12 +406,13 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
 
     for (index, (registry_version, subject, message)) in cases.into_iter().enumerate() {
         let root = temp_dir(&format!("ic-query-subnet-version-failure-{index}"));
-        let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-            .with_policy(CatalogReadPolicy::ForceRefresh {
-                source: CatalogSourceSelection::uncertified_query(
-                    DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-                ),
-            });
+        let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+        request.policy = CatalogReadPolicy::ForceRefresh {
+            source: CatalogSourceSelection::uncertified_query(
+                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+            ),
+        };
+
         let failure = load_subnet_catalog_with_source(
             &request,
             &DetailedFailureSource::new(registry_version, Some(subject.clone()), message),
@@ -425,12 +430,10 @@ async fn detailed_source_failures_before_and_after_version_acquisition_are_truth
 #[tokio::test(flavor = "current_thread")]
 async fn simple_load_api_returns_the_original_observable_source_error() {
     let root = temp_dir("ic-query-subnet-simple-source-error");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::ForceRefresh {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::ForceRefresh {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let failure = load_subnet_catalog_with_source(
         &request,
@@ -602,8 +605,8 @@ async fn catalog_load_entry_points_preserve_missing_cache_evidence() {
 fn caller_minimum_assurance_rejects_weaker_cached_evidence() {
     let root = temp_dir("ic-query-subnet-minimum-assurance");
     write_catalog(&root, fixture_catalog());
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement);
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.minimum_assurance = CatalogAssurance::MultiEndpointAgreement;
 
     let error = load_cached_subnet_catalog(&request).expect_err("weak cache rejected");
 
@@ -628,13 +631,11 @@ fn caller_minimum_assurance_rejects_weaker_cached_evidence() {
 #[tokio::test(flavor = "current_thread")]
 async fn insufficient_refresh_selection_fails_before_collection() {
     let root = temp_dir("ic-query-subnet-refresh-minimum-assurance");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement)
-        .with_policy(CatalogReadPolicy::ForceRefresh {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.minimum_assurance = CatalogAssurance::MultiEndpointAgreement;
+    request.policy = CatalogReadPolicy::ForceRefresh {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
         .await
@@ -656,12 +657,10 @@ async fn missing_only_policy_does_not_repair_invalid_content() {
     let path = subnet_catalog_path(&root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(&root, &path, "not-json")
         .expect("invalid cache");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissing {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::RefreshMissing {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let error =
         load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
@@ -679,12 +678,10 @@ async fn missing_only_policy_does_not_repair_invalid_content() {
 #[tokio::test(flavor = "current_thread")]
 async fn missing_only_policy_reports_missing_refresh_disposition() {
     let root = temp_dir("ic-query-subnet-missing-only");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissing {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::RefreshMissing {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let outcome =
         load_subnet_catalog_with_source(&request, &FixtureRefreshSource::ok(fixture_catalog()))
@@ -698,12 +695,10 @@ async fn missing_only_policy_reports_missing_refresh_disposition() {
 #[test]
 fn async_load_policy_refreshes_without_an_internal_runtime_adapter() {
     let root = temp_dir("ic-query-subnet-async-load");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissing {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::RefreshMissing {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let outcome = futures::executor::block_on(load_subnet_catalog_with_source(
         &request,
@@ -730,13 +725,12 @@ async fn stale_and_forced_policies_report_exact_dispositions() {
     replacement
         .canonicalize_and_seal()
         .expect("seal replacement fixture");
-    let stale_request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-            max_age_seconds: 60,
-        });
+    let mut stale_request =
+        SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    stale_request.policy = CatalogReadPolicy::RefreshMissingInvalidOrOlderThan {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+        max_age_seconds: 60,
+    };
 
     let stale = load_subnet_catalog_with_source(
         &stale_request,
@@ -756,12 +750,12 @@ async fn stale_and_forced_policies_report_exact_dispositions() {
     replacement
         .canonicalize_and_seal()
         .expect("reseal forced fixture");
-    let forced_request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::ForceRefresh {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut forced_request =
+        SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    forced_request.policy = CatalogReadPolicy::ForceRefresh {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
+
     let forced =
         load_subnet_catalog_with_source(&forced_request, &FixtureRefreshSource::ok(replacement))
             .await
@@ -781,12 +775,10 @@ async fn catalog_load_rejects_symlinked_managed_parent_without_refreshing() {
         .expect("create confined root");
     fs::create_dir_all(&outside).expect("create outside");
     symlink(&outside, root.join("nns")).expect("link managed parent");
-    let request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300)
-        .with_policy(CatalogReadPolicy::RefreshMissingOrInvalid {
-            source: CatalogSourceSelection::uncertified_query(
-                DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
-            ),
-        });
+    let mut request = SubnetCatalogLoadRequest::cache_only(cache_request(&root), 1_780_531_300);
+    request.policy = CatalogReadPolicy::RefreshMissingOrInvalid {
+        source: CatalogSourceSelection::uncertified_query(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT),
+    };
 
     let error = load_subnet_catalog_with_source(&request, &FixtureRefreshSource::err())
         .await

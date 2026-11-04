@@ -55,7 +55,8 @@ async fn sns_metrics_preserves_unknown_native_treasury_codes() {
 #[tokio::test(flavor = "current_thread")]
 async fn sns_metrics_rejects_invalid_windows_before_source_access() {
     for seconds in [0, MAX_SNS_METRICS_TIME_WINDOW_SECONDS + 1] {
-        let request = metrics_request("1").with_time_window_seconds(seconds);
+        let mut request = metrics_request("1");
+        request.time_window_seconds = seconds;
         let error = build_sns_metrics_report_with_source(&request, &NoCallSnsMetricsSource)
             .await
             .expect_err("invalid window must fail before source access");

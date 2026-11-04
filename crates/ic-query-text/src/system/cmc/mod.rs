@@ -4,7 +4,7 @@
 //! Does not own: report construction, JSON output, live calls, or process output.
 //! Boundary: keeps raw machine values in report models while formatting XDR only for text.
 
-use ic_host_text::escape::terminal_text;
+use crate::text_value::field;
 
 use crate::human_quantity::byte_count_text;
 use crate::human_quantity::cycle_count_text;
@@ -29,16 +29,10 @@ pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
     let mut lines = context_lines(&report.xdr.context);
     lines.extend(rate_lines(&report.xdr.rate));
     lines.extend([
-        format!(
-            "cycles_per_xdr: {}",
-            cycle_count_text(report.cycles_per_xdr)
-        ),
-        format!("cycles_per_xdr_source: {}", report.cycles_per_xdr_source),
-        format!(
-            "cycles_per_icp: {}",
-            cycle_count_text(report.cycles_per_icp)
-        ),
-        format!("cycles_per_icp_formula: {}", report.cycles_per_icp_formula),
+        field("cycles_per_xdr", &(cycle_count_text(report.cycles_per_xdr))),
+        field("cycles_per_xdr_source", &(report.cycles_per_xdr_source)),
+        field("cycles_per_icp", &(cycle_count_text(report.cycles_per_icp))),
+        field("cycles_per_icp_formula", &(report.cycles_per_icp_formula)),
     ]);
     lines.extend(certification_lines(&report.xdr.certification));
     lines.join("\n")
@@ -46,41 +40,35 @@ pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
 
 fn rate_lines(rate: &CmcIcpXdrConversionRate) -> [String; 3] {
     [
-        format!("timestamp_seconds: {}", rate.timestamp_seconds),
-        format!("xdr_permyriad_per_icp: {}", rate.xdr_permyriad_per_icp),
-        format!(
-            "xdr_per_icp: {}",
-            permyriad_text(rate.xdr_permyriad_per_icp)
-        ),
+        field("timestamp_seconds", &(rate.timestamp_seconds)),
+        field("xdr_permyriad_per_icp", &(rate.xdr_permyriad_per_icp)),
+        field("xdr_per_icp", &(permyriad_text(rate.xdr_permyriad_per_icp))),
     ]
 }
 
 fn context_lines(context: &CmcReportContext) -> Vec<String> {
     vec![
-        format!("network: {}", terminal_text(&context.network)),
-        format!("cmc_canister_id: {}", context.cmc_canister_id),
-        format!("fetched_at: {}", terminal_text(&context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&context.source_endpoint)
-        ),
-        format!("fetched_by: {}", terminal_text(&context.fetched_by)),
+        field("network", &context.network),
+        field("cmc_canister_id", &(context.cmc_canister_id)),
+        field("fetched_at", &context.fetched_at),
+        field("source_endpoint", &context.source_endpoint),
+        field("fetched_by", &context.fetched_by),
     ]
 }
 
 fn certification_lines(certification: &CmcCertification) -> [String; 3] {
     [
-        format!(
-            "certificate_verified: {}",
-            certification.certificate_verified
+        field(
+            "certificate_verified",
+            &(certification.certificate_verified),
         ),
-        format!(
-            "certificate_bytes: {}",
-            byte_count_text(certification.certificate_bytes as u128)
+        field(
+            "certificate_bytes",
+            &(byte_count_text(certification.certificate_bytes as u128)),
         ),
-        format!(
-            "hash_tree_bytes: {}",
-            byte_count_text(certification.hash_tree_bytes as u128)
+        field(
+            "hash_tree_bytes",
+            &(byte_count_text(certification.hash_tree_bytes as u128)),
         ),
     ]
 }

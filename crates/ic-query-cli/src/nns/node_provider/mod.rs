@@ -11,7 +11,6 @@ use ic_query::nns::node_provider::build_nns_node_provider_list_report_with_sourc
 use ic_query::nns::node_provider::refresh_nns_node_provider_report;
 use ic_query_text::nns::node_provider::nns_node_provider_info_report_text;
 use ic_query_text::nns::node_provider::nns_node_provider_list_report_text;
-use ic_query_text::nns::node_provider::nns_node_provider_list_report_verbose_text;
 
 mod reward;
 mod spec;
@@ -54,7 +53,6 @@ pub(in crate::nns) async fn run(
                     .await
                 },
                 &nns_node_provider_list_report_text,
-                &nns_node_provider_list_report_verbose_text,
             )
             .await
         }

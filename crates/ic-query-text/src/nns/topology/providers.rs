@@ -4,9 +4,8 @@
 //! Does not own: provider aggregation, source reads, or JSON output.
 //! Boundary: formats provider distribution rows for human inspection.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::table;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::nns::render::compact_text;
 use crate::nns::topology::COMPACT_PRINCIPAL_CHARS;
@@ -67,5 +66,5 @@ fn render_providers_table(rows: &[NnsTopologyProviderRow]) -> String {
         Alignment::Right,
         Alignment::Right,
     ];
-    render(&headers, &rows, &alignments, REPORT_TABLE_OPTIONS)
+    table(&headers, &rows, &alignments)
 }

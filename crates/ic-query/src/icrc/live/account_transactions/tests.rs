@@ -1,6 +1,6 @@
 use super::*;
 use crate::QueryProgressState;
-use crate::icrc::live::test_support::replied_query_fixture;
+use crate::icrc::live::tests::replied_query_fixture;
 use crate::{QueryProgressEvent, icrc::IcrcAccountTransactionCacheRequest};
 use ic_platform::candid::contract::{CandidType, Nat};
 

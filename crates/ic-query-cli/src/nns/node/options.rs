@@ -17,13 +17,14 @@ pub(in crate::nns) fn node_list_request(
     now_unix_secs: u64,
 ) -> (OutputFormat, bool, NnsNodeListRequest) {
     let source = SourceOutputOptions::from_matches(matches);
-    let request = NnsNodeListRequest::new(cache, source.source_endpoint, now_unix_secs)
-        .with_filters(NnsNodeListFilters {
-            subnet: typed_option(matches, SUBNET_FILTER_ARG),
-            subnet_kind: typed_option(matches, SUBNET_KIND_FILTER_ARG),
-            data_center: typed_option(matches, DATA_CENTER_FILTER_ARG),
-            node_provider: typed_option(matches, NODE_PROVIDER_FILTER_ARG),
-            node_operator: typed_option(matches, NODE_OPERATOR_FILTER_ARG),
-        });
+    let mut request = NnsNodeListRequest::new(cache, source.source_endpoint, now_unix_secs);
+    request.filters = NnsNodeListFilters {
+        subnet: typed_option(matches, SUBNET_FILTER_ARG),
+        subnet_kind: typed_option(matches, SUBNET_KIND_FILTER_ARG),
+        data_center: typed_option(matches, DATA_CENTER_FILTER_ARG),
+        node_provider: typed_option(matches, NODE_PROVIDER_FILTER_ARG),
+        node_operator: typed_option(matches, NODE_OPERATOR_FILTER_ARG),
+    };
+
     (source.format, matches.get_flag("verbose"), request)
 }

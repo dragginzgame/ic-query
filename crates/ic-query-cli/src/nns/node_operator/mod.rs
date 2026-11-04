@@ -11,7 +11,6 @@ use ic_query::nns::node_operator::build_nns_node_operator_list_report_with_sourc
 use ic_query::nns::node_operator::refresh_nns_node_operator_report;
 use ic_query_text::nns::node_operator::nns_node_operator_info_report_text;
 use ic_query_text::nns::node_operator::nns_node_operator_list_report_text;
-use ic_query_text::nns::node_operator::nns_node_operator_list_report_verbose_text;
 
 mod spec;
 
@@ -40,7 +39,6 @@ pub(in crate::nns) async fn run(
                     .await
                 },
                 &nns_node_operator_list_report_text,
-                &nns_node_operator_list_report_verbose_text,
             )
             .await
         }

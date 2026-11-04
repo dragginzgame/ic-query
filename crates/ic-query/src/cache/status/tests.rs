@@ -2,7 +2,7 @@ use super::*;
 use crate::CacheFileError;
 use crate::cache::CacheRecoveryPolicy;
 use crate::cache_file::write_managed_text_atomically;
-use crate::test_support::temp_dir;
+use crate::tests::temp_dir;
 use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use std::fs;
 use std::path::Path;

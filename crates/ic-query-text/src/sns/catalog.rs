@@ -4,7 +4,7 @@
 //! Does not own: refresh execution, cache IO, or JSON output.
 //! Boundary: keeps replacement and enrichment-gap evidence visible to operators.
 
-use ic_host_text::escape::terminal_text;
+use crate::text_value::field;
 
 use crate::text_value::yes_no;
 use ic_query::sns::SnsCatalogRefreshReport;
@@ -13,24 +13,18 @@ use ic_query::sns::SnsCatalogRefreshReport;
 #[must_use]
 pub fn sns_catalog_refresh_report_text(report: &SnsCatalogRefreshReport) -> String {
     [
-        format!("network: {}", terminal_text(&report.network)),
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
+        field("network", &report.network),
+        field("fetched_at", &report.fetched_at),
+        field("source_endpoint", &report.source_endpoint),
+        field("sns_count", &(report.sns_count)),
+        field("metadata_errors", &(report.metadata_error_count)),
+        field("lifecycle_errors", &(report.lifecycle_error_count)),
+        field(
+            "replaced_existing_cache",
+            &(yes_no(report.replaced_existing_cache)),
         ),
-        format!("sns_count: {}", report.sns_count),
-        format!("metadata_errors: {}", report.metadata_error_count),
-        format!("lifecycle_errors: {}", report.lifecycle_error_count),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
+        field("cache_path", &report.cache_path),
+        field("refresh_lock_path", &report.refresh_lock_path),
     ]
     .join("\n")
 }

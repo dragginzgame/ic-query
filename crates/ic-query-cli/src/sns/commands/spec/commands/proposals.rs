@@ -65,7 +65,7 @@ const SNS_PROPOSAL_HELP_AFTER: &str = "\
 Examples:
   icq sns proposal info 1 387
   icq sns proposal info be2us-64aaa-aaaaa-qaabq-cai 387
-  icq sns proposal info 1 387 --ballots
+  icq sns proposal info 1 387 --json
   icq sns proposal info 1 387 --verbose
   icq --network ic sns proposal info 1 387 --json";
 
@@ -125,11 +125,6 @@ pub(in crate::sns::commands) fn sns_proposal_info_command() -> ClapCommand {
             flag_arg("verbose")
                 .long("verbose")
                 .help("Show full proposal summary and payload text rendering"),
-        )
-        .arg(
-            flag_arg("ballots")
-                .long("ballots")
-                .help("Show proposal ballot rows in text output"),
         )
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,

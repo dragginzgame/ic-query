@@ -4,10 +4,10 @@
 //! Does not own: Root calls, report construction, JSON serialization, or lookup.
 //! Boundary: presents raw report fields compactly without changing the JSON contract.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::human_quantity::decimal_byte_count_text;
 use crate::human_quantity::decimal_cycle_count_text;
@@ -22,55 +22,52 @@ const MODULE_HASH_TEXT_CHARS: usize = 12;
 #[must_use]
 pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.context.network)),
-        format!("sns_id: {}", report.context.id),
-        format!("name: {}", terminal_text(&report.context.name)),
-        format!("root_canister_id: {}", report.context.root_canister_id),
-        format!("canister_count: {}", report.inventory.canisters.len()),
-        format!("health_status_count: {}", report.health_status_count),
-        format!(
-            "reported_zero_cycles_count: {}",
-            report.reported_zero_cycles_count
+        field("network", &report.context.network),
+        field("sns_id", &(report.context.id)),
+        field("name", &report.context.name),
+        field("root_canister_id", &(report.context.root_canister_id)),
+        field("canister_count", &(report.inventory.canisters.len())),
+        field("health_status_count", &(report.health_status_count)),
+        field(
+            "reported_zero_cycles_count",
+            &(report.reported_zero_cycles_count),
         ),
-        format!(
-            "cycles_unavailable_count: {}",
-            report.cycles_unavailable_count
+        field(
+            "cycles_unavailable_count",
+            &(report.cycles_unavailable_count),
         ),
-        format!("gap_count: {}", report.inventory.gaps.len()),
-        format!(
-            "health_query_status: {}",
-            if report.inventory.health_query_gap.is_some() {
+        field("gap_count", &(report.inventory.gaps.len())),
+        field(
+            "health_query_status",
+            &(if report.inventory.health_query_gap.is_some() {
                 "failed"
             } else {
                 "succeeded"
-            }
+            }),
         ),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.inventory.point_in_time_guaranteed)
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.inventory.point_in_time_guaranteed)),
         ),
-        format!(
-            "inventory_method: {}",
-            report.inventory.inventory_method.as_str()
+        field(
+            "inventory_method",
+            &(report.inventory.inventory_method.as_str()),
         ),
-        format!("health_method: {}", report.inventory.health_method.as_str()),
-        format!(
-            "health_call_type: {}",
-            report.inventory.health_call_type.as_str()
+        field("health_method", &(report.inventory.health_method.as_str())),
+        field(
+            "health_call_type",
+            &(report.inventory.health_call_type.as_str()),
         ),
-        format!(
-            "health_update_canister_list: {}",
-            yes_no(report.inventory.health_update_canister_list)
+        field(
+            "health_update_canister_list",
+            &(yes_no(report.inventory.health_update_canister_list)),
         ),
-        format!(
-            "sns_wasm_canister_id: {}",
-            report.context.sns_wasm_canister_id
+        field(
+            "sns_wasm_canister_id",
+            &(report.context.sns_wasm_canister_id),
         ),
-        format!("fetched_at: {}", terminal_text(&report.context.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.context.source_endpoint)
-        ),
+        field("fetched_at", &report.context.fetched_at),
+        field("source_endpoint", &report.context.source_endpoint),
         String::new(),
         canisters_table(report),
     ];
@@ -79,14 +76,13 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
         lines.extend([
             String::new(),
             "health_query_gap:".to_string(),
-            render(
+            table(
                 &["METHOD", "REASON"],
                 &[[
                     gap.method.as_str().to_string(),
                     terminal_text(&gap.reason).into_owned(),
                 ]],
-                &[Alignment::Left, Alignment::Left],
-                REPORT_TABLE_OPTIONS,
+                &[Alignment::Left; 2],
             ),
         ]);
     }
@@ -101,7 +97,7 @@ pub fn sns_canister_report_text(report: &SnsCanisterReport) -> String {
 }
 
 fn canisters_table(report: &SnsCanisterReport) -> String {
-    render(
+    table(
         &[
             "ROLE",
             "CANISTER",
@@ -147,12 +143,11 @@ fn canisters_table(report: &SnsCanisterReport) -> String {
             Alignment::Right,
             Alignment::Right,
         ],
-        REPORT_TABLE_OPTIONS,
     )
 }
 
 fn relation_gaps_table(report: &SnsCanisterReport) -> String {
-    render(
+    table(
         &["KIND", "ROLE", "INVENTORY CANISTER", "SUMMARY CANISTER"],
         &report
             .inventory
@@ -167,12 +162,6 @@ fn relation_gaps_table(report: &SnsCanisterReport) -> String {
                 ]
             })
             .collect::<Vec<_>>(),
-        &[
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-            Alignment::Left,
-        ],
-        REPORT_TABLE_OPTIONS,
+        &[Alignment::Left; 4],
     )
 }

@@ -13,7 +13,6 @@ pub struct NnsTopologyProvidersReport {
     pub network: String,
     pub source_endpoint: String,
     pub registered_node_provider_count: usize,
-    pub referenced_node_provider_count: usize,
     pub provider_with_nodes_count: usize,
     pub provider_with_node_operators_count: usize,
     pub total_node_count: u64,

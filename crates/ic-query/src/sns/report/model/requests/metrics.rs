@@ -37,13 +37,6 @@ impl SnsMetricsRequest {
             time_window_seconds: DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS,
         }
     }
-
-    /// Replace the proposal-count window.
-    #[must_use]
-    pub const fn with_time_window_seconds(mut self, time_window_seconds: u64) -> Self {
-        self.time_window_seconds = time_window_seconds;
-        self
-    }
 }
 
 #[cfg(feature = "sns-host")]

@@ -144,16 +144,4 @@ impl NnsInventoryRefreshRequest {
             output_path: None,
         }
     }
-
-    #[must_use]
-    pub const fn with_dry_run(mut self, dry_run: bool) -> Self {
-        self.dry_run = dry_run;
-        self
-    }
-
-    #[must_use]
-    pub fn with_output_path(mut self, output_path: impl Into<PathBuf>) -> Self {
-        self.output_path = Some(output_path.into());
-        self
-    }
 }

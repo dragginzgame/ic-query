@@ -4,11 +4,11 @@
 //! Does not own: filesystem inspection, JSON output, or cache policy.
 //! Boundary: keeps raw paths and invalid-cache diagnostics visible.
 
-use crate::text_value::REPORT_TABLE_OPTIONS;
+use crate::text_value::field;
+use crate::text_value::table;
 use ic_host_text::duration::display_duration_seconds;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
-use ic_host_text::table::render;
 
 use crate::human_quantity::byte_count_text;
 use crate::text_value::yes_no;
@@ -18,39 +18,39 @@ use ic_query::cache::CacheStatusReport;
 #[must_use]
 pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
     let mut lines = vec![
-        format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("cache_root_found: {}", yes_no(report.cache_root_found)),
-        format!("inspected_at: {}", terminal_text(&report.inspected_at)),
-        format!(
-            "family_validation_performed: {}",
-            yes_no(report.family_validation_performed)
+        field("cache_root", &report.cache_root),
+        field("cache_root_found", &(yes_no(report.cache_root_found))),
+        field("inspected_at", &report.inspected_at),
+        field(
+            "family_validation_performed",
+            &(yes_no(report.family_validation_performed)),
         ),
-        format!("cache_count: {}", report.caches.len()),
-        format!("readable_headers: {}", report.readable_header_count),
-        format!("invalid_headers: {}", report.invalid_header_count),
-        format!("fresh: {}", report.fresh_count),
-        format!("stale: {}", report.stale_count),
-        format!("unmanaged_age: {}", report.unmanaged_age_count),
-        format!("unknown_age: {}", report.unknown_age_count),
-        format!(
-            "total_size_bytes: {}",
-            byte_count_text(u128::from(report.total_size_bytes))
+        field("cache_count", &(report.caches.len())),
+        field("readable_headers", &(report.readable_header_count)),
+        field("invalid_headers", &(report.invalid_header_count)),
+        field("fresh", &(report.fresh_count)),
+        field("stale", &(report.stale_count)),
+        field("unmanaged_age", &(report.unmanaged_age_count)),
+        field("unknown_age", &(report.unknown_age_count)),
+        field(
+            "total_size_bytes",
+            &(byte_count_text(u128::from(report.total_size_bytes))),
         ),
-        format!("refresh_locks: {}", report.refresh_locks.len()),
-        format!("active_refresh_locks: {}", report.active_refresh_lock_count),
-        format!(
-            "available_refresh_locks: {}",
-            report.available_refresh_lock_count
+        field("refresh_locks", &(report.refresh_locks.len())),
+        field("active_refresh_locks", &(report.active_refresh_lock_count)),
+        field(
+            "available_refresh_locks",
+            &(report.available_refresh_lock_count),
         ),
-        format!(
-            "invalid_refresh_locks: {}",
-            report.invalid_refresh_lock_count
+        field(
+            "invalid_refresh_locks",
+            &(report.invalid_refresh_lock_count),
         ),
-        format!(
-            "refresh_lock_size_bytes: {}",
-            byte_count_text(u128::from(report.refresh_lock_size_bytes))
+        field(
+            "refresh_lock_size_bytes",
+            &(byte_count_text(u128::from(report.refresh_lock_size_bytes))),
         ),
-        format!("truncated: {}", yes_no(report.truncated)),
+        field("truncated", &(yes_no(report.truncated))),
     ];
     append_cache_rows(&mut lines, report);
     append_refresh_lock_rows(&mut lines, report);
@@ -60,7 +60,7 @@ pub fn cache_status_report_text(report: &CacheStatusReport) -> String {
 fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
     if !report.caches.is_empty() {
         lines.push(String::new());
-        lines.push(render(
+        lines.push(table(
             &[
                 "HEADER",
                 "AGE STATE",
@@ -99,7 +99,6 @@ fn append_cache_rows(lines: &mut Vec<String>, report: &CacheStatusReport) {
                 Alignment::Right,
                 Alignment::Left,
             ],
-            REPORT_TABLE_OPTIONS,
         ));
         for row in report
             .caches
@@ -119,7 +118,7 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
     if !report.refresh_locks.is_empty() {
         lines.push(String::new());
         lines.push("REFRESH LOCKS".to_string());
-        lines.push(render(
+        lines.push(table(
             &["STATUS", "COMPONENT", "PATH"],
             &report
                 .refresh_locks
@@ -132,8 +131,7 @@ fn append_refresh_lock_rows(lines: &mut Vec<String>, report: &CacheStatusReport)
                     ]
                 })
                 .collect::<Vec<_>>(),
-            &[Alignment::Left, Alignment::Left, Alignment::Left],
-            REPORT_TABLE_OPTIONS,
+            &[Alignment::Left; 3],
         ));
         for row in report
             .refresh_locks

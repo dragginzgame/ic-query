@@ -51,7 +51,6 @@ pub(in crate::ic) fn report_from_source(
             certified: true,
             point_in_time_guaranteed: true,
         },
-        node_count: source.rows.len(),
         rows: source.rows,
     })
 }

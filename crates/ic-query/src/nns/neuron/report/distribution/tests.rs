@@ -10,16 +10,6 @@ use crate::subnet_catalog::MAINNET_NETWORK;
 const SOURCE_ENDPOINT: &str = "https://icp-api.io";
 
 #[test]
-fn report_rejects_reversed_collection_timestamps() {
-    let mut report = fixture_distribution_report();
-    report.context.collection_started_at = "2026-01-02T00:00:00Z".to_string();
-    report.context.collection_updated_at = "2026-01-01T00:00:00Z".to_string();
-    assert!(validate_nns_neuron_distribution_report(&report).is_err());
-    report.context.collection_updated_at = report.context.collection_started_at.clone();
-    validate_nns_neuron_distribution_report(&report).unwrap();
-}
-
-#[test]
 fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
     let neurons = fixture_neurons();
     let report = build_nns_neuron_distribution_report(&complete_collection(4), &neurons)
@@ -105,14 +95,12 @@ fn complete_distribution_preserves_raw_dimensions_and_optional_coverage() {
             (Some(9), NnsNeuronType::UnknownCode(9), 1, 400),
         ]
     );
-    validate_nns_neuron_distribution_report(&report).expect("validate built distribution");
 }
 
 #[test]
 fn empty_complete_collection_produces_canonical_zero_distribution() {
     let report = build_nns_neuron_distribution_report(&complete_collection(0), &[])
         .expect("empty complete distribution");
-    validate_nns_neuron_distribution_report(&report).expect("validate empty distribution");
 
     assert_eq!(report.collected_neuron_count, 0);
     assert_eq!(report.total_effective_stake_e8s, 0);
@@ -237,14 +225,8 @@ fn distribution_totals_distinguish_missing_zero_and_overflow() {
 }
 
 #[test]
-fn serialized_distribution_round_trips_and_text_separates_sections() {
+fn distribution_json_preserves_raw_fields_and_flat_context() {
     let report = fixture_distribution_report();
-    let encoded = serde_json::to_vec(&report).expect("serialize distribution");
-    let restored: NnsNeuronDistributionReport =
-        serde_json::from_slice(&encoded).expect("deserialize distribution");
-
-    validate_nns_neuron_distribution_report(&restored).expect("validate restored distribution");
-    assert_eq!(restored, report);
     let json = serde_json::to_value(&report).expect("analytics JSON");
     let context = serde_json::to_value(&report.context).expect("analytics context JSON");
     for (key, value) in context.as_object().unwrap() {
@@ -269,74 +251,6 @@ fn serialized_distribution_round_trips_and_text_separates_sections() {
 }
 
 #[test]
-fn retained_distribution_validation_rejects_corruption() {
-    let mut report = fixture_distribution_report();
-    report.context.schema_version = 2;
-    assert_invalid_report(&report, "schema version");
-
-    let mut report = fixture_distribution_report();
-    report.context.point_in_time_guaranteed = true;
-    assert_invalid_report(&report, "point-in-time");
-
-    let mut report = fixture_distribution_report();
-    report.context.source = NnsGovernanceSourceProvenance::ReplicaQuery {
-        endpoint: "invalid".to_string(),
-        fetched_by: "fixture".to_string(),
-    };
-    assert_invalid_report(&report, "invalid collection source");
-
-    let mut report = fixture_distribution_report();
-    report.context.source = NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
-        collector_canister_id: "not-a-principal".to_string(),
-    };
-    assert_invalid_report(&report, "invalid collection provenance");
-
-    let mut report = fixture_distribution_report();
-    report.context.collection_page_count = 6;
-    assert_invalid_report(&report, "requires at least 5 collected neurons");
-
-    let mut report = fixture_distribution_report();
-    report.earliest_retrieved_at_timestamp_seconds = None;
-    assert_invalid_report(&report, "retrieval timestamp range");
-
-    let mut report = fixture_distribution_report();
-    report.reported_deciding_voting_power_neuron_count += 1;
-    assert_invalid_report(&report, "coverage accounts");
-
-    let mut report = fixture_distribution_report();
-    report.known_neuron_metadata_count = 5;
-    assert_invalid_report(&report, "known_neuron_metadata_count");
-
-    let mut report = fixture_distribution_report();
-    report.state_distribution.swap(0, 1);
-    assert_invalid_report(&report, "state distribution");
-
-    let mut report = fixture_distribution_report();
-    report.neuron_type_distribution[0].neuron_count = 0;
-    assert_invalid_report(&report, "at least one neuron");
-
-    let mut report = fixture_distribution_report();
-    report.state_distribution[0].effective_stake_e8s += 1;
-    assert_invalid_report(&report, "effective stake sums");
-
-    let mut report = fixture_distribution_report();
-    report.visibility_distribution.swap(0, 1);
-    assert_invalid_report(&report, "visibility distribution");
-
-    let mut report = fixture_distribution_report();
-    report.neuron_type_distribution[1].neuron_type = report.neuron_type_distribution[0].neuron_type;
-    assert_invalid_report(&report, "neuron-type distribution");
-
-    let mut report = fixture_distribution_report();
-    report.state_distribution[0].neuron_count = u64::MAX;
-    assert_invalid_report(&report, "state total overflow");
-
-    let mut report = fixture_distribution_report();
-    report.state_distribution[0].effective_stake_e8s = u64::MAX;
-    assert_invalid_report(&report, "state stake total overflow");
-}
-
-#[test]
 fn distribution_rejects_malformed_collection_timestamps() {
     for field in ["started_at", "updated_at"] {
         let mut state = serde_json::to_value(complete_collection(0)).expect("serialize state");
@@ -346,13 +260,6 @@ fn distribution_rejects_malformed_collection_timestamps() {
             build_nns_neuron_distribution_report(&state, &[]),
             Err(NnsNeuronDistributionError::InvalidCollectionState { .. })
         ));
-    }
-    for field in ["collection_started_at", "collection_updated_at"] {
-        let mut value =
-            serde_json::to_value(fixture_distribution_report()).expect("serialize report");
-        value[field] = serde_json::json!("invalid timestamp");
-        let report = serde_json::from_value(value).expect("restore caller report");
-        assert_invalid_report(&report, field);
     }
 }
 
@@ -481,27 +388,4 @@ fn page_limited_collection() -> NnsNeuronCollectionState {
         "updated_at": "2026-08-15T00:00:01Z"
     }))
     .expect("page-limited collection fixture")
-}
-
-fn assert_invalid_report(report: &NnsNeuronDistributionReport, expected_reason: &str) {
-    let error = validate_nns_neuron_distribution_report(report).expect_err("invalid report");
-    assert!(
-        error.reason.contains(expected_reason),
-        "unexpected validation reason: {}",
-        error.reason
-    );
-}
-
-#[test]
-fn distribution_bucket_decoding_rejects_unknown_fields() {
-    let original = serde_json::to_value(fixture_distribution_report()).unwrap();
-    for dimension in [
-        "state_distribution",
-        "visibility_distribution",
-        "neuron_type_distribution",
-    ] {
-        let mut report = original.clone();
-        report[dimension][0]["unexpected_evidence"] = serde_json::json!(true);
-        assert!(serde_json::from_value::<NnsNeuronDistributionReport>(report).is_err());
-    }
 }

@@ -164,6 +164,11 @@ fn sns_proposals_rejects_explicit_direction_for_api_sort() {
 
 #[test]
 fn sns_proposal_parses_id_and_json_format() {
+    assert!(
+        sns_proposal_info_command()
+            .try_get_matches_from(["info", "1", "42", "--ballots"])
+            .is_err()
+    );
     let (format, options) = parse_fallible_test_options(
         sns_proposal_info_command(),
         &[
@@ -172,7 +177,6 @@ fn sns_proposal_parses_id_and_json_format() {
             "--json",
             "--source-endpoint",
             "https://icp-api.io",
-            "--ballots",
             "--verbose",
         ],
         |m, n| {

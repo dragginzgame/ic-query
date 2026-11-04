@@ -121,27 +121,28 @@ pub(in crate::ic) fn validate_page_limit(limit: u16) -> Result<(), IcHostError> 
 pub(in crate::ic) fn report_from_source(
     request: &IcSourceRequest,
     requested_canister_id: &str,
-    mut source: IcCanisterSourceData,
+    source: IcCanisterSourceData,
 ) -> Result<IcCanisterReport, IcHostError> {
     validate_provenance(request, &source.source)?;
-    validate_principal_match("canister_id", requested_canister_id, &source.canister_id)?;
-    validate_canonical_principal("subnet_id", &source.subnet_id)?;
+    let mut data = source.data;
+    validate_principal_match("canister_id", requested_canister_id, &data.canister_id)?;
+    validate_canonical_principal("subnet_id", &data.subnet_id)?;
 
-    let mut seen_controllers = HashSet::with_capacity(source.controllers.len());
-    for controller in &source.controllers {
+    let mut seen_controllers = HashSet::with_capacity(data.controllers.len());
+    for controller in &data.controllers {
         validate_canonical_principal("controller", controller)?;
         if !seen_controllers.insert(controller.clone()) {
             return invalid_source(format!("duplicate controller principal {controller}"));
         }
     }
-    source.controllers.sort_unstable();
+    data.controllers.sort_unstable();
 
-    validate_optional_module_hash("module_hash", &source.module_hash)?;
-    if source.dashboard_updated_at.is_empty() {
+    validate_optional_module_hash("module_hash", &data.module_hash)?;
+    if data.dashboard_updated_at.is_empty() {
         return invalid_source("dashboard_updated_at must not be empty");
     }
 
-    if let Some(upgrades) = source.upgrades.as_mut() {
+    if let Some(upgrades) = data.upgrades.as_mut() {
         validate_upgrades(upgrades)?;
         upgrades.sort_unstable_by(|left, right| {
             right
@@ -154,17 +155,7 @@ pub(in crate::ic) fn report_from_source(
 
     Ok(IcCanisterReport {
         provenance: report_provenance(source.source),
-        canister_id: source.canister_id,
-        dashboard_id: source.dashboard_id,
-        canister_type: source.canister_type,
-        name: source.name,
-        subnet_id: source.subnet_id,
-        controllers: source.controllers,
-        language: source.language,
-        module_hash: source.module_hash,
-        dashboard_updated_at: source.dashboard_updated_at,
-        upgrade_count: source.upgrades.as_ref().map(Vec::len),
-        upgrades: source.upgrades,
+        data,
     })
 }
 

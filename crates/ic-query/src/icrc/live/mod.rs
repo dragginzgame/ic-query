@@ -9,7 +9,7 @@ pub(in crate::icrc) mod build;
 mod fetch;
 pub(in crate::icrc) mod source;
 #[cfg(test)]
-mod test_support;
+mod tests;
 mod tip_certificate;
 
 use crate::icrc::model::IcrcError;

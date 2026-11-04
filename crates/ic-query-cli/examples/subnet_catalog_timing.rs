@@ -19,21 +19,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .ok_or("supply a cache directory; every run performs live agreement")?;
     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-    let request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
+    let mut request = SubnetCatalogLoadRequest::refresh_missing_or_invalid(
         SubnetCatalogCacheRequest::new(&root, "ic"),
         CatalogSourceSelection::multi_endpoint_agreement(vec![
             "https://ic0.app".into(),
             "https://icp-api.io".into(),
         ]),
         now,
-    )
-    .with_minimum_assurance(CatalogAssurance::MultiEndpointAgreement)
-    .with_policy(CatalogReadPolicy::ForceRefresh {
+    );
+    request.minimum_assurance = CatalogAssurance::MultiEndpointAgreement;
+    request.policy = CatalogReadPolicy::ForceRefresh {
         source: CatalogSourceSelection::multi_endpoint_agreement(vec![
             "https://ic0.app".into(),
             "https://icp-api.io".into(),
         ]),
-    });
+    };
+
     let source = history_source(Path::new(&root));
     let start = Instant::now();
     let cold = load_subnet_catalog_with_source(&request, &source).await?;
@@ -49,7 +50,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap_or("none")
     );
     let start = Instant::now();
-    let cache_only = request.clone().with_policy(CatalogReadPolicy::CacheOnly);
+    let mut cache_only = request.clone();
+    cache_only.policy = CatalogReadPolicy::CacheOnly;
+
     let warm = load_subnet_catalog_with_source(&cache_only, &source).await?;
     println!(
         "reuse_us={} authority_equal={}",

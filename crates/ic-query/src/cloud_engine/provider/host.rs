@@ -66,7 +66,6 @@ pub async fn build_cloud_engine_provider_list_report_with_source(
     Ok(CloudEngineProviderListReport {
         provenance: report_provenance(source_data.source),
         source_node_provider_count,
-        cloud_engine_provider_count: providers.len(),
         providers,
     })
 }

@@ -10,7 +10,13 @@ fn topology_regions_report_summarizes_data_center_regions() {
     );
 
     assert_eq!(report.schema_version, 1);
-    assert_eq!(report.region_count, 1);
+    assert_eq!(report.regions.len(), 1);
+    assert!(
+        serde_json::to_value(&report)
+            .unwrap()
+            .get("region_count")
+            .is_none()
+    );
     assert_eq!(report.data_center_count, 1);
     assert_eq!(report.node_operator_count, 2);
     assert_eq!(report.node_provider_count, 1);

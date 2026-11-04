@@ -5,7 +5,9 @@
 Use `ic-query` for typed requests, reports, validation, cache behavior, source
 adapters, and renderers without spawning `icq`.
 
-The [0.89 consumer update](../releases/query/0.89.md) removes Registry archives,
+The [pending 0.90 consumer update](../releases/query/0.90.md) aligns Platform 0.22
+and Host Tools 0.82 certificate/error identities. The
+[0.89 consumer update](../releases/query/0.89.md) removes Registry archives,
 SNS reward checkpoints and diffs, and redundant report fields. Continuation status
 is derived from admitted page/cursor facts; all schemas remain `1`.
 
@@ -13,7 +15,7 @@ Pure DTO and rendering use has no host dependencies:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false }
+ic-query = { version = "0.90", default-features = false }
 ```
 
 Native tools that need live calls, filesystem caches, refreshes, or custom
@@ -21,7 +23,7 @@ source adapters enable `host`:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["host"] }
+ic-query = { version = "0.90", default-features = false, features = ["host"] }
 ```
 
 The no-default build is checked for `wasm32-unknown-unknown` without Clap,
@@ -33,7 +35,7 @@ the native host graph:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["canister"] }
+ic-query = { version = "0.90", default-features = false, features = ["canister"] }
 ```
 
 The canister surface collects the four bounded direct NNS Governance point
@@ -121,10 +123,9 @@ not one point-in-time snapshot. The builder rejects partial collections,
 row-count mismatches, duplicate or missing proposal ids, zero timestamps, and
 raw/typed classification inconsistencies before returning a report. It is
 available in the no-default build as well as to callers using `canister` or a
-native host feature. After restoring a report from caller-owned storage, use
-`validate_nns_proposal_activity_report` to recheck its schema-1 identity,
-provenance, window accounting, included range, and canonical count tables
-without making a source call.
+native host feature. Activity reports are output-only: serialize their typed
+values to schema-1 JSON. To recompute a report later, retain the complete
+collection state and source rows; Query does not deserialize derived reports.
 
 One neuron list call accepts 1 through 300 rows, returns the validated next
 neuron-id cursor when the page is full, and never follows it automatically.
@@ -154,8 +155,9 @@ The schema-1 report preserves raw state, optional visibility, optional neuron-
 type, effective-stake, optional-field coverage, source, and retrieval-time
 evidence. It explicitly does not turn the limited unauthenticated public rows
 or their sequential collection into owner state or a point-in-time balance.
-Use `validate_nns_neuron_distribution_report` after restoring a caller-owned
-serialized report.
+Distribution reports, dimension rows, and their shared analytics context are
+output-only. Their schema-1 JSON remains available through serialization; retain
+the complete source collection to recompute a report later.
 
 Call these builders from an update, timer, heartbeat, or another replicated
 execution context that permits inter-canister calls. Each builder or
@@ -216,7 +218,7 @@ operator and marketplace reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 This enables `ic-agent`, Tokio, and URL validation without ic-query's direct
@@ -229,7 +231,7 @@ features (or the convenience `host` feature):
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 Enable `dashboard-host` when an embedder needs only the official Dashboard
@@ -238,7 +240,7 @@ node collection, and the shared observed default-scope node-status cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["dashboard-host"] }
 ```
 
 This exposes `LiveIcSource`, its custom-source traits and builders including
@@ -255,7 +257,7 @@ report:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["ic-state-host"] }
 ```
 
 This exposes `LiveIcStateSource`, its focused source trait, and live/custom
@@ -268,7 +270,7 @@ Canister ICP/XDR and cycles reports:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["cmc-host"] }
 ```
 
 This enables `ic-agent` and direct CBOR certificate/witness decoding without
@@ -281,7 +283,7 @@ verification, and the complete account-history cache:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["icrc-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, and SNS host adapters disabled and does
@@ -293,7 +295,7 @@ proposal/neuron caches:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["sns-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["sns-host"] }
 ```
 
 This leaves Dashboard, Registry, NNS, system-canister, and native ICRC host
@@ -328,7 +330,7 @@ NNS Subnet/node/operator/provider topology cache and source API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["nns-topology-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["nns-topology-host"] }
 ```
 
 This feature includes `subnet-catalog-host` but not ic-query's direct optional
@@ -341,7 +343,7 @@ inventory, component-cache, and derived topology host API:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.89", default-features = false, features = ["nns-host"] }
+ic-query = { version = "0.90", default-features = false, features = ["nns-host"] }
 ```
 
 This includes `nns-topology-host` and directly includes the Registry Prost,

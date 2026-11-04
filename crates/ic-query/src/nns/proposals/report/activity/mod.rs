@@ -8,7 +8,7 @@ use super::{
     NnsProposalCollectionState, collection::validate_collection_state, model::NnsProposalRow,
 };
 use crate::nns::governance::{NnsGovernanceCollectionStatus, NnsGovernanceSourceProvenance};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::{BTreeMap, HashSet};
 use thiserror::Error as ThisError;
 
@@ -37,8 +37,7 @@ pub struct NnsProposalActivityRequest {
 /// Proposal count for one raw native Governance topic code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalTopicCount {
     /// Raw native Governance topic code.
     pub topic: i32,
@@ -52,8 +51,7 @@ pub struct NnsProposalTopicCount {
 /// Proposal count for one raw native Governance decision-status code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalStatusCount {
     /// Raw native Governance decision-status code.
     pub status: i32,
@@ -67,8 +65,7 @@ pub struct NnsProposalStatusCount {
 /// Proposal count for one raw native Governance reward-status code.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalRewardStatusCount {
     /// Raw native Governance reward-status code.
     pub reward_status: i32,
@@ -82,7 +79,7 @@ pub struct NnsProposalRewardStatusCount {
 /// Proposal count for one UTC proposal-creation day.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalDayCount {
     /// Unix timestamp at 00:00:00 UTC for the represented day.
     pub day_start_timestamp_seconds: u64,
@@ -96,7 +93,7 @@ pub struct NnsProposalDayCount {
 /// Deterministic local activity projection over one complete NNS proposal collection.
 ///
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NnsProposalActivityReport {
     /// Shared record, flattened in JSON.
     #[serde(flatten)]
@@ -125,19 +122,6 @@ pub struct NnsProposalActivityReport {
     pub reward_status_counts: Vec<NnsProposalRewardStatusCount>,
     /// Canonically time-ordered proposal counts by UTC creation day.
     pub day_counts: Vec<NnsProposalDayCount>,
-}
-
-///
-/// NnsProposalActivityValidationError
-///
-/// Pure validation failure for an untrusted serialized or in-memory activity report.
-///
-
-#[derive(Debug, Eq, PartialEq, ThisError)]
-#[error("invalid NNS proposal activity report: {reason}")]
-pub struct NnsProposalActivityValidationError {
-    /// Deterministic invariant failure.
-    pub reason: String,
 }
 
 ///
@@ -212,239 +196,6 @@ pub enum NnsProposalActivityError {
         /// Count or conversion that exceeded its representation.
         field: &'static str,
     },
-}
-
-/// Validate every activity-report invariant available without source rows or live host calls.
-pub fn validate_nns_proposal_activity_report(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    validate_activity_header(report)?;
-    validate_activity_selection(report)?;
-    validate_code_counts(
-        report,
-        "topic",
-        report
-            .topic_counts
-            .iter()
-            .map(|row| (row.topic, row.proposal_count)),
-    )?;
-    validate_code_counts(
-        report,
-        "status",
-        report
-            .status_counts
-            .iter()
-            .map(|row| (row.status, row.proposal_count)),
-    )?;
-    validate_code_counts(
-        report,
-        "reward-status",
-        report
-            .reward_status_counts
-            .iter()
-            .map(|row| (row.reward_status, row.proposal_count)),
-    )?;
-    validate_day_counts(report)
-}
-
-fn validate_activity_header(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    report
-        .context
-        .validate(
-            NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
-            report.collected_proposal_count,
-            ("activity", "proposals"),
-            "sequential proposal activity cannot claim a point-in-time snapshot",
-        )
-        .map_err(invalid_validation)
-}
-
-fn validate_activity_selection(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    if let (Some(from), Some(until)) = (
-        report.from_proposal_timestamp_seconds,
-        report.until_proposal_timestamp_seconds,
-    ) && from >= until
-    {
-        return Err(invalid_validation(format!(
-            "from proposal timestamp {from} must be below until timestamp {until}"
-        )));
-    }
-    if report.from_proposal_timestamp_seconds.is_none() && report.excluded_before_from_count != 0 {
-        return Err(invalid_validation(
-            "excluded_before_from_count must be zero without a lower bound",
-        ));
-    }
-    if report.until_proposal_timestamp_seconds.is_none()
-        && report.excluded_at_or_after_until_count != 0
-    {
-        return Err(invalid_validation(
-            "excluded_at_or_after_until_count must be zero without an upper bound",
-        ));
-    }
-
-    let accounted = report
-        .included_proposal_count
-        .checked_add(report.excluded_before_from_count)
-        .and_then(|count| count.checked_add(report.excluded_at_or_after_until_count))
-        .ok_or_else(|| invalid_validation("proposal selection count overflow"))?;
-    if accounted != report.collected_proposal_count {
-        return Err(invalid_validation(format!(
-            "selection accounts for {accounted} proposals, expected {}",
-            report.collected_proposal_count
-        )));
-    }
-    validate_included_range(report)
-}
-
-fn validate_included_range(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    let (earliest, latest) = match (
-        report.earliest_included_proposal_timestamp_seconds,
-        report.latest_included_proposal_timestamp_seconds,
-    ) {
-        (None, None) if report.included_proposal_count == 0 => return Ok(()),
-        (Some(earliest), Some(latest)) if report.included_proposal_count > 0 => (earliest, latest),
-        _ => {
-            return Err(invalid_validation(
-                "included timestamp range presence disagrees with included_proposal_count",
-            ));
-        }
-    };
-    if earliest == 0 || earliest > latest {
-        return Err(invalid_validation(
-            "included proposal timestamps must be nonzero and ascending",
-        ));
-    }
-    if report
-        .from_proposal_timestamp_seconds
-        .is_some_and(|from| earliest < from)
-    {
-        return Err(invalid_validation(
-            "earliest included proposal timestamp precedes the lower bound",
-        ));
-    }
-    if report
-        .until_proposal_timestamp_seconds
-        .is_some_and(|until| latest >= until)
-    {
-        return Err(invalid_validation(
-            "latest included proposal timestamp reaches or exceeds the upper bound",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_code_counts(
-    report: &NnsProposalActivityReport,
-    dimension: &'static str,
-    rows: impl Iterator<Item = (i32, u64)>,
-) -> Result<(), NnsProposalActivityValidationError> {
-    let mut previous = None;
-    let mut total = 0_u64;
-    for (key, count) in rows {
-        if previous.is_some_and(|previous| previous >= key) {
-            return Err(invalid_validation(format!(
-                "{dimension} count rows are not strictly raw-code ordered"
-            )));
-        }
-        total = add_dimension_count(total, count, dimension)?;
-        previous = Some(key);
-    }
-    validate_dimension_total(total, report.included_proposal_count, dimension)
-}
-
-fn validate_day_counts(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    let mut previous = None;
-    let mut total = 0_u64;
-    for row in &report.day_counts {
-        if row.day_start_timestamp_seconds % SECONDS_PER_DAY != 0 {
-            return Err(invalid_validation(
-                "day count row is not aligned to 00:00:00 UTC",
-            ));
-        }
-        if previous.is_some_and(|day| day >= row.day_start_timestamp_seconds) {
-            return Err(invalid_validation(
-                "day count rows are not strictly time ordered",
-            ));
-        }
-        total = add_dimension_count(total, row.proposal_count, "day")?;
-        previous = Some(row.day_start_timestamp_seconds);
-    }
-    validate_dimension_total(total, report.included_proposal_count, "day")?;
-    validate_day_range(report)
-}
-
-fn validate_day_range(
-    report: &NnsProposalActivityReport,
-) -> Result<(), NnsProposalActivityValidationError> {
-    if report.included_proposal_count == 0 {
-        return Ok(());
-    }
-    let (Some(earliest), Some(latest)) = (
-        report.earliest_included_proposal_timestamp_seconds,
-        report.latest_included_proposal_timestamp_seconds,
-    ) else {
-        return Err(invalid_validation(
-            "included timestamp range is absent for positive day counts",
-        ));
-    };
-    let expected_first = earliest - (earliest % SECONDS_PER_DAY);
-    let expected_last = latest - (latest % SECONDS_PER_DAY);
-    let (Some(first), Some(last)) = (report.day_counts.first(), report.day_counts.last()) else {
-        return Err(invalid_validation(
-            "positive included count requires nonempty day counts",
-        ));
-    };
-    let first = first.day_start_timestamp_seconds;
-    let last = last.day_start_timestamp_seconds;
-    if first != expected_first || last != expected_last {
-        return Err(invalid_validation(
-            "day count endpoints do not cover the included timestamp range",
-        ));
-    }
-    Ok(())
-}
-
-fn add_dimension_count(
-    total: u64,
-    count: u64,
-    dimension: &'static str,
-) -> Result<u64, NnsProposalActivityValidationError> {
-    if count == 0 {
-        return Err(invalid_validation(format!(
-            "{dimension} count row must be nonzero"
-        )));
-    }
-    total
-        .checked_add(count)
-        .ok_or_else(|| invalid_validation(format!("{dimension} count total overflow")))
-}
-
-fn validate_dimension_total(
-    actual: u64,
-    expected: u64,
-    dimension: &'static str,
-) -> Result<(), NnsProposalActivityValidationError> {
-    if actual == expected {
-        Ok(())
-    } else {
-        Err(invalid_validation(format!(
-            "{dimension} counts sum to {actual}, expected {expected}"
-        )))
-    }
-}
-
-fn invalid_validation(reason: impl Into<String>) -> NnsProposalActivityValidationError {
-    NnsProposalActivityValidationError {
-        reason: reason.into(),
-    }
 }
 
 /// Build one deterministic activity report from a complete caller-retained proposal collection.

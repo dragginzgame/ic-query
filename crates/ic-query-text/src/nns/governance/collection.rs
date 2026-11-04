@@ -1,89 +1,72 @@
 //! Human-facing publication outcomes for complete NNS Governance snapshots.
 
+use crate::text_value::field;
 use crate::text_value::yes_no;
-use ic_host_text::escape::terminal_text;
 use ic_query::nns::governance::NnsGovernanceCacheStatusReport;
 use ic_query::nns::governance::NnsGovernanceRefreshReport;
 
 /// Render one complete NNS Governance snapshot refresh report.
 #[must_use]
 pub fn nns_governance_refresh_report_text(report: &NnsGovernanceRefreshReport) -> String {
-    let [attempt_finalized, attempt_finalization_error] =
-        crate::text_value::refresh_finalization_lines(report.attempt_finalization_error.as_deref());
-    [
-        format!("network: {}", terminal_text(&report.network)),
-        format!("governance_canister_id: {}", report.governance_canister_id),
-        format!("collection: {}", report.collection.as_str()),
-        format!("row_count: {}", report.row_count),
-        format!("wrote_cache: {}", yes_no(report.wrote_cache)),
-        format!("page_size: {}", report.page_size),
-        format!("page_count: {}", report.page_count),
-        format!("complete: {}", yes_no(report.complete)),
-        format!(
-            "point_in_time_guaranteed: {}",
-            yes_no(report.point_in_time_guaranteed)
+    let mut lines = vec![
+        field("network", &report.network),
+        field("governance_canister_id", &(report.governance_canister_id)),
+        field("collection", &(report.collection.as_str())),
+        field("row_count", &(report.row_count)),
+        field("page_size", &(report.page_size)),
+        field("page_count", &(report.page_count)),
+        field("complete", &(yes_no(report.complete))),
+        field(
+            "point_in_time_guaranteed",
+            &(yes_no(report.point_in_time_guaranteed)),
         ),
-        format!(
-            "replaced_existing_cache: {}",
-            yes_no(report.replaced_existing_cache)
-        ),
-        attempt_finalized,
-        attempt_finalization_error,
-        format!("fetched_at: {}", terminal_text(&report.fetched_at)),
-        format!(
-            "source_endpoint: {}",
-            terminal_text(&report.source_endpoint)
-        ),
-        format!("fetched_by: {}", terminal_text(&report.fetched_by)),
-        format!("cache_path: {}", terminal_text(&report.cache_path)),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
-        format!(
-            "refresh_lock_path: {}",
-            terminal_text(&report.refresh_lock_path)
-        ),
-    ]
-    .join("\n")
+        field("fetched_at", &report.fetched_at),
+        field("source_endpoint", &report.source_endpoint),
+        field("fetched_by", &report.fetched_by),
+    ];
+    lines.extend(crate::text_value::refresh_outcome_lines(
+        report.wrote_cache,
+        report.replaced_existing_cache,
+        report.attempt_finalization_error.as_deref(),
+    ));
+    lines.extend(crate::text_value::refresh_path_lines(
+        &report.cache_path,
+        &report.refresh_lock_path,
+        &report.refresh_attempt_path,
+    ));
+    lines.join("\n")
 }
 
 /// Render validation and attempt evidence for one Governance collection.
 #[must_use]
 pub fn nns_governance_cache_status_report_text(report: &NnsGovernanceCacheStatusReport) -> String {
     let mut lines = vec![
-        format!("network: {}", terminal_text(&report.network)),
-        format!("collection: {}", report.collection.as_str()),
-        format!("cache_root: {}", terminal_text(&report.cache_root)),
-        format!("found: {}", yes_no(report.found)),
-        format!(
-            "expected_cache_path: {}",
-            terminal_text(&report.expected_cache_path)
-        ),
-        format!(
-            "refresh_attempt_path: {}",
-            terminal_text(&report.refresh_attempt_path)
-        ),
+        field("network", &report.network),
+        field("collection", &(report.collection.as_str())),
+        field("cache_root", &report.cache_root),
+        field("found", &(yes_no(report.found))),
+        field("expected_cache_path", &report.expected_cache_path),
+        field("refresh_attempt_path", &report.refresh_attempt_path),
     ];
     if let Some(cache) = report.cache.as_ref() {
-        lines.push(format!("cache_status: {}", cache.cache_status()));
-        lines.push(format!("cache_path: {}", terminal_text(&cache.cache_path)));
+        lines.push(field("cache_status", &(cache.cache_status())));
+        lines.push(field("cache_path", &cache.cache_path));
         if let Some(error) = cache.cache_error() {
-            lines.push(format!("cache_error: {}", terminal_text(error)));
+            lines.push(field("cache_error", &(error)));
         }
         if let Some(data) = cache.valid() {
             lines.extend([
-                format!("governance_canister_id: {}", data.governance_canister_id),
+                field("governance_canister_id", &(data.governance_canister_id)),
                 "complete: yes".to_string(),
-                format!(
-                    "point_in_time_guaranteed: {}",
-                    yes_no(data.point_in_time_guaranteed)
+                field(
+                    "point_in_time_guaranteed",
+                    &(yes_no(data.point_in_time_guaranteed)),
                 ),
-                format!("row_count: {}", data.row_count),
-                format!("page_count: {}", data.page_count),
-                format!("page_size: {}", data.page_size),
-                format!("fetched_at: {}", terminal_text(&data.fetched_at)),
-                format!("source_endpoint: {}", terminal_text(&data.source_endpoint)),
+                field("row_count", &(data.row_count)),
+                field("page_count", &(data.page_count)),
+                field("page_size", &(data.page_size)),
+                field("fetched_at", &data.fetched_at),
+                field("source_endpoint", &data.source_endpoint),
             ]);
         }
     }
@@ -103,19 +86,19 @@ fn attempt_lines(attempt: Option<&ic_query::cache::SnapshotRefreshAttemptStatus>
         return vec!["latest_attempt: -".to_string()];
     };
     vec![
-        format!("attempt_status: {}", attempt.status),
-        format!("attempt_started_at: {}", terminal_text(&attempt.started_at)),
-        format!("attempt_updated_at: {}", terminal_text(&attempt.updated_at)),
-        format!("attempt_page_size: {}", attempt.page_size),
-        format!("attempt_pages_fetched: {}", attempt.pages_fetched),
-        format!("attempt_rows_fetched: {}", attempt.rows_fetched),
-        format!(
-            "attempt_last_cursor: {}",
-            terminal_text(attempt.last_cursor.as_deref().unwrap_or("-"))
+        field("attempt_status", &(attempt.status)),
+        field("attempt_started_at", &attempt.started_at),
+        field("attempt_updated_at", &attempt.updated_at),
+        field("attempt_page_size", &(attempt.page_size)),
+        field("attempt_pages_fetched", &(attempt.pages_fetched)),
+        field("attempt_rows_fetched", &(attempt.rows_fetched)),
+        field(
+            "attempt_last_cursor",
+            &(attempt.last_cursor.as_deref().unwrap_or("-")),
         ),
-        format!(
-            "attempt_last_error: {}",
-            terminal_text(attempt.last_error.as_deref().unwrap_or("-"))
+        field(
+            "attempt_last_error",
+            &(attempt.last_error.as_deref().unwrap_or("-")),
         ),
     ]
 }

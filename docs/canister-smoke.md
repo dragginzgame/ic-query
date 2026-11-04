@@ -97,6 +97,9 @@ The Make targets select its required `cli` feature for both setup and offline
 checks; library-only Testkit consumers leave that feature disabled.
 Testkit owns authenticated server setup, offline admission and managed launch
 under `.tools/testkit-server/`; these are separate from the common tool bundle.
+Testkit 0.85's client requires an explicit server URL. Query's
+`PocketIcStartupConfig::build_instance` supplies the managed endpoint; the client
+never discovers, downloads or launches a server implicitly.
 
 `canister-test` builds the probe under `target/testkit/` and compiles the native
 test executable before starting PocketIC. It then runs the selected ignored test
@@ -455,14 +458,15 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query selects Platform 0.19.0, Types 0.18.0 and Runtime 0.19.0.
-Testkit 0.81.0 shares those identities and removes its private Metrics dependency;
-Query owns its report arithmetic without Metrics. The private
-fixture selects the independent `ic-platform-pocket-ic` 0.19 client directly,
-matching Testkit's extension traits and management DTO 0.11 identity. External
-Candid/PocketIC Principal bytes retain their explicit boundary, and the probe
-codec selects Wire 0.16.0 for Query’s existing string frames and budgets. The prepared
-server remains PocketIC 16.1.0.
+callers use Wire. Query selects Platform 0.22.0, Types 0.18.1 and Runtime 0.19.1.
+Testkit 0.85.0 shares canonical Types, Candid and Runtime identities and retains
+its internal Platform 0.21 Candid/management DTO dependency. It owns the native
+PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
+traits and management DTO 0.11 identity. The separate `ic-platform-pocket-ic`
+dependency is retired. Query owns its report arithmetic without Metrics.
+External Candid/PocketIC Principal bytes retain their explicit boundary, and the
+probe codec selects Wire 0.16.2 for Query’s existing string frames and budgets.
+The prepared server remains PocketIC 16.1.0.
 `serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
 CLI production graph, so they are not tooling-only exclusions. Query has no
 direct Ciborium declaration or usage. Governance fixtures use Testkit's native
@@ -492,7 +496,7 @@ production canister supplied by Query.
 
 ## Platform adoption qualification
 
-The selected published `ic-platform` release is 0.19.0. Its source and feature
+The selected published `ic-platform` release is 0.20.0. Its source and feature
 contracts were inspected from the downloaded registry package; sibling source
 is not substituted. Runtime calls and canister identity use Platform's owned
 Principal. Required external Candid DTOs and native Agent inputs retain the
@@ -512,8 +516,8 @@ and ledger DTOs; every supported production graph rejects stable-memory storage.
 Platform now owns the non-cryptographic runtime adapters, call/response and
 error identities. Its `cdk` feature is Candid-free, while Query selects Candid
 separately for required external NNS methods. The full `ic-cdk` and its macros
-are excluded from production graphs. Platform 0.19 delegates the canister
-executor and IC0 to one canonical Runtime 0.19.0 owner without either registry
+are excluded from production graphs. Platform 0.22 delegates the canister
+executor and IC0 to one canonical Runtime 0.19.1 owner without either registry
 supplier. Embedders must align runtime consumers on that Runtime owner; Query
 does not copy executor or callback implementations.
 The adapter retains explicit Candid unit arguments, bounded waits, raw replies,

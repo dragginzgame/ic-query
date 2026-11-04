@@ -43,27 +43,6 @@ impl IcrcAccountTransactionPageRequest {
             limit,
         }
     }
-
-    /// Uses an explicit index canister instead of ICRC-106 discovery.
-    #[must_use]
-    pub fn with_index_canister_id(mut self, index_canister_id: impl Into<String>) -> Self {
-        self.index_canister_id = Some(index_canister_id.into());
-        self
-    }
-
-    /// Selects a 32-byte ICRC subaccount encoded as hex.
-    #[must_use]
-    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
-        self.subaccount_hex = Some(subaccount_hex.into());
-        self
-    }
-
-    /// Starts after the given transaction block index when paginating backward.
-    #[must_use]
-    pub fn with_start(mut self, start: impl Into<String>) -> Self {
-        self.start = Some(start.into());
-        self
-    }
 }
 
 ///
@@ -103,13 +82,6 @@ impl IcrcAccountTransactionCacheRequest {
             subaccount_hex: None,
         }
     }
-
-    /// Selects a 32-byte ICRC subaccount encoded as hex.
-    #[must_use]
-    pub fn with_subaccount_hex(mut self, subaccount_hex: impl Into<String>) -> Self {
-        self.subaccount_hex = Some(subaccount_hex.into());
-        self
-    }
 }
 
 ///
@@ -147,20 +119,6 @@ impl IcrcAccountTransactionRefreshRequest {
             page_size,
             max_pages: None,
         }
-    }
-
-    /// Uses an explicit index canister instead of ICRC-106 discovery.
-    #[must_use]
-    pub fn with_index_canister_id(mut self, index_canister_id: impl Into<String>) -> Self {
-        self.index_canister_id = Some(index_canister_id.into());
-        self
-    }
-
-    /// Bounds pages for diagnostics; failing to exhaust the API within the bound prevents publication.
-    #[must_use]
-    pub const fn with_max_pages(mut self, max_pages: Option<u32>) -> Self {
-        self.max_pages = max_pages;
-        self
     }
 }
 
@@ -217,12 +175,5 @@ impl IcrcAccountTransactionListRequest {
             limit,
             sort: IcrcAccountTransactionSort::Newest,
         }
-    }
-
-    /// Selects cached-row ordering.
-    #[must_use]
-    pub const fn with_sort(mut self, sort: IcrcAccountTransactionSort) -> Self {
-        self.sort = sort;
-        self
     }
 }
