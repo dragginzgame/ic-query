@@ -8,7 +8,7 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected native paths use Platform 0.15.2 for Query and Host,
+The selected native paths use Platform 0.22.0 for Query and Host Tools 0.82.0,
 reaching Agent 0.49.3 → elliptic-curve 0.13.8
 → crypto-bigint 0.5.5,
 including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
@@ -24,7 +24,19 @@ updates dependency and tracking facts; it
 does not renew the acceptance or extend its deadline. No fresh cargo-audit or
 side-channel qualification is supplied by this graph inspection.
 
-Query's built-in clients use `src/agent.rs` in `crates/ic-query` and Host's
+On 2026-11-04, the pending Query/CLI 0.90 release was reviewed against source
+`b1fca763` with locked, offline native Query `host` and CLI normal/build trees.
+Platform 0.22.0 and Host Tools 0.82.0 still select Agent 0.49.3, elliptic-curve
+0.13.8 and crypto-bigint 0.5.5 through the same ECDSA/k256/p256 paths.
+Platform's restored upstream certificate identities do not change those paths.
+Query and Host still retain Agent's default anonymous builder; the selected
+Agent source still returns no signature or public key for anonymous signing.
+The existing custom-Agent exposure, accepted scope and 2026-11-07 deadline
+remain unchanged. This is a dependency/source review, not a new acceptance or
+side-channel qualification; release admission separately runs the current-feed
+audit.
+
+Query's built-in clients use `src/agent/mod.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.
 Agent 0.49.3's `AnonymousIdentity::sign` produces no signature or public key.
 Query does not load signing keys. However, library interfaces accept configured
