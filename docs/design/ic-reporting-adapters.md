@@ -122,15 +122,14 @@ Wire 0.16.2 remains development-only, selecting its core codec for Query's exist
 string frames and budgets. Query selects neither Wire's `platform-types` schemas
 nor its endpoint integration.
 
-Testkit 0.85.0 owns its native PocketIC client under `ic_testkit::pocket_ic`.
+Testkit 0.85.1 owns its native PocketIC client under `ic_testkit::pocket_ic`.
 The unpublished fixture uses that client with Testkit's extension traits and
 managed startup, which supplies the explicit endpoint required since 0.85.
 The client does not discover, download or launch a server implicitly;
 `ic-platform-pocket-ic` is removed from the catalog and lockfile. Query's external
-Candid fixture imports use Platform 0.22. Testkit internally retains Platform 0.21
-for Candid and management DTOs, without its certification/runtime features; that
-independent dependency is absent from production native and Wasm graphs.
-Canonical Types, Candid and Runtime identities remain shared. The client retains
+Candid fixture imports and Testkit's internal management DTO adapters use
+Platform 0.22. The lockfile selects one facade; canonical Types, Candid and
+Runtime identities remain shared across their selected graphs. The client retains
 management DTOs 0.11 and the PocketIC 16.1.0 server protocol. The workspace lockfile
 remains Metrics-free. Native fixtures, server provisioning and installed acceptance
 remain separate from production Wasm graphs and source-only qualification.

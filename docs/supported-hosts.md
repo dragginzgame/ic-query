@@ -54,8 +54,8 @@ retain their separate acceptance gates.
 - Build and Testkit executable setup and offline admission select the same
   explicit `cli` feature set. Library-only dependencies omit that feature.
   Native fixtures import Testkit 0.85's owned `ic_testkit::pocket_ic` client,
-  retaining management DTO 0.11. Platform 0.22 supplies Query's external Candid fixture imports; Testkit retains
-  its internal Platform 0.21 Candid/management DTO dependency.
+  retaining management DTO 0.11. Query's external Candid fixture imports and
+  Testkit's internal adapters share Platform 0.22.
   Testkit owns simulator startup,
   installation extensions, reply fixtures and the existing PocketIC 16.1.0 server
   selection; client compilation does not replace installed server acceptance.

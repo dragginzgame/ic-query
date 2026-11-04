@@ -42,10 +42,11 @@ Baseline version: `0.85.0`.
 - Align Foundation requirements with locked 0.74.3 and Build with 0.74.3;
   qualify Platform 0.22.0 with Runtime/macros/guard 0.19.1. CLI commands,
   output and the compiler floor are unchanged.
-- Adopt Testkit 0.85's owned PocketIC client and explicit server endpoint
+- Adopt Testkit 0.85.1's owned PocketIC client and explicit server endpoint
   contract; retain Query's managed startup and remove the separate client
   dependency. Prepare the matching CLI with `make install-testkit`; the
-  PocketIC 16.1.0 server and Wire 0.16 selection remain.
+  PocketIC 16.1.0 server and Wire 0.16 selection remain. All adapters now share
+  Platform 0.22 without the older facade dependency.
 - Use Shared Tooling 0.29.3's release plans and evidence checks to scope qualified
   CLI/Text-only releases to their product tests and real library integration.
   Query changes retain CLI consumers; full CI, native and archive obligations

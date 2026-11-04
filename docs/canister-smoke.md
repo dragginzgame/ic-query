@@ -459,9 +459,8 @@ The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
 callers use Wire. Query selects Platform 0.22.0, Types 0.18.1 and Runtime 0.19.1.
-Testkit 0.85.0 shares canonical Types, Candid and Runtime identities and retains
-its internal Platform 0.21 Candid/management DTO dependency. It owns the native
-PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
+Testkit 0.85.1 shares Platform 0.22 and canonical Types, Candid and Runtime
+identities. It owns the native PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
 traits and management DTO 0.11 identity. The separate `ic-platform-pocket-ic`
 dependency is retired. Query owns its report arithmetic without Metrics.
 External Candid/PocketIC Principal bytes retain their explicit boundary, and the
