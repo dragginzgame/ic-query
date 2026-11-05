@@ -51,7 +51,7 @@ fn page_reply(ids: &[u64], oldest: Option<u64>) -> Vec<u8> {
 }
 
 async fn run_page(
-    reply: Vec<u8>,
+    reply: &[u8],
     max_pages: Option<u32>,
     accepted_page: Option<AccountTransactionsPage>,
 ) -> (
@@ -103,7 +103,7 @@ async fn run_page(
 #[tokio::test(flavor = "current_thread")]
 async fn paging_preserves_empty_and_nonempty_exhaustion_and_progress_text() {
     for (ids, oldest) in [(vec![], None), (vec![9], Some(9))] {
-        let (result, events) = run_page(page_reply(&ids, oldest), None, None).await;
+        let (result, events) = run_page(&page_reply(&ids, oldest), None, None).await;
         let data = result.unwrap();
         assert_eq!(data.transactions.len(), ids.len());
         assert_eq!(data.page_count, 1);
@@ -130,7 +130,7 @@ async fn paging_preserves_empty_and_nonempty_exhaustion_and_progress_text() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn page_ceiling_retains_index_cursor_and_diagnostic_before_another_fetch() {
-    let (result, events) = run_page(page_reply(&[9], Some(1)), Some(1), None).await;
+    let (result, events) = run_page(&page_reply(&[9], Some(1)), Some(1), None).await;
     assert!(
         matches!(result, Err(IcrcAccountTransactionError::IncompleteCollection {
         index_canister_id: Some(index), pages_fetched: 1, rows_fetched: 1,
@@ -146,7 +146,7 @@ async fn page_ceiling_retains_index_cursor_and_diagnostic_before_another_fetch()
 
 #[tokio::test(flavor = "current_thread")]
 async fn invalid_pages_fail_before_advancing_collection_progress() {
-    let (result, events) = run_page(page_reply(&[9, 10], Some(1)), None, None).await;
+    let (result, events) = run_page(&page_reply(&[9, 10], Some(1)), None, None).await;
     assert!(matches!(
         result,
         Err(IcrcAccountTransactionError::IncompleteCollection {
@@ -175,7 +175,7 @@ async fn query_failures_retain_previously_accepted_progress_and_original_error()
             .unwrap(),
         ],
     };
-    let (result, events) = run_page(vec![0xff], None, Some(accepted)).await;
+    let (result, events) = run_page(&[0xff], None, Some(accepted)).await;
     assert!(
         matches!(result, Err(IcrcAccountTransactionError::CollectionPage {
         index_canister_id: Some(index), pages_fetched: 1, rows_fetched: 1,

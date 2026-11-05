@@ -9,7 +9,7 @@ use crate::{
     hex::{decode_lowercase_hex, is_lowercase_hex_32_bytes},
     sns::report::{SnsHostError, SnsNeuronRow},
 };
-use ic_platform::candid::contract::{CandidType, serde::Deserialize};
+use serde::Deserialize;
 use std::collections::HashSet;
 
 const SNS_NEURON_ID_HEX_LENGTH: usize = 64;
@@ -29,11 +29,10 @@ pub struct MainnetSnsNeuronPage {
 ///
 /// SnsNeuronId
 ///
-/// Candid-compatible SNS neuron pagination cursor.
+/// Opaque SNS neuron pagination cursor owned by the source API.
 ///
 
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct SnsNeuronId {
     pub id: Vec<u8>,
 }

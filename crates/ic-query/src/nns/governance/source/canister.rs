@@ -14,7 +14,10 @@ use crate::nns::{
         NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,
         NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
         validation::{validate_governance_request, validate_governance_response_size},
-        wire::{GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult},
+        wire::{
+            GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult,
+            NetworkEconomics, RewardEvent,
+        },
     },
 };
 use ic_platform::Principal;
@@ -40,9 +43,9 @@ impl NnsGovernanceSource for CanisterNnsSource {
     ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
         Box::pin(async move {
             let provenance = canister_provenance(request)?;
-            let economics =
+            let economics: NetworkEconomics =
                 call_no_args("get_network_economics_parameters", "NetworkEconomics").await?;
-            Ok(NnsGovernanceSourceData::new(economics, provenance))
+            Ok(NnsGovernanceSourceData::new(economics.into(), provenance))
         })
     }
 
@@ -66,8 +69,12 @@ impl NnsGovernanceSource for CanisterNnsSource {
     ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
         Box::pin(async move {
             let provenance = canister_provenance(request)?;
-            let reward_event = call_no_args("get_latest_reward_event", "RewardEvent").await?;
-            Ok(NnsGovernanceSourceData::new(reward_event, provenance))
+            let reward_event: RewardEvent =
+                call_no_args("get_latest_reward_event", "RewardEvent").await?;
+            Ok(NnsGovernanceSourceData::new(
+                reward_event.into(),
+                provenance,
+            ))
         })
     }
 
@@ -85,7 +92,7 @@ impl NnsGovernanceSource for CanisterNnsSource {
             )
             .await?;
             Ok(NnsGovernanceSourceData::new(
-                response.maturity_modulation,
+                response.maturity_modulation.map(Into::into),
                 provenance,
             ))
         })

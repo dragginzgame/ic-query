@@ -8,7 +8,7 @@ use ic_platform::certification::fork;
 use ic_platform::certification::{empty, labeled, leaf as tree_leaf};
 
 fn encoded_tree(tree: &HashTree) -> Vec<u8> {
-    serde_cbor::to_vec(tree).unwrap()
+    ic_platform::certification::cbor::encode_hash_tree(tree, 64 * 1024).unwrap()
 }
 
 #[test]
@@ -57,7 +57,9 @@ fn certificate_codec_controls_nesting_before_authentication() {
             signature: Vec::new(),
             delegation: None,
         };
-        let bytes = serde_cbor::to_vec(&certificate).unwrap();
+        let bytes =
+            ic_platform::certification::cbor::encode_certificate_untagged(&certificate, 64 * 1024)
+                .unwrap();
         let error = authenticate(&agent, Principal::anonymous(), &bytes, bytes.len()).unwrap_err();
         if nesting == 32 {
             assert!(matches!(error, CertificateVerificationError::Invalid(_)));
@@ -192,7 +194,9 @@ fn certificate_authentication_precedes_witness_admission() {
         signature: Vec::new(),
         delegation: None,
     };
-    let bytes = serde_cbor::to_vec(&certificate).unwrap();
+    let bytes =
+        ic_platform::certification::cbor::encode_certificate_untagged(&certificate, 64 * 1024)
+            .unwrap();
     let result = authenticate_hash_tree(
         &agent,
         Principal::anonymous(),

@@ -27,9 +27,9 @@ use super::wire::NnsProposalTallyWire;
 use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
 use crate::nns::LiveNnsSource;
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
+use crate::nns::governance::GovernanceProposalId;
 use crate::nns::governance::NnsGovernanceError;
 use crate::nns::governance::NnsGovernanceNeuronId;
-use crate::nns::governance::NnsGovernanceProposalId;
 use crate::nns::governance::NnsGovernanceRequest;
 use crate::nns::governance::NnsGovernanceSourceData;
 use crate::nns::governance::NnsGovernanceSourceProvenance;
@@ -273,7 +273,7 @@ fn proposal_info_with_summary(
     summary: &str,
 ) -> NnsProposalInfo {
     NnsProposalInfo {
-        id: Some(NnsGovernanceProposalId { id: proposal_id }),
+        id: Some(GovernanceProposalId { id: proposal_id }),
         status,
         topic,
         ballots: vec![

@@ -4,10 +4,7 @@
 //! Does not own: transport, report provenance, or public rendering.
 //! Boundary: preserves official Candid records and converts unnamed metric buckets to report rows.
 
-use super::{
-    NnsGovernanceMaturityModulation, NnsGovernanceMetricBucket, NnsGovernanceMetrics,
-    NnsGovernanceNeuronSubsetMetrics,
-};
+use super::{NnsGovernanceMetricBucket, NnsGovernanceMetrics, NnsGovernanceNeuronSubsetMetrics};
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
@@ -144,7 +141,7 @@ pub(super) struct GetMaturityModulationRequest {}
 #[derive(CandidType, Deserialize)]
 #[candid_path("ic_platform::candid::contract")]
 pub(super) struct GetMaturityModulationResponse {
-    pub(super) maturity_modulation: Option<NnsGovernanceMaturityModulation>,
+    pub(super) maturity_modulation: Option<MaturityModulation>,
 }
 
 impl From<GovernanceCachedMetrics> for NnsGovernanceMetrics {
@@ -259,4 +256,253 @@ fn metric_buckets<Value>(values: Vec<(u64, Value)>) -> Vec<NnsGovernanceMetricBu
         .into_iter()
         .map(|(key, value)| NnsGovernanceMetricBucket { key, value })
         .collect()
+}
+
+///
+/// NetworkEconomics
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct NetworkEconomics {
+    pub(super) neuron_minimum_stake_e8s: u64,
+    pub(super) max_proposals_to_keep_per_topic: u32,
+    pub(super) neuron_management_fee_per_proposal_e8s: u64,
+    pub(super) reject_cost_e8s: u64,
+    pub(super) transaction_fee_e8s: u64,
+    pub(super) neuron_spawn_dissolve_delay_seconds: u64,
+    pub(super) minimum_icp_xdr_rate: u64,
+    pub(super) maximum_node_provider_rewards_e8s: u64,
+    pub(super) neurons_fund_economics: Option<NeuronsFundEconomics>,
+    pub(super) voting_power_economics: Option<VotingPowerEconomics>,
+}
+
+impl From<NetworkEconomics> for super::NnsGovernanceEconomics {
+    fn from(value: NetworkEconomics) -> Self {
+        Self {
+            neuron_minimum_stake_e8s: value.neuron_minimum_stake_e8s,
+            max_proposals_to_keep_per_topic: value.max_proposals_to_keep_per_topic,
+            neuron_management_fee_per_proposal_e8s: value.neuron_management_fee_per_proposal_e8s,
+            reject_cost_e8s: value.reject_cost_e8s,
+            transaction_fee_e8s: value.transaction_fee_e8s,
+            neuron_spawn_dissolve_delay_seconds: value.neuron_spawn_dissolve_delay_seconds,
+            minimum_icp_xdr_rate: value.minimum_icp_xdr_rate,
+            maximum_node_provider_rewards_e8s: value.maximum_node_provider_rewards_e8s,
+            neurons_fund_economics: value.neurons_fund_economics.map(Into::into),
+            voting_power_economics: value.voting_power_economics.map(Into::into),
+        }
+    }
+}
+
+///
+/// NeuronsFundEconomics
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct NeuronsFundEconomics {
+    pub(super) maximum_icp_xdr_rate: Option<Percentage>,
+    pub(super) neurons_fund_matched_funding_curve_coefficients:
+        Option<MatchedFundingCurveCoefficients>,
+    pub(super) max_theoretical_neurons_fund_participation_amount_xdr: Option<Decimal>,
+    pub(super) minimum_icp_xdr_rate: Option<Percentage>,
+}
+
+impl From<NeuronsFundEconomics> for super::NnsNeuronsFundEconomics {
+    fn from(value: NeuronsFundEconomics) -> Self {
+        Self {
+            maximum_icp_xdr_rate: value.maximum_icp_xdr_rate.map(Into::into),
+            neurons_fund_matched_funding_curve_coefficients: value
+                .neurons_fund_matched_funding_curve_coefficients
+                .map(Into::into),
+            max_theoretical_neurons_fund_participation_amount_xdr: value
+                .max_theoretical_neurons_fund_participation_amount_xdr
+                .map(Into::into),
+            minimum_icp_xdr_rate: value.minimum_icp_xdr_rate.map(Into::into),
+        }
+    }
+}
+
+///
+/// MatchedFundingCurveCoefficients
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[expect(
+    clippy::struct_field_names,
+    reason = "Field names follow the external NNS Governance Candid contract."
+)]
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct MatchedFundingCurveCoefficients {
+    pub(super) contribution_threshold_xdr: Option<Decimal>,
+    pub(super) one_third_participation_milestone_xdr: Option<Decimal>,
+    pub(super) full_participation_milestone_xdr: Option<Decimal>,
+}
+
+impl From<MatchedFundingCurveCoefficients>
+    for super::NnsNeuronsFundMatchedFundingCurveCoefficients
+{
+    fn from(value: MatchedFundingCurveCoefficients) -> Self {
+        Self {
+            contribution_threshold_xdr: value.contribution_threshold_xdr.map(Into::into),
+            one_third_participation_milestone_xdr: value
+                .one_third_participation_milestone_xdr
+                .map(Into::into),
+            full_participation_milestone_xdr: value
+                .full_participation_milestone_xdr
+                .map(Into::into),
+        }
+    }
+}
+
+///
+/// Percentage
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct Percentage {
+    pub(super) basis_points: Option<u64>,
+}
+
+impl From<Percentage> for super::NnsGovernancePercentage {
+    fn from(value: Percentage) -> Self {
+        Self {
+            basis_points: value.basis_points,
+        }
+    }
+}
+
+///
+/// Decimal
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct Decimal {
+    pub(super) human_readable: Option<String>,
+}
+
+impl From<Decimal> for super::NnsGovernanceDecimal {
+    fn from(value: Decimal) -> Self {
+        Self {
+            human_readable: value.human_readable,
+        }
+    }
+}
+
+///
+/// VotingPowerEconomics
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[expect(
+    clippy::struct_field_names,
+    reason = "Field names follow the external NNS Governance Candid contract."
+)]
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct VotingPowerEconomics {
+    pub(super) start_reducing_voting_power_after_seconds: Option<u64>,
+    pub(super) clear_following_after_seconds: Option<u64>,
+    pub(super) neuron_minimum_dissolve_delay_to_vote_seconds: Option<u64>,
+}
+
+impl From<VotingPowerEconomics> for super::NnsVotingPowerEconomics {
+    fn from(value: VotingPowerEconomics) -> Self {
+        Self {
+            start_reducing_voting_power_after_seconds: value
+                .start_reducing_voting_power_after_seconds,
+            clear_following_after_seconds: value.clear_following_after_seconds,
+            neuron_minimum_dissolve_delay_to_vote_seconds: value
+                .neuron_minimum_dissolve_delay_to_vote_seconds,
+        }
+    }
+}
+
+///
+/// RewardEvent
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct RewardEvent {
+    pub(super) rounds_since_last_distribution: Option<u64>,
+    pub(super) day_after_genesis: u64,
+    pub(super) actual_timestamp_seconds: u64,
+    pub(super) total_available_e8s_equivalent: u64,
+    pub(super) latest_round_available_e8s_equivalent: Option<u64>,
+    pub(super) distributed_e8s_equivalent: u64,
+    pub(super) settled_proposals: Vec<ProposalId>,
+}
+
+impl From<RewardEvent> for super::NnsGovernanceRewardEvent {
+    fn from(value: RewardEvent) -> Self {
+        Self {
+            rounds_since_last_distribution: value.rounds_since_last_distribution,
+            day_after_genesis: value.day_after_genesis,
+            actual_timestamp_seconds: value.actual_timestamp_seconds,
+            total_available_e8s_equivalent: value.total_available_e8s_equivalent,
+            latest_round_available_e8s_equivalent: value.latest_round_available_e8s_equivalent,
+            distributed_e8s_equivalent: value.distributed_e8s_equivalent,
+            settled_proposals: value
+                .settled_proposals
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        }
+    }
+}
+
+///
+/// ProposalId
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
+pub(in crate::nns) struct ProposalId {
+    pub(in crate::nns) id: u64,
+}
+
+impl From<ProposalId> for super::NnsGovernanceProposalId {
+    fn from(value: ProposalId) -> Self {
+        Self { id: value.id }
+    }
+}
+
+///
+/// MaturityModulation
+///
+/// External NNS Governance Candid record projected into Query report data.
+///
+
+#[derive(CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+pub(super) struct MaturityModulation {
+    pub(super) current_value_permyriad: Option<i32>,
+    pub(super) updated_at_timestamp_seconds: Option<u64>,
+}
+
+impl From<MaturityModulation> for super::NnsGovernanceMaturityModulation {
+    fn from(value: MaturityModulation) -> Self {
+        Self {
+            current_value_permyriad: value.current_value_permyriad,
+            updated_at_timestamp_seconds: value.updated_at_timestamp_seconds,
+        }
+    }
 }

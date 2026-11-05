@@ -11,6 +11,7 @@ use crate::{
 };
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::{CandidType, Nat, Principal, serde::Deserialize};
+use ic_platform::icrc_ledger_types::icrc10::SupportedStandard;
 use ic_platform::icrc_ledger_types::{Account as LedgerAccount, MetadataValue};
 use serde_json::Value as JsonValue;
 
@@ -98,7 +99,13 @@ pub async fn fetch_icrc_supported_standards<E>(
 where
     E: CandidCallError,
 {
-    query_no_args(agent, ledger_canister, "icrc1_supported_standards").await
+    let standards: Vec<SupportedStandard> = query_no_args::<Vec<SupportedStandard>, E>(
+        agent,
+        ledger_canister,
+        "icrc1_supported_standards",
+    )
+    .await?;
+    Ok(standards.into_iter().map(supported_standard_row).collect())
 }
 
 /// Query native ICRC-106 discovery while callers retain their failure policy.
@@ -146,3 +153,10 @@ pub fn index_principal_error_text(error: GetIndexPrincipalError) -> String {
 
 #[cfg(all(test, feature = "icrc-host"))]
 mod tests;
+
+fn supported_standard_row(value: SupportedStandard) -> IcrcTokenStandardRow {
+    IcrcTokenStandardRow {
+        name: value.name,
+        url: value.url,
+    }
+}

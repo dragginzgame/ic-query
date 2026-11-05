@@ -5,13 +5,13 @@
 #[cfg(test)]
 mod tests;
 
-use ic_host_tools::certificate::{
-    DecodeError, DecodeLimits, ParseError, decode_certificate, decode_hash_tree,
-};
 #[cfg(feature = "ledger-evidence-host")]
 use ic_host_tools::ledger_evidence::LedgerTip;
 use ic_platform::agent::{Agent, AgentError};
 use ic_platform::candid::contract::Principal;
+use ic_platform::certification::cbor::strict::{
+    DecodeError, DecodeLimits, ParseError, decode_certificate, decode_hash_tree,
+};
 use ic_platform::certification::{Certificate, HashTree, LookupResult};
 use thiserror::Error;
 
@@ -19,7 +19,7 @@ use thiserror::Error;
 /// CertificateEvidenceLimits
 ///
 /// Caller-selected total wire-byte allowance for one evidence pair.
-/// CBOR nesting follows Host's IC Agent codec and its built-in recursion limit.
+/// CBOR nesting follows Platform's IC Agent codec and its built-in recursion limit.
 ///
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,7 +57,7 @@ pub enum CertificateVerificationError {
 }
 
 /// Authenticate exact bounded bytes using the caller's Agent trust-root policy.
-/// CBOR nesting follows Host's IC Agent codec and its built-in recursion limit.
+/// CBOR nesting follows Platform's IC Agent codec and its built-in recursion limit.
 ///
 /// # Errors
 /// Refuses oversized/malformed bytes or Agent signature, delegation and time failures.

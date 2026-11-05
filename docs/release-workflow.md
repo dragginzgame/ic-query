@@ -23,7 +23,7 @@ Group-qualified recovery journals and receipts bind the group, policy digest,
 source, versions and destination. Resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the pending 0.91 hard cut, release and publish Query first, then the CLI group.
+For the pending 0.92 hard cut, release and publish Query first, then the CLI group.
 Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed

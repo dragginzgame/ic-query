@@ -1,9 +1,10 @@
 use super::*;
+use crate::sns::report::live::types::ListNeuronsRequest;
 use crate::sns::report::live::types::SnsGovernanceNeuronPermission;
 use ic_platform::candid::contract::Principal;
 fn wire() -> SnsGovernanceNeuron {
     SnsGovernanceNeuron {
-        id: Some(SnsNeuronId { id: vec![1; 32] }),
+        id: Some(NeuronId { id: vec![1; 32] }),
         permissions: vec![SnsGovernanceNeuronPermission {
             principal: Some(Principal::management_canister()),
             permission_type: vec![5, 999],
@@ -75,4 +76,24 @@ fn native_queries_use_the_shared_stake_permission_contract() {
         sns_neuron_row(*neuron).unwrap().cached_neuron_stake_e8s,
         125_000_000
     );
+}
+
+#[test]
+fn neuron_cursor_keeps_the_external_request_shape_and_raw_bytes() {
+    let cursor = crate::sns::report::SnsNeuronId { id: vec![0xff; 32] };
+    let request = ListNeuronsRequest {
+        of_principal: None,
+        limit: 1,
+        start_page_at: Some((&cursor).into()),
+    };
+    // Independent didc encoding, including the optional record/blob cursor.
+    let expected = crate::hex::decode_hex("4449444c056c03c69cb8c20401bbbe84a8077986d8d2800f026e686e036c01dbb701046d7b010000010000000120ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
+    assert_eq!(
+        ic_platform::candid::contract::encode_one(request).unwrap(),
+        expected
+    );
+    let wire = NeuronId::from(&cursor);
+    let bytes = ic_platform::candid::contract::encode_one(wire).unwrap();
+    let decoded: NeuronId = crate::candid_decode::decode_reply(&bytes).unwrap();
+    assert_eq!(crate::sns::report::SnsNeuronId::from(decoded), cursor);
 }

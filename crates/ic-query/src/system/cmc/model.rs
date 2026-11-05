@@ -4,8 +4,6 @@
 //! Does not own: live transport, certificate verification, CLI parsing, or text output.
 //! Boundary: preserves the native CMC permyriad rate and explicit evidence provenance.
 
-#[cfg(feature = "cmc-host")]
-use ic_platform::candid::contract::CandidType;
 use serde::{Deserialize, Serialize};
 
 ///
@@ -36,8 +34,6 @@ pub struct CmcReportContext {
 /// Native CMC ICP/XDR conversion-rate value committed by certified data.
 ///
 
-#[cfg_attr(feature = "cmc-host", derive(CandidType))]
-#[cfg_attr(feature = "cmc-host", candid_path("ic_platform::candid::contract"))]
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CmcIcpXdrConversionRate {
     /// Unix timestamp for the market data represented by this rate.

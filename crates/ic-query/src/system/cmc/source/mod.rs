@@ -17,7 +17,7 @@ use crate::{
 };
 use ic_platform::candid::contract::Principal;
 use ic_platform::certification::{HashTree, LookupResult};
-use ic_platform::cmc_types::IcpXdrConversionRateResponse;
+use ic_platform::cmc_types::{IcpXdrConversionRate, IcpXdrConversionRateResponse};
 
 const GET_ICP_XDR_CONVERSION_RATE_METHOD: &str = "get_icp_xdr_conversion_rate";
 const ICP_XDR_CONVERSION_RATE_LABEL: &[u8] = b"ICP_XDR_CONVERSION_RATE";
@@ -100,11 +100,11 @@ fn verified_certified_rate(
         "canister",
     )
     .map_err(map_certified_data_error)?;
+    verify_rate_leaf(&hash_tree, &response.data)?;
     let rate = CmcIcpXdrConversionRate {
         timestamp_seconds: response.data.timestamp_seconds,
         xdr_permyriad_per_icp: response.data.xdr_permyriad_per_icp,
     };
-    verify_rate_leaf(&hash_tree, &rate)?;
 
     Ok(CmcCertifiedRate {
         rate,
@@ -118,10 +118,7 @@ fn verified_certified_rate(
     })
 }
 
-fn verify_rate_leaf(
-    hash_tree: &HashTree,
-    rate: &CmcIcpXdrConversionRate,
-) -> Result<(), CmcHostError> {
+fn verify_rate_leaf(hash_tree: &HashTree, rate: &IcpXdrConversionRate) -> Result<(), CmcHostError> {
     let expected = ic_platform::candid::contract::encode_one(rate).map_err(|error| {
         CmcHostError::CandidEncode {
             message: "IcpXdrConversionRate",

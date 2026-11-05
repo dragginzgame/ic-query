@@ -97,10 +97,13 @@ fn authenticates_the_certificate_before_accepting_its_witness() {
     let hash_tree = tip_hash_tree(vec![0x01], vec![0x5a; SHA_256_BYTES]);
     let certificate = certificate_for_tip(&ledger_canister, hash_tree.digest().to_vec());
     let wire = ICRC3DataCertificate {
-        certificate: serde_cbor::to_vec(&certificate)
-            .expect("encode certificate")
-            .into(),
-        hash_tree: serde_cbor::to_vec(&hash_tree)
+        certificate: ic_platform::certification::cbor::encode_certificate_untagged(
+            &certificate,
+            64 * 1024,
+        )
+        .expect("encode certificate")
+        .into(),
+        hash_tree: ic_platform::certification::cbor::encode_hash_tree(&hash_tree, 64 * 1024)
             .expect("encode hash tree")
             .into(),
     };
@@ -123,7 +126,9 @@ fn authenticates_the_certificate_before_accepting_its_witness() {
 fn rejects_malformed_certificate_cbor_before_authentication() {
     let ledger_canister = Principal::from_text(LEDGER_CANISTER_ID).expect("valid ledger canister");
     let certificate = certificate_for_tip(&ledger_canister, vec![0; SHA_256_BYTES]);
-    let mut trailing = serde_cbor::to_vec(&certificate).expect("encode certificate");
+    let mut trailing =
+        ic_platform::certification::cbor::encode_certificate_untagged(&certificate, 64 * 1024)
+            .expect("encode certificate");
     trailing.push(0);
     let agent = Agent::builder()
         .with_url("https://icp-api.io")

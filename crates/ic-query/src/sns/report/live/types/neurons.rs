@@ -5,7 +5,7 @@
 //! Boundary: mirrors list_neurons request and response payloads.
 
 use super::SnsGovernanceError;
-use crate::sns::report::SnsNeuronId;
+
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
 ///
@@ -17,7 +17,7 @@ use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 #[derive(CandidType)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct GetNeuronRequest {
-    pub(in crate::sns::report::live) neuron_id: Option<SnsNeuronId>,
+    pub(in crate::sns::report::live) neuron_id: Option<NeuronId>,
 }
 
 ///
@@ -56,7 +56,7 @@ pub(in crate::sns::report::live) enum GetNeuronResult {
 pub(in crate::sns::report::live) struct ListNeuronsRequest {
     pub(in crate::sns::report::live) of_principal: Option<Principal>,
     pub(in crate::sns::report::live) limit: u32,
-    pub(in crate::sns::report::live) start_page_at: Option<SnsNeuronId>,
+    pub(in crate::sns::report::live) start_page_at: Option<NeuronId>,
 }
 
 ///
@@ -81,7 +81,7 @@ pub(in crate::sns::report::live) struct ListNeuronsResponse {
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuron {
     pub(in crate::sns::report::live) permissions: Vec<SnsGovernanceNeuronPermission>,
-    pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
+    pub(in crate::sns::report::live) id: Option<NeuronId>,
     pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
     pub(in crate::sns::report::live) maturity_e8s_equivalent: u64,
     pub(in crate::sns::report::live) cached_neuron_stake_e8s: u64,
@@ -119,4 +119,30 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronPermission {
 pub(in crate::sns::report::live) enum SnsGovernanceDissolveState {
     DissolveDelaySeconds(u64),
     WhenDissolvedTimestampSeconds(u64),
+}
+
+///
+/// NeuronId
+///
+/// External SNS Governance neuron identifier used only by the live codec.
+///
+
+#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
+#[candid_path("ic_platform::candid::contract")]
+pub(in crate::sns::report::live) struct NeuronId {
+    pub(in crate::sns::report::live) id: Vec<u8>,
+}
+
+impl From<&crate::sns::report::SnsNeuronId> for NeuronId {
+    fn from(value: &crate::sns::report::SnsNeuronId) -> Self {
+        Self {
+            id: value.id.clone(),
+        }
+    }
+}
+
+impl From<NeuronId> for crate::sns::report::SnsNeuronId {
+    fn from(value: NeuronId) -> Self {
+        Self { id: value.id }
+    }
 }

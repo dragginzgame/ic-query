@@ -101,7 +101,7 @@ struct CloudEnginePriceWire {
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
 #[candid_path("ic_platform::candid::contract")]
 struct CloudEnginePriceEntryWire {
-    node_type: CloudEngineNodeType,
+    node_type: NodeType,
     dc: Option<String>,
     provider: Option<Principal>,
     price: CloudEnginePriceWire,
@@ -125,7 +125,7 @@ impl CloudEngineMarketplaceEntryWire {
     pub(super) fn into_report_row(self) -> CloudEnginePriceRow {
         CloudEnginePriceRow {
             key: self.key,
-            node_type: self.entry.node_type,
+            node_type: self.entry.node_type.into(),
             data_center_id: self.entry.dc,
             provider_id: self.entry.provider.map(|principal| principal.to_text()),
             net_cycles_per_month: self.entry.price.net_cycles.0.to_str_radix(10),
@@ -137,3 +137,30 @@ impl CloudEngineMarketplaceEntryWire {
 
 #[cfg(test)]
 mod tests;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, CandidType, Deserialize)]
+#[candid_path("ic_platform::candid::contract")]
+enum NodeType {
+    #[serde(rename = "type4_1")]
+    Type4_1,
+    #[serde(rename = "type4_2")]
+    Type4_2,
+    #[serde(rename = "type4_3")]
+    Type4_3,
+    #[serde(rename = "type4_4")]
+    Type4_4,
+    #[serde(rename = "type4_5")]
+    Type4_5,
+}
+
+impl From<NodeType> for CloudEngineNodeType {
+    fn from(value: NodeType) -> Self {
+        match value {
+            NodeType::Type4_1 => Self::Type4_1,
+            NodeType::Type4_2 => Self::Type4_2,
+            NodeType::Type4_3 => Self::Type4_3,
+            NodeType::Type4_4 => Self::Type4_4,
+            NodeType::Type4_5 => Self::Type4_5,
+        }
+    }
+}

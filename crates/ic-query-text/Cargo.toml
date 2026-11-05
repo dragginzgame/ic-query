@@ -42,8 +42,8 @@ serde_json.workspace = true
 [dev-dependencies]
 futures = { workspace = true, features = ["executor"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }
-ic-host-tools = { workspace = true, features = ["certificate", "ledger-evidence"] }
-ic-platform = { workspace = true, features = ["candid", "icrc-ledger-types"] }
+ic-host-tools = { workspace = true, features = ["ledger-evidence"] }
+ic-platform = { workspace = true, features = ["candid", "certification-cbor", "icrc-ledger-types"] }
 serde.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "time", "net"] }
 

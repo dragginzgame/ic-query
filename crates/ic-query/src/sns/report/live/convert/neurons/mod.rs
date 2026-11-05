@@ -1,8 +1,7 @@
 //! Decode one shared neuron stake/permission projection for exact and paged queries.
-use crate::sns::report::live::types::{SnsGovernanceDissolveState, SnsGovernanceNeuron};
+use crate::sns::report::live::types::{NeuronId, SnsGovernanceDissolveState, SnsGovernanceNeuron};
 use crate::sns::report::{
-    SnsHostError, SnsNeuronDissolveState, SnsNeuronId, SnsNeuronPermissionRow, SnsNeuronRow,
-    hex_bytes,
+    SnsHostError, SnsNeuronDissolveState, SnsNeuronPermissionRow, SnsNeuronRow, hex_bytes,
 };
 pub(in crate::sns::report::live) fn sns_neuron_row(
     neuron: SnsGovernanceNeuron,
@@ -40,7 +39,7 @@ pub(in crate::sns::report::live) fn sns_neuron_row(
         neuron_fees_e8s: neuron.neuron_fees_e8s,
     })
 }
-fn neuron_id_text(id: Option<SnsNeuronId>) -> Result<String, SnsHostError> {
+fn neuron_id_text(id: Option<NeuronId>) -> Result<String, SnsHostError> {
     let id = id.ok_or(SnsHostError::MissingNeuronId)?.id;
     if id.is_empty() {
         return Err(SnsHostError::InvalidNeuronId);

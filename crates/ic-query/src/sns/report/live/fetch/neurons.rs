@@ -42,7 +42,9 @@ impl SnsNeuronSource for crate::sns::LiveSnsSource {
                 "GetNeuronRequest",
                 "GetNeuronResponse",
                 &GetNeuronRequest {
-                    neuron_id: Some(parsed_neuron_id),
+                    neuron_id: Some(super::super::types::NeuronId {
+                        id: parsed_neuron_id.id,
+                    }),
                 },
             )
             .await?;
@@ -128,11 +130,14 @@ async fn query_neuron_page(
         &ListNeuronsRequest {
             of_principal: owner_principal,
             limit,
-            start_page_at: start_page_at.cloned(),
+            start_page_at: start_page_at.map(Into::into),
         },
     )
     .await?;
-    let last_cursor = response.neurons.last().and_then(|neuron| neuron.id.clone());
+    let last_cursor = response
+        .neurons
+        .last()
+        .and_then(|neuron| neuron.id.clone().map(Into::into));
     let neurons = response
         .neurons
         .into_iter()

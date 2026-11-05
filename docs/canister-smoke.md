@@ -76,7 +76,9 @@ is introduced. Native Testkit coverage also sends Wire frames directly.
 ## Deterministic Testkit coverage
 
 Native development dependencies select `ic-testkit` through the workspace
-manifest and lockfile. Host's bounded HTTP request reader owns the Agent,
+manifest and lockfile. Testkit 0.86 and the probe/smoke harness select Wire 0.17
+together. These codec-only callers use Serde and do not select Wire's optional
+schema derive. Host's bounded HTTP request reader owns the Agent,
 Dashboard and ICRC socket-fixture framing loops.
 Query retains response contents, injected failures and report assertions.
 These ordinary tests need no running simulator.
@@ -464,17 +466,20 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query selects Platform 0.22.0, Types 0.18.1 and Runtime 0.19.1.
-Testkit 0.85.1 shares Platform 0.22 and canonical Types, Candid and Runtime
-identities. It owns the native PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
+callers use Wire. Query selects Platform 0.23.0, Types 0.18.1 and Runtime 0.19.2.
+Host Tools 0.82.1 and Testkit 0.86.0 retain their published Platform 0.22
+requirements. Both facade generations share canonical Types, external Candid
+and Runtime identities. It owns the native PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
 traits and management DTO 0.11 identity. The separate `ic-platform-pocket-ic`
 dependency is retired. Query owns its report arithmetic without Metrics.
 External Candid/PocketIC Principal bytes retain their explicit boundary, and the
-probe codec selects Wire 0.16.2 for Query’s existing string frames and budgets.
+probe codec selects Wire 0.17.2 for Query’s existing string frames and budgets.
 The prepared server remains PocketIC 16.1.0.
-`serde_cbor`, `libc` and `time` have fixture uses and also occur in the native
-CLI production graph, so they are not tooling-only exclusions. Query has no
-direct Ciborium declaration or usage. Governance fixtures use Testkit's native
+Native IC packet fixtures select Platform's `ic-protocol-fixtures` only through
+a native development dependency. Query has no direct CBOR codec dependency or
+imports; legitimate `serde_cbor` edges remain inside its suppliers. `libc` and
+`time` have fixture uses and also occur in the native CLI production graph, so
+they are not tooling-only exclusions. Governance fixtures use Testkit's native
 `reply-fixtures` feature with exact replies and explicit update exports. Host
 owns binary Wasm encoding and inspection; no WAT parser is selected. Futures'
 executor is enabled only for native library tests, while production retains its
@@ -511,7 +516,7 @@ external Candid arguments and decodes replies under its own bounded policy.
 Runtime reject-code changes preserve Query's raw numeric error projection.
 
 Platform supplies the upstream Candid, certification, external Principal and native Agent
-identities. Host retains strict bounded CBOR decoding. Query retains external
+identities and strict bounded CBOR decoding. Query retains external
 Governance Candid arguments, byte-dependent work quotas, skipping/type/header
 ceilings, error projection, trust roots, deadlines and original reply evidence.
 There are no local generated Candid bindings; Registry Protobuf is a separate

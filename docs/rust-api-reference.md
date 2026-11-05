@@ -309,7 +309,8 @@ only live/cache Subnet catalog behavior. It keeps the IC agent, Registry
 decoding, capability-filesystem dependencies, and other cache
 dependencies required by that API while leaving `ic-query`'s direct optional
 Dashboard `reqwest` transport disabled. Certified Registry calls additionally
-select Host's bounded certificate decoder; direct `serde_cbor` use is fixture-only.
+select Platform's bounded certificate decoder. Native IC protocol fixtures also
+use Platform; Query has no direct `serde_cbor` declaration.
 Because the feature still includes `ic-agent`, Reqwest and CBOR remain in its
 transitive dependency graph. The full `host` feature remains the
 choice for all reporting adapters and is a strict superset.

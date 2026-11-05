@@ -5,6 +5,29 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.92.0]
+
+### ⚠️ Breaking
+
+- Remove Candid codec traits from Query-owned report/source models. External
+  adapters retain the native protocols and project into unchanged report JSON
+  ([#114](https://github.com/dragginzgame/ic-query/issues/114)).
+- The certificate decoder migration changes the public decode-source identity
+  to Platform's `certification::cbor::strict::ParseError`. Downstream consumers
+  naming the former Host error adopt that type. [Migration](0.92.md).
+
+### 🧹 Cleanup
+
+- Replace direct CBOR test encoding and map inspection with Platform's native
+  IC protocol fixtures, preserving malformed-input and authentication coverage.
+  Remove Query's direct `serde_cbor` dependency ([#113](https://github.com/dragginzgame/ic-query/issues/113)).
+
+### ⬆️ Dependencies
+
+- Adopt Platform 0.23.0, Testkit 0.86.0 and Wire 0.17.2 for native Governance fixtures and the
+  development probe/smoke harness. Keep one Wire generation; codec-only builds
+  no longer pull in the optional schema derive. Report JSON is unchanged.
+
 ## [0.91.0] - 2026-11-05
 
 ### ⚠️ Breaking

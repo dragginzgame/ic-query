@@ -4,7 +4,7 @@
 //! Does not own: live transport, report DTOs, or text rendering.
 //! Boundary: models only the fields needed by bounded neuron reports.
 
-use crate::nns::governance::{GovernanceError, NnsGovernanceNeuronId, NnsGovernanceProposalId};
+use crate::nns::governance::{GovernanceError, GovernanceProposalId, NnsGovernanceNeuronId};
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 
 ///
@@ -89,7 +89,7 @@ pub(in crate::nns::neuron::report) struct NeuronInfoWire {
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::nns::neuron::report) struct BallotInfoWire {
     pub(in crate::nns::neuron::report) vote: i32,
-    pub(in crate::nns::neuron::report) proposal_id: Option<NnsGovernanceProposalId>,
+    pub(in crate::nns::neuron::report) proposal_id: Option<GovernanceProposalId>,
 }
 
 ///

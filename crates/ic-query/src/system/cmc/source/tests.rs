@@ -28,7 +28,7 @@ fn accepts_a_rate_leaf_committed_by_certified_data() {
 #[test]
 fn rejects_a_leaf_for_a_different_rate() {
     let rate = rate();
-    let different_rate = CmcIcpXdrConversionRate {
+    let different_rate = IcpXdrConversionRate {
         timestamp_seconds: rate.timestamp_seconds,
         xdr_permyriad_per_icp: rate.xdr_permyriad_per_icp + 1,
     };
@@ -67,8 +67,10 @@ fn authenticates_the_certificate_before_accepting_the_rate() {
     let hash_tree = label(ICP_XDR_CONVERSION_RATE_LABEL.to_vec(), leaf(encoded_rate));
     let certificate = certificate_for_tree(&canister, hash_tree.digest().to_vec());
     let response = response(
-        serde_cbor::to_vec(&hash_tree).expect("encode hash tree"),
-        serde_cbor::to_vec(&certificate).expect("encode certificate"),
+        ic_platform::certification::cbor::encode_hash_tree(&hash_tree, 64 * 1024)
+            .expect("encode hash tree"),
+        ic_platform::certification::cbor::encode_certificate_untagged(&certificate, 64 * 1024)
+            .expect("encode certificate"),
     );
     let agent = ic_platform::agent::Agent::builder()
         .with_url(super::super::DEFAULT_CMC_SOURCE_ENDPOINT)
@@ -84,8 +86,8 @@ fn authenticates_the_certificate_before_accepting_the_rate() {
     ));
 }
 
-fn rate() -> CmcIcpXdrConversionRate {
-    CmcIcpXdrConversionRate {
+fn rate() -> IcpXdrConversionRate {
+    IcpXdrConversionRate {
         timestamp_seconds: 1_722_510_000,
         xdr_permyriad_per_icp: 49_164,
     }
@@ -118,4 +120,19 @@ fn certificate_for_tree(canister: &Principal, certified_data: Vec<u8>) -> Certif
         signature: Vec::new(),
         delegation: None,
     }
+}
+
+#[test]
+fn certified_rate_leaf_keeps_the_external_candid_bytes() {
+    // Independent didc encoding of the official two-nat64 rate record.
+    let expected = crate::hex::decode_hex(
+        "4449444c016c02dff581a00878d6d5dac60f7801000cc0000000000000b06aab6600000000",
+    )
+    .unwrap();
+    assert_eq!(
+        ic_platform::candid::contract::encode_one(rate()).unwrap(),
+        expected
+    );
+    let decoded: IcpXdrConversionRate = crate::candid_decode::decode_reply(&expected).unwrap();
+    assert_eq!(decoded, rate());
 }

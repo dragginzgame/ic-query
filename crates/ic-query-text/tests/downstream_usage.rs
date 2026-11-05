@@ -1,7 +1,7 @@
-#[cfg(feature = "certificate-host")]
-use ic_host_tools::certificate::ParseError;
 #[cfg(feature = "ledger-evidence-host")]
 use ic_host_tools::ledger_evidence::LedgerTip;
+#[cfg(feature = "certificate-host")]
+use ic_platform::certification::cbor::strict::ParseError;
 #[cfg(feature = "ledger-evidence-host")]
 use ic_query::certificate::CertificateEvidenceLimits;
 #[cfg(feature = "certificate-host")]

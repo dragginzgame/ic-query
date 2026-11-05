@@ -7,6 +7,22 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.92.0]
+
+### ⚠️ Breaking
+
+- Rust text-renderer consumers adopt Query 0.92's model generation, with owned
+  models separated from external Candid DTOs. CLI output is unchanged
+  ([#114](https://github.com/dragginzgame/ic-query/issues/114), [migration](0.92.md)).
+
+### ⬆️ Dependencies
+
+- Select Platform 0.23.0 for Query and its native protocol fixtures. Native
+  Host Tools/Testkit retain their required Platform 0.22 generation.
+- Adopt Testkit 0.86.0 and Wire 0.17.2 for native Governance fixtures and the
+  development probe/smoke harness. Keep one Wire generation; codec-only builds
+  no longer pull in the optional schema derive. Report JSON is unchanged.
+
 ## [0.91.0] - 2026-11-05
 
 ### ⚠️ Breaking

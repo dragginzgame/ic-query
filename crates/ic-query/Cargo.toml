@@ -20,9 +20,8 @@ categories = ["command-line-utilities"]
 default = []
 ledger-evidence-host = ["certificate-host", "ic-host-tools/ledger-evidence"]
 certificate-host = [
-    "dep:ic-host-tools",
     "ic-platform/agent",
-    "ic-host-tools/certificate",
+    "ic-platform/certification-cbor",
     "ic-platform/certification",
 ]
 canister = ["ic-platform/cdk"]
@@ -100,11 +99,11 @@ futures = { workspace = true, features = ["executor"] }
 ic-host-artifacts = { workspace = true, features = ["wasm"] }
 ic-host-fs = { workspace = true, features = ["test-support"] }
 ic-host-process = { workspace = true, features = ["test-support"] }
+ic-platform = { workspace = true, features = ["ic-protocol-fixtures"] }
 tokio = { workspace = true, features = ["net"] }
 
 [dev-dependencies]
 ic-wire.workspace = true
-serde_cbor.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "time"] }
 
 [[example]]

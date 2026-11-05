@@ -11,15 +11,13 @@ use crate::{
     ic_registry::RegistryFetchError,
 };
 use ic_host_artifacts::artifact::Sha256Digest;
+use ic_host_tools::encoding::decode_canonical_unsigned_u64;
 use ic_host_tools::registry::proto::{
     RegistryCertifiedResponse, RegistryMixedHashTree, registry_mixed_hash_tree::Tree,
 };
-use ic_host_tools::{
-    certificate::{DecodeLimits, decode_certificate},
-    encoding::decode_canonical_unsigned_u64,
-};
 use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
+use ic_platform::certification::cbor::strict::{DecodeLimits, decode_certificate};
 use ic_platform::certification::{
     HashTree, LookupResult, empty, fork, labeled as label, leaf, pruned,
 };

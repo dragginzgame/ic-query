@@ -1,7 +1,6 @@
 use super::*;
 use crate::icrc::live::tests::{query_content, replied_query_fixture};
 use ic_platform::icrc_ledger_types::QueryArchiveFn;
-use serde_cbor::Value;
 use std::collections::BTreeMap;
 
 #[test]
@@ -175,7 +174,7 @@ async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
         archived_blocks: vec![],
     };
     let (server, agent) = replied_query_fixture(
-        ic_platform::candid::contract::encode_one(reply).unwrap(),
+        &ic_platform::candid::contract::encode_one(reply).unwrap(),
         8 * 1024 * 1024,
     );
     let archive = ArchivedBlocks {
@@ -187,19 +186,14 @@ async fn follow_callback_fixture(block_ids: &[u64]) -> ArchiveFollowResult {
     };
     let followed = fetch_archive_blocks(&agent, &[archive]).await;
     let raw = server.finish().unwrap();
-    let content = query_content(&raw);
-    assert_eq!(
-        content[&Value::Text("request_type".into())],
-        Value::Text("query".into())
-    );
-    assert_eq!(
-        content[&Value::Text("method_name".into())],
-        Value::Text("read_archive_page".into())
-    );
-    let Value::Bytes(args) = &content[&Value::Text("arg".into())] else {
-        panic!("Candid arguments")
+    let ic_platform::ic_protocol::EnvelopeContent::Query {
+        method_name, arg, ..
+    } = query_content(&raw)
+    else {
+        panic!("query content")
     };
-    let args: Vec<GetBlocksRequest> = crate::candid_decode::decode_reply(args).unwrap();
+    assert_eq!(method_name, "read_archive_page");
+    let args: Vec<GetBlocksRequest> = crate::candid_decode::decode_reply(&arg).unwrap();
     assert_eq!(args[0].start, Nat::from(12u64));
     assert_eq!(args[0].length, Nat::from(2u64));
     followed

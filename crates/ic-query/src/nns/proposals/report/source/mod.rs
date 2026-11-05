@@ -8,7 +8,7 @@
     feature = "nns-host",
     all(feature = "canister", target_arch = "wasm32")
 ))]
-use crate::nns::governance::NnsGovernanceProposalId;
+use crate::nns::governance::GovernanceProposalId;
 use crate::report::ReportProvenance;
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 mod canister;
@@ -274,7 +274,7 @@ fn proposal_page_request(
             .into_iter()
             .collect(),
         omit_large_fields: Some(false),
-        before_proposal: before_proposal_id.map(|id| NnsGovernanceProposalId { id }),
+        before_proposal: before_proposal_id.map(|id| GovernanceProposalId { id }),
         limit,
         exclude_topic: Vec::new(),
         include_all_manage_neuron_proposals: Some(true),

@@ -2,12 +2,12 @@
 
 use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
 use ic_platform::agent::Agent;
-use serde_cbor::Value;
-use std::{collections::BTreeMap, time::Duration};
+use ic_platform::ic_protocol::{EnvelopeContent, decode_envelope, fixtures};
+use std::time::Duration;
 
-pub(super) fn query_fixture(response: &Value, max_body_bytes: usize) -> (HttpFixture, Agent) {
+pub(super) fn query_fixture(response: &[u8], max_body_bytes: usize) -> (HttpFixture, Agent) {
     let server = HttpFixture::spawn(
-        &serde_cbor::to_vec(response).unwrap(),
+        response,
         "application/cbor",
         HttpFixtureLimits {
             timeout: Duration::from_secs(10),
@@ -24,33 +24,21 @@ pub(super) fn query_fixture(response: &Value, max_body_bytes: usize) -> (HttpFix
     (server, agent)
 }
 
-pub(super) fn replied_query_fixture(reply: Vec<u8>, max_body_bytes: usize) -> (HttpFixture, Agent) {
+pub(super) fn replied_query_fixture(reply: &[u8], max_body_bytes: usize) -> (HttpFixture, Agent) {
     query_fixture(
-        &Value::Map(BTreeMap::from([
-            (Value::Text("status".into()), Value::Text("replied".into())),
-            (
-                Value::Text("reply".into()),
-                Value::Map(BTreeMap::from([(
-                    Value::Text("arg".into()),
-                    Value::Bytes(reply),
-                )])),
-            ),
-        ])),
+        &fixtures::query_reply(reply, max_body_bytes).unwrap(),
         max_body_bytes,
     )
 }
 
-pub(super) fn query_content(request: &[u8]) -> BTreeMap<Value, Value> {
+pub(super) fn query_content(request: &[u8]) -> EnvelopeContent {
     let body_start = request
         .windows(4)
         .position(|bytes| bytes == b"\r\n\r\n")
         .unwrap()
         + 4;
-    let Value::Map(mut envelope) = serde_cbor::from_slice(&request[body_start..]).unwrap() else {
-        panic!("request envelope")
-    };
-    let Some(Value::Map(content)) = envelope.remove(&Value::Text("content".into())) else {
-        panic!("request content")
-    };
-    content
+    decode_envelope(&request[body_start..], request.len())
+        .unwrap()
+        .content
+        .into_owned()
 }

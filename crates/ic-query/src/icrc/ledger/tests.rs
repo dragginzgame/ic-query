@@ -2,7 +2,7 @@ use super::*;
 use ic_platform::candid::contract::Int;
 
 #[test]
-fn native_index_and_standard_replies_decode_without_projection() {
+fn native_index_and_standard_replies_preserve_external_shapes() {
     // Independent fixtures: didc encode of native Ok/Err variants and standard records.
     for (encoded, expected) in [
         (
@@ -27,7 +27,8 @@ fn native_index_and_standard_replies_decode_without_projection() {
         assert_eq!(actual, expected);
     }
     let bytes = crate::hex::decode_hex("4449444c026d016c02efd6e40271cbe4fdc704710100011c68747470733a2f2f6578616d706c652e636f6d2f7374616e6461726406494352432d31").unwrap();
-    let standards: Vec<IcrcTokenStandardRow> = crate::candid_decode::decode_reply(&bytes).unwrap();
+    let standards: Vec<SupportedStandard> = crate::candid_decode::decode_reply(&bytes).unwrap();
+    let standards: Vec<_> = standards.into_iter().map(supported_standard_row).collect();
     assert_eq!(
         standards,
         vec![IcrcTokenStandardRow {

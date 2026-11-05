@@ -37,14 +37,6 @@ pub struct IcrcTokenData {
 /// Serializable row for one ICRC standard supported by a ledger.
 ///
 
-#[cfg_attr(
-    any(feature = "icrc-host", feature = "sns-host"),
-    derive(ic_platform::candid::contract::CandidType)
-)]
-#[cfg_attr(
-    any(feature = "icrc-host", feature = "sns-host"),
-    candid_path("ic_platform::candid::contract")
-)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct IcrcTokenStandardRow {
     /// Standard name advertised by the ledger.

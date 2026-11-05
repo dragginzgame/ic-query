@@ -39,7 +39,7 @@ thiserror = "2.0"
 ic-host-artifacts = { version = "0.74.3", default-features = false }
 ic-host-fs = { version = "0.74.3", default-features = false }
 ic-host-tools = { version = "0.82.0", default-features = false }
-ic-platform = { version = "0.22.0", default-features = false, features = ["candid"] }
+ic-platform = { version = "0.23.0", default-features = false, features = ["candid"] }
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
@@ -50,10 +50,9 @@ url = "2.5.8"
 futures = { version = "0.3", default-features = false }
 ic-build = "0.74.3"
 ic-host-process = { version = "0.74.3", default-features = false }
-ic-testkit = "0.85.0"
-ic-wire = "0.16.0"
+ic-testkit = "0.86.0"
+ic-wire = "0.17.2"
 libc = "0.2"
-serde_cbor = "0.11.2"
 time = { version = "0.3", features = ["formatting"] }
 
 [workspace.lints.clippy]

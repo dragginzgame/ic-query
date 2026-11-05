@@ -48,7 +48,8 @@ Dependencies own the reusable mechanisms beneath that policy:
 | Registry protobuf projections and routing-shard admission | `ic-host-tools/registry` | Transport, byte/work budgets, version/endpoint binding, certification and report projection |
 | Canonical unsigned `u64` LEB128 and bounded ICRC chain evidence | Host Tools' `encoding` and `ledger-evidence` features | Field/error projection, certificate/witness authentication and transaction interpretation |
 | SHA-256 identities and streaming hashes | `ic-host-artifacts` | Exact cache-key encodings, canonical JSON and Registry provenance domains |
-| Strict bounded certificate CBOR decoding | `ic-host-tools/certificate` | Registry response ceiling, typed refusal, Agent authentication and original-byte evidence; direct CBOR encoding is fixture-only |
+| Strict bounded certificate CBOR decoding | `ic-platform/certification-cbor` | Registry response ceiling, typed refusal, Agent authentication and original-byte evidence |
+| Native IC protocol fixtures | `ic-platform/ic-protocol-fixtures` (native development only) | Raw query arguments/replies, reject metadata, certificate witnesses and malformed-input assertions |
 | Bounded Candid decoding | `ic-platform` | Caller-selected quotas, reply arity and error projection; this portable package does not require PocketIC |
 | Simulator fixtures and lifecycle | `ic-testkit` (development only) | Governance probe, application responses and report assertions |
 | Probe build resolution and source identity | `ic-build` (development only) | Build execution, probe metadata and evidence publication |
@@ -231,9 +232,10 @@ separate installed-IC and fleet qualification obligations.
 
 Platform also supplies certificate/hash-tree identities and constructors through
 its optional `certification` feature, enabled by `certificate-host` and
-`ic-state-host`. The latter uses Agent-decoded certificates without Host CBOR
-decoding. Host retains strict byte-bounded CBOR decoding, codec-owned recursion
-and its public parse error identity; Agent retains authentication. Query keeps
+`ic-state-host`. The latter uses Agent-decoded certificates without an explicit CBOR decode. Platform now retains strict byte-bounded CBOR
+decoding, codec-owned recursion and its public parse error identity; Agent
+retains authentication. The pending Query 0.92 migration replaces the former
+Host error identity; see the [migration notes](../../releases/query/0.92.md). Query keeps
 combined evidence byte allowances, freshness and
 application leaf admission. Subtree lookup results and labeled fixture hashes now
 also come from Platform; there are no remaining Agent hash-tree import exceptions.
@@ -889,3 +891,18 @@ while preserving its current labels. Full-resource, registered-provider and
 aggregate counts remain where they represent independent evidence. Report
 schemas remain 1 and persisted cache shapes are unchanged. See the
 [0.90 API update](../../releases/query/0.90.md).
+
+## Owned models and external codecs
+
+Query-owned report and source models use their existing Serde representation;
+they do not derive Candid traits, including under host/canister features.
+Private adapter records own NNS/SNS Governance and Cloud Engine Candid
+contracts, while ledger standards and CMC rates use qualified Platform protocol
+types. Projection into report values is explicit. CMC certified-leaf checks
+encode the external rate record, never the report model or Wire bytes.
+
+Remaining Candid derives are confined to external protocol records/arguments
+in the adapters and native codec fixtures. Those internal module exports are
+not public application models. The generic bounded Candid call/decode helpers
+retain trait bounds for their external protocols. Owned application RPC
+continues to use Wire. See [Query 0.92](../../releases/query/0.92.md).

@@ -13,7 +13,10 @@ use crate::nns::{
         NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
         source::metrics_result,
         validation::validate_governance_request,
-        wire::{GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult},
+        wire::{
+            GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult,
+            NetworkEconomics, RewardEvent,
+        },
     },
     governance_query::{query_nns_governance, query_nns_governance_no_args},
 };
@@ -26,14 +29,14 @@ impl NnsGovernanceSource for LiveNnsSource {
     ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
-            let economics = query_nns_governance_no_args(
+            let economics: NetworkEconomics = query_nns_governance_no_args(
                 self,
                 &request,
                 "get_network_economics_parameters",
                 "NetworkEconomics",
             )
             .await?;
-            Ok(NnsGovernanceSourceData::new(economics, provenance))
+            Ok(NnsGovernanceSourceData::new(economics.into(), provenance))
         })
     }
 
@@ -59,14 +62,17 @@ impl NnsGovernanceSource for LiveNnsSource {
     ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
         Box::pin(async move {
             let (request, provenance) = host_request(request)?;
-            let reward_event = query_nns_governance_no_args(
+            let reward_event: RewardEvent = query_nns_governance_no_args(
                 self,
                 &request,
                 "get_latest_reward_event",
                 "RewardEvent",
             )
             .await?;
-            Ok(NnsGovernanceSourceData::new(reward_event, provenance))
+            Ok(NnsGovernanceSourceData::new(
+                reward_event.into(),
+                provenance,
+            ))
         })
     }
 
@@ -86,7 +92,7 @@ impl NnsGovernanceSource for LiveNnsSource {
             )
             .await?;
             Ok(NnsGovernanceSourceData::new(
-                response.maturity_modulation,
+                response.maturity_modulation.map(Into::into),
                 provenance,
             ))
         })

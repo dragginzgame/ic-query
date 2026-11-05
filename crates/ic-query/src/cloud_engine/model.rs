@@ -76,14 +76,6 @@ pub struct CloudEngineOperatorReport {
 /// CloudEngine marketplace node class.
 ///
 
-#[cfg_attr(
-    feature = "cloud-engine-host",
-    derive(ic_platform::candid::contract::CandidType)
-)]
-#[cfg_attr(
-    feature = "cloud-engine-host",
-    candid_path("ic_platform::candid::contract")
-)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum CloudEngineNodeType {
     /// Type 4.1 node class.

@@ -17,8 +17,7 @@ use crate::sns::SnsHostError as QueryError;
 ))]
 use crate::system::cmc::CmcHostError as QueryError;
 use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
-use serde_cbor::Value;
-use std::{collections::BTreeMap, time::Duration};
+use std::time::Duration;
 
 #[tokio::test(flavor = "current_thread")]
 async fn query_preserves_argument_lists_reply_bytes_and_family_error_labels() {
@@ -31,17 +30,7 @@ async fn query_preserves_argument_lists_reply_bytes_and_family_error_labels() {
             ),
             (vec![0xff], None),
         ] {
-            let response = Value::Map(BTreeMap::from([
-                (Value::Text("status".into()), Value::Text("replied".into())),
-                (
-                    Value::Text("reply".into()),
-                    Value::Map(BTreeMap::from([(
-                        Value::Text("arg".into()),
-                        Value::Bytes(reply),
-                    )])),
-                ),
-            ]));
-            let body = serde_cbor::to_vec(&response).unwrap();
+            let body = ic_platform::ic_protocol::fixtures::query_reply(&reply, 64 * 1024).unwrap();
             let server = HttpFixture::spawn(
                 &body,
                 "application/cbor",
@@ -89,21 +78,16 @@ async fn query_preserves_argument_lists_reply_bytes_and_family_error_labels() {
                 .unwrap()
                 + 4;
             assert!(raw[body_start..].starts_with(&[0xd9, 0xd9, 0xf7]));
-            let Value::Map(request) = serde_cbor::from_slice::<Value>(&raw[body_start..]).unwrap()
+            let envelope =
+                ic_platform::ic_protocol::decode_envelope(&raw[body_start..], 64 * 1024).unwrap();
+            let ic_platform::ic_protocol::EnvelopeContent::Query {
+                arg, method_name, ..
+            } = envelope.content.as_ref()
             else {
-                panic!("expected CBOR request envelope");
+                panic!("expected query content");
             };
-            let Value::Map(content) = &request[&Value::Text("content".into())] else {
-                panic!("expected CBOR request content");
-            };
-            assert_eq!(
-                content[&Value::Text("arg".into())],
-                Value::Bytes(encoded_argument)
-            );
-            assert_eq!(
-                content[&Value::Text("method_name".into())],
-                Value::Text("fixture_query".into())
-            );
+            assert_eq!(arg, &encoded_argument);
+            assert_eq!(method_name, "fixture_query");
         }
     }
 }

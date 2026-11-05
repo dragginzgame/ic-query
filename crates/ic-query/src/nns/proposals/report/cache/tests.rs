@@ -13,8 +13,8 @@ use crate::ic_registry::DEFAULT_MAINNET_ENDPOINT;
 use crate::nns::MAINNET_GOVERNANCE_CANISTER_ID;
 use crate::nns::NnsGovernanceCacheRequest;
 use crate::nns::NnsGovernanceRefreshRequest;
+use crate::nns::governance::GovernanceProposalId;
 use crate::nns::governance::NnsGovernanceNeuronId;
-use crate::nns::governance::NnsGovernanceProposalId;
 use crate::nns::governance::NnsGovernanceRequest;
 use crate::nns::governance::NnsGovernanceSourceData;
 use crate::nns::governance::NnsGovernanceSourceProvenance;
@@ -1013,7 +1013,7 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
 
 fn proposal_info(proposal_id: u64) -> NnsProposalInfo {
     NnsProposalInfo {
-        id: Some(NnsGovernanceProposalId { id: proposal_id }),
+        id: Some(GovernanceProposalId { id: proposal_id }),
         status: 4,
         topic: 4,
         ballots: vec![(

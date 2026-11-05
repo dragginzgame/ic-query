@@ -3,25 +3,15 @@ use ic_host_process::testing::http::{HttpFixture, HttpFixtureLimits};
 use ic_platform::agent::{
     AgentError, HttpErrorPayload, RejectCode, RejectResponse, TransportError,
 };
-use serde_cbor::Value;
 use std::error::Error;
-use std::{collections::BTreeMap, time::Duration};
+use std::time::Duration;
 
 #[tokio::test(flavor = "current_thread")]
 async fn raw_query_preserves_dynamic_method_target_and_non_candid_bytes() {
     let reply = vec![0xff, 0, 0x80];
-    let response = Value::Map(BTreeMap::from([
-        (Value::Text("status".into()), Value::Text("replied".into())),
-        (
-            Value::Text("reply".into()),
-            Value::Map(BTreeMap::from([(
-                Value::Text("arg".into()),
-                Value::Bytes(reply.clone()),
-            )])),
-        ),
-    ]));
+    let response = ic_platform::ic_protocol::fixtures::query_reply(&reply, 64 * 1024).unwrap();
     let server = HttpFixture::spawn(
-        &serde_cbor::to_vec(&response).unwrap(),
+        &response,
         "application/cbor",
         HttpFixtureLimits {
             timeout: Duration::from_secs(10),
@@ -51,21 +41,19 @@ async fn raw_query_preserves_dynamic_method_target_and_non_candid_bytes() {
         .position(|bytes| bytes == b"\r\n\r\n")
         .unwrap()
         + 4;
-    let Value::Map(envelope) = serde_cbor::from_slice::<Value>(&raw[start..]).unwrap() else {
-        panic!("expected request envelope");
+    let envelope = ic_platform::ic_protocol::decode_envelope(&raw[start..], 64 * 1024).unwrap();
+    let ic_platform::ic_protocol::EnvelopeContent::Query {
+        arg,
+        method_name,
+        canister_id,
+        ..
+    } = envelope.content.as_ref()
+    else {
+        panic!("expected query content");
     };
-    let Value::Map(content) = &envelope[&Value::Text("content".into())] else {
-        panic!("expected request content");
-    };
-    assert_eq!(content[&Value::Text("arg".into())], Value::Bytes(argument));
-    assert_eq!(
-        content[&Value::Text("method_name".into())],
-        Value::Text(method)
-    );
-    assert_eq!(
-        content[&Value::Text("canister_id".into())],
-        Value::Bytes(canister.as_slice().to_vec())
-    );
+    assert_eq!(arg, &argument);
+    assert_eq!(method_name, &method);
+    assert_eq!(*canister_id, canister);
 }
 
 #[test]

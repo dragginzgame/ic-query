@@ -170,7 +170,7 @@ async fn builder_rejects_non_mainnet_before_custom_source_call() {
 
 #[test]
 fn economics_candid_shape_preserves_nested_native_options() {
-    let economics = NnsGovernanceEconomics {
+    let economics = wire::NetworkEconomics {
         neuron_minimum_stake_e8s: 100_000_000,
         max_proposals_to_keep_per_topic: 100,
         neuron_management_fee_per_proposal_e8s: 10_000,
@@ -179,11 +179,11 @@ fn economics_candid_shape_preserves_nested_native_options() {
         neuron_spawn_dissolve_delay_seconds: 604_800,
         minimum_icp_xdr_rate: 100,
         maximum_node_provider_rewards_e8s: 200_000_000,
-        neurons_fund_economics: Some(NnsNeuronsFundEconomics {
-            maximum_icp_xdr_rate: Some(NnsGovernancePercentage { basis_points: None }),
+        neurons_fund_economics: Some(wire::NeuronsFundEconomics {
+            maximum_icp_xdr_rate: Some(wire::Percentage { basis_points: None }),
             neurons_fund_matched_funding_curve_coefficients: Some(
-                NnsNeuronsFundMatchedFundingCurveCoefficients {
-                    contribution_threshold_xdr: Some(NnsGovernanceDecimal {
+                wire::MatchedFundingCurveCoefficients {
+                    contribution_threshold_xdr: Some(wire::Decimal {
                         human_readable: Some("1.25".to_string()),
                     }),
                     one_third_participation_milestone_xdr: None,
@@ -193,7 +193,7 @@ fn economics_candid_shape_preserves_nested_native_options() {
             max_theoretical_neurons_fund_participation_amount_xdr: None,
             minimum_icp_xdr_rate: None,
         }),
-        voting_power_economics: Some(NnsVotingPowerEconomics {
+        voting_power_economics: Some(wire::VotingPowerEconomics {
             start_reducing_voting_power_after_seconds: Some(15_778_800),
             clear_following_after_seconds: Some(2_629_800),
             neuron_minimum_dissolve_delay_to_vote_seconds: Some(15_778_800),
@@ -201,8 +201,13 @@ fn economics_candid_shape_preserves_nested_native_options() {
     };
     let bytes =
         ic_platform::candid::contract::encode_one(&economics).expect("encode native economics");
-    let economics: NnsGovernanceEconomics =
-        crate::candid_decode::decode_reply(&bytes).expect("decode native economics");
+    let economics = crate::candid_decode::decode_reply::<wire::NetworkEconomics>(&bytes)
+        .expect("decode native economics");
+    assert!(
+        crate::candid_decode::decode_reply::<wire::NetworkEconomics>(&bytes[..bytes.len() - 1])
+            .is_err()
+    );
+    let economics: NnsGovernanceEconomics = economics.into();
 
     let fund = economics
         .neurons_fund_economics
@@ -232,24 +237,33 @@ fn economics_candid_shape_preserves_nested_native_options() {
 }
 
 #[test]
-fn reward_and_maturity_public_types_preserve_native_candid_shapes() {
-    let reward_event = NnsGovernanceRewardEvent {
+fn reward_and_maturity_external_records_project_into_reports() {
+    let reward_event = wire::RewardEvent {
         rounds_since_last_distribution: Some(1),
         day_after_genesis: 2,
         actual_timestamp_seconds: 3,
         total_available_e8s_equivalent: 4,
         latest_round_available_e8s_equivalent: Some(5),
         distributed_e8s_equivalent: 6,
-        settled_proposals: vec![NnsGovernanceProposalId { id: 7 }],
+        settled_proposals: vec![wire::ProposalId { id: 7 }],
     };
     let bytes =
         ic_platform::candid::contract::encode_one(&reward_event).expect("encode reward event");
-    let decoded: NnsGovernanceRewardEvent =
+    let decoded: wire::RewardEvent =
         crate::candid_decode::decode_reply(&bytes).expect("decode reward event");
-    assert_eq!(decoded, reward_event);
+    let decoded: NnsGovernanceRewardEvent = decoded.into();
+    assert_eq!(
+        serde_json::to_value(decoded).unwrap(),
+        serde_json::json!({
+            "rounds_since_last_distribution": 1, "day_after_genesis": 2,
+            "actual_timestamp_seconds": 3, "total_available_e8s_equivalent": 4,
+            "latest_round_available_e8s_equivalent": 5, "distributed_e8s_equivalent": 6,
+            "settled_proposals": [{"id": 7}]
+        })
+    );
 
     let response = GetMaturityModulationResponse {
-        maturity_modulation: Some(NnsGovernanceMaturityModulation {
+        maturity_modulation: Some(wire::MaturityModulation {
             current_value_permyriad: Some(-125),
             updated_at_timestamp_seconds: Some(8),
         }),
@@ -258,7 +272,10 @@ fn reward_and_maturity_public_types_preserve_native_candid_shapes() {
         ic_platform::candid::contract::encode_one(&response).expect("encode maturity response");
     let decoded: GetMaturityModulationResponse =
         crate::candid_decode::decode_reply(&bytes).expect("decode maturity response");
-    let modulation = decoded.maturity_modulation.expect("maturity modulation");
+    let modulation: NnsGovernanceMaturityModulation = decoded
+        .maturity_modulation
+        .expect("maturity modulation")
+        .into();
     assert_eq!(modulation.current_value_permyriad, Some(-125));
     assert_eq!(modulation.updated_at_timestamp_seconds, Some(8));
 }

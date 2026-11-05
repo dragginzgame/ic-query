@@ -1,8 +1,6 @@
 use super::*;
 use crate::icrc::live::tests::{query_content, query_fixture};
 use ic_platform::agent::{AgentError, RejectCode};
-use serde_cbor::Value;
-use std::collections::BTreeMap;
 
 #[tokio::test(flavor = "current_thread")]
 async fn capability_probe_retains_reject_metadata_through_the_ledger_transport() {
@@ -18,26 +16,24 @@ async fn capability_probe_retains_reject_metadata_through_the_ledger_transport()
             IcrcCapabilityStatus::Error,
         ),
     ] {
-        let body = Value::Map(BTreeMap::from([
-            (Value::Text("status".into()), Value::Text("rejected".into())),
-            (Value::Text("reject_code".into()), Value::Integer(5)),
-            (
-                Value::Text("reject_message".into()),
-                Value::Text(message.into()),
-            ),
-            (
-                Value::Text("error_code".into()),
-                Value::Text(error_code.into()),
-            ),
-        ]));
+        let body = ic_platform::ic_protocol::fixtures::query_rejection(
+            &ic_platform::agent::RejectResponse {
+                reject_code: RejectCode::CanisterError,
+                reject_message: message.into(),
+                error_code: Some(error_code.into()),
+            },
+            8 * 1024 * 1024,
+        )
+        .unwrap();
         let (server, agent) = query_fixture(&body, 8 * 1024 * 1024);
         let row = fetch_index_capability(&agent, &Principal::anonymous()).await;
         let raw = server.finish().unwrap();
-        let content = query_content(&raw);
-        assert_eq!(
-            content[&Value::Text("method_name".into())],
-            Value::Text(ICRC106_GET_INDEX_PRINCIPAL_METHOD.into())
-        );
+        let ic_platform::ic_protocol::EnvelopeContent::Query { method_name, .. } =
+            query_content(&raw)
+        else {
+            panic!("query content")
+        };
+        assert_eq!(method_name, ICRC106_GET_INDEX_PRINCIPAL_METHOD);
         assert_eq!(row.status, expected);
         let diagnostic = row.error.unwrap();
         assert!(diagnostic.contains(message));

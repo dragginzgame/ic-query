@@ -10,11 +10,14 @@ fn canonical_and_tagged_registry_certificates_require_authentication() {
         .unwrap();
     let canister =
         Principal::from_text(crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID).unwrap();
-    let certificate = serde_cbor::to_vec(&Certificate {
-        tree: empty(),
-        signature: vec![0; 48],
-        delegation: None,
-    })
+    let certificate = ic_platform::certification::cbor::encode_certificate_untagged(
+        &Certificate {
+            tree: empty(),
+            signature: vec![0; 48],
+            delegation: None,
+        },
+        64 * 1024,
+    )
     .unwrap();
     let tagged = [vec![0xd9, 0xd9, 0xf7], certificate.clone()].concat();
 
@@ -43,39 +46,26 @@ fn registry_certificate_admission_rejects_malformed_and_oversized_input() {
         .unwrap();
     let canister =
         Principal::from_text(crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID).unwrap();
-    let certificate = serde_cbor::to_vec(&Certificate {
+    let unsigned = Certificate {
         tree: empty(),
         signature: vec![0; 48],
         delegation: None,
-    })
-    .unwrap();
-    let mut trailing = certificate.clone();
-    trailing.push(0);
-    let mut unknown = serde_cbor::value::to_value(Certificate {
-        tree: empty(),
-        signature: vec![0; 48],
-        delegation: None,
-    })
-    .unwrap();
-    let serde_cbor::Value::Map(fields) = &mut unknown else {
-        panic!("certificate encodes a map");
     };
-    fields.insert(
-        serde_cbor::Value::Text("extra".into()),
-        serde_cbor::Value::Null,
-    );
-    // An indefinite map containing the original fields and a duplicate tree.
-    let duplicate = [
-        &[0xbf][..],
-        &certificate[1..],
-        &[0x64, b't', b'r', b'e', b'e', 0x81, 0, 0xff],
-    ]
-    .concat();
+    let mut trailing =
+        ic_platform::certification::cbor::encode_certificate_untagged(&unsigned, 64 * 1024)
+            .unwrap();
+    trailing.push(0);
+    let unknown =
+        ic_platform::ic_protocol::fixtures::certificate_with_unknown_field(&unsigned, 4096)
+            .unwrap();
+    let duplicate =
+        ic_platform::ic_protocol::fixtures::certificate_with_duplicate_tree(&unsigned, 4096)
+            .unwrap();
 
     for certificate in [
         vec![0xff],
         trailing,
-        serde_cbor::to_vec(&unknown).unwrap(),
+        unknown,
         duplicate,
         vec![0; crate::agent::MAX_IC_AGENT_RESPONSE_BODY_BYTES + 1],
     ] {

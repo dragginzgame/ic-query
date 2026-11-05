@@ -20,6 +20,10 @@
     "allowed_packages": []
   },
   {
+    "dependency": "serde_cbor",
+    "allowed_packages": []
+  },
+  {
     "dependency": "wat",
     "allowed_packages": []
   }

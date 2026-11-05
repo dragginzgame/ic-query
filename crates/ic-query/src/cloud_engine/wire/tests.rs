@@ -66,15 +66,17 @@ fn marketplace_node_classes_decode_exact_candid_labels() {
             ][..],
         ),
     ] {
-        let decoded: CloudEngineNodeType =
-            crate::candid_decode::decode_reply(bytes).expect("wire node class");
-        assert_eq!(decoded, expected);
-        assert_eq!(serde_json::to_value(decoded).unwrap(), label);
+        let decoded: NodeType = crate::candid_decode::decode_reply(bytes).expect("wire node class");
+        assert_eq!(CloudEngineNodeType::from(decoded), expected);
+        assert_eq!(
+            serde_json::to_value(CloudEngineNodeType::from(decoded)).unwrap(),
+            label
+        );
         let encoded =
             ic_platform::candid::contract::encode_one(decoded).expect("encode node class");
         assert_eq!(
-            crate::candid_decode::decode_reply::<CloudEngineNodeType>(&encoded).unwrap(),
-            expected
+            crate::candid_decode::decode_reply::<NodeType>(&encoded).unwrap(),
+            decoded
         );
     }
 }
@@ -84,7 +86,7 @@ fn marketplace_shape_preserves_arbitrary_precision_cycle_amounts() {
     let row = CloudEngineMarketplaceEntryWire {
         key: "type4.1".to_string(),
         entry: CloudEnginePriceEntryWire {
-            node_type: CloudEngineNodeType::Type4_1,
+            node_type: NodeType::Type4_1,
             dc: None,
             provider: None,
             price: CloudEnginePriceWire {
