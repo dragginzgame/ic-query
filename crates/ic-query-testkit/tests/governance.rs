@@ -1,5 +1,6 @@
 //! Compiled-canister coverage using Testkit-owned simulator startup and typed calls.
 
+use futures_util::FutureExt;
 use ic_host_artifacts::wasm::{ExportKind, InspectionLimits, inspect};
 use ic_platform::candid::contract::Principal;
 use ic_query::nns::governance::{MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceSourceProvenance};
@@ -11,6 +12,7 @@ use ic_testkit::{
     pocket_ic::{ClientError, PocketIc, PocketIcBuilder, RejectCode, Time},
 };
 use serde_json::Value;
+use std::panic::{AssertUnwindSafe, resume_unwind};
 use std::{collections::BTreeSet, env, fs, time::Duration};
 
 const REPORT_METHOD: u64 = 1;
@@ -28,9 +30,9 @@ const RESPONSE_LIMITS: ic_wire::Limits = ic_wire::Limits {
     depth: 4,
 };
 
-#[test]
+#[tokio::test(flavor = "current_thread")]
 #[ignore = "requires explicit Testkit server preparation and compiled probe; run make canister-test"]
-fn compiled_governance_reports_preserve_values_provenance_and_failures() {
+async fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     let path = env::var_os("IC_QUERY_GOVERNANCE_PROBE_WASM")
         .expect("select the compiled probe with IC_QUERY_GOVERNANCE_PROBE_WASM");
     let probe_wasm = fs::read(path).expect("read compiled Governance probe");
@@ -41,14 +43,33 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
                 .with_nns_subnet()
                 .with_application_subnet(),
         )
+        .await
         .expect("start Testkit instance");
-    let pic = owned.instance();
+    let result = AssertUnwindSafe(check_governance_reports(owned.instance(), probe_wasm))
+        .catch_unwind()
+        .await;
+    let cleanup = owned.close().await;
+    match result {
+        Ok(()) => cleanup.expect("delete the Testkit instance before releasing its server"),
+        Err(primary) => {
+            if let Err(error) = cleanup {
+                eprintln!("Testkit instance deletion also failed: {error}");
+            }
+            resume_unwind(primary);
+        }
+    }
+}
+
+async fn check_governance_reports(pic: &PocketIc, probe_wasm: Vec<u8>) {
     pic.set_time(Time::from_nanos_since_unix_epoch(1_780_531_200_000_000_000))
+        .await
         .expect("set deterministic simulator time");
     let governance = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
     pic.create_canister_with_id(None, None, governance)
+        .await
         .expect("fixed NNS Governance principal");
     pic.add_cycles(governance, 2_000_000_000_000)
+        .await
         .expect("fund Governance fixture");
     let mut replies = governance_replies();
     pic.install_canister(
@@ -57,6 +78,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
+    .await
     .expect("install Governance fixture");
     let probe = pic
         .try_create_and_install(InstallSpec {
@@ -66,6 +88,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
             install_sender: None,
             label: Some("Query Governance probe".into()),
         })
+        .await
         .expect("install compiled Query probe");
     let mut trailing =
         ic_wire::native::encode_request(REPORT_METHOD, "economics", REQUEST_LIMITS).unwrap();
@@ -79,13 +102,14 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     ] {
         let rejection = pic
             .update_call(probe, Principal::anonymous(), "report", args)
+            .await
             .expect_err("invalid or over-budget entry arguments must trap");
         assert!(
             matches!(&rejection, ClientError::Canister(response) if response.reject_code == RejectCode::CanisterError),
             "{rejection:?}"
         );
     }
-    assert_reports(pic, probe, governance);
+    assert_reports(pic, probe, governance).await;
     replies[1].1 = candid_fixture(
         r#"(variant { Err = record { error_type = 7 : int32; error_message = "fixture governance failure" } })"#,
     );
@@ -95,17 +119,18 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
         ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
+    .await
     .unwrap();
-    let reply = report(pic, probe, "metrics");
+    let reply = report(pic, probe, "metrics").await;
     assert_eq!(reply["status"], "error");
     let error = reply["error"].as_str().unwrap();
     assert!(error.contains("code 7"));
     assert!(error.contains("fixture governance failure"));
 
-    assert_reply_admission(pic, probe, governance, &mut replies);
+    assert_reply_admission(pic, probe, governance, &mut replies).await;
 
-    pic.uninstall_canister(governance, None).unwrap();
-    let reply = report(pic, probe, "economics");
+    pic.uninstall_canister(governance, None).await.unwrap();
+    let reply = report(pic, probe, "economics").await;
     assert_eq!(reply["status"], "error");
     assert!(
         reply["error"]
@@ -115,7 +140,7 @@ fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     );
 }
 
-fn assert_reply_admission(
+async fn assert_reply_admission(
     pic: &PocketIc,
     probe: Principal,
     governance: Principal,
@@ -140,8 +165,9 @@ fn assert_reply_admission(
             ic_platform::candid::contract::encode_args(()).unwrap(),
             None,
         )
+        .await
         .unwrap();
-        let reply = report(pic, probe, "economics");
+        let reply = report(pic, probe, "economics").await;
         assert_eq!(reply["status"], "error", "{case}: {reply}");
         assert!(
             reply["error"].as_str().unwrap().contains("decode Candid"),
@@ -156,8 +182,9 @@ fn assert_reply_admission(
         ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
+    .await
     .unwrap();
-    let reply = report(pic, probe, "economics");
+    let reply = report(pic, probe, "economics").await;
     assert_eq!(reply["status"], "ok", "{reply}");
     assert_eq!(
         reply["report"]["economics"]["neuron_minimum_stake_e8s"],
@@ -172,8 +199,9 @@ fn assert_reply_admission(
         ic_platform::candid::contract::encode_args(()).unwrap(),
         None,
     )
+    .await
     .unwrap();
-    let reply = report(pic, probe, "economics");
+    let reply = report(pic, probe, "economics").await;
     assert_eq!(reply["status"], "error", "{reply}");
     let error = reply["error"].as_str().unwrap();
     assert!(
@@ -182,7 +210,7 @@ fn assert_reply_admission(
     );
 }
 
-fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
+async fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
     let expected_source =
         serde_json::to_value(NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
             collector_canister_id: probe.to_text(),
@@ -194,7 +222,7 @@ fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
         "reward_event",
         "maturity_modulation",
     ] {
-        let reply = report(pic, probe, kind);
+        let reply = report(pic, probe, kind).await;
         assert_eq!(reply["status"], "ok", "{reply}");
         let report = &reply["report"];
         assert_eq!(report["schema_version"], 1);
@@ -224,10 +252,11 @@ fn assert_reports(pic: &PocketIc, probe: Principal, governance: Principal) {
     }
 }
 
-fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
+async fn report(pic: &PocketIc, probe: Principal, kind: &str) -> Value {
     let args = ic_wire::native::encode_request(REPORT_METHOD, kind, REQUEST_LIMITS).unwrap();
     let bytes = pic
         .update_call(probe, Principal::anonymous(), "report", args)
+        .await
         .expect("execute compiled report entry point");
     let reply: String = ic_wire::native::decode_response(REPORT_METHOD, &bytes, RESPONSE_LIMITS)
         .expect("bounded Wire report reply");

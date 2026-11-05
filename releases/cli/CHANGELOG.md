@@ -7,6 +7,25 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.93.0]
+
+### 🧹 Tooling
+
+- Adopt the shared Candid boundary check in CI and both release plans, with
+  declaration-specific external protocol allowances. Refresh Shared Tooling to
+  0.30.4 plus its committed generic-header fix. [Details](0.93.md).
+
+### ⚠️ Breaking
+
+- Rust renderer consumers adopt Query 0.93's dependency generation. CLI text
+  and JSON are unchanged. [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Align Host Tools 0.83.0 and Testkit 0.87.0 on one Platform 0.23 dependency.
+  Migrate the compiled Governance fixture to the async client, with explicit
+  instance deletion on success and failed assertions.
+
 ## [0.92.0] - 2026-11-05
 
 ### ⚠️ Breaking

@@ -230,7 +230,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in tools-check clippy changelog-check dependency-pins-check dependency-boundary-check doc-links-check query-test cli-test; do
+for failed_target in tools-check clippy changelog-check dependency-pins-check dependency-boundary-check candid-boundary-check doc-links-check query-test cli-test; do
   : > "${ci_gate_case}/trace"
   if (
     unset VALIDATION_INPUT_ROOT VALIDATION_INPUT_BASELINE
@@ -1009,7 +1009,7 @@ for scope in cli host wasm canister; do
     || fail "the $scope production graph lost its Wire diagnostic"
 done
 
-for dependency in ic-host-fs ic-platform ic-host-tools/certificate; do
+for dependency in ic-host-fs ic-platform ic-platform/certification-cbor; do
   TMPDIR="${feature_boundary_case}/tmp" PATH="${feature_boundary_case}/bin:${PATH}" \
     FEATURE_TREE_SCOPE=host FEATURE_TREE_LINE="$dependency" \
     TRACE_FILE="${feature_boundary_case}/trace" \

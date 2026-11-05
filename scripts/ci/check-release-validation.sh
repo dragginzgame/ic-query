@@ -117,6 +117,7 @@ for group in query cli; do
       (["ci-scripts-check","publish-guards-check","release-guards-check"] +
         if $group == "cli" then ["query-test"] else [] end)) and
     any(.stages[]; .target == "cli-test" and .required) and
+    any(.stages[]; .target == "candid-boundary-check" and .required) and
     any(.stages[]; .target == "feature-boundary-check" and .required) and
     any(.stages[]; .target == "package" and .required)
   ' "$gate/plan.json" > /dev/null

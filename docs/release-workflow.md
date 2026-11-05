@@ -23,7 +23,7 @@ Group-qualified recovery journals and receipts bind the group, policy digest,
 source, versions and destination. Resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the pending 0.92 hard cut, release and publish Query first, then the CLI group.
+For the pending 0.93 hard cut, release and publish Query first, then the CLI group.
 Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed
@@ -104,8 +104,9 @@ retains no catalog exception. Common tool versions and digests are unchanged by
 the 0.25.0 refresh.
 Compiler policy, application dependencies and Query's Cargo audit/machete and
 release-editor selections remain locally owned.
-The sole shared manifest owns these paths, and `docs/supported-hosts.md` remains
-a consumer overlay outside it. Refresh from a clean checkout of the reviewed
+The sole shared manifest owns these paths. Query's consumer host matrix lives
+outside it in `docs/query-supported-hosts.md`; `docs/supported-hosts.md` contains
+Shared Tooling's portable-script guidance. Refresh from a clean checkout of the reviewed
 revision, previewing before apply:
 
 ```bash
@@ -129,7 +130,7 @@ and build admission remains owned by `make tools-check`.
 
 Its governance selection keeps the linked
 workspace and tag-maintenance guides available offline. The consumer's host
-matrix remains local in `docs/supported-hosts.md`; the shared governance file list
+matrix remains local in `docs/query-supported-hosts.md`; the shared governance file list
 is an initial selection guide, not automatic ownership of consumer overlays.
 An explicit contribution PR request includes its topic branch, scoped commits,
 branch push and PR creation/update under the reviewed
@@ -368,7 +369,7 @@ and tracked workspace lockfiles offline; the complete CI and release gate includ
 it with `--cargo-inheritance`. Member versions are literal group-owned declarations; normal, development, build
 and target dependencies inherit the root dependency catalog. The parser identities
 and native setup are documented in
-[supported hosts](supported-hosts.md). This declaration check does not qualify
+[supported hosts](query-supported-hosts.md). This declaration check does not qualify
 runtime behavior or replace locked compilation and tests.
 
 `make install-rust-tools` prepares pinned cargo-sort, cargo-sort-derives and
@@ -625,7 +626,7 @@ The 0.1.5 logger keeps its temporary checkout/snapshot identity within its own
 dispatch. Release selections, failure-log policy and nesting depth still reach
 nested targets. Independent fixtures retain their own explicit selections.
 
-Native CI qualification is configured for the [supported host matrix](supported-hosts.md),
+Native CI qualification is configured for the [supported host matrix](query-supported-hosts.md),
 including Apple's system Bash on both macOS architectures. A passing Linux
 fixture, added matrix, or available installer is not native macOS qualification.
 Record the matching native workflow run before claiming that qualification.

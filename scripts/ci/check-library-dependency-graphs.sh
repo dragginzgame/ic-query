@@ -132,7 +132,7 @@ forbidden_direct_icrc_host_dependencies=(
 forbidden_agent_only_host_dependencies=(
   candid_parser
   ic-host-tools/candid
-  ic-host-tools/certificate
+  ic-platform/certification-cbor
   ic-host-tools/ic-interface
   ic-host-tools/icp-project
   ic-host-tools/ledger-evidence

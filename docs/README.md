@@ -40,7 +40,7 @@ historical release material.
 | [Roadmap to 1.0](roadmap/1.0.md) | Coverage estimates, prioritized workstreams, and the 1.0 completion bar |
 | [Changelog](../CHANGELOG.md) | Concise release ledger |
 | [Release workflow](release-workflow.md) | Maintainer release commands, locked metadata, atomic push, and recovery |
-| [Supported hosts](supported-hosts.md) | Native host matrix, prerequisites, and qualification requirements |
+| [Supported hosts](query-supported-hosts.md) | Native host matrix, prerequisites, and qualification requirements |
 
 Command help is the definitive option reference:
 

@@ -1,5 +1,5 @@
 # Local developer setup
-<!-- Shared companions: scripts/ci/report-tool-versions.sh docs/tool-store-maintenance.md -->
+<!-- Shared companions: scripts/ci/report-tool-versions.sh docs/tool-store-maintenance.md docs/tool-catalog-bindings.md docs/verification-helpers.md docs/ic-tools.md docs/supported-hosts.md docs/make-interface.md docs/consuming-snapshots.md docs/releases.md DRAGGINZGAME.md rules/cargo-dependencies.md rules/git-hooks.md -->
 
 ## Tool selection and diagnostics
 

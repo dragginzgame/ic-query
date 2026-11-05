@@ -1,10 +1,10 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh
+# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh docs/candid-boundary.md ci/candid-boundary.json
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	canister-build-check canister-bundle-check canister-smoke-check canister-test-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
-	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
+	candid-boundary-check dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check compiler-check package \
 	package-contents-check public-docs-check publish publish-guards-check \
 	release-guards-check release-validation-check qualify-release-groups \
@@ -58,7 +58,7 @@ format-tools-check: format-installation-check
 release-patch release-minor release-major release-resume: export IC_QUERY_RELEASE_PREPARE_CACHE := 1
 
 CI_INPUTS := Makefile Cargo.toml Cargo.lock rust-toolchain.toml crates/ic-query/Cargo.toml \
-	crates/ic-query-cli/Cargo.toml crates/ic-query-text/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/cargo-release-groups.json ci/release-validation.json ci/release-validation-scopes.json ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
+	crates/ic-query-cli/Cargo.toml crates/ic-query-text/Cargo.toml crates/ic-query-testkit/Cargo.toml ci/cargo-release-groups.json ci/release-validation.json ci/release-validation-scopes.json ci/library-feature-cases.tsv ci/tool-versions.env ci/cargo-dependency-boundaries.json ci/candid-boundary.json ci/external-ic-dependencies.txt scripts/ci/check-rust-compiler.sh $(patsubst $(REPO_ROOT)%,%,$(IC_TOOL_PINS)) .shared-tooling.snapshot
 
 export CARGO_HTTP_MULTIPLEXING
 export CARGO_NET_RETRY
@@ -90,6 +90,7 @@ help:
 	@echo "  public-docs-check  Prevent growth in the public rustdoc backlog"
 	@echo "  dependency-check  Check advisories and unused direct dependencies"
 	@echo "  dependency-boundary-check  Check direct Platform and Host dependency ownership, including aliases and targets"
+	@echo "  candid-boundary-check  Keep Candid derives and bounds at reviewed external protocol boundaries"
 	@echo "  dependency-pins-check  Check dependency declarations and tracked lockfiles"
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked/offline dependencies"
@@ -235,6 +236,9 @@ cli-test:
 
 compiler-check:
 	bash scripts/ci/check-rust-compiler.sh
+
+candid-boundary-check:
+	perl "$(REPO_ROOT)scripts/ci/check-candid-boundary.pl" "$(REPO_ROOT)" ci/candid-boundary.json crates
 
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline

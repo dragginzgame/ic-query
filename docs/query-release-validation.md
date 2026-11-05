@@ -52,6 +52,15 @@ Both groups may omit only the unchanged `ci-scripts-check`,
 Repository-wide CI retains every stage. New stages default to required; unknown
 exclusion targets or groups refuse rather than silently dropping an obligation.
 
+The `candid-boundary-check` stage inventories all first-party Rust under `crates/`
+once per plan, including tests, examples and the private Testkit package. Its
+[declaration policy](../ci/candid-boundary.json) admits only named external IC
+protocol DTOs, codec helpers and protocol fixtures. Owned reports and application
+RPC models have no allowances. Missing, stale or overlapping allowances fail;
+source review and codec tests still own semantic and macro-generated behavior.
+See the [shared checker contract](candid-boundary.md) for its lexical limits.
+Both release groups retain this lightweight stage, with no group omission.
+
 ## Evidence and recovery
 
 Each fresh release creates a plan under `target/release-validation/run.*`, bound

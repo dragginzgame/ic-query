@@ -1,7 +1,7 @@
 # AGENTS.md
 
 For scope, delegated delivery, validation, compiler support and reporting, use
-[Shared policy at 4d09618](https://github.com/dragginzgame/shared-tooling/blob/4d0961821a31766e3044c08fbe5954ed81213ec9/DRAGGINZGAME.md)
+[Shared policy at a08f03a](https://github.com/dragginzgame/shared-tooling/blob/a08f03a6c8b5d67d62308ec45d202bfcbd90c048/DRAGGINZGAME.md)
 and its revision-bound references over older snapshot or local-guide wording.
 This includes Rust 1.99.1 as minimum and pinned development/release compiler;
 check local declarations and qualification before claiming adoption is complete.
@@ -28,7 +28,7 @@ release adapters follow [the local release workflow](docs/release-workflow.md).
 Routine release fixtures qualify Query's adapters with simulated Git effects.
 Generic runner regression fixtures remain upstream for opt-in changed-contract
 qualification; native tracking, PR and owner-metadata fixtures are not selected.
-The local [host matrix](docs/supported-hosts.md) owns qualification.
+The local [host matrix](docs/query-supported-hosts.md) owns qualification.
 Policy adoption does not activate hooks, schedules, installers or release commands.
 
 ## Session Handoff
@@ -161,7 +161,7 @@ repository. Preserve Query's native host matrix and release/registry checks.
 ## Tooling, feedback and host support
 
 Use the adopted [maintenance and feedback rules](rules/agent-maintenance.md),
-[shared setup](docs/local-setup.md) and [host matrix](docs/supported-hosts.md).
+[shared setup](docs/local-setup.md) and [host matrix](docs/query-supported-hosts.md).
 Keep ordinary checks offline and installation explicit; authorised dependency
 preparation follows [Cargo network policy](rules/cargo-dependencies.md#cargo-network-policy).
 The snapshot owns shared tooling; never patch its exports in place. Native host

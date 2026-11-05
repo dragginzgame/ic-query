@@ -906,3 +906,11 @@ in the adapters and native codec fixtures. Those internal module exports are
 not public application models. The generic bounded Candid call/decode helpers
 retain trait bounds for their external protocols. Owned application RPC
 continues to use Wire. See [Query 0.92](../../releases/query/0.92.md).
+
+## Async simulator ownership
+
+The private Governance fixture uses Testkit 0.87's async-only client on one
+caller-owned Tokio runtime. Instance deletion is explicit and runs after success
+or caught assertion failure, before its server owner is released. Cleanup failure
+never replaces a primary assertion panic. Host Tools 0.83 and Testkit now align
+on the directly selected Platform 0.23 generation.

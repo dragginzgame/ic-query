@@ -65,6 +65,7 @@ my @roots=map {dirname($_->{manifest_path})} @packages;
 my @excluded=($metadata->{target_directory}); push @excluded, abs_path($metadata->{target_directory}) if -d $metadata->{target_directory};
 push @excluded, "$metadata->{workspace_root}/target", map {"$_/target"} @roots;
 my (%files,%visited,%admitters,@diagnostics);
+my $seq=0;
 sub diagnostic {my ($path,$reason)=@_; push @diagnostics,{path=>$path,reason=>$reason};}
 sub relative_rule {
     my $s=shift;
@@ -134,6 +135,19 @@ sub test_only {
     # A condition false in both modes (e.g. any()) is not evidence of tests.
     return cfg_value($cfg,0)==0 && cfg_value($cfg,1)!=0;
 }
+sub load_source {
+    my $v=shift;
+    $v->{text}=read_file($v->{count_path});
+    my ($t,$pair);
+    eval { ($t,$pair)=tokens($v->{text},$v->{path}); 1 } or do {
+        my $error=$@; chomp $error;
+        diagnostic($v->{path},"Rust token classification unavailable: $error") unless $v->{lexical_error};
+        $v->{lexical_error}=$error;
+        ($t,$pair)=([],{});
+    };
+    @{$v}{qw(tokens pair)}=($t,$pair);
+}
+sub unload_source {delete @{$_[0]}{qw(text tokens pair)};}
 for my $p (@packages) {
     my $root=dirname($p->{manifest_path});
     my $policy=$p->{metadata}{'shared-tooling'}{loc} // {};
@@ -152,17 +166,15 @@ for my $p (@packages) {
         $f !~ /[\r\n\t]/ or die "unsupported source path\n";
         my $relative=index($f,"$root/")==0 ? substr($f,length($root)+1) : $f;
         my $text=read_file($f);
-        my ($t,$pair,$lexical_error);
-        eval { ($t,$pair)=tokens($text,$f); 1 } or do {
-            $lexical_error=$@; chomp $lexical_error;
-            diagnostic($f,"Rust token classification unavailable: $lexical_error");
-            ($t,$pair)=([],{});
-        };
+        # Snapshot once; retain lightweight identities instead of every file's
+        # text and token tree. Discovery and counting read these same bytes.
+        my $count_path="$scratch/source-".$seq++.'.rs';
+        write_file($count_path,$text);
         my @rules=sort {length($b)<=>length($a) || $a cmp $b} grep {$relative eq $_ || index($relative,"$_/")==0} keys %$paths;
         $matched{$_}=1 for @rules;
         my @gen=grep {$relative eq $_ || index($relative,"$_/")==0} @$generated; $matched{"generated:$_"}=1 for @gen;
-        $files{$f}={path=>$f,relative=>$relative,package=>$p->{name},text=>$text,tokens=>$t,pair=>$pair,source_sha256=>sha256_hex($text),
-            contexts=>{},test_ranges=>[], lexical_error=>$lexical_error,
+        $files{$f}={path=>$f,relative=>$relative,package=>$p->{name},count_path=>$count_path,source_sha256=>sha256_hex($text),
+            contexts=>{},test_ranges=>[],
             override=>@rules ? $paths->{$rules[0]} : $policy->{category},
             generated=>(@gen || $text =~ /\A(?:[^\n]*\n){0,5}[ \t]*(?:\/\/|\/\*|\*)[^\n]*(?:\@generated|DO NOT EDIT)/) ? JSON::PP::true : JSON::PP::false};
         diagnostic($f,'legacy test/ or test.rs layout: rename to tests/ or tests.rs') if $relative =~ m{(?:\A|/)test(?:/|\.rs\z)};
@@ -188,7 +200,8 @@ for my $p (@packages) {
     for (keys %$paths) { $matched{$_} or die "LOC path rule matches no Rust source: $root/$_\n"; }
     for (@$generated) { $matched{"generated:$_"} or die "generated rule matches no Rust source: $root/$_\n"; }
 }
-sub visit_file;
+my @pending;
+sub visit_file {push @pending, [@_];}
 sub scan {
     my ($f,$lo,$hi,$dir,$category,$follow)=@_; $follow=1 unless defined $follow;
     my $v=$files{$f}; my $t=$v->{tokens}; my $pairs=$v->{pair};
@@ -253,9 +266,11 @@ sub scan {
         $i=$end+1;
     }
 }
-sub visit_file {
+sub inspect_file {
     my ($f,$category,$target)=@_;
     unless (exists $files{$f}) {diagnostic($f,'target/module source outside admitted file inventory'); return;}
+    return if $visited{"$f:$category"};
+    load_source($files{$f});
     my $tokens=$files{$f}{tokens};
     for (my $i=0; $i+2<@$tokens && $tokens->[$i][0] eq '#' && $tokens->[$i+1][0] eq '!' && $tokens->[$i+2][0] eq '[';) {
         my $end=$files{$f}{pair}{$i+2};
@@ -264,10 +279,11 @@ sub visit_file {
         $i=$end+1;
     }
     $files{$f}{contexts}{$category}=1;
-    return if $visited{"$f:$category"}++;
+    if ($visited{"$f:$category"}++) {unload_source($files{$f}); return;}
     my $dir=dirname($f);
     $dir.='/'.basename($f,'.rs') unless $target || basename($f) eq 'mod.rs';
     scan($f,0,scalar @{$files{$f}{tokens}},$dir,$category);
+    unload_source($files{$f});
 }
 for my $p (@packages) {
     for my $target (@{$p->{targets}}) {
@@ -278,10 +294,14 @@ for my $p (@packages) {
         visit_file($src,$cat,1);
     }
 }
+# Module edges are queued, so only one file's token tree is resident even for
+# deeply nested graphs. Shared files still visit each distinct usage category.
+while (@pending) {inspect_file(@{shift @pending});}
 # Unreferenced retained files remain in the maintenance footprint. Conventional
 # support paths provide a category, but never pretend that they are linked code.
 for my $f (sort keys %files) {
     my $v=$files{$f}; my $r=$v->{relative};
+    load_source($v) unless keys %{$v->{contexts}};
     my $path_category=$r =~ m{(?:\A|/)(?:tests?/|(?:test|tests|[^/]+_tests)\.rs\z)} ? 'tests'
         : $r =~ m{\Aexamples/} ? 'examples' : $r =~ m{\Abenches/} ? 'benchmarks'
         : $r =~ m{\A(?:build\.rs\z|tools/|scripts/|xtask/)} ? 'build_tooling' : undef;
@@ -297,19 +317,17 @@ for my $f (sort keys %files) {
     diagnostic($f,'source shared across target categories; counted once') if $v->{shared};
     # Also inspect unreachable support files for inline tests.
     scan($f,0,scalar @{$v->{tokens}},dirname($f),$v->{category},0) unless keys %{$v->{contexts}};
+    unload_source($v);
 }
-my @count_files; my $seq=0;
+my @count_files;
 for my $f (sort keys %files) {
     my $v=$files{$f};
-    # Count exactly the bytes inspected above, even if another session edits
-    # the checkout while cloc runs. JSON binds each file to that content hash.
-    $v->{count_path}="$scratch/source-".$seq++.'.rs';
-    write_file($v->{count_path},$v->{text});
     push @count_files,$v->{count_path};
     if ($v->{category} eq 'tests' || !@{$v->{test_ranges}}) {
         delete @{$v}{qw(text tokens pair test_ranges)};
         next;
     }
+    load_source($v);
     # Merge nested/repeated ranges once, then advance through them monotonically.
     my @ranges;
     for my $range (sort {$a->[0]<=>$b->[0] || $b->[1]<=>$a->[1]} @{$v->{test_ranges}}) {

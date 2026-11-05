@@ -221,7 +221,7 @@ cover advanced commands, evidence, caching, and use as a Rust library.
 - [CLI usage and collection modes](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
 - [Library usage](https://github.com/dragginzgame/ic-query/blob/main/docs/library-usage.md)
 - [Local developer tool setup](https://github.com/dragginzgame/ic-query/blob/main/docs/local-setup.md)
-- [Supported native hosts](https://github.com/dragginzgame/ic-query/blob/main/docs/supported-hosts.md)
+- [Supported native hosts](https://github.com/dragginzgame/ic-query/blob/main/docs/query-supported-hosts.md)
 - [Governance canister smoke tests](https://github.com/dragginzgame/ic-query/blob/main/docs/canister-smoke.md)
 - [Roadmap to 1.0](https://github.com/dragginzgame/ic-query/blob/main/docs/roadmap/1.0.md)
 - [Cache policy](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cache-policy.md)
@@ -251,7 +251,7 @@ cover advanced commands, evidence, caching, and use as a Rust library.
 - [Certified CMC system reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cmc-system-reporting.md)
 - [Release ledger](https://github.com/dragginzgame/ic-query/blob/main/CHANGELOG.md)
 - [Maintainer release workflow](docs/release-workflow.md)
-- [Supported native hosts and prerequisites](docs/supported-hosts.md)
+- [Supported native hosts and prerequisites](docs/query-supported-hosts.md)
 
 ## Scope
 

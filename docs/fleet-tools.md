@@ -112,6 +112,9 @@ Counts use copies of the exact bytes inspected, with `source_sha256` in each
 file record. This prevents edits during cloc from changing classified counts;
 it is not an atomic snapshot of a concurrently edited workspace. A nonempty
 file omitted by cloc fails the report instead of silently contributing zero.
+Module traversal queues file visits and releases each token tree before visiting
+the next file. Inline partitioning reloads captured bytes one file at a time;
+peak parser memory follows file size rather than the whole workspace's tokens.
 
 JSON schema **2** contains `manifest`, `crates`, `totals`, `files` and
 `diagnostics`. Crate rows have `crate` and `counts`; each count object has the six

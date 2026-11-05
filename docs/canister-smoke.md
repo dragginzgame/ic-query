@@ -49,7 +49,7 @@ including whether output is already visible and any staging-cleanup failure.
 Reconcile visible output after a completion failure before retrying. Existing
 permissions, schema-1 evidence and the create-only raw-reply policy remain intact.
 This consumer needs its own native smoke qualification; see the
-[host matrix](supported-hosts.md#tool-specific-dependencies).
+[host matrix](query-supported-hosts.md#tool-specific-dependencies).
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/dragginzgame/shared-assets/main/ic-query/ic-query-canister-smoke-flow.svg" alt="Canister smoke-test lifecycle from building and deploying the probe through report validation, cleanup, and receipt finalization, with failure and interruption handling">
@@ -76,7 +76,7 @@ is introduced. Native Testkit coverage also sends Wire frames directly.
 ## Deterministic Testkit coverage
 
 Native development dependencies select `ic-testkit` through the workspace
-manifest and lockfile. Testkit 0.86 and the probe/smoke harness select Wire 0.17
+manifest and lockfile. Testkit 0.87 and the probe/smoke harness select Wire 0.17
 together. These codec-only callers use Serde and do not select Wire's optional
 schema derive. Host's bounded HTTP request reader owns the Agent,
 Dashboard and ICRC socket-fixture framing loops.
@@ -85,7 +85,9 @@ These ordinary tests need no running simulator.
 
 The separate simulator check installs the actual `governance_probe` Wasm and
 an in-memory Governance fixture at the fixed NNS principal. Testkit owns server
-admission/lifecycle, instance startup and probe installation. Query sends
+admission/lifecycle, instance startup and probe installation. The fixture owns
+a current-thread Tokio runtime and explicitly awaits instance deletion, including
+after failed assertions, before releasing its server custody. Query sends
 raw Wire frames and decodes replies through the published Wire codec. Query checks all four reports, collector provenance, raw metric buckets,
 Governance application errors, malformed replies and inter-canister rejects.
 Entrypoint checks reject wrong-direction, malformed, wrong-type, trailing and
@@ -467,9 +469,8 @@ The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
 callers use Wire. Query selects Platform 0.23.0, Types 0.18.1 and Runtime 0.19.2.
-Host Tools 0.82.1 and Testkit 0.86.0 retain their published Platform 0.22
-requirements. Both facade generations share canonical Types, external Candid
-and Runtime identities. It owns the native PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
+Host Tools 0.83.0 and Testkit 0.87.0 select the same Platform 0.23
+generation and canonical Types, external Candid and Runtime identities. It owns the native PocketIC client used by the private fixture through `ic_testkit::pocket_ic`, matching its extension
 traits and management DTO 0.11 identity. The separate `ic-platform-pocket-ic`
 dependency is retired. Query owns its report arithmetic without Metrics.
 External Candid/PocketIC Principal bytes retain their explicit boundary, and the

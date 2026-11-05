@@ -1,4 +1,5 @@
 # Repeatable maintenance tasks
+<!-- Shared companions: tasks/cargo-machete.md tasks/code-audit.md tasks/dependency-security.md tasks/maintenance-prompt.md tasks/msrv.md tasks/readme-freshness.md tasks/rust-toolchain.md tasks/tooling-duplication.md -->
 
 Shared Tooling owns this catalog and its reusable instructions. Open this file
 from the repository README or run `make tasks`. Task IDs are their filenames

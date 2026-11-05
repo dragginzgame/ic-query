@@ -5,6 +5,26 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.93.0]
+
+### 🧹 Tooling
+
+- Adopt the shared Candid boundary check in CI and both release plans, with
+  declaration-specific external protocol allowances. Refresh Shared Tooling to
+  0.30.4 plus its committed generic-header fix. [Details](0.93.md).
+
+### ⚠️ Breaking
+
+- Adopt Host Tools 0.83.0, advancing the public Host-owned `LedgerTip` identity.
+  Consumers exchanging authenticated tips with Host use the matching generation;
+  report JSON and certificate byte/admission behavior are unchanged. [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Align Host Tools 0.83.0 and Testkit 0.87.0 on one Platform 0.23 dependency.
+  Migrate the compiled Governance fixture to the async client, with explicit
+  instance deletion on success and failed assertions.
+
 ## [0.92.0] - 2026-11-05
 
 ### ⚠️ Breaking
