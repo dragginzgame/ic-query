@@ -1803,7 +1803,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.91.0"
+version = "0.92.0"
 dependencies = [
  "clap",
  "ic-build",
@@ -1839,7 +1839,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-text"
-version = "0.91.0"
+version = "0.92.0"
 dependencies = [
  "futures",
  "ic-host-fs",

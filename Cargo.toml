@@ -24,8 +24,8 @@ ic-query-testkit = { path = "crates/ic-query-testkit", version = "0.92.0" }
 
 # CLI and text presentation
 # Changelog : releases/cli/CHANGELOG.md
-ic-query-cli = { path = "crates/ic-query-cli", version = "0.91.0" }
-ic-query-text = { path = "crates/ic-query-text", version = "0.91.0", default-features = false }
+ic-query-cli = { path = "crates/ic-query-cli", version = "0.92.0" }
+ic-query-text = { path = "crates/ic-query-text", version = "0.92.0", default-features = false }
 
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
