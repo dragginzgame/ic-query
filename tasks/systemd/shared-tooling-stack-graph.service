@@ -1,0 +1,14 @@
+[Unit]
+Description=Refresh the local Toko stack dependency documentation
+
+[Service]
+Type=oneshot
+# Prepared executable paths and checkout locations; no agent or GitHub credential.
+EnvironmentFile=%h/.config/shared-tooling/stack-graph.env
+Environment=RUSTUP_AUTO_INSTALL=0
+Environment=CARGO_NET_OFFLINE=true
+# GNU env supplies a configurable cwd so Cargo selects Shared's pinned compiler.
+ExecStart=/usr/bin/env --chdir=${SHARED_TOOLING_ROOT} /usr/bin/perl scripts/dev/stack-graph.pl --write --parent ${STACK_PROJECTS_ROOT}
+TimeoutStartSec=5min
+KillMode=control-group
+UMask=0022

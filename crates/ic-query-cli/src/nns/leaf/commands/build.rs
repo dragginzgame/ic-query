@@ -28,7 +28,6 @@ pub(in crate::nns) fn command_with_list(
     list: ClapCommand,
 ) -> ClapCommand {
     ClapCommand::new(spec.command_name)
-        .bin_name(spec.bin_name())
         .about(spec.about)
         .subcommand(list)
         .subcommand(info_command(spec, default_source_endpoint))
@@ -40,7 +39,6 @@ pub(in crate::nns) fn list_command(
     default_source_endpoint: &'static str,
 ) -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name(format!("{} list", spec.bin_name()))
         .about(spec.list_about)
         .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.read_source_help))
@@ -60,7 +58,6 @@ pub(in crate::nns) fn info_command(
     default_source_endpoint: &'static str,
 ) -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name(format!("{} info", spec.bin_name()))
         .about(spec.info_about)
         .arg(
             value_arg(INPUT_ARG)
@@ -81,7 +78,6 @@ pub(in crate::nns) fn refresh_command(
     default_source_endpoint: &'static str,
 ) -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name(format!("{} refresh", spec.bin_name()))
         .about(spec.refresh_about)
         .arg(json_arg())
         .arg(source_endpoint_arg(default_source_endpoint).help(spec.refresh_source_help))

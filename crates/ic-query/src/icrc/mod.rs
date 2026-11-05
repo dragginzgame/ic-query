@@ -7,7 +7,7 @@
 
 #[cfg(feature = "icrc-host")]
 mod account_transaction_cache;
-#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
+#[cfg(feature = "icrc-host")]
 pub(crate) mod ledger;
 #[cfg(feature = "icrc-host")]
 mod live;

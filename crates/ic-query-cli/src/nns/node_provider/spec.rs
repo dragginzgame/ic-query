@@ -17,7 +17,7 @@ Examples:
 Force-refresh cached native NNS data:
   icq nns node-provider refresh";
 const NODE_PROVIDER_REFRESH_HELP_AFTER: &str = "\
-Examples:
+Refreshes the shared Registry snapshot and separate Governance provider metadata.\nThe output file contains Governance metadata; list --json joins Registry counts.\n\nExamples:
   icq nns node-provider refresh
   icq --network ic nns node-provider refresh --json
   icq nns node-provider refresh --dry-run --output /tmp/icq-node-providers.preview.json";

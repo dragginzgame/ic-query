@@ -1,44 +1,17 @@
 //! Module: nns::proposals::report::cache::model
 //!
-//! Responsibility: NNS proposal snapshot cache and cache-report DTOs.
+//! Responsibility: complete NNS proposal snapshot cache DTOs.
 //! Does not own: cache file IO, refresh orchestration, or text rendering.
-//! Boundary: defines complete proposal snapshot metadata, rows, and reports.
+//! Boundary: defines complete proposal snapshot metadata and rows.
 
 use crate::{
-    nns::{
-        governance::{NnsGovernanceCacheMetadata, NnsGovernanceCacheSummary},
-        proposals::report::model::NnsProposalRow,
-    },
+    nns::{governance::NnsGovernanceCacheMetadata, proposals::report::model::NnsProposalRow},
     snapshot_cache::SnapshotEnvelope,
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 pub(super) type NnsProposalCache =
     SnapshotEnvelope<NnsGovernanceCacheMetadata, NnsProposalCacheRows>;
-
-///
-/// NnsProposalCacheListReport
-///
-/// Serializable report listing local complete NNS proposal caches.
-///
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct NnsProposalCacheListReport {
-    /// Version of this report contract; currently `1`.
-    pub schema_version: u32,
-    /// Network identity; supported NNS reports use `ic`.
-    pub network: String,
-    /// Root directory selected for local snapshot inspection.
-    pub cache_root: String,
-    /// Local snapshot summaries discovered beneath the selected root.
-    pub caches: Vec<NnsGovernanceCacheSummary>,
-    /// Collection inspected by this proposal-only list operation.
-    pub collection: crate::nns::governance::NnsGovernanceCollection,
-    /// Expected refresh-attempt sidecar path.
-    pub refresh_attempt_path: String,
-    /// Latest readable attempt for this single expected snapshot.
-    pub latest_attempt: Option<crate::cache::SnapshotRefreshAttemptStatus>,
-}
 
 ///
 /// NnsProposalCacheRows

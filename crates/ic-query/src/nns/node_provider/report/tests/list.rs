@@ -71,7 +71,7 @@ async fn node_provider_list_rejects_local_network() {
     .expect_err("local rejected");
 
     assert!(
-        matches!(err, NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::NodeProvider, network } if network == "local")
+        matches!(err, NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::RegistryInventory, network } if network == "local")
     );
 }
 
@@ -80,8 +80,13 @@ fn node_provider_inventory_validation_rejects_wrong_governance_identity() {
     let mut report = node_provider_report_fixture();
     report.governance_canister_id = "aaaaa-aa".to_string();
 
-    let reason = crate::nns::inventory::NnsInventoryReport::validate(&report)
-        .expect_err("wrong Governance identity");
+    let metadata = NnsNodeProviderMetadata {
+        schema_version: 1,
+        source: report.governance_source,
+        governance_canister_id: report.governance_canister_id,
+        node_providers: Vec::new(),
+    };
+    let reason = metadata.validate().expect_err("wrong Governance identity");
 
     assert!(reason.contains("governance_canister_id"));
 }

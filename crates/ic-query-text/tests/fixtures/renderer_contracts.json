@@ -517,10 +517,16 @@
       "resolved_from": "node_provider_principal_prefix",
       "reward_account_hex": "abcd",
       "schema_version": 1,
-      "source_endpoint": "https://icp-api.io"
+      "source_endpoint": "https://icp-api.io",
+      "governance_source": {
+        "network": "ic",
+        "source_endpoint": "https://icp-api.io",
+        "fetched_at": "2026-06-04T00:00:00Z",
+        "fetched_by": "test"
+      }
     },
     "report_type": "ic_query::nns::node_provider::report::model::report::NnsNodeProviderInfoReport",
-    "text": "input: ryjl\nresolved_from: node_provider_principal_prefix\nnode_provider_principal: ryjl3-tyaaa-aaaaa-aaaba-cai\nnode_count: unknown\nreward_account_hex: abcd\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test"
+    "text": "input: ryjl\nresolved_from: node_provider_principal_prefix\nnode_provider_principal: ryjl3-tyaaa-aaaaa-aaaba-cai\nnode_count: unknown\nreward_account_hex: abcd\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\ngovernance_fetched_at: 2026-06-04T00:00:00Z\ngovernance_source_endpoint: https://icp-api.io\ngovernance_fetched_by: test"
   },
   {
     "renderer": "nns_node_provider_list_report_text",
@@ -540,10 +546,16 @@
       "registry_canister_id": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
       "registry_version": 42,
       "schema_version": 1,
-      "source_endpoint": "https://icp-api.io"
+      "source_endpoint": "https://icp-api.io",
+      "governance_source": {
+        "network": "ic",
+        "source_endpoint": "https://icp-api.io",
+        "fetched_at": "2026-06-04T00:00:00Z",
+        "fetched_by": "test"
+      }
     },
     "report_type": "ic_query::nns::node_provider::report::model::report::NnsNodeProviderListReport",
-    "text": "node_providers: ic count 1 fetched_at 2026-06-04T00:00:00Z\n\nNODE_PROVIDER   NODES\n-------------   -----\nryjl3              13"
+    "text": "node_providers: ic count 1 fetched_at 2026-06-04T00:00:00Z\ngovernance_fetched_at: 2026-06-04T00:00:00Z\ngovernance_source_endpoint: https://icp-api.io\ngovernance_fetched_by: test\n\nNODE_PROVIDER   NODES\n-------------   -----\nryjl3              13"
   },
   {
     "options": {
@@ -572,10 +584,16 @@
       "registry_canister_id": "rwlgt-iiaaa-aaaaa-aaaaa-cai",
       "registry_version": 42,
       "schema_version": 1,
-      "source_endpoint": "https://icp-api.io"
+      "source_endpoint": "https://icp-api.io",
+      "governance_source": {
+        "network": "ic",
+        "source_endpoint": "https://icp-api.io",
+        "fetched_at": "2026-06-04T00:00:00Z",
+        "fetched_by": "test"
+      }
     },
     "report_type": "ic_query::nns::node_provider::report::model::report::NnsNodeProviderListReport",
-    "text": "node_providers: ic count 2 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\n\nNODE_PROVIDER                 NODES\n---------------------------   -----\naaaaa-aa                          3\nryjl3-tyaaa-aaaaa-aaaba-cai      13"
+    "text": "node_providers: ic count 2 fetched_at 2026-06-04T00:00:00Z\nregistry_canister_id: rwlgt-iiaaa-aaaaa-aaaaa-cai\nregistry_version: 42\nnetwork: ic\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: test\ngovernance_fetched_at: 2026-06-04T00:00:00Z\ngovernance_source_endpoint: https://icp-api.io\ngovernance_fetched_by: test\n\nNODE_PROVIDER                 NODES\n---------------------------   -----\naaaaa-aa                          3\nryjl3-tyaaa-aaaaa-aaaba-cai      13"
   },
   {
     "renderer": "nns_proposal_activity_report_text",
@@ -1086,7 +1104,7 @@
       }
     },
     "report_type": "ic_query::nns::proposals::report::model::reports::NnsProposalReport",
-    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nverbose: no\ndata_source: live\n\nproposal_id: 101\ntopic: governance\nstatus: executed\ntitle: Bravo\nproposed_at: 2023-11-14T22:15:01Z\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+    "text": "network: ic\ngovernance_canister_id: rrkah-fqaaa-aaaaa-aaaaq-cai\nfetched_at: 2023-11-14T22:13:20Z\nsource_transport: replica_query\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nexecution_assurance: unreplicated_query\nproposal_id: 101\nverbose: no\ndata_source: live\n\nproposal_id: 101\ntopic: governance\nstatus: executed\ntitle: Bravo\nproposed_at: 2023-11-14T22:15:01Z\nsummary: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
   },
   {
     "renderer": "nns_registry_version_report_text",
@@ -1610,43 +1628,29 @@
     "renderer": "sns_neuron_detail_report_text",
     "report": {
       "data_source": "live",
-      "detail": {
-        "disburse_maturity_in_progress": [
-          {
-            "account_to_disburse_to": {
-              "owner": "be2us-64aaa-aaaaa-qaabq-cai",
-              "subaccount_hex": "abababababababababababababababababababababababababababababababab"
-            },
-            "amount_e8s": 12500000,
-            "finalize_disbursement_timestamp_seconds": 1780358600,
-            "timestamp_of_disbursement_seconds": 1780272200
-          }
-        ],
-        "followees": [
-          {
-            "followee_neuron_ids": [
-              "1111111111111111111111111111111111111111111111111111111111111111"
-            ],
-            "function_id": 1
-          }
-        ],
-        "neuron": {
-          "aging_since_timestamp_seconds": 1780272100,
-          "auto_stake_maturity": true,
-          "cached_neuron_stake_e8s": 100000000,
-          "created_timestamp_seconds": 1780272000,
-          "dissolve_state": {
-            "kind": "dissolve_delay_seconds",
-            "value": 31536000
-          },
-          "maturity_e8s_equivalent": 50000000,
-          "neuron_fees_e8s": 10000,
-          "neuron_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-          "source_nns_neuron_id": 42,
-          "staked_maturity_e8s_equivalent": 25000000,
-          "vesting_period_seconds": 63072000,
-          "voting_power_percentage_multiplier": 100
+      "fetched_at": "2026-06-04T00:00:00Z",
+      "fetched_by": "ic-query",
+      "governance_canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
+      "network": "ic",
+      "neuron_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "schema_version": 1,
+      "source_endpoint": "https://icp-api.io",
+      "neuron": {
+        "aging_since_timestamp_seconds": 1780272100,
+        "auto_stake_maturity": true,
+        "cached_neuron_stake_e8s": 100000000,
+        "created_timestamp_seconds": 1780272000,
+        "dissolve_state": {
+          "kind": "dissolve_delay_seconds",
+          "value": 31536000
         },
+        "maturity_e8s_equivalent": 50000000,
+        "neuron_fees_e8s": 10000,
+        "neuron_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "source_nns_neuron_id": 42,
+        "staked_maturity_e8s_equivalent": 25000000,
+        "vesting_period_seconds": 63072000,
+        "voting_power_percentage_multiplier": 100,
         "permissions": [
           {
             "permission_types": [
@@ -1659,34 +1663,11 @@
             ],
             "principal": "bkyz2-fmaaa-aaaaa-qaaaq-cai"
           }
-        ],
-        "topic_followees": [
-          {
-            "followees": [
-              {
-                "alias": "governance lead",
-                "neuron_id": "2222222222222222222222222222222222222222222222222222222222222222"
-              }
-            ],
-            "topic": "governance",
-            "topic_code": 5
-          }
         ]
-      },
-      "fetched_at": "2026-06-04T00:00:00Z",
-      "fetched_by": "ic-query",
-      "governance_canister_id": "bkyz2-fmaaa-aaaaa-qaaaq-cai",
-      "id": 1,
-      "name": "Fixture SNS",
-      "network": "ic",
-      "neuron_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-      "root_canister_id": "be2us-64aaa-aaaaa-qaabq-cai",
-      "schema_version": 1,
-      "sns_wasm_canister_id": "qaa6y-5yaaa-aaaaa-aaafa-cai",
-      "source_endpoint": "https://icp-api.io"
+      }
     },
     "report_type": "ic_query::sns::report::model::reports::neurons::detail::SnsNeuronDetailReport",
-    "text": "network: ic\nsns_id: 1\nname: Fixture SNS\nroot_canister_id: be2us-64aaa-aaaaa-qaabq-cai\ngovernance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai\nneuron_id: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\ndata_source: live\nmaturity_mint_conversion_observed_disabled: violated\nmanual_maturity_staking_observed_disabled: violated\ncached_neuron_stake: 1.00\nneuron_fees: 0.00\nmaturity: 0.50\nstaked_maturity: 0.25\nauto_stake_maturity: yes\ndissolve_state: delay:31536000\nvoting_power_percentage_multiplier: 100\ncreated_at: 2026-06-01T00:00:00Z\nsource_nns_neuron_id: 42\nvesting_period_seconds: 63072000\npermission_entry_count: 1\npending_maturity_disbursement_count: 1\nlegacy_following_entry_count: 1\ntopic_following_entry_count: 1\nsns_wasm_canister_id: qaa6y-5yaaa-aaaaa-aaafa-cai\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\n\nPRINCIPAL                     PERMISSIONS\n---------------------------   --------------------------------------------------------------------------------------------------------------------\nbkyz2-fmaaa-aaaaa-qaaaq-cai   1:configure_dissolve_state,2:manage_principals,3:submit_proposal,4:vote,9:stake_maturity,10:manage_voting_permission\n\nSCHEDULED_AT   AMOUNT   DESTINATION                                                                                    FINALIZE_AT\n------------   ------   --------------------------------------------------------------------------------------------   -----------\n  1780272200     0.13   be2us-64aaa-aaaaa-qaabq-cai:abababababababababababababababababababababababababababababababab    1780358600\n\nFUNCTION_ID   FOLLOWEE_NEURON_IDS\n-----------   ----------------------------------------------------------------\n          1   1111111111111111111111111111111111111111111111111111111111111111\n\nTOPIC_CODE   TOPIC        FOLLOWEES\n----------   ----------   --------------------------------------------------------------------------------\n         5   governance   2222222222222222222222222222222222222222222222222222222222222222:governance lead"
+    "text": "network: ic\ngovernance_canister_id: bkyz2-fmaaa-aaaaa-qaaaq-cai\nfetched_at: 2026-06-04T00:00:00Z\nsource_endpoint: https://icp-api.io\nfetched_by: ic-query\nneuron_id: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\ndata_source: live\ncached_neuron_stake_e8s: 100000000\nneuron_fees_e8s: 10000\ndissolve_state: delay:31536000\n\nPRINCIPAL                     PERMISSIONS\n---------------------------   --------------------------------------------------------------------------------------------------------------------\nbkyz2-fmaaa-aaaaa-qaaaq-cai   1:configure_dissolve_state,2:manage_principals,3:submit_proposal,4:vote,9:stake_maturity,10:manage_voting_permission"
   },
   {
     "renderer": "subnet_catalog_info_report_text",

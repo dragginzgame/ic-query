@@ -21,10 +21,9 @@ use super::{
     proposals::{
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NnsProposalListSort, NnsProposalRewardStatusFilter,
         NnsProposalStatusFilter, NnsProposalTopicFilter, nns_proposal_activity_command,
-        nns_proposal_cache_command, nns_proposal_cache_list_command,
-        nns_proposal_cache_status_command, nns_proposal_command, nns_proposal_info_command,
-        nns_proposal_list_command, nns_proposal_refresh_command, proposal_activity_request,
-        proposal_info_request, proposal_list_request,
+        nns_proposal_cache_command, nns_proposal_cache_status_command, nns_proposal_command,
+        nns_proposal_info_command, nns_proposal_list_command, nns_proposal_refresh_command,
+        proposal_activity_request, proposal_info_request, proposal_list_request,
     },
     registry::{registry_command, registry_version_command},
     subnet::{

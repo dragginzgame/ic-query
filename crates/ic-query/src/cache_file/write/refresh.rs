@@ -56,6 +56,10 @@ pub struct RefreshCacheWriteResult {
 }
 
 #[cfg(feature = "nns-host")]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The publication request is a single-use owned operation, matching the other cache publication adapters."
+)]
 pub fn write_json_refresh_cache<T, E>(
     request: RefreshCacheWriteRequest<'_, T>,
     cache_error: impl Fn(CacheFileError) -> E,

@@ -3,7 +3,6 @@
 //! Renderers accept collected reports and return text. Collection, validation,
 //! JSON contracts and caches remain in `ic-query`; process IO belongs to the CLI.
 
-pub mod cache;
 pub mod cloud_engine;
 mod human_quantity;
 pub mod ic;

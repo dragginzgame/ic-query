@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared requests for inspecting SNS complete-snapshot caches.
 //! Does not own: collection-specific cache paths, report construction, or rendering.
-//! Boundary: carries cache identity shared by neuron and proposal cache commands.
+//! Boundary: carries cache identity shared by neuron cache commands.
 
 use std::path::{Path, PathBuf};
 
@@ -43,7 +43,7 @@ impl SnsCacheListRequest {
 pub struct SnsCacheStatusRequest {
     pub network: String,
     pub cache_root: PathBuf,
-    /// SNS root canister principal; no discovery or live resolution is performed.
+    /// Governance canister principal; no discovery or live resolution is performed.
     pub input: String,
 }
 

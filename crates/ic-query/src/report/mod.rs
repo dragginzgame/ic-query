@@ -12,11 +12,13 @@ use std::path::Path;
 /// Source families retain their own network admission and transport policy.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CollectionSourceRequest {
     /// Requested IC network identity.
     pub network: String,
     /// Explicit replica endpoint used for collection.
+    #[serde(rename = "source_endpoint")]
     pub endpoint: String,
     /// UTC collection timestamp recorded in the report.
     pub fetched_at: String,

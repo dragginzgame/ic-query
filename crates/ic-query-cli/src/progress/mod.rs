@@ -10,7 +10,10 @@ use ic_query::QueryProgress;
 use ic_query::QueryProgressCollection;
 use ic_query::QueryProgressEvent;
 use ic_query::QueryProgressState;
-use std::io::{self, IsTerminal, Write};
+use std::{
+    io::{self, IsTerminal, Write},
+    path::Path,
+};
 
 ///
 /// StderrQueryProgress
@@ -74,8 +77,8 @@ impl QueryProgress for StderrQueryProgress {
             } => {
                 self.clear();
                 eprintln!(
-                    "{component} cache refresh required at {}; calling {source_endpoint} to refresh/create cache",
-                    path.display()
+                    "{}",
+                    cache_refresh_text(&component, &path, &source_endpoint)
                 );
             }
             QueryProgressEvent::PagedRefresh { progress, state } => {
@@ -96,6 +99,15 @@ impl Drop for StderrQueryProgress {
     }
 }
 
+fn cache_refresh_text(component: &str, path: &Path, endpoint: &str) -> String {
+    format!(
+        "{} cache refresh required at {}; calling {} to refresh/create cache",
+        terminal_text(component),
+        terminal_text(&path.display().to_string()),
+        terminal_text(endpoint),
+    )
+}
+
 fn paged_progress_text(
     progress: &ic_query::PagedQueryProgress,
     state: QueryProgressState,
@@ -104,7 +116,6 @@ fn paged_progress_text(
         QueryProgressCollection::NnsNeurons => "NNS neurons",
         QueryProgressCollection::NnsProposals => "NNS proposals",
         QueryProgressCollection::SnsNeurons => "SNS neurons",
-        QueryProgressCollection::SnsProposals => "SNS proposals",
         QueryProgressCollection::IcrcAccountTransactions => "ICRC account transactions",
     };
     let target = progress

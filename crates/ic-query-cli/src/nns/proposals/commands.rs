@@ -87,23 +87,11 @@ Examples:
 
 const NNS_PROPOSAL_CACHE_HELP_AFTER: &str = "\
 Examples:
-  icq nns proposal cache list
-  icq nns proposal cache status
-  icq nns proposal cache status --json";
-
-const NNS_PROPOSAL_CACHE_LIST_HELP_AFTER: &str = "\
-Examples:
-  icq nns proposal cache list
-  icq nns proposal cache list --json";
-
-const NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER: &str = "\
-Examples:
   icq nns proposal cache status
   icq nns proposal cache status --json";
 
 pub(in crate::nns) fn nns_proposal_activity_command() -> ClapCommand {
     ClapCommand::new("activity")
-        .bin_name("icq nns proposal activity")
         .about("Summarize proposal activity from the complete local snapshot")
         .arg(leaf::json_arg())
         .arg(
@@ -128,7 +116,7 @@ pub(in crate::nns) fn nns_proposal_activity_command() -> ClapCommand {
 
 pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq nns proposal list")
+
         .about("List NNS governance proposals")
         .arg(leaf::json_arg())
         .arg(
@@ -223,7 +211,6 @@ pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
 
 pub(in crate::nns) fn nns_proposal_info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq nns proposal info")
         .about("Show one NNS governance proposal")
         .arg(
             value_arg(NNS_PROPOSAL_ID_ARG)
@@ -250,7 +237,6 @@ pub(in crate::nns) fn nns_proposal_info_command() -> ClapCommand {
 
 pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
     ClapCommand::new("proposal")
-        .bin_name("icq nns proposal")
         .about("Inspect NNS governance proposals")
         .subcommand(nns_proposal_list_command())
         .subcommand(nns_proposal_activity_command())
@@ -262,7 +248,6 @@ pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
 
 pub(in crate::nns) fn nns_proposal_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name("icq nns proposal refresh")
         .about("Force-refresh and cache a complete NNS governance proposal snapshot")
         .arg(leaf::json_arg())
         .arg(
@@ -288,9 +273,7 @@ pub(in crate::nns) fn nns_proposal_refresh_command() -> ClapCommand {
 
 pub(in crate::nns) fn nns_proposal_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
-        .bin_name("icq nns proposal cache")
         .about("Inspect local complete NNS governance proposal snapshots")
-        .subcommand(nns_proposal_cache_list_command())
         .subcommand(nns_proposal_cache_status_command())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
@@ -298,24 +281,12 @@ pub(in crate::nns) fn nns_proposal_cache_command() -> ClapCommand {
         ))
 }
 
-pub(in crate::nns) fn nns_proposal_cache_list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .bin_name("icq nns proposal cache list")
-        .about("List local complete NNS proposal snapshots")
-        .arg(leaf::json_arg())
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_ONLY,
-            NNS_PROPOSAL_CACHE_LIST_HELP_AFTER,
-        ))
-}
-
 pub(in crate::nns) fn nns_proposal_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
-        .bin_name("icq nns proposal cache status")
         .about("Show local NNS proposal snapshot and refresh-attempt status")
         .arg(leaf::json_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
-            NNS_PROPOSAL_CACHE_STATUS_HELP_AFTER,
+            NNS_PROPOSAL_CACHE_HELP_AFTER,
         ))
 }

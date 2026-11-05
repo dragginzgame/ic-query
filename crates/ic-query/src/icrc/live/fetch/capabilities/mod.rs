@@ -236,6 +236,10 @@ impl CandidCallError for CapabilityQueryError {
     }
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the owned query error at the capability-to-report boundary."
+)]
 fn error_capability_row(
     capability: &str,
     method: &'static str,

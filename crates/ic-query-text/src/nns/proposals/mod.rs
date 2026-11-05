@@ -17,8 +17,6 @@ use crate::text_value::optional_u64_text;
 use crate::text_value::truncate_text;
 use crate::text_value::yes_no;
 use ic_query::nns::proposals::NnsProposalActivityReport;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::NnsProposalCacheListReport;
 use ic_query::nns::proposals::NnsProposalListReport;
 use ic_query::nns::proposals::NnsProposalReport;
 use ic_query::nns::proposals::NnsProposalRewardStatus;
@@ -51,45 +49,18 @@ fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
         &report.context.collection_updated_at,
         &report.context.source,
     );
-    lines.extend([
-        field(
-            "collection_page_count",
-            &(report.context.collection_page_count),
-        ),
-        field(
-            "collected_proposal_count",
-            &(report.collected_proposal_count),
-        ),
-        field(
-            "point_in_time_guaranteed",
-            &(yes_no(report.context.point_in_time_guaranteed)),
-        ),
-        field(
-            "from_proposal_timestamp_seconds",
-            &(optional_u64_text(report.from_proposal_timestamp_seconds)),
-        ),
-        field(
-            "until_proposal_timestamp_seconds",
-            &(optional_u64_text(report.until_proposal_timestamp_seconds)),
-        ),
-        field("included_proposal_count", &(report.included_proposal_count)),
-        field(
-            "excluded_before_from_count",
-            &(report.excluded_before_from_count),
-        ),
-        field(
-            "excluded_at_or_after_until_count",
-            &(report.excluded_at_or_after_until_count),
-        ),
-        field(
-            "earliest_included_proposal_timestamp_seconds",
-            &(optional_u64_text(report.earliest_included_proposal_timestamp_seconds)),
-        ),
-        field(
-            "latest_included_proposal_timestamp_seconds",
-            &(optional_u64_text(report.latest_included_proposal_timestamp_seconds)),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        collection_page_count = report.context.collection_page_count,
+        collected_proposal_count,
+        point_in_time_guaranteed = yes_no(report.context.point_in_time_guaranteed),
+        from_proposal_timestamp_seconds = optional_u64_text(report.from_proposal_timestamp_seconds),
+        until_proposal_timestamp_seconds = optional_u64_text(report.until_proposal_timestamp_seconds),
+        included_proposal_count,
+        excluded_before_from_count,
+        excluded_at_or_after_until_count,
+        earliest_included_proposal_timestamp_seconds = optional_u64_text(report.earliest_included_proposal_timestamp_seconds),
+        latest_included_proposal_timestamp_seconds = optional_u64_text(report.latest_included_proposal_timestamp_seconds),
+    ));
     lines
 }
 
@@ -178,29 +149,20 @@ pub fn nns_proposal_list_report_text(
     options: crate::TextOptions,
 ) -> String {
     let mut lines = governance_context_lines(&report.context);
-    lines.extend([
-        field("requested_limit", &(report.requested_limit)),
-        field(
-            "before_proposal_id",
-            &(optional_u64_text(report.before_proposal_id)),
-        ),
-        field("status_filter", &(report.status_filter)),
-        field("reward_status_filter", &(report.reward_status_filter)),
-        field("topic_filter", &(report.topic_filter)),
-        field(
-            "proposer_filter",
-            &(optional_u64_text(report.proposer_filter)),
-        ),
-        field(
-            "query_filter",
-            &(report.query_filter.as_deref().unwrap_or("-")),
-        ),
-        field("sort", &(report.sort)),
-        field("sort_direction", &(report.sort_direction)),
-        field("result_scope", &(report.result_scope)),
-        field("verbose", &(yes_no(options.verbose))),
-        field("proposal_count", &(report.proposals.len())),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        requested_limit,
+        before_proposal_id = optional_u64_text(report.before_proposal_id),
+        status_filter,
+        reward_status_filter,
+        topic_filter,
+        proposer_filter = optional_u64_text(report.proposer_filter),
+        query_filter = report.query_filter.as_deref().unwrap_or("-"),
+        sort,
+        sort_direction,
+        result_scope,
+        verbose = yes_no(options.verbose),
+        proposal_count = report.proposals.len(),
+    ));
     crate::report::push_report_provenance_lines(&mut lines, &report.provenance);
     if !report.proposals.is_empty() {
         lines.push(String::new());
@@ -254,58 +216,6 @@ pub fn nns_proposal_report_text(report: &NnsProposalReport, options: crate::Text
     };
     lines.extend(proposal_detail_lines(proposal, detail_limit));
 
-    lines.join("\n")
-}
-
-/// Render the discovered local proposal snapshots as a table.
-#[must_use]
-#[cfg(feature = "nns-host")]
-pub fn nns_proposal_cache_list_report_text(report: &NnsProposalCacheListReport) -> String {
-    let mut lines = vec![
-        field("network", &report.network),
-        field("cache_root", &report.cache_root),
-        field("cache_count", &(report.caches.len())),
-    ];
-    if !report.caches.is_empty() {
-        lines.push(String::new());
-        lines.push(table(
-            &["STATUS", "GOVERNANCE", "ROWS", "PAGES", "FETCHED_AT"],
-            &report
-                .caches
-                .iter()
-                .map(|cache| {
-                    cache.valid().map_or_else(
-                        || ["invalid", "-", "-", "-", "-"].map(str::to_string),
-                        |data| {
-                            [
-                                "ok".to_string(),
-                                data.governance_canister_id.clone(),
-                                data.row_count.to_string(),
-                                data.page_count.to_string(),
-                                data.fetched_at.clone(),
-                            ]
-                        },
-                    )
-                })
-                .collect::<Vec<_>>(),
-            &[
-                Alignment::Left,
-                Alignment::Left,
-                Alignment::Right,
-                Alignment::Right,
-                Alignment::Left,
-            ],
-        ));
-        for cache in &report.caches {
-            if let Some(error) = cache.cache_error() {
-                lines.push(format!(
-                    "cache_error: {}: {}",
-                    terminal_text(&cache.cache_path),
-                    terminal_text(error)
-                ));
-            }
-        }
-    }
     lines.join("\n")
 }
 

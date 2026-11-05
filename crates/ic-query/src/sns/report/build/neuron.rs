@@ -2,15 +2,15 @@
 //!
 //! Responsibility: build one exact SNS neuron detail report.
 //! Does not own: command parsing, live wire decoding, or text rendering.
-//! Boundary: validates the id, resolves one SNS, fetches one neuron, and validates source evidence.
+//! Boundary: validates the id and Governance target, fetches one neuron, and validates source evidence.
 
 use crate::report::ReportDataSource;
 use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
     SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION, SnsHostError, SnsNeuronDetailReport, SnsNeuronRequest,
     live::LiveSnsSource,
-    lookup::resolve_sns_lookup,
     source::{SnsNeuronSource, sns_neuron_id_from_text, validate_mainnet_sns_neuron},
+    target::resolve_neuron_target,
 };
 
 /// Build one exact live SNS neuron detail report.
@@ -26,16 +26,20 @@ pub async fn build_sns_neuron_detail_report_with_source(
     source: &dyn SnsNeuronSource,
 ) -> Result<SnsNeuronDetailReport, SnsHostError> {
     sns_neuron_id_from_text(&request.neuron_id)?;
-    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
+    let lookup = resolve_neuron_target(&request.target)?;
     let neuron = source
-        .fetch_sns_neuron(&lookup.fetch_request, &lookup.sns, &request.neuron_id)
+        .fetch_sns_neuron(
+            &lookup.fetch_request,
+            &lookup.governance_canister_id,
+            &request.neuron_id,
+        )
         .await?;
     validate_mainnet_sns_neuron(&neuron, &request.neuron_id)?;
     Ok(SnsNeuronDetailReport {
         schema_version: SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION,
-        context: SnsReportContext::from_live(lookup.fetch_request, lookup.sns),
+        context: SnsReportContext::from_live(lookup.fetch_request, lookup.governance_canister_id),
         neuron_id: request.neuron_id.clone(),
         data_source: ReportDataSource::Live,
-        detail: neuron,
+        neuron,
     })
 }

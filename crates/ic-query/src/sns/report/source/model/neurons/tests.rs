@@ -106,6 +106,7 @@ fn neuron_pages_bind_cursors_and_preserve_inclusive_boundaries() {
 
 fn neuron(neuron_id: &str) -> SnsNeuronRow {
     SnsNeuronRow {
+        permissions: Vec::new(),
         neuron_id: neuron_id.to_string(),
         cached_neuron_stake_e8s: 100,
         maturity_e8s_equivalent: 10,

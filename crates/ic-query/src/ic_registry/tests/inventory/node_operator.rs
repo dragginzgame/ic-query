@@ -53,7 +53,7 @@ fn node_operator_list_follows_assigned_nodes_to_operator_records() {
         data_center_records: BTreeMap::new(),
     };
 
-    let list = node_operator_list_from_inventory(inventory).expect("node operators");
+    let list = node_operator_list_from_inventory(&inventory).expect("node operators");
 
     assert_eq!(list.len(), 2);
     let primary_result = list

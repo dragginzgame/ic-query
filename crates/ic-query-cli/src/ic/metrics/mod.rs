@@ -48,7 +48,6 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("metrics")
-        .bin_name("icq ic metrics")
         .about("Query one bounded official Dashboard network metric time series")
         .arg(
             value_arg("metric")

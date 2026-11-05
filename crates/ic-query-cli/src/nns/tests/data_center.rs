@@ -111,7 +111,9 @@ fn data_center_help_is_advertised_under_nns() {
     assert!(nns.contains("data-center"));
     assert!(data_center.contains("List cached mainnet NNS data centers"));
     assert!(data_center.contains("Show one cached mainnet NNS data center"));
-    assert!(data_center.contains("Force-refresh and cache NNS data-center metadata"));
+    assert!(
+        data_center.contains("Refresh the shared Registry node, operator and data-centre snapshot")
+    );
     assert!(list.contains("icq nns data-center list"));
     assert!(list.contains("--verbose"));
     assert!(list.contains("--json"));

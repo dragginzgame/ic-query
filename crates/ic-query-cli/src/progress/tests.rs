@@ -32,3 +32,17 @@ fn paging_text_has_one_lifecycle_owner_and_preserves_account_history_wording() {
     progress.target = Some("unsafe\x1b[31m".to_string());
     assert!(!paged_progress_text(&progress, QueryProgressState::Running).contains('\x1b'));
 }
+
+#[test]
+fn cache_refresh_progress_contains_untrusted_fields_on_one_line() {
+    let path = Path::new("/cache\nforged\u{1b}");
+    let text = cache_refresh_text(
+        "component\nforged",
+        path,
+        "https://example.invalid/\u{1b}[31m",
+    );
+    assert!(!text.chars().any(char::is_control));
+    assert!(text.contains("component\\nforged cache refresh required"));
+    assert!(text.contains("/cache\\nforged"));
+    assert!(text.contains("calling https://example.invalid/"));
+}

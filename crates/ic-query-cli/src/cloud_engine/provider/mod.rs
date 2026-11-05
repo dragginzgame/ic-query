@@ -75,7 +75,7 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngine
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("provider")
-        .bin_name("icq cloud-engine provider")
+
         .about("Inspect official Dashboard CloudEngine provider metadata")
         .subcommand(info_command())
         .subcommand(list_command())
@@ -87,7 +87,6 @@ pub(super) fn command() -> ClapCommand {
 fn info_command() -> ClapCommand {
     report_args(
         ClapCommand::new("info")
-            .bin_name("icq cloud-engine provider info")
             .about("Show one exact node provider and its CloudEngine evidence")
             .arg(
                 value_arg("node-provider-id")
@@ -103,9 +102,7 @@ fn info_command() -> ClapCommand {
 
 fn list_command() -> ClapCommand {
     report_args(
-        ClapCommand::new("list")
-            .bin_name("icq cloud-engine provider list")
-            .about("List providers carrying explicit CloudEngine evidence"),
+        ClapCommand::new("list").about("List providers carrying explicit CloudEngine evidence"),
         DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         SOURCE_ENDPOINT_HELP,
     )

@@ -83,10 +83,6 @@ fn zero_budget_scans_project_unadmitted_entries_without_following_them() {
     let root = temp_dir("ic-query-zero-scan-budget");
     let outside = temp_dir("ic-query-zero-scan-outside");
     symlink(&outside, root.join("link")).unwrap();
-    let inventory = collect_managed_files(&root, 0, |_| true).unwrap();
-    assert!(inventory.root_found);
-    assert!(inventory.truncated);
-    assert_eq!(inventory.paths, Vec::<PathBuf>::new());
     assert!(matches!(
         collect_managed_collection_files(&root, &root, "proposals", "full.json", 0),
         Err(CacheFileError::ScanLimitExceeded {
@@ -97,22 +93,4 @@ fn zero_budget_scans_project_unadmitted_entries_without_following_them() {
     ));
     fs::remove_dir_all(root).unwrap();
     fs::remove_dir_all(outside).unwrap();
-}
-
-#[test]
-fn inventory_bounds_nonmatching_entries_and_directory_depth() {
-    let root = temp_dir("ic-query-inventory-entry-bound");
-    for index in 0..17 {
-        create_managed_parent_directory(&root, &root.join(index.to_string()).join("probe"))
-            .unwrap();
-    }
-    let scan = collect_managed_files(&root, 1, |_| false).unwrap();
-    assert!(scan.truncated);
-    assert_eq!(scan.paths, Vec::<PathBuf>::new());
-    fs::remove_dir_all(&root).unwrap();
-    let path = (0..34).fold(root.clone(), |path, _| path.join("nested"));
-    create_managed_parent_directory(&root, &path.join("probe")).unwrap();
-    let scan = collect_managed_files(&root, 100, |_| false).unwrap();
-    assert!(scan.truncated);
-    fs::remove_dir_all(root).unwrap();
 }

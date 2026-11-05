@@ -8,7 +8,8 @@ repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P
 export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-metadata.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-release-metadata.XXXXXX")"
 work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
 # shellcheck source=scripts/ci/fixture-lifecycle.sh
@@ -176,7 +177,7 @@ RELEASE_COMMIT="$(git write-tree)"
 printf '\n# unrelated working manifest evidence\n' >> Cargo.toml
 bash scripts/release/adapter.sh committed-check
 cmp "$work_dir/prepared/Cargo.toml" "$ORDER_TRACE.manifest"
-[[ "$(tail -n 1 "$ORDER_TRACE")" == "$PWD/.git/release-state/${RELEASE_GROUP}-$RELEASE_VERSION.manifest-order."*/source ]] \
+[[ "$(tail -n 1 "$ORDER_TRACE")" == "$PWD/target/release-validation/${RELEASE_GROUP}-$RELEASE_VERSION.manifest-order."*/source ]] \
   || fail 'committed ordering did not select the retained release source'
 cp "$work_dir/prepared/Cargo.toml" Cargo.toml
 status=0

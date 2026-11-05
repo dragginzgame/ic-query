@@ -165,12 +165,13 @@ fn account_transactions_page(
 
 fn account_transaction_row(transaction: IcrcIndexTransactionWithId) -> IcrcAccountTransactionRow {
     let summary = transaction_summary(&transaction.transaction);
+    let raw = serde_json::to_value(&transaction.transaction)
+        .expect("index transaction JSON serialization is infallible");
     summary.into_row(
         nat_text(&transaction.id),
-        transaction.transaction.kind.clone(),
+        transaction.transaction.kind,
         Some(transaction.transaction.timestamp.to_string()),
-        serde_json::to_value(&transaction.transaction)
-            .expect("index transaction JSON serialization is infallible"),
+        raw,
     )
 }
 

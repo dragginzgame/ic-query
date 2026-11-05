@@ -5,20 +5,18 @@
 //! Boundary: maps parsed options into report requests and writes text or JSON output.
 
 use super::options::{proposal_activity_request, proposal_info_request, proposal_list_request};
-use crate::cli::common::{NetworkOutputOptions, current_unix_secs};
+use crate::cli::common::current_unix_secs;
 use crate::storage::cache_root;
 use crate::{cli::common::write_text_or_json, nns::NnsCommandError};
 use clap::ArgMatches;
 use ic_query::nns::LiveNnsSource;
 use ic_query::nns::NnsGovernanceCacheRequest;
 use ic_query::nns::proposals::build_nns_proposal_activity_report_from_cache;
-use ic_query::nns::proposals::build_nns_proposal_cache_list_report;
 use ic_query::nns::proposals::build_nns_proposal_cache_status_report;
 use ic_query::nns::proposals::build_nns_proposal_list_report_with_cache_and_source;
 use ic_query::nns::proposals::build_nns_proposal_report_with_cache_and_source;
 use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
 use ic_query_text::nns::proposals::nns_proposal_activity_report_text;
-use ic_query_text::nns::proposals::nns_proposal_cache_list_report_text;
 use ic_query_text::nns::proposals::nns_proposal_list_report_text;
 use ic_query_text::nns::proposals::nns_proposal_report_text;
 
@@ -82,7 +80,6 @@ async fn run_nns_proposal_info(matches: &ArgMatches, network: &str) -> Result<()
 
 fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
     match matches.subcommand() {
-        Some(("list", matches)) => run_nns_proposal_cache_list(matches, network),
         Some(("status", matches)) => crate::nns::collection::run_cache_status(
             matches,
             network,
@@ -90,11 +87,4 @@ fn run_nns_proposal_cache(matches: &ArgMatches, network: &str) -> Result<(), Nns
         ),
         _ => unreachable!("clap requires a known NNS proposal cache subcommand"),
     }
-}
-
-fn run_nns_proposal_cache_list(matches: &ArgMatches, network: &str) -> Result<(), NnsCommandError> {
-    let options = NetworkOutputOptions::from_matches(matches, network);
-    let request = NnsGovernanceCacheRequest::new(cache_root()?, network);
-    let report = build_nns_proposal_cache_list_report(&request)?;
-    write_text_or_json(options.format, &report, nns_proposal_cache_list_report_text)
 }

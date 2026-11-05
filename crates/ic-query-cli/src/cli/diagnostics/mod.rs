@@ -14,7 +14,9 @@ pub const fn nns_advice(error: &NnsCommandError) -> &'static str {
             collection,
             ..
         }) => match collection {
-            NnsInventoryCollection::Node => "\n\nTry:\n  icq --network ic nns node list",
+            NnsInventoryCollection::RegistryInventory | NnsInventoryCollection::Node => {
+                "\n\nTry:\n  icq --network ic nns node list"
+            }
             NnsInventoryCollection::NodeProvider => {
                 "\n\nTry:\n  icq --network ic nns node-provider list"
             }
@@ -44,13 +46,10 @@ pub const fn nns_advice(error: &NnsCommandError) -> &'static str {
 pub const fn sns_advice(error: &SnsCommandError) -> &'static str {
     match error {
         SnsCommandError::Host(SnsHostError::UnsupportedNetwork { .. }) => {
-            "\n\nTry:\n  icq --network ic sns list"
+            "\n\nTry:\n  icq --network ic sns neuron help"
         }
         SnsCommandError::Host(SnsHostError::MissingNeuronsCache { .. }) => {
-            "\n\nRun `icq sns neuron refresh <id|root-principal>` to fetch a complete snapshot before using cache-backed sorting."
-        }
-        SnsCommandError::Host(SnsHostError::MissingProposalsCache { .. }) => {
-            "\n\nRun `icq sns proposal refresh <id|root-principal>` to fetch a complete snapshot."
+            "\n\nRun `icq sns neuron refresh <governance-canister-id>` to fetch a complete snapshot before using cache-backed sorting."
         }
         _ => "",
     }

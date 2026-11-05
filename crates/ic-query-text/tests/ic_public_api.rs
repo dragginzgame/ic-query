@@ -106,8 +106,6 @@ use ic_query::ic::IcNodeProviderRewardListQuery;
 use ic_query::ic::IcNodeProviderRewardListReport;
 use ic_query::ic::IcNodeProviderRewardListRequest;
 use ic_query::ic::IcNodeProviderRewardRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcNodeProviderRewardSource;
 use ic_query::ic::IcNodeProviderRewardXdrConversionRate;
 use ic_query::ic::IcNodeProviderStatusReport;
 #[cfg(feature = "dashboard-host")]
@@ -128,69 +126,27 @@ use ic_query::ic::IcReplicaVersionListQuery;
 use ic_query::ic::IcReplicaVersionListReport;
 use ic_query::ic::IcReplicaVersionListRequest;
 use ic_query::ic::IcReplicaVersionListRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcReplicaVersionSource;
 use ic_query::ic::IcReplicaVersionStatus;
 use ic_query::ic::IcReplicaVersionSubnetRollout;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::IcSourceRequest;
 use ic_query::ic::IcSubnetStatusReport;
-#[cfg(feature = "ic-state-host")]
-use ic_query::ic::LiveIcStateSource;
 use ic_query::ic::MAX_IC_CANISTER_PAGE_LIMIT;
 use ic_query::ic::MAX_IC_DASHBOARD_RESPONSE_BYTES;
 use ic_query::ic::MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT;
 use ic_query::ic::MAX_IC_REPLICA_VERSION_PAGE_LIMIT;
 #[cfg(feature = "ic-state-host")]
-use ic_query::ic::build_ic_api_boundary_node_report;
-#[cfg(feature = "ic-state-host")]
 use ic_query::ic::build_ic_api_boundary_node_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_history_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_history_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_info_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_list_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_provider_reward_list_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_node_status_snapshot;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_ic_node_status_snapshot_with_source;
 #[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_replica_version_info_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_replica_version_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_replica_version_list_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_ic_replica_version_list_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_account_info_report;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_account_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_account_list_report;
-#[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_icrc_account_list_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_holder_list_report;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_icrc_holder_list_report_with_source;
 #[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_indexed_count_report;
-#[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_icrc_indexed_count_report_with_source;
 #[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_token_value_report;
-#[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_icrc_token_value_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::build_icrc_total_supply_report;
 #[cfg(feature = "dashboard-host")]
 use ic_query::ic::build_icrc_total_supply_report_with_source;
 use ic_query::ic::ic_node_provider_status_report_from_snapshot;
@@ -217,10 +173,6 @@ use ic_query_text::ic::icrc_holder_list_report_text;
 use ic_query_text::ic::icrc_indexed_count_report_text;
 use ic_query_text::ic::icrc_token_value_report_text;
 use ic_query_text::ic::icrc_total_supply_report_text;
-
-#[cfg(feature = "dashboard-host")]
-type DashboardBuilder<Request, Report> =
-    for<'a> fn(&'a Request) -> ic_query::report::SourceFuture<'a, Result<Report, IcHostError>>;
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ICRC_LEDGER_ID: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
@@ -270,22 +222,7 @@ fn public_certified_api_boundary_node_api_is_constructible_without_host() {
 
 #[cfg(feature = "ic-state-host")]
 #[tokio::test(flavor = "current_thread")]
-async fn public_certified_state_host_api_exposes_live_and_custom_builders() {
-    let _: for<'a> fn(
-        &'a IcApiBoundaryNodeRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError>,
-    > = |arg0| Box::pin(build_ic_api_boundary_node_report(arg0));
-    let _: for<'a> fn(
-        &'a IcApiBoundaryNodeRequest,
-        &'a dyn IcApiBoundaryNodeSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcApiBoundaryNodeReport, IcApiBoundaryNodeHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_api_boundary_node_report_with_source(arg0, arg1));
-    let _: LiveIcStateSource = LiveIcStateSource;
-
+async fn public_certified_state_host_api_accepts_custom_source() {
     let request = IcApiBoundaryNodeRequest::new(DEFAULT_IC_STATE_SOURCE_ENDPOINT, 1_800_000_000);
     let report = build_ic_api_boundary_node_report_with_source(&request, &StateFixtureSource)
         .await
@@ -873,85 +810,8 @@ fn public_ic_canister_collection_api_is_constructible_and_renderable() {
 }
 
 #[cfg(feature = "dashboard-host")]
-#[test]
-fn public_dashboard_replica_version_host_api_exposes_builders() {
-    let _: DashboardBuilder<IcReplicaVersionListRequest, IcReplicaVersionListReport> =
-        |arg0| Box::pin(build_ic_replica_version_list_report(arg0));
-    let _: for<'a> fn(
-        &'a IcReplicaVersionListRequest,
-        &'a dyn IcReplicaVersionSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcReplicaVersionListReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_replica_version_list_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcReplicaVersionInfoRequest, IcReplicaVersionInfoReport> =
-        |arg0| Box::pin(build_ic_replica_version_info_report(arg0));
-    let _: for<'a> fn(
-        &'a IcReplicaVersionInfoRequest,
-        &'a dyn IcReplicaVersionSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcReplicaVersionInfoReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_replica_version_info_report_with_source(arg0, arg1));
-}
-
-#[cfg(feature = "dashboard-host")]
-#[test]
-fn public_dashboard_node_provider_reward_host_api_exposes_builders() {
-    let _: DashboardBuilder<IcNodeProviderRewardListRequest, IcNodeProviderRewardListReport> =
-        |arg0| Box::pin(build_ic_node_provider_reward_list_report(arg0));
-    let _: for<'a> fn(
-        &'a IcNodeProviderRewardListRequest,
-        &'a dyn IcNodeProviderRewardSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcNodeProviderRewardListReport, IcHostError>,
-    > = |arg0, arg1| {
-        Box::pin(build_ic_node_provider_reward_list_report_with_source(
-            arg0, arg1,
-        ))
-    };
-    let _: DashboardBuilder<IcNodeProviderRewardInfoRequest, IcNodeProviderRewardInfoReport> =
-        |arg0| Box::pin(build_ic_node_provider_reward_info_report(arg0));
-    let _: for<'a> fn(
-        &'a IcNodeProviderRewardInfoRequest,
-        &'a dyn IcNodeProviderRewardSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcNodeProviderRewardInfoReport, IcHostError>,
-    > = |arg0, arg1| {
-        Box::pin(build_ic_node_provider_reward_info_report_with_source(
-            arg0, arg1,
-        ))
-    };
-    let _: DashboardBuilder<IcNodeProviderRewardHistoryRequest, IcNodeProviderRewardHistoryReport> =
-        |arg0| Box::pin(build_ic_node_provider_reward_history_report(arg0));
-    let _: for<'a> fn(
-        &'a IcNodeProviderRewardHistoryRequest,
-        &'a dyn IcNodeProviderRewardSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcNodeProviderRewardHistoryReport, IcHostError>,
-    > = |arg0, arg1| {
-        Box::pin(build_ic_node_provider_reward_history_report_with_source(
-            arg0, arg1,
-        ))
-    };
-}
-
-#[cfg(feature = "dashboard-host")]
 #[tokio::test(flavor = "current_thread")]
-async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders() {
-    let _: DashboardBuilder<ic_query::ic::IcDashboardRequest, IcNodeStatusSnapshot> =
-        |arg0| Box::pin(build_ic_node_status_snapshot(arg0));
-    let _: for<'a> fn(
-        &'a ic_query::ic::IcDashboardRequest,
-        &'a dyn IcNodeStatusSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcNodeStatusSnapshot, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_ic_node_status_snapshot_with_source(arg0, arg1));
-
+async fn public_dashboard_host_api_accepts_custom_node_status_source() {
     let request =
         ic_query::ic::IcDashboardRequest::new(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT, 1_700_000_000);
     let snapshot = build_ic_node_status_snapshot_with_source(&request, &FixtureSource)
@@ -983,66 +843,7 @@ async fn public_dashboard_host_api_exposes_live_and_custom_node_status_builders(
 
 #[cfg(feature = "dashboard-host")]
 #[tokio::test(flavor = "current_thread")]
-#[expect(
-    clippy::too_many_lines,
-    reason = "Keep the related current API/dependency admission cases together."
-)]
-async fn public_dashboard_host_api_exposes_live_and_custom_icrc_analytics_builders() {
-    let _: DashboardBuilder<IcIcrcAccountListRequest, IcIcrcAccountListReport> =
-        |arg0| Box::pin(build_icrc_account_list_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcAccountListRequest,
-        &'a dyn IcIcrcIndexSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcAccountListReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_account_list_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcIcrcAccountInfoRequest, IcIcrcAccountInfoReport> =
-        |arg0| Box::pin(build_icrc_account_info_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcAccountInfoRequest,
-        &'a dyn IcIcrcIndexSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcAccountInfoReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_account_info_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcIcrcHolderListRequest, IcIcrcHolderListReport> =
-        |arg0| Box::pin(build_icrc_holder_list_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcHolderListRequest,
-        &'a dyn IcIcrcIndexSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcHolderListReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_holder_list_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcIcrcIndexedCountRequest, IcIcrcIndexedCountReport> =
-        |arg0| Box::pin(build_icrc_indexed_count_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcIndexedCountRequest,
-        &'a dyn IcIcrcAnalyticsSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcIndexedCountReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_indexed_count_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcIcrcTokenValueRequest, IcIcrcTokenValueReport> =
-        |arg0| Box::pin(build_icrc_token_value_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcTokenValueRequest,
-        &'a dyn IcIcrcAnalyticsSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcTokenValueReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_token_value_report_with_source(arg0, arg1));
-    let _: DashboardBuilder<IcIcrcTotalSupplyRequest, IcIcrcTotalSupplyReport> =
-        |arg0| Box::pin(build_icrc_total_supply_report(arg0));
-    let _: for<'a> fn(
-        &'a IcIcrcTotalSupplyRequest,
-        &'a dyn IcIcrcAnalyticsSource,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcIcrcTotalSupplyReport, IcHostError>,
-    > = |arg0, arg1| Box::pin(build_icrc_total_supply_report_with_source(arg0, arg1));
-
+async fn public_dashboard_host_api_accepts_custom_icrc_analytics_source() {
     let source = FixtureSource;
     let count_request = IcIcrcIndexedCountRequest::new(
         ic_query::ic::IcDashboardRequest::new(

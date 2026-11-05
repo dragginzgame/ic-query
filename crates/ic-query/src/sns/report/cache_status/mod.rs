@@ -1,4 +1,4 @@
-//! Shared direct-root inspection for SNS snapshot and refresh-attempt evidence.
+//! Direct Governance inspection for SNS snapshot and refresh-attempt evidence.
 
 use crate::{
     HostCacheError,
@@ -9,11 +9,11 @@ use crate::{
         cache_paths::{sns_snapshot_cache_paths, sns_snapshot_network_cache_dir},
         cache_storage::SnsCacheStorageFamily,
         enforce_mainnet_network, load_sns_cache_summary_at,
-        lookup::parse_sns_root_canister_input,
+        target::parse_governance_canister_input,
     },
 };
 
-/// Inspect one SNS cache family by root principal without discovery or live calls.
+/// Inspect one SNS cache family by Governance principal without discovery or live calls.
 pub(in crate::sns::report) fn build_sns_cache_status_report<Family>(
     request: &SnsCacheStatusRequest,
 ) -> Result<SnsCacheStatusReport, SnsHostError>
@@ -21,11 +21,11 @@ where
     Family: SnsCacheStorageFamily,
 {
     enforce_mainnet_network(&request.network)?;
-    let root_canister_id = parse_sns_root_canister_input(&request.input)?;
+    let governance_canister_id = parse_governance_canister_input(&request.input)?;
     let paths = sns_snapshot_cache_paths::<Family>(
         &request.cache_root,
         &request.network,
-        &root_canister_id,
+        &governance_canister_id,
     );
     let mut cache = if let Some(file) = open_managed_file(&request.cache_root, &paths.snapshot_path)
         .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?
@@ -63,6 +63,3 @@ where
         latest_attempt,
     })
 }
-
-#[cfg(test)]
-mod tests;

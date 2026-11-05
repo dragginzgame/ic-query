@@ -30,8 +30,8 @@ This note describes the shared cache behavior expected across `ic-query`.
 ## Bounded Content And Discovery
 
 Shared JSON cache owners admit at most 64 MiB for inventories, observed node
-status, joined SNS discovery, and exact Subnet topology, or 512 MiB for complete
-NNS/SNS proposal and neuron histories and ICRC account transactions. The
+status and exact Subnet topology, or 512 MiB for complete
+NNS proposal/neuron histories and neuron stake snapshots and ICRC account transactions. The
 confined reader checks metadata before allocating and stops streamed growth at
 the ceiling plus one byte. Oversize content returns `HostCacheError::CacheTooLarge`.
 Invalid UTF-8 is a JSON content failure. Both follow the owner's existing
@@ -78,9 +78,7 @@ snapshot identity, completeness, index, and row validation.
 
 The shared completeness validator rejects row counts exceeding page size times
 page count. It widens before multiplication and permits exact capacity and
-empty exhausted collections. SNS discovery records one complete inventory
-response with its observed width as `page_size` (at least one for an empty
-inventory), replacing placeholder page evidence. Contradictory persisted
+empty exhausted collections. Neuron snapshots record page exhaustion independently of row count. Contradictory persisted
 counts are invalid content: cache-only reads remain strict, while the owning
 read-through policies visibly recollect them. No fallback reader or migration
 is added, and schemas remain `1`.
@@ -248,7 +246,7 @@ Manual refresh commands always refresh explicitly and should report refresh
 progress or status through their owning report modules. They do not need the
 read-through helper because the user has already requested refresh behavior.
 
-Each complete SNS proposal or neuron collector owns its paged state directly.
+Each complete neuron collector owns its paged state directly.
 It validates source pages before ingesting rows and maps its family-specific
 cursor. Proposal pages are unique within each page and strictly below the
 previous minimum id, so they cannot overlap. Continuation uses the lowest
@@ -283,11 +281,6 @@ Process death releases ownership on final descriptor close. Contention is the
 kernel's current observation, not an estimate from file age. An interrupted
 refresh leaves no stale lease to clear.
 
-Cache status briefly probes an existing coordination file through a separate
-confined descriptor, reporting active or available without writing its content.
-Nonempty coordination content is invalid and is preserved. Cache freshness and
-refresh-attempt timestamps remain independent of exclusion.
-
 Before adoption, stop all older Query/Canic/library writers sharing a cache root
 and explicitly retire incompatible nonempty lock files. Preserve required cache
 and attempt evidence. Never unlink or replace coordination sidecars while any
@@ -296,43 +289,41 @@ There is no older lock reader, automatic cleanup or mixed-writer migration.
 
 ## Cache Discovery
 
-Cache status and cache list commands inspect local state only. Family-specific
-list and status operations use their typed snapshot paths and validators. The
-top-level `icq cache status` command performs a bounded cross-family inventory
-of known complete-cache and refresh-lock filenames across every network
-directory under the selected user-level root; it does not inspect
-refresh-attempt sidecars as report rows, follow symlinks, refresh files, delete
-files, or probe recorded process ids. It validates every traversed entry under
-the capability root and rejects symbolic links or unsafe managed modes. The
-scan bound applies to cache and lock candidates together.
+Family-specific cache list and status commands inspect local state using typed
+snapshot paths and validators. There is no global filename/header/age inventory.
+SNS collection discovery retains its confined candidate, entry and byte budgets.
 
-Network-scoped caches use `<cache-root>/<domain>/<network>/...` as their common
-top-level layout. NNS Registry leaf and Subnet caches therefore live below
-`nns/<network>/`, alongside NNS Governance caches; SNS and ICRC caches use the
-same domain-then-network ordering. Before 1.0, replaced path layouts are not
-used by typed loaders or migrated automatically. The generic global inventory
-may still expose an orphaned old file as unmanaged local evidence.
+Network-scoped caches use `<cache-root>/<domain>/<network>/...`. Replaced paths
+are neither read nor migrated. Legacy files remain caller-owned evidence until
+explicitly retired; ordinary reads never delete them.
 
-The global report separates generic header integrity from timestamp age.
-`header_status` is `readable` or `invalid`; a readable header is not a claim
-that the complete payload passed its owning family's semantic validator.
-`age_status` is `fresh` or `stale` only for families with an explicit age
-policy, `unmanaged` when a valid age has no threshold, and `unknown` when the
-header or timestamp cannot supply an age. A malformed or future timestamp can
-therefore remain a readable header with unknown age rather than collapsing two
-different facts into one status.
+NNS node, operator and data-centre views project one complete 64 MiB-bounded
+`nns/ic/inventory/snapshot.json`, with one `inventory/refresh.lock`. One collection
+pins the Registry version once and projects all three tables from those records.
+A cold read collects the complete shared graph, including referenced data centres;
+refreshing any of these views replaces that complete snapshot, not one table.
+Filters and identifier lookups never change its identity. Schema, fixed Registry
+identity, canonical timestamp and source endpoint are admitted before publication
+and independently on load. Rows and envelopes reject unknown or duplicate fields.
 
-The report sets `family_validation_performed` to false and derives registered
-age thresholds and `recovery_policy` only from current canonical mainnet paths,
-never from untrusted cache claims. `automatic` means an ordinary owner
-read-through may replace recoverable invalid content, `explicit` requires a
-selected refresh operation, `missing_only` means normal read-through creates
-only absent content, and `unknown` identifies a file without a current
-canonical owner. Large unmanaged proposal, neuron, and transaction histories
-are inspected only through their leading header/completeness boundary, so
-cross-family status does not load or scan complete row arrays. Small
-age-managed files are fully JSON-parsed for syntax, but their family-specific
-semantic validators remain authoritative.
+Governance provider metadata has a separate `nns/ic/node-provider/metadata.json`
+and `node-provider/refresh.lock`. It carries its own endpoint, timestamp, collector
+and fixed Governance identity. Metadata must not supply Registry node counts;
+provider views derive those from the captured shared Registry graph. The report
+retains that Registry provenance and a separate `governance_source` record.
+A failed Governance request cannot invalidate a complete Registry snapshot or
+block node/operator/data-centre reads. An earlier complete metadata snapshot may
+remain independently usable with a newer Registry snapshot, with both ages visible.
+
+Node-provider forced refresh collects/publishes the Registry graph and then the
+Governance metadata. Its result preserves both outcomes. Dry runs publish neither
+managed snapshot and use the freshly collected graph directly. Metadata exports
+must not alias either snapshot or either coordination file. Topology refresh keeps
+Subnet Catalog separate and publishes the shared Registry and Governance inputs
+once each; a later failure preserves earlier complete publications and old metadata.
+
+The 0.91 schema-1 hard cut ignores the former per-view cache files. First reads
+visibly collect the replacement inputs; there is no older reader or migration.
 
 SNS and NNS collection summaries distinguish admitted complete facts from invalid
 content. Invalid summaries retain path and original refusal evidence without
@@ -340,7 +331,7 @@ inventing counts, identity, timestamps or endpoint values. Refresh-attempt evide
 is independently admitted; it does not make invalid snapshot content valid. See
 [the 0.87 hard-cut actions](../../releases/query/0.87.md).
 
-SNS and NNS proposal cache-list summaries read refresh-attempt sidecars once
+SNS neuron cache-list and NNS proposal cache-status summaries read refresh-attempt sidecars once
 on a best-effort basis. Their exact cache status reads the selected sidecar
 once through the strict reader and reuses that observation in both the snapshot
 summary and the top-level attempt field. Invalid attempt content remains a status error;
@@ -358,24 +349,17 @@ progress from their running sidecar, while ICRC collection errors carry their
 progress and resolved index identity directly. These are distinct evidence
 contracts under the same lifecycle, not competing recovery coordinators.
 
-Resolved live SNS identity, including its original SNS-W inventory position,
-belongs to `MainnetSns`. Live reports, complete snapshots, and refresh-attempt
-sidecars project that same id. Numeric and Root-principal lookup preserve the
-full inventory position even though metadata enrichment joins only one target.
-The shared refresh context borrows the operation's snapshot, lock, and attempt
-paths; lock acquisition and publication use those same paths.
-
-Numeric SNS cache reads bind the selected snapshot's loaded id to the requested
-id after header discovery. If atomic publication changes that id between reads,
-the operation returns `SnsHostError::CacheIdentityMismatch` instead of reporting
-another SNS. Replacement with the same id remains readable. Header discovery
-does not provide an atomic view of all collection files.
+Neuron identity is the explicit Governance principal. Complete snapshots and attempt
+sidecars bind it to the namespace, network and selected source endpoint. The
+replacement schema-1 namespace is `sns-neuron/<network>/<governance>/neurons/full.json`.
+Old Root-addressed snapshots and the retired project catalog stay untouched and
+are neither read nor migrated. Every live or cached neuron row retains principal
+permissions and raw numeric codes as well as stake, fees and dissolve evidence.
 
 SNS collection discovery admits at most 1,024 candidate files and 16,384
 network-directory entries per scan, including entries without a matching
-collection. Cache lists and numeric-id lookups share a 1 GiB read allowance
-across candidate headers, selected snapshot loads, and attempt sidecars. Numeric
-status retains that allowance when falling back to attempt-only discovery.
+collection. Cache lists share a 1 GiB read allowance
+across candidate headers, selected snapshot loads, and attempt sidecars. Direct Governance status reads keep the existing per-file limits.
 Bytes read from malformed files count too; metadata admission occurs before
 allocation. Streamed growth stops at the remaining allowance plus one detection
 byte, and exceeding the allowance ends the operation.
@@ -383,7 +367,7 @@ Partial IO failures conservatively consume their admitted read ceiling.
 
 Exceeding a discovery or aggregate byte bound returns
 `CacheFileError::ScanLimitExceeded` through the SNS cache-operation error.
-It never produces a partial list, a supposedly unique id, a missing-cache
+It never produces a partial list, a missing-cache
 result, or a refresh trigger. Invalid files within the allowance retain the
 existing strict-read, invalid-summary, or best-effort sidecar policy. Direct
 root-principal operations do not scan unrelated entities and retain the
@@ -423,7 +407,6 @@ Bounded automatic read-through, including invalid-content recovery, is used by:
 
 - subnet catalog list and information reports
 - NNS node, node-provider, node-operator, and data-center list/information reports
-- the joined deployed-SNS catalog
 - observed Dashboard node-status snapshots shared by NNS node/Subnet/provider
   status views
 
@@ -437,7 +420,7 @@ membership counts and derives higher totals with checked arithmetic. The 0.88
 topology shape rejects former stored totals and requires explicit cache refresh
 after preserving required evidence.
 
-The shared NNS inventory boundary validates fixed canister identities, schema,
+The shared NNS inventory and independent provider-metadata boundaries validate fixed canister identities, schema,
 timestamps, endpoints, and declared row counts. Custom-source evidence is
 rejected before publication when it does not match the exact refresh request.
 
@@ -486,68 +469,35 @@ distinguish cache-only loading, forced cache bypass, missing and rejected
 content, refresh preflight, refresh failure with its missing/rejected/stale/
 forced trigger, and a post-refresh cache-load failure. The detailed failure
 separately retains the optional pinned Registry version, typed subject, stable
-error classification, retryability, and original host error.
+original host error, whose accessors provide classification and retryability.
 
 The exact-version NNS Subnet topology and ICRC account-transaction libraries
 apply the same recovery only through their explicit refresh-if-missing and
 refresh-if-stale APIs. Their direct cache loaders remain local and strict.
 
-SNS proposal list auto-cache creation remains missing-only. Numeric SNS ids
-are resolved from cache headers, so an invalid header may not truthfully
-identify which SNS should be recollected. Proposal and neuron histories can
-also require complete Governance pagination and therefore retain explicit
-invalid-cache recovery.
+Neuron snapshots require explicit complete refresh before cached views. There is
+no numeric-id discovery or proposal fallback. Failed or capped refreshes retain
+the previous complete snapshot and independent attempt evidence.
 
-| Cache family | Missing-content policy | Invalid-content policy | Status recovery label |
-| --- | --- | --- | --- |
-| Subnet catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
-| NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
-| Joined deployed-SNS catalog | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
-| Observed Dashboard node status | Automatic bounded refresh | Automatic bounded refresh | `automatic` |
-| Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content | `explicit` |
-| ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content | `explicit` |
-| SNS proposals | Automatic only when the requested complete cache is unambiguously missing | Explicit refresh | `missing_only` |
-| NNS proposals and NNS/SNS neurons | Explicit complete refresh or documented live fallback | Explicit refresh | `explicit` |
 
-`sns list` uses a distinct one-hour refresh-if-stale policy for one bounded,
-joined deployed-SNS catalog. The complete snapshot retains every SNS-W row,
-Governance metadata result, and raw Swap lifecycle result. A fresh catalog
-avoids all SNS-W, Governance, and Swap calls. Lifecycle selection is a view:
-the default retains code `3` (`committed`, successfully launched), while
-`--all` exposes every cached lifecycle and query-error row without changing
-snapshot identity. Missing, stale, malformed, incompatible, identity-mismatched,
-or semantically invalid content is visibly refreshed under one lock. The new
-snapshot replaces the old path atomically only after validation, so a failed
-refresh leaves the original invalid file in place. Cache-only and cache-status
-operations still report the invalid evidence without a network call, and read
-or permission failures remain errors. `sns refresh` forces replacement.
-The shared catalog fetcher validates inventory provenance and canister identities,
-then admits exact-target metadata and lifecycle results before joining them.
-Joining moves admitted fields, supplies a nonempty fallback name, and assigns
-ids in SNS-W order; live reporting and publication do not repeat that validation.
-Stored catalogs validate borrowed rows, including required lifecycle evidence,
-in one pass at the disk boundary; cache-backed list views consume the loaded
-rows without reconstructing a catalog for validation or cloning it for filtering
-and sorting. View projection leaves the complete snapshot unchanged.
-Targeted SNS commands retain targeted discovery and do not refresh or depend
-on the all-SNS catalog.
+| Cache family | Missing-content policy | Invalid-content policy |
+| --- | --- | --- |
+| Subnet catalog | Automatic bounded refresh | Automatic bounded refresh |
+| NNS node/provider/operator/data-center inventory | Automatic bounded refresh | Automatic bounded refresh |
+| Observed Dashboard node status | Automatic bounded refresh | Automatic bounded refresh |
+| Exact-version NNS Subnet topology | Caller selects missing/stale read-through | Same selected read-through operation refreshes invalid content |
+| ICRC account transactions | CLI is local-only; library caller may select read-through | Same selected library read-through operation refreshes invalid content |
+| NNS proposals and NNS/SNS neurons | Explicit complete refresh or documented live fallback | Explicit refresh |
 
-The current registered age policies are:
 
 | Cache | Stale after | Read behavior |
 | --- | ---: | --- |
 | Subnet catalog | 7 days | Refreshes missing or invalid content; reports stale age without replacing |
 | Exact-version NNS Subnet topology | 24 hours | Explicit refresh-if-missing/stale APIs also replace invalid content |
-| Joined deployed-SNS catalog | 1 hour | `sns list` refreshes missing, stale, or invalid content |
 | Observed Dashboard node status | 60 seconds | NNS node/Subnet/provider status reads refresh missing, stale, or invalid content |
 
 Other complete proposal, neuron, inventory, and transaction caches remain
 `unmanaged` by age unless their owning operation explicitly defines a policy.
-
-SNS proposal detail lookups opportunistically read an existing complete
-proposal snapshot when the requested proposal row is present, then fall back to
-the live detail API when the snapshot or row is missing. Cache parse, schema,
-network, and IO errors remain visible instead of being hidden by fallback.
 
 NNS neuron list and detail lookups follow the same cache-preferred,
 live-fallback policy, but only an explicit `icq nns neuron refresh` writes the
@@ -618,7 +568,7 @@ cache-backed sorts. A full neuron refresh can require many governance pages and
 the refresh command exposes `--page-size` and `--max-pages`; silently starting
 that crawl from a normal sort command would hide important cost and completion
 controls. Missing SNS neuron caches therefore remain typed user-facing errors
-that point to `icq sns neuron refresh <id|root-principal>`.
+that point to `icq sns neuron refresh <governance-canister-id>`.
 
 ICRC account transaction lists also require an explicit complete refresh.
 `icq icrc account transaction list` and `cache status` are local-only;
@@ -679,29 +629,6 @@ view sorts and limits remain outside snapshot keys. ICRC account-history rows us
 explicit structured or legacy account identity variants. Preserve required prior
 evidence before refreshing snapshots containing the replaced flat account shape;
 the reader enforces the current schema-1 contract directly.
-
-SNS proposal snapshots retain native action IDs and ballot vote codes without
-stored classifications. Proposal lifecycle and ballot count also derive from raw
-timestamps and retained ballots rather than being stored independently. Labels
-are derived for text and views. Before replacing
-older snapshots, preserve required evidence and coordinate raw-code consumers,
-then explicitly refresh; strict rows reject unknown fields and schemas remain 1.
-SNS neuron/proposal rows and ballots likewise retain only native timestamps,
-without stored UTC display strings. Rendering derives text from those values.
-Preserve required snapshots and coordinate timestamp consumers before explicit
-refresh; rejected cache evidence is never rewritten or removed automatically.
-Reward checkpoints retain raw brackets and neuron evidence. Summary totals, row
-policy observations, counts and UTC labels are computed from that evidence. The
-0.88 schema-1 hard cut rejects checkpoints containing the former derived fields;
-retain historical files and coordinate their consumers before adoption. Readers
-never migrate or rewrite them, and later collection cannot replace an earlier
-observation. Strict unknown-field and duplicate-field admission remains in force.
-
-Joined SNS catalog rows store the native lifecycle value or a bounded query
-error, without a second stored lifecycle label. Unknown fields are rejected
-on restore, including in joined rows with flattened canister identities.
-Preserve required evidence and update consumers before an explicit catalog
-refresh; schema identifiers remain 1 and no fallback reader is retained.
 
 Cache inventory classification preserves native path-component positions. A
 non-UTF-8 component makes the relative shape unrecognised; inspection retains

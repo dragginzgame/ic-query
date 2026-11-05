@@ -33,21 +33,17 @@ pub async fn refresh_sns_neurons_cache_with_source_and_progress(
     source: &dyn SnsNeuronsSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<SnsSnapshotRefreshReport, SnsHostError> {
-    run_resolved_sns_snapshot_refresh::<SnsNeuronsCacheCollection, _>(
-        request,
-        source,
-        async |context| {
-            let complete =
-                fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;
-            publish_complete_sns_snapshot(
-                context,
-                complete.page_count,
-                complete.last_cursor,
-                crate::sns::report::neurons_cache::model::SnsNeuronsCacheRows {
-                    neurons: complete.rows,
-                },
-            )
-        },
-    )
+    run_resolved_sns_snapshot_refresh::<SnsNeuronsCacheCollection, _>(request, async |context| {
+        let complete =
+            fetch_complete_sns_neurons(context.refresh_context(), source, progress).await?;
+        publish_complete_sns_snapshot(
+            context,
+            complete.page_count,
+            complete.last_cursor,
+            crate::sns::report::neurons_cache::model::SnsNeuronsCacheRows {
+                neurons: complete.rows,
+            },
+        )
+    })
     .await
 }

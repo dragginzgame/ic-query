@@ -83,6 +83,10 @@ async fn fetch_live_certified_rate(
     verified_certified_rate(&agent, &canister, response)
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the bounded decoded reply after authenticating and projecting its certificate evidence."
+)]
 fn verified_certified_rate(
     agent: &ic_platform::agent::Agent,
     canister: &Principal,

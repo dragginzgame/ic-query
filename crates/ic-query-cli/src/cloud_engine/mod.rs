@@ -178,7 +178,7 @@ fn source_request_at(
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("cloud-engine")
-        .bin_name("icq cloud-engine")
+
         .about("Inspect public CloudEngine metadata")
         .subcommand(info_command())
         .subcommand(list_command())
@@ -193,7 +193,6 @@ pub fn command() -> ClapCommand {
 fn list_command() -> ClapCommand {
     report_args(
         ClapCommand::new("list")
-            .bin_name("icq cloud-engine list")
             .about("List Registry CloudEngine Subnets and public operator bindings")
             .arg(
                 value_arg(REGISTRY_SOURCE_ENDPOINT_ARG)
@@ -211,7 +210,6 @@ fn list_command() -> ClapCommand {
 fn info_command() -> ClapCommand {
     report_args(
         ClapCommand::new("info")
-            .bin_name("icq cloud-engine info")
             .about("Show the operator binding and public settings for one CloudEngine Subnet")
             .arg(
                 value_arg("subnet-id")
@@ -228,7 +226,6 @@ fn info_command() -> ClapCommand {
 fn prices_command() -> ClapCommand {
     report_args(
         ClapCommand::new("prices")
-            .bin_name("icq cloud-engine prices")
             .about("Show the public CloudEngine network fee and marketplace prices"),
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
         SOURCE_ENDPOINT_HELP,

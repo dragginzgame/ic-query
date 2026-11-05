@@ -12,6 +12,10 @@ repository.workspace = true
 keywords = ["internet-computer", "dfinity", "icp", "nns", "sns"]
 categories = ["command-line-utilities"]
 
+[package.metadata.shared-tooling.loc.paths]
+"tools" = "build_tooling"
+"tools/governance_smoke/tests.rs" = "tests"
+
 [[bin]]
 name = "icq"
 path = "src/main.rs"
@@ -43,7 +47,11 @@ url.workspace = true
 
 [[example]]
 name = "governance_smoke"
-path = "examples/governance_smoke/main.rs"
+path = "tools/governance_smoke/main.rs"
+
+[[example]]
+name = "subnet_catalog_timing"
+path = "tools/subnet_catalog_timing.rs"
 
 [lints]
 workspace = true

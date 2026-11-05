@@ -87,7 +87,7 @@ impl OperationalStatusSubject {
 pub(in crate::nns) fn command(subject: OperationalStatusSubject) -> ClapCommand {
     let command_name = subject.command_name();
     ClapCommand::new("status")
-        .bin_name(format!("icq nns {command_name} status"))
+
         .about(subject.about())
         .arg(
             crate::cli::clap::value_arg(TARGET_ARG)

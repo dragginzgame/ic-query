@@ -52,7 +52,7 @@ impl SnsCollectionPages for SnsNeuronsRefreshPages<'_> {
                 .source
                 .fetch_sns_neuron_page(
                     context.fetch_request,
-                    context.sns,
+                    context.governance_canister_id,
                     context.request.page_size,
                     pages.next_cursor(),
                     None,

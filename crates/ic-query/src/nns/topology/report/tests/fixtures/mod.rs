@@ -1,40 +1,28 @@
-use crate::nns::NnsInventoryListRequest;
+use crate::nns::topology::{
+    NnsTopologyHostError, NnsTopologyRefreshRequest, NnsTopologyRefreshSource, NnsTopologySource,
+};
+use crate::nns::{
+    NnsInventoryCollection, NnsInventoryError, NnsInventoryListRequest,
+    NnsRegistryInventorySnapshot, NnsRegistryInventorySource,
+    node_provider::{NnsNodeProviderMetadata, NnsNodeProviderSource},
+};
+use crate::report::{CollectionSourceRequest, SourceFuture};
+use crate::subnet_catalog::{SubnetCatalogListReport, SubnetCatalogRefreshReport};
+use std::sync::Mutex;
 mod data_center;
 mod node;
 mod node_operator;
 mod node_provider;
 mod subnet;
-
-use crate::{
-    nns::{
-        NnsInventoryError, NnsInventoryRefreshReport,
-        data_center::NnsDataCenterListReport,
-        node::NnsNodeListReport,
-        node_operator::NnsNodeOperatorListReport,
-        node_provider::NnsNodeProviderListReport,
-        topology::report::{
-            NnsTopologyHostError, NnsTopologyRefreshRequest, NnsTopologyRefreshSource,
-            NnsTopologySource,
-        },
-    },
-    subnet_catalog::{SubnetCatalogListReport, SubnetCatalogRefreshReport},
-};
-use std::sync::Mutex;
-
 pub(in crate::nns::topology::report::tests) use data_center::{
-    complete_data_center_report_fixture, data_center_refresh_report_fixture,
-    data_center_report_fixture, dry_run_data_center_refresh_report_fixture,
+    complete_data_center_report_fixture, data_center_report_fixture,
 };
-pub(in crate::nns::topology::report::tests) use node::{
-    dry_run_node_refresh_report_fixture, node_refresh_report_fixture, node_report_fixture,
-};
+pub(in crate::nns::topology::report::tests) use node::node_report_fixture;
 pub(in crate::nns::topology::report::tests) use node_operator::{
-    complete_node_operator_report_fixture, dry_run_node_operator_refresh_report_fixture,
-    node_operator_refresh_report_fixture, node_operator_report_fixture,
+    complete_node_operator_report_fixture, node_operator_report_fixture,
 };
 pub(in crate::nns::topology::report::tests) use node_provider::{
-    complete_node_provider_report_fixture, dry_run_node_provider_refresh_report_fixture,
-    node_provider_refresh_report_fixture, node_provider_report_fixture,
+    complete_node_provider_report_fixture, node_provider_report_fixture,
 };
 pub(in crate::nns::topology::report::tests) use subnet::{
     dry_run_subnet_refresh_report_fixture, subnet_refresh_report_fixture, subnet_report_fixture,
@@ -43,7 +31,10 @@ pub(in crate::nns::topology::report::tests) use subnet::{
 pub(in crate::nns::topology::report::tests) fn topology_read_request_fixture()
 -> NnsInventoryListRequest {
     NnsInventoryListRequest::new(
-        crate::nns::NnsInventoryCacheRequest::new("/cache", "ic"),
+        crate::nns::NnsInventoryCacheRequest::new(
+            crate::tests::temp_dir("ic-query-topology"),
+            "ic",
+        ),
         "https://icp-api.io",
         1_780_531_200,
     )
@@ -52,196 +43,95 @@ pub(in crate::nns::topology::report::tests) fn topology_read_request_fixture()
 ///
 /// RecordingTopologySource
 ///
-/// Fixture component reports with observable acquisition order and injected source failure.
+/// Observable raw acquisitions with independently injected Registry and Governance failures.
 ///
 
 #[derive(Default)]
 pub(in crate::nns::topology::report::tests) struct RecordingTopologySource {
     pub(in crate::nns::topology::report::tests) calls: Mutex<Vec<&'static str>>,
     pub(in crate::nns::topology::report::tests) fail_at: Option<&'static str>,
-    pub(in crate::nns::topology::report::tests) wrong_refresh_collection_at: Option<&'static str>,
+    pub(in crate::nns::topology::report::tests) invalid_inventory: bool,
 }
-
 impl RecordingTopologySource {
-    fn inventory_refresh_report(
-        &self,
-        component: &'static str,
-        request: &NnsTopologyRefreshRequest,
-        mut report: NnsInventoryRefreshReport,
-    ) -> Result<NnsInventoryRefreshReport, NnsTopologyHostError> {
-        self.record(component, &request.read)?;
-        if self.wrong_refresh_collection_at == Some(component) {
-            report.collection = "unexpected".to_string();
-        }
-        Ok(report)
-    }
-
-    fn record(
-        &self,
-        component: &'static str,
-        request: &NnsInventoryListRequest,
-    ) -> Result<(), NnsTopologyHostError> {
-        assert_eq!(
-            request,
-            &NnsInventoryListRequest::new(
-                crate::nns::NnsInventoryCacheRequest::new("/cache", "ic"),
-                "https://icp-api.io",
-                1_780_531_200
-            )
-        );
+    fn record(&self, component: &'static str) -> Result<(), NnsInventoryError> {
         self.calls.lock().unwrap().push(component);
         if self.fail_at == Some(component) {
             return Err(NnsInventoryError::InvalidSourceData {
-                collection: crate::nns::NnsInventoryCollection::Node,
+                collection: NnsInventoryCollection::RegistryInventory,
                 reason: component.to_string(),
-            }
-            .into());
+            });
         }
         Ok(())
     }
 }
-
+impl NnsRegistryInventorySource for RecordingTopologySource {
+    fn fetch_registry_inventory<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SourceFuture<'a, Result<NnsRegistryInventorySnapshot, NnsInventoryError>> {
+        Box::pin(async move {
+            self.record("inventory")?;
+            let node = node_report_fixture();
+            let operator = node_operator_report_fixture();
+            let dc = data_center_report_fixture();
+            let mut provenance = node.provenance;
+            provenance.network.clone_from(&request.network);
+            provenance.source_endpoint.clone_from(&request.endpoint);
+            provenance.fetched_at.clone_from(&request.fetched_at);
+            Ok(NnsRegistryInventorySnapshot {
+                schema_version: u32::from(!self.invalid_inventory),
+                provenance,
+                nodes: node.nodes,
+                node_operators: operator.node_operators,
+                data_centers: dc.data_centers,
+            })
+        })
+    }
+}
+impl NnsNodeProviderSource for RecordingTopologySource {
+    fn fetch_node_provider_metadata<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> SourceFuture<'a, Result<NnsNodeProviderMetadata, NnsInventoryError>> {
+        Box::pin(async move {
+            self.record("metadata")?;
+            let report = node_provider_report_fixture();
+            let mut node_providers = report.node_providers;
+            for row in &mut node_providers {
+                row.node_count = None;
+            }
+            Ok(NnsNodeProviderMetadata {
+                schema_version: 1,
+                source: request.clone(),
+                governance_canister_id: report.governance_canister_id,
+                node_providers,
+            })
+        })
+    }
+}
+impl NnsTopologySource for RecordingTopologySource {
+    fn fetch_subnet_catalog_list_report<'a>(
+        &'a self,
+        _request: &'a NnsInventoryListRequest,
+    ) -> SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>> {
+        Box::pin(async move {
+            self.record("subnet_catalog")?;
+            Ok(subnet_report_fixture())
+        })
+    }
+}
 impl NnsTopologyRefreshSource for RecordingTopologySource {
     fn refresh_subnet_catalog_report<'a>(
         &'a self,
         request: &'a NnsTopologyRefreshRequest,
-    ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogRefreshReport, NnsTopologyHostError>>
-    {
+    ) -> SourceFuture<'a, Result<SubnetCatalogRefreshReport, NnsTopologyHostError>> {
         Box::pin(async move {
-            self.record("subnet_catalog", &request.read)?;
+            self.record("subnet_catalog")?;
             Ok(if request.dry_run {
                 dry_run_subnet_refresh_report_fixture()
             } else {
                 subnet_refresh_report_fixture()
             })
-        })
-    }
-
-    fn refresh_node_report<'a>(
-        &'a self,
-        request: &'a NnsTopologyRefreshRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.inventory_refresh_report(
-                "nodes",
-                request,
-                if request.dry_run {
-                    dry_run_node_refresh_report_fixture()
-                } else {
-                    node_refresh_report_fixture()
-                },
-            )
-        })
-    }
-
-    fn refresh_node_provider_report<'a>(
-        &'a self,
-        request: &'a NnsTopologyRefreshRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.inventory_refresh_report(
-                "node_providers",
-                request,
-                if request.dry_run {
-                    dry_run_node_provider_refresh_report_fixture()
-                } else {
-                    node_provider_refresh_report_fixture()
-                },
-            )
-        })
-    }
-
-    fn refresh_node_operator_report<'a>(
-        &'a self,
-        request: &'a NnsTopologyRefreshRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.inventory_refresh_report(
-                "node_operators",
-                request,
-                if request.dry_run {
-                    dry_run_node_operator_refresh_report_fixture()
-                } else {
-                    node_operator_refresh_report_fixture()
-                },
-            )
-        })
-    }
-
-    fn refresh_data_center_report<'a>(
-        &'a self,
-        request: &'a NnsTopologyRefreshRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsInventoryRefreshReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.inventory_refresh_report(
-                "data_centers",
-                request,
-                if request.dry_run {
-                    dry_run_data_center_refresh_report_fixture()
-                } else {
-                    data_center_refresh_report_fixture()
-                },
-            )
-        })
-    }
-}
-
-impl NnsTopologySource for RecordingTopologySource {
-    fn fetch_subnet_catalog_list_report<'a>(
-        &'a self,
-        request: &'a NnsInventoryListRequest,
-    ) -> crate::report::SourceFuture<'a, Result<SubnetCatalogListReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.record("subnet_catalog", request)?;
-            Ok(subnet_report_fixture())
-        })
-    }
-
-    fn fetch_node_list_report<'a>(
-        &'a self,
-        request: &'a NnsInventoryListRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsTopologyHostError>> {
-        Box::pin(async move {
-            self.record("nodes", request)?;
-            Ok(node_report_fixture())
-        })
-    }
-
-    fn fetch_node_provider_list_report<'a>(
-        &'a self,
-        request: &'a NnsInventoryListRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.record("node_providers", request)?;
-            Ok(node_provider_report_fixture())
-        })
-    }
-
-    fn fetch_node_operator_list_report<'a>(
-        &'a self,
-        request: &'a NnsInventoryListRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.record("node_operators", request)?;
-            Ok(node_operator_report_fixture())
-        })
-    }
-
-    fn fetch_data_center_list_report<'a>(
-        &'a self,
-        request: &'a NnsInventoryListRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsTopologyHostError>>
-    {
-        Box::pin(async move {
-            self.record("data_centers", request)?;
-            Ok(data_center_report_fixture())
         })
     }
 }

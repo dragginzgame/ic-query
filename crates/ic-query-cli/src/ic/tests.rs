@@ -6,7 +6,7 @@ use std::ffi::OsString;
 fn usage_discloses_dashboard_command_families() {
     let usage = render_help(command());
 
-    assert!(usage.contains("Usage: icq ic [COMMAND]"));
+    assert!(usage.contains("Usage: ic [COMMAND]"));
     assert!(usage.contains("api-boundary-node"));
     assert!(usage.contains("canister"));
     assert!(usage.contains("metrics"));

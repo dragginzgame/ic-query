@@ -60,5 +60,4 @@ fn byte_counts_use_trimmed_binary_iec_units() {
 fn decimal_text_falls_back_without_losing_unrepresentable_evidence() {
     let oversized = "340282366920938463463374607431768211456";
     assert_eq!(decimal_cycle_count_text(oversized), oversized);
-    assert_eq!(decimal_byte_count_text(oversized), oversized);
 }

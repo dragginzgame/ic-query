@@ -8,7 +8,7 @@ use std::ffi::OsString;
 #[test]
 fn help_discloses_provider_identity_authority_and_bounds() {
     let namespace = render_help(command());
-    assert!(namespace.contains("Usage: icq cloud-engine provider [COMMAND]"));
+    assert!(namespace.contains("Usage: provider [COMMAND]"));
     assert!(namespace.contains("info"));
     assert!(namespace.contains("list"));
 

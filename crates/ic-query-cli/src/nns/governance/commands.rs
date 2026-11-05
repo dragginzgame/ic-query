@@ -36,7 +36,6 @@ Examples:
 
 pub(in crate::nns) fn governance_command() -> ClapCommand {
     ClapCommand::new("governance")
-        .bin_name("icq nns governance")
         .about("Inspect NNS Governance economics, metrics, and rewards")
         .subcommand(governance_economics_command())
         .subcommand(governance_metrics_command())
@@ -79,7 +78,6 @@ pub(in crate::nns) fn governance_maturity_modulation_command() -> ClapCommand {
 
 fn report_command(name: &'static str, about: &'static str, examples: &'static str) -> ClapCommand {
     ClapCommand::new(name)
-        .bin_name(format!("icq nns governance {name}"))
         .about(about)
         .arg(leaf::json_arg())
         .arg(

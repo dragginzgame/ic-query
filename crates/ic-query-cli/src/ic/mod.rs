@@ -58,7 +58,6 @@ pub async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandError> {
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("ic")
-        .bin_name("icq ic")
         .about("Inspect certified IC state and official Dashboard data")
         .subcommand(api_boundary_node::command())
         .subcommand(canister::command())

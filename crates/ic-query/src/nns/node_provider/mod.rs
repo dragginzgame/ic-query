@@ -4,15 +4,18 @@ mod report;
 
 pub use report::{
     DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, NnsNodeProviderInfoReport,
-    NnsNodeProviderListReport, NnsNodeProviderRow,
+    NnsNodeProviderListReport, NnsNodeProviderMetadata, NnsNodeProviderRow,
 };
 #[cfg(feature = "nns-host")]
 pub use report::{
     NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
-    NnsNodeProviderSource, build_nns_node_provider_info_report,
+    NnsNodeProviderRefreshReport, NnsNodeProviderSource, build_nns_node_provider_info_report,
     build_nns_node_provider_info_report_with_source_and_progress,
     build_nns_node_provider_list_report,
     build_nns_node_provider_list_report_with_source_and_progress, nns_node_provider_cache_path,
     nns_node_provider_refresh_lock_path, refresh_nns_node_provider_report,
     refresh_nns_node_provider_report_with_source,
 };
+
+#[cfg(feature = "nns-host")]
+pub(in crate::nns) use report::{load_or_refresh_metadata, node_provider_report_from_snapshot};

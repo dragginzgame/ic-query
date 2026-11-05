@@ -2,7 +2,8 @@
 set -euo pipefail
 
 repo_root="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-formatting-hook.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-formatting-hook.XXXXXX")"
 fixture_complete=false
 finish() {
   local status=$?

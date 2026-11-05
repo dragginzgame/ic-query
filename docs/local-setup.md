@@ -176,10 +176,9 @@ Make's jobserver descriptors for parallel execution; this does not grant
 installation authority to an inspection command or change the setup order.
 
 The installed `cloc` executable and local workspace `make cloc` are common setup.
-Fleet reports such as `make cloc-tooling` run from Shared Tooling's own Makefile;
-the consumer include exports local workspace LOC. Consumers need not vendor fleet
-reporters or run their regression suites. See the
-[optional fleet selection](consuming-snapshots.md#local-ic-tool-adoption).
+The consumer include exports workspace LOC. Tooling adoption is reviewed through
+the [agent audit tasks](https://github.com/dragginzgame/shared-tooling/blob/08cd17240fd60dfd309e35eb131e73323e883e6f/docs/fleet-tools.md#tooling-adoption-audit); consumers need no
+fleet reporter or its regression suites.
 
 ## Catalog selection
 

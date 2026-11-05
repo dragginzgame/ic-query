@@ -29,8 +29,10 @@ forcibly bypassed cache content caused the refresh path.
 `SubnetCatalogSourceFailure` and `SubnetCatalogLoadFailure` carry Registry progress
 and the offending subject through one `evidence: SubnetCatalogFailureEvidence`.
 For example, read `failure.evidence.registry_version` and
-`failure.evidence.subject`. Load stage, cache disposition, error classification
-and the original `source` remain on the outer failure.
+`failure.evidence.subject`. Load stage, cache disposition and the original
+`source` remain on the outer failure. Read classifications directly through
+`failure.source.code()`, `failure.source.category()` and
+`failure.source.retryability()`; the failure does not retain separate copies.
 
 Together these records retain:
 

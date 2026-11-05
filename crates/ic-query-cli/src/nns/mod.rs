@@ -119,7 +119,6 @@ pub async fn run_matches(matches: &ArgMatches, network: &str) -> Result<(), NnsC
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("nns")
-        .bin_name("icq nns")
         .about("Inspect NNS metadata")
         .subcommand(subnet::subnet_command())
         .subcommand(data_center::command())

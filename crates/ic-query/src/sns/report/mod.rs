@@ -1,9 +1,6 @@
-//! Module: sns::report
-//!
-//! Responsibility: assemble the reusable SNS query and report surface.
-//! Does not own: CLI parsing, process output, or generic cache-file mechanics.
-//! Boundary: keeps SNS lookup, live sources, caches, reports, and renderers together.
-
+//! Retained neuron access for token migration and stake evidence.
+mod model;
+pub use model::*;
 #[cfg(feature = "sns-host")]
 mod assemble;
 #[cfg(feature = "sns-host")]
@@ -23,169 +20,43 @@ mod cache_storage;
 #[cfg(feature = "sns-host")]
 mod cache_summary;
 #[cfg(feature = "sns-host")]
-mod catalog_cache;
-#[cfg(feature = "sns-host")]
 mod live;
-#[cfg(feature = "sns-host")]
-mod lookup;
-mod model;
 #[cfg(feature = "sns-host")]
 mod neurons_cache;
 #[cfg(feature = "sns-host")]
-mod proposals_cache;
-#[cfg(feature = "sns-host")]
 mod source;
 #[cfg(feature = "sns-host")]
+mod target;
+#[cfg(feature = "sns-host")]
 mod view;
-
-#[cfg(all(test, feature = "sns-host"))]
-mod tests;
-
 #[cfg(feature = "sns-host")]
 use crate::hex::hex_bytes;
-#[cfg(all(test, feature = "sns-host"))]
-use crate::icrc::{IcrcMetadataValueKind, ledger::metadata_row};
-#[cfg(all(test, feature = "sns-host"))]
-use crate::subnet_catalog::MAINNET_NETWORK;
-#[cfg(all(test, feature = "sns-host"))]
-use neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION;
-
 #[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use source::{
-    JoinedMainnetSnsInventory, SNS_SWAP_QUERY_COUNT, SNS_UPGRADE_QUERY_COUNT,
-};
-
+pub use build::*;
 #[cfg(feature = "sns-host")]
-pub use build::{
-    build_sns_canister_report, build_sns_canister_report_with_source, build_sns_info_report,
-    build_sns_info_report_with_source, build_sns_list_report, build_sns_list_report_with_source,
-    build_sns_metrics_report, build_sns_metrics_report_with_source, build_sns_neuron_detail_report,
-    build_sns_neuron_detail_report_with_source, build_sns_neurons_report,
-    build_sns_neurons_report_with_source, build_sns_params_report,
-    build_sns_params_report_with_source, build_sns_proposal_report,
-    build_sns_proposal_report_with_source, build_sns_proposals_report,
-    build_sns_proposals_report_with_source_and_progress, build_sns_swap_report,
-    build_sns_swap_report_with_source, build_sns_token_report, build_sns_token_report_with_source,
-    build_sns_upgrade_report, build_sns_upgrade_report_with_source,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use cache_summary::{
-    build_sns_cache_list_report, load_sns_cache_summary_at,
-};
-#[cfg(feature = "sns-host")]
-pub use catalog_cache::{
-    DEFAULT_SNS_CATALOG_STALE_AFTER_SECONDS, SnsCatalogCacheRequest, SnsCatalogRefreshReport,
-    SnsCatalogRefreshRequest, build_sns_list_report_from_cache,
-    build_sns_list_report_from_cache_or_refresh,
-    build_sns_list_report_from_cache_or_refresh_with_source, refresh_sns_catalog,
-    refresh_sns_catalog_with_source, sns_catalog_cache_path, sns_catalog_refresh_lock_path,
-};
+use cache_summary::{build_sns_cache_list_report, load_sns_cache_summary_at};
 #[cfg(feature = "sns-host")]
 pub use live::LiveSnsSource;
-pub use model::{
-    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS,
-    MainnetSnsCanisterInventory, MainnetSnsCanisters, SnsCanisterCallType,
-    SnsCanisterCycleBalanceStatus, SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap,
-    SnsCanisterMethod, SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
-    SnsGovernanceParameters, SnsInfoReport, SnsInstanceContext, SnsLifecycleOutcome, SnsListReport,
-    SnsListRequest, SnsListRow, SnsListSort, SnsLookupError, SnsLookupRequest,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsMetricsRequest, SnsNeuronAccount,
-    SnsNeuronDetail, SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow,
-    SnsNeuronFolloweesRow, SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronRow,
-    SnsNeuronTopicFolloweesRow, SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus,
-    SnsProposalBallotRow, SnsProposalCollection, SnsProposalDecisionState,
-    SnsProposalEligibilityFilter, SnsProposalFailureReason, SnsProposalReport, SnsProposalRequest,
-    SnsProposalRow, SnsProposalStatusFilter, SnsProposalTally, SnsProposalTopicFilter,
-    SnsProposalViewError, SnsProposalsReport, SnsProposalsRequest, SnsProposalsSort,
-    SnsReportContext, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
-    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
-    sns_neuron_permission_name,
-};
 #[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use model::{
-    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
-};
-#[cfg(all(test, feature = "sns-host"))]
-pub(in crate::sns::report) use model::{
-    SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
-};
+pub use neurons_cache::*;
 #[cfg(feature = "sns-host")]
-pub use model::{
-    SnsCacheAdmission, SnsCacheListReport, SnsCacheListRequest, SnsCacheStatusReport,
-    SnsCacheStatusRequest, SnsCacheSummary, SnsHostError, SnsNeuronCollection, SnsNeuronRequest,
-    SnsNeuronsCacheSort, SnsNeuronsReport, SnsNeuronsRequest, SnsRefreshAttemptStatus,
-    SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest, SnsValidCacheSummary,
-};
-#[cfg(feature = "sns-host")]
-pub use neurons_cache::{
-    build_sns_neurons_cache_list_report, build_sns_neurons_cache_status_report,
-    refresh_sns_neurons_cache, refresh_sns_neurons_cache_with_source_and_progress,
-    sns_neurons_cache_path, sns_neurons_refresh_attempt_path, sns_neurons_refresh_lock_path,
-};
-#[cfg(feature = "sns-host")]
-pub use proposals_cache::{
-    build_sns_proposals_cache_list_report, build_sns_proposals_cache_status_report,
-    refresh_sns_proposals_cache, refresh_sns_proposals_cache_with_source_and_progress,
-    sns_proposals_cache_path, sns_proposals_refresh_attempt_path, sns_proposals_refresh_lock_path,
-};
-
-#[cfg(feature = "sns-host")]
-pub use source::{
-    MainnetSns, MainnetSnsInventory, MainnetSnsLifecycle, MainnetSnsMetadata,
-    MainnetSnsMetadataFields, MainnetSnsNeuronPage, MainnetSnsToken, MainnetSnsUpgrade,
-    SnsCanisterSource, SnsCatalogSource, SnsDiscoverySource, SnsMetricsSource, SnsNeuronId,
-    SnsNeuronSource, SnsNeuronsSource, SnsParamsSource, SnsProposalSource, SnsProposalsSource,
-    SnsSwapSource, SnsTokenSource, SnsUpgradeSource,
-};
-
+pub use source::{MainnetSnsNeuronPage, SnsNeuronId, SnsNeuronSource, SnsNeuronsSource};
+/// Default replica endpoint for direct Governance neuron queries.
 pub const DEFAULT_SNS_SOURCE_ENDPOINT: &str = "https://icp-api.io";
-pub const MAINNET_SNS_WASM_CANISTER_ID: &str = "qaa6y-5yaaa-aaaaa-aaafa-cai";
-#[cfg(feature = "sns-host")]
-/// Largest page size accepted by an SNS refresh request.
+/// Maximum rows accepted in one Governance neuron page.
 pub const SNS_REFRESH_MAX_PAGE_SIZE: u32 = 100;
-
 #[cfg(feature = "sns-host")]
-const SNS_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(super) const SNS_CACHE_COMPONENT: &str = "sns-neuron";
 #[cfg(feature = "sns-host")]
-const SNS_CANISTER_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(super) const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "sns-host")]
-const SNS_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
+pub(super) const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "sns-host")]
-const SNS_METRICS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_TOKEN_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_PARAMS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_SWAP_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_UPGRADE_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_PROPOSAL_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_PROPOSALS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_NEURONS_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_NEURON_DETAIL_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "sns-host")]
-const SNS_METADATA_CONCURRENCY: usize = 16;
-#[cfg(feature = "sns-host")]
-/// Shared component label for generic SNS cache failures.
-pub(in crate::sns::report) const SNS_CACHE_COMPONENT: &str = "SNS";
-
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {
+fn enforce_mainnet_network(network: &str) -> Result<(), SnsHostError> {
     crate::network::enforce_mainnet_network_with(network, |network| {
         SnsHostError::UnsupportedNetwork { network }
     })
 }
 
-pub use model::MainnetSnsMetrics;
-
-pub use model::MainnetSnsSwap;
-
-pub use model::sns_proposal_action_label;
+#[cfg(all(test, feature = "sns-host"))]
+mod tests;

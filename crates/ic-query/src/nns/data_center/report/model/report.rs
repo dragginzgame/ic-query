@@ -16,16 +16,6 @@ pub struct NnsDataCenterListReport {
     pub data_centers: Vec<NnsDataCenterRow>,
 }
 
-#[cfg(feature = "nns-host")]
-impl_nns_inventory_report!(
-    NnsDataCenterListReport,
-    super::super::NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
-    "data_center",
-    super::super::COLLECTION,
-    data_centers,
-    |_report: &NnsDataCenterListReport| None,
-);
-
 ///
 /// NnsDataCenterRow
 ///
@@ -33,6 +23,7 @@ impl_nns_inventory_report!(
 ///
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsDataCenterRow {
     pub data_center_id: String,
     pub region: String,

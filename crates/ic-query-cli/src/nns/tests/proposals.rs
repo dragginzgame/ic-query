@@ -248,12 +248,6 @@ fn nns_proposal_list_and_refresh_enforce_governance_page_bounds() {
 
 #[test]
 fn nns_proposal_cache_options_parse_json_format() {
-    let list = parse_test_options(
-        nns_proposal_cache_list_command(),
-        &["--json"],
-        NetworkOutputOptions::from_matches,
-    )
-    .expect("parse cache list");
     let status = parse_test_options(
         nns_proposal_cache_status_command(),
         &["--json"],
@@ -261,8 +255,6 @@ fn nns_proposal_cache_options_parse_json_format() {
     )
     .expect("parse cache status");
 
-    assert_eq!(list.network, MAINNET_NETWORK);
-    assert_eq!(list.format, OutputFormat::Json);
     assert_eq!(status.network, MAINNET_NETWORK);
     assert_eq!(status.format, OutputFormat::Json);
 }
@@ -275,7 +267,6 @@ fn nns_proposal_help_is_advertised_under_nns() {
     let proposal_info = render_help(nns_proposal_info_command());
     let proposal_refresh = render_help(nns_proposal_refresh_command());
     let proposal_cache = render_help(nns_proposal_cache_command());
-    let proposal_cache_list = render_help(nns_proposal_cache_list_command());
     let proposal_cache_status = render_help(nns_proposal_cache_status_command());
 
     assert!(nns.contains("proposal"));
@@ -295,13 +286,9 @@ fn nns_proposal_help_is_advertised_under_nns() {
     assert!(proposal_refresh.contains("Collection mode: Forced live refresh"));
     assert!(proposal_refresh.contains("--page-size"));
     assert!(proposal_refresh.contains("--max-pages"));
-    assert!(proposal_cache.contains("icq nns proposal cache list"));
     assert!(proposal_cache.contains("icq nns proposal cache status"));
-    assert!(proposal_cache_list.contains("icq nns proposal cache list"));
     assert!(proposal_cache_status.contains("icq nns proposal cache status"));
-    assert!(proposal_cache_list.contains("Collection mode: Local cache inspection"));
     assert!(proposal_cache_status.contains("Collection mode: Local cache inspection"));
-    assert!(!proposal_cache_list.contains("--source-endpoint"));
     assert!(!proposal_cache_status.contains("--source-endpoint"));
     assert!(proposal_list.contains("--limit 50"));
     assert!(proposal_list.contains("--before 132000"));

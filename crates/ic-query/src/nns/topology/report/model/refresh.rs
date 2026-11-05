@@ -29,7 +29,8 @@ pub struct NnsTopologyRefreshRow {
     pub source: String,
     pub cache_path: String,
     pub refresh_lock_path: String,
-    pub registry_version: u64,
+    /// Exact Registry pin, absent for the independent Governance metadata component.
+    pub registry_version: Option<u64>,
     pub fetched_at: String,
     pub source_endpoint: String,
     pub fetched_by: String,

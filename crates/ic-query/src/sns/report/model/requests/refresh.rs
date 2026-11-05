@@ -2,9 +2,9 @@
 //!
 //! Responsibility: define common complete SNS snapshot refresh settings.
 //! Does not own: collection choice, cursor rules, source calls, or publication.
-//! Boundary: neuron and proposal entry points select the collection explicitly.
+//! Boundary: neuron entry points select the collection explicitly.
 
-use super::lookup::SnsLookupRequest;
+use super::target::SnsNeuronTargetRequest;
 use std::path::PathBuf;
 
 ///
@@ -16,7 +16,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsSnapshotRefreshRequest {
     /// SNS target, explicit endpoint, network and caller clock.
-    pub lookup: SnsLookupRequest,
+    pub target: SnsNeuronTargetRequest,
     /// Caller-selected root for confined managed cache files.
     pub cache_root: PathBuf,
     /// Maximum rows requested per Governance page.
@@ -28,9 +28,13 @@ pub struct SnsSnapshotRefreshRequest {
 impl SnsSnapshotRefreshRequest {
     /// Construct snapshot refresh settings using the caller clock.
     #[must_use]
-    pub fn new(cache_root: impl Into<PathBuf>, lookup: SnsLookupRequest, page_size: u32) -> Self {
+    pub fn new(
+        cache_root: impl Into<PathBuf>,
+        target: SnsNeuronTargetRequest,
+        page_size: u32,
+    ) -> Self {
         Self {
-            lookup,
+            target,
             cache_root: cache_root.into(),
             page_size,
             max_pages: None,

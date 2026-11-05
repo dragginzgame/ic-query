@@ -1,34 +1,7 @@
-use crate::nns::NnsInventoryRefreshReport;
 use crate::{
     nns::node::{NnsNodeListReport, NnsNodeRow},
     subnet_catalog::SubnetKind,
 };
-
-pub(in crate::nns::topology::report::tests) fn node_refresh_report_fixture()
--> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        schema_version: 1,
-        collection: "nodes".to_string(),
-        provenance: super::inventory_provenance(43, "2026-06-04T00:01:00Z"),
-        cache_path: "/cache/nns/ic/node/nodes.json".to_string(),
-        refresh_lock_path: "/cache/nns/ic/node/refresh.lock".to_string(),
-        output_path: None,
-        governance_canister_id: None,
-        dry_run: false,
-        wrote_cache: true,
-        replaced_existing_cache: false,
-        row_count: 3,
-    }
-}
-
-pub(in crate::nns::topology::report::tests) fn dry_run_node_refresh_report_fixture()
--> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        dry_run: true,
-        wrote_cache: false,
-        ..node_refresh_report_fixture()
-    }
-}
 
 pub(in crate::nns::topology::report::tests) fn node_report_fixture() -> NnsNodeListReport {
     NnsNodeListReport {

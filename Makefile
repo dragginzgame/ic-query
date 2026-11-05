@@ -2,6 +2,7 @@
 # Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
+	canister-build-check canister-bundle-check canister-smoke-check canister-test-check \
 	build changelog-check check check-cargo-tool-versions ci ci-scripts-check clean clippy \
 	dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check compiler-check package \
@@ -176,7 +177,11 @@ ci-scripts-check:
 canister-build canister-bundle canister-smoke:
 	cargo fetch --locked
 	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
-	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- $(if $(filter canister-smoke,$@),local,$(@:canister-%=%))
+	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" $@-check
+
+# CI prepares dependencies and runs lint once before selecting these product checks.
+canister-build-check canister-bundle-check canister-smoke-check:
+	cargo run -p ic-query-cli --example governance_smoke --locked --offline -- $(if $(filter canister-smoke-check,$@),local,$(patsubst canister-%-check,%,$@))
 
 install-testkit:
 	@tool="$$( $(TESTKIT_TOOL) )" && "$$tool" setup --directory "$(REPO_ROOT).tools/testkit-server"
@@ -184,8 +189,11 @@ install-testkit:
 testkit-check:
 	@tool="$$( $(TESTKIT_TOOL) --check )" && "$$tool" check --directory "$(REPO_ROOT).tools/testkit-server"
 
-canister-test: testkit-check
+canister-test:
 	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" clippy
+	+$(MAKE) --no-print-directory -f "$(REPO_ROOT)Makefile" canister-test-check
+
+canister-test-check: testkit-check
 	cargo build -p ic-query --example governance_probe --target wasm32-unknown-unknown --target-dir "$(REPO_ROOT)target/testkit" --release --no-default-features --features canister --locked --offline
 	cargo test -p ic-query-testkit --test governance --locked --offline --no-run
 	@tool="$$( $(TESTKIT_TOOL) --check )" && \

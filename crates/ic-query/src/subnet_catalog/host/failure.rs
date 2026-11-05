@@ -4,10 +4,7 @@
 //! Does not own: cache policy execution, Registry transport, or report rendering.
 //! Boundary: combines request, stage, cache, Registry, subject, and source-error evidence.
 
-use super::{
-    CatalogSourceSelection, SubnetCatalogErrorCategory, SubnetCatalogErrorCode,
-    SubnetCatalogHostError, SubnetCatalogLoadRequest, SubnetCatalogRetryability,
-};
+use super::{CatalogSourceSelection, SubnetCatalogHostError, SubnetCatalogLoadRequest};
 use crate::subnet_catalog::{
     CatalogAssurance, CatalogError, RoutingRange, SubnetCatalogRegistryRecordEvidence,
     SubnetCatalogRegistryRecordSubject,
@@ -330,13 +327,7 @@ pub struct SubnetCatalogLoadFailure {
     pub evidence: SubnetCatalogFailureEvidence,
     /// Failure-side cache state or action.
     pub cache_disposition: SubnetCatalogFailureCacheDisposition,
-    /// Stable machine-readable source-error code.
-    pub code: SubnetCatalogErrorCode,
-    /// Stable operational source-error category.
-    pub category: SubnetCatalogErrorCategory,
-    /// Typed retry classification, including truthful unknown results.
-    pub retryability: SubnetCatalogRetryability,
-    /// Original host error without string conversion or replacement.
+    /// Original host error; its accessors provide code, category and retryability.
     #[source]
     pub source: SubnetCatalogHostError,
 }
@@ -348,17 +339,11 @@ impl SubnetCatalogLoadFailure {
         cache_disposition: SubnetCatalogFailureCacheDisposition,
         failure: Box<SubnetCatalogSourceFailure>,
     ) -> Box<Self> {
-        let code = failure.source.code();
-        let category = failure.source.category();
-        let retryability = failure.source.retryability();
         Box::new(Self {
             request: SubnetCatalogLoadFailureRequest::from_load_request(request),
             stage,
             evidence: failure.evidence,
             cache_disposition,
-            code,
-            category,
-            retryability,
             source: failure.source,
         })
     }

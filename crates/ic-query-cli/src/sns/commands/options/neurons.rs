@@ -5,7 +5,7 @@ use crate::{
         clap::{required_string, required_typed, typed_option},
         common::OutputFormat,
     },
-    sns::commands::{SnsCommandError, options::lookup_request, spec::SnsNeuronsSortArg},
+    sns::commands::{SnsCommandError, options::lookup_request},
 };
 use clap::ArgMatches;
 use ic_platform::candid::contract::Principal;
@@ -38,22 +38,13 @@ pub(in crate::sns::commands) fn neurons_request(
     let limit = required_typed(matches, "limit");
     let owner_principal_id =
         typed_option::<Principal>(matches, "owner").map(|principal| principal.to_text());
-    let cache_sort = match required_typed(matches, "sort") {
-        SnsNeuronsSortArg::Api => None,
-        SnsNeuronsSortArg::Id => Some(SnsNeuronsCacheSort::Id),
-        SnsNeuronsSortArg::Stake => Some(SnsNeuronsCacheSort::Stake),
-        SnsNeuronsSortArg::Maturity => Some(SnsNeuronsCacheSort::Maturity),
-        SnsNeuronsSortArg::Created => Some(SnsNeuronsCacheSort::Created),
-    };
+    let cache_sort = required_typed::<Option<SnsNeuronsCacheSort>>(matches, "sort");
+    // Clap relationships concern argument presence, not another argument's value
+    // or a range conditional on it. Keep these route-specific checks together.
     let request = if let Some(sort) = cache_sort {
         if owner_principal_id.is_some() {
             return Err(SnsCommandError::Usage("`--owner` is supported only with `icq sns neuron list --sort api`; cached `--sort <id|stake|maturity|created>` views read the complete full-neuron cache and do not accept owner filtering".to_string()));
         }
-        lookup.root_canister_id().ok_or_else(|| {
-            SnsCommandError::Usage(
-                "cached neuron views require an SNS root canister principal".to_string(),
-            )
-        })?;
         SnsNeuronsRequest::cached(lookup, limit, cache_root()?, sort)
     } else {
         if limit > SNS_NEURONS_LIVE_MAX_LIMIT {

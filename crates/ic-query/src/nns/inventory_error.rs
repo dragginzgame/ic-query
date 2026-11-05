@@ -12,6 +12,8 @@ use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NnsInventoryCollection {
+    /// Shared pinned Registry relation inventory.
+    RegistryInventory,
     /// Mainnet node inventory.
     Node,
     /// Mainnet node-provider inventory.
@@ -27,6 +29,7 @@ impl NnsInventoryCollection {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::RegistryInventory => "inventory",
             Self::Node => "node",
             Self::NodeProvider => "node-provider",
             Self::NodeOperator => "node-operator",
@@ -106,6 +109,10 @@ pub enum NnsInventoryError {
 }
 
 impl NnsInventoryError {
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Consumes the selected path together with the original cache error during policy projection."
+    )]
     pub(super) fn cache_refresh_reason(
         self,
         expected_path: PathBuf,

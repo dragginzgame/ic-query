@@ -20,9 +20,3 @@ pub(in crate::nns) struct NnsLeafCommandSpec {
     pub(in crate::nns) refresh_source_help: &'static str,
     pub(in crate::nns) verbose_help: &'static str,
 }
-
-impl NnsLeafCommandSpec {
-    pub(super) fn bin_name(&self) -> String {
-        format!("icq nns {}", self.command_name)
-    }
-}

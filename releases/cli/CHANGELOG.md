@@ -7,6 +7,66 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.91.0]
+
+### ⚠️ Breaking
+
+- Reduce SNS support to explicitly targeted neuron ownership/stake reads. Remove
+  discovery/catalog, proposal, parameter, metrics, swap, upgrade and Root health
+  reports. ICRC balances, transaction/burn evidence and holder enumeration remain.
+  Adopt Governance principals and refresh the new schema-1 neuron snapshots.
+
+```bash
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --owner "$USER_PRINCIPAL" --json
+icq sns neuron refresh "$GOVERNANCE_CANISTER_ID"
+```
+
+- Refresh one shared Registry snapshot for NNS node/operator/data-centre views.
+  Provider refresh reports separate Registry and Governance publications, and
+  exports Governance metadata. Topology refresh has three components. JSON
+  consumers adopt the replacement shapes; see the [0.91 notes](0.91.md).
+- Remove the global `icq cache status` command and its Text renderer. Family cache
+  inspection and strict cache/coordination admission remain available.
+- Use `icq nns proposal cache status` instead of `cache list`. Status retains
+  snapshot validation and refresh-attempt evidence; remove the redundant Text
+  cache-list renderer. See the [0.91 notes](0.91.md) for JSON and Rust updates.
+
+- Clip long text to terminal-column budgets through Host Text, using `…`.
+  Standardize refresh-attempt text on `attempt_*` labels across NNS, SNS and
+  ICRC. Raw JSON and cached evidence retain their existing contracts.
+
+### 🧹 Cleanup
+
+- Adopt Shared Tooling 0.30.0 with the latest compact LOC display, classify
+  fixture/tooling source explicitly and
+  place the Governance runner and probe with their source roles. Default local
+  fixture scratch to `target/tmp/` and replace the blanket pass-by-value lint
+  allowance with ownership fixes and scoped, reasoned expectations. Existing
+  Cargo target names, report contracts and recovery evidence remain.
+
+- Let Clap derive command paths and own shared typed canister/analytics options,
+  principal parsing and SNS sort selection. Reduce duplicated text field blocks
+  and refresh-attempt rendering while preserving report-specific policies.
+
+The contributor timing utility now uses Clap and provides native help:
+
+```bash
+cargo run -p ic-query-cli --example subnet_catalog_timing -- --help
+```
+
+### 🛡️ Security
+
+- Escape untrusted runtime-error and cache-progress fields while preserving
+  typed error evidence, Clap usage layout and local refresh advice.
+
+### 🧪 Testing
+
+- Trim compile-only API assertions while retaining fixture-driven downstream,
+  serialization, rendering and custom-source coverage.
+
+- Run native and Wasm lint once per canister CI job before Testkit, local NNS
+  smoke and bundle checks. Standalone developer commands retain lint gates.
+
 ## [0.90.0] - 2026-11-04
 
 ### ⚠️ Breaking

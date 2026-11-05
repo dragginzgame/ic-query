@@ -69,7 +69,6 @@ async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("replica-version")
-        .bin_name("icq ic replica-version")
         .about("Inspect official Dashboard replica release records")
         .subcommand(info_command())
         .subcommand(list_command())
@@ -77,7 +76,6 @@ pub(super) fn command() -> ClapCommand {
 
 fn info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq ic replica-version info")
         .about("Show one exact Dashboard replica release record")
         .arg(
             value_arg("replica-version-id")
@@ -95,7 +93,6 @@ fn info_command() -> ClapCommand {
 
 fn list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq ic replica-version list")
         .about("Show one bounded Dashboard replica release page")
         .arg(
             page_limit_arg(DEFAULT_LIMIT_ARG, MAX_IC_REPLICA_VERSION_PAGE_LIMIT)

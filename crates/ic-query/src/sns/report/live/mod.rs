@@ -4,11 +4,20 @@
 //! Does not own: command parsing, report assembly, cache IO, or rendering.
 //! Boundary: exposes live-source adapters and test-only wire helpers to SNS reports.
 
-mod client;
 mod convert;
 mod fetch;
 mod query;
 mod types;
 
 pub(super) use super::SnsHostError;
-pub use client::LiveSnsSource;
+
+///
+/// LiveSnsSource
+///
+/// Live mainnet SNS source used by report builders outside tests.
+///
+
+#[derive(Clone, Debug, Default)]
+pub struct LiveSnsSource {
+    pub(crate) agent: ic_host_tools::agent::EndpointAgent,
+}

@@ -6,7 +6,7 @@ use crate::ic::tests::parse_test_options;
 fn usage_discloses_live_dashboard_authority_and_bounds() {
     let usage = render_help(command());
 
-    assert!(usage.contains("Usage: icq ic metrics [OPTIONS] <metric>"));
+    assert!(usage.contains("Usage: metrics [OPTIONS] <metric>"));
     assert!(usage.contains("exactly one official Dashboard Metrics API request"));
     assert!(usage.contains("capped at 1000 observations"));
     assert!(usage.contains("off-chain, non-certified API"));

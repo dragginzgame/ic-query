@@ -28,20 +28,15 @@ pub use source::fetch_mainnet_subnet_catalog_async;
 #[cfg(feature = "nns-topology-host")]
 pub use source::fetch_mainnet_subnet_topology;
 #[cfg(feature = "nns-host")]
-pub use source::{
-    fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
-    fetch_mainnet_node_provider_list,
-};
+pub use source::{fetch_mainnet_node_provider_metadata, fetch_mainnet_registry_inventory};
 
 #[cfg(all(test, feature = "nns-host"))]
-use crate::subnet_catalog::{
-    MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, RawSubnetCatalog, UncertifiedCatalogCollection,
-};
+use crate::subnet_catalog::{MAINNET_NETWORK, RawSubnetCatalog, UncertifiedCatalogCollection};
 
 #[cfg(all(test, feature = "nns-host"))]
 use projection::{
     data_center_list_from_inventory, node_list_from_inventory, node_operator_list_from_inventory,
-    node_provider_from_governance, node_provider_list_from_response,
+    node_provider_from_governance, node_provider_metadata_from_response,
 };
 
 #[cfg(all(test, feature = "nns-host"))]

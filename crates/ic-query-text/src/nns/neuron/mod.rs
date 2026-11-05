@@ -50,81 +50,27 @@ fn distribution_preamble(report: &NnsNeuronDistributionReport) -> Vec<String> {
         &report.context.collection_updated_at,
         &report.context.source,
     );
-    lines.extend([
-        field(
-            "collection_page_count",
-            &(report.context.collection_page_count),
-        ),
-        field("collected_neuron_count", &(report.collected_neuron_count)),
-        field(
-            "point_in_time_guaranteed",
-            &(yes_no(report.context.point_in_time_guaranteed)),
-        ),
-        field(
-            "earliest_retrieved_at_timestamp_seconds",
-            &(optional_u64_text(report.earliest_retrieved_at_timestamp_seconds)),
-        ),
-        field(
-            "latest_retrieved_at_timestamp_seconds",
-            &(optional_u64_text(report.latest_retrieved_at_timestamp_seconds)),
-        ),
-        field(
-            "total_effective_stake_e8s",
-            &(report.total_effective_stake_e8s),
-        ),
-        field(
-            "total_effective_stake_icp",
-            &(e8s_decimal_text(report.total_effective_stake_e8s)),
-        ),
-        field(
-            "reported_staked_maturity_neuron_count",
-            &(report.reported_staked_maturity_neuron_count),
-        ),
-        field(
-            "unreported_staked_maturity_neuron_count",
-            &(report.unreported_staked_maturity_neuron_count),
-        ),
-        field(
-            "total_reported_staked_maturity_e8s_equivalent",
-            &(report.total_reported_staked_maturity_e8s_equivalent),
-        ),
-        field(
-            "total_reported_staked_maturity_icp",
-            &(e8s_decimal_text(report.total_reported_staked_maturity_e8s_equivalent)),
-        ),
-        field(
-            "reported_deciding_voting_power_neuron_count",
-            &(report.reported_deciding_voting_power_neuron_count),
-        ),
-        field(
-            "unreported_deciding_voting_power_neuron_count",
-            &(report.unreported_deciding_voting_power_neuron_count),
-        ),
-        field(
-            "total_reported_deciding_voting_power",
-            &(report.total_reported_deciding_voting_power),
-        ),
-        field(
-            "reported_potential_voting_power_neuron_count",
-            &(report.reported_potential_voting_power_neuron_count),
-        ),
-        field(
-            "unreported_potential_voting_power_neuron_count",
-            &(report.unreported_potential_voting_power_neuron_count),
-        ),
-        field(
-            "total_reported_potential_voting_power",
-            &(report.total_reported_potential_voting_power),
-        ),
-        field(
-            "known_neuron_metadata_count",
-            &(report.known_neuron_metadata_count),
-        ),
-        field(
-            "neurons_fund_join_timestamp_present_count",
-            &(report.neurons_fund_join_timestamp_present_count),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        collection_page_count = report.context.collection_page_count,
+        collected_neuron_count,
+        point_in_time_guaranteed = yes_no(report.context.point_in_time_guaranteed),
+        earliest_retrieved_at_timestamp_seconds = optional_u64_text(report.earliest_retrieved_at_timestamp_seconds),
+        latest_retrieved_at_timestamp_seconds = optional_u64_text(report.latest_retrieved_at_timestamp_seconds),
+        total_effective_stake_e8s,
+        total_effective_stake_icp = e8s_decimal_text(report.total_effective_stake_e8s),
+        reported_staked_maturity_neuron_count,
+        unreported_staked_maturity_neuron_count,
+        total_reported_staked_maturity_e8s_equivalent,
+        total_reported_staked_maturity_icp = e8s_decimal_text(report.total_reported_staked_maturity_e8s_equivalent),
+        reported_deciding_voting_power_neuron_count,
+        unreported_deciding_voting_power_neuron_count,
+        total_reported_deciding_voting_power,
+        reported_potential_voting_power_neuron_count,
+        unreported_potential_voting_power_neuron_count,
+        total_reported_potential_voting_power,
+        known_neuron_metadata_count,
+        neurons_fund_join_timestamp_present_count,
+    ));
     lines
 }
 
@@ -208,33 +154,18 @@ pub fn nns_neuron_list_report_text(
     options: crate::TextOptions,
 ) -> String {
     let mut lines = governance_context_lines(&report.context);
-    lines.extend([
-        field(
-            "from_cache",
-            &(yes_no(report.provenance.cache_path().is_some())),
-        ),
-        field("requested_limit", &(report.requested_limit)),
-        field(
-            "exclusive_start_neuron_id",
-            &(optional_u64_text(report.exclusive_start_neuron_id)),
-        ),
-        field(
-            "next_start_neuron_id",
-            &(optional_u64_text(report.next_start_neuron_id)),
-        ),
-        field(
-            "total_neuron_count",
-            &(report
+    lines.extend(crate::text_value::report_fields!(report;
+        from_cache = yes_no(report.provenance.cache_path().is_some()),
+        requested_limit,
+        exclusive_start_neuron_id = optional_u64_text(report.exclusive_start_neuron_id),
+        next_start_neuron_id = optional_u64_text(report.next_start_neuron_id),
+        total_neuron_count = report
                 .total_neuron_count
-                .map_or_else(|| "-".to_string(), |count| count.to_string())),
-        ),
-        field(
-            "point_in_time_guaranteed",
-            &(yes_no(report.point_in_time_guaranteed)),
-        ),
-        field("returned_neuron_count", &(report.neurons.len())),
-        field("verbose", &(yes_no(options.verbose))),
-    ]);
+                .map_or_else(|| "-".to_string(), |count| count.to_string()),
+        point_in_time_guaranteed = yes_no(report.point_in_time_guaranteed),
+        returned_neuron_count = report.neurons.len(),
+        verbose = yes_no(options.verbose),
+    ));
     if let Some(cache_path) = report.provenance.cache_path() {
         lines.push(field("cache_path", &(cache_path)));
     }

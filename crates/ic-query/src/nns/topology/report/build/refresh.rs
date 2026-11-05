@@ -1,5 +1,5 @@
 use crate::nns::{
-    LiveNnsSource, NnsInventoryError, NnsInventoryRefreshReport,
+    LiveNnsSource, NnsInventoryRefreshReport,
     topology::report::{
         NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION, NnsTopologyHostError, NnsTopologyRefreshReport,
         NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRefreshSource,
@@ -21,41 +21,15 @@ pub async fn refresh_nns_topology_report_with_source(
     enforce_mainnet_network(request.read.cache.network.as_str())?;
 
     let subnet_report = source.refresh_subnet_catalog_report(request).await?;
-    let node_report = source.refresh_node_report(request).await?;
-    validate_inventory_refresh_collection(&node_report, "nodes").map_err(|reason| {
-        NnsInventoryError::InvalidSourceData {
-            collection: crate::nns::NnsInventoryCollection::Node,
-            reason,
-        }
-    })?;
-    let node_provider_report = source.refresh_node_provider_report(request).await?;
-    validate_inventory_refresh_collection(&node_provider_report, "node_providers").map_err(
-        |reason| NnsInventoryError::InvalidSourceData {
-            collection: crate::nns::NnsInventoryCollection::NodeProvider,
-            reason,
-        },
-    )?;
-    let node_operator_report = source.refresh_node_operator_report(request).await?;
-    validate_inventory_refresh_collection(&node_operator_report, "node_operators").map_err(
-        |reason| NnsInventoryError::InvalidSourceData {
-            collection: crate::nns::NnsInventoryCollection::NodeOperator,
-            reason,
-        },
-    )?;
-    let data_center_report = source.refresh_data_center_report(request).await?;
-    validate_inventory_refresh_collection(&data_center_report, "data_centers").map_err(
-        |reason| NnsInventoryError::InvalidSourceData {
-            collection: crate::nns::NnsInventoryCollection::DataCenter,
-            reason,
-        },
-    )?;
-
+    let inventory = crate::nns::node_provider::refresh_nns_node_provider_report_with_source(
+        &super::super::request::inventory_refresh_request(request),
+        source,
+    )
+    .await?;
     let components = vec![
         refresh_row_from_subnet_report(subnet_report),
-        refresh_row_from_inventory_report(node_report),
-        refresh_row_from_inventory_report(node_provider_report),
-        refresh_row_from_inventory_report(node_operator_report),
-        refresh_row_from_inventory_report(data_center_report),
+        refresh_row_from_inventory_report(inventory.inventory),
+        refresh_row_from_inventory_report(inventory.metadata),
     ];
     Ok(NnsTopologyRefreshReport {
         schema_version: NNS_TOPOLOGY_REFRESH_REPORT_SCHEMA_VERSION,
@@ -76,14 +50,24 @@ pub async fn refresh_nns_topology_report_with_source(
 }
 
 fn refresh_row_from_inventory_report(report: NnsInventoryRefreshReport) -> NnsTopologyRefreshRow {
+    let (registry_version, fetched_at, source_endpoint, fetched_by) = match report.governance_source
+    {
+        Some(source) => (None, source.fetched_at, source.endpoint, source.fetched_by),
+        None => (
+            Some(report.provenance.registry_version),
+            report.provenance.fetched_at,
+            report.provenance.source_endpoint,
+            report.provenance.fetched_by,
+        ),
+    };
     NnsTopologyRefreshRow {
         source: report.collection,
         cache_path: report.cache_path,
         refresh_lock_path: report.refresh_lock_path,
-        registry_version: report.provenance.registry_version,
-        fetched_at: report.provenance.fetched_at,
-        source_endpoint: report.provenance.source_endpoint,
-        fetched_by: report.provenance.fetched_by,
+        registry_version,
+        fetched_at,
+        source_endpoint,
+        fetched_by,
         dry_run: report.dry_run,
         wrote_cache: report.wrote_cache,
         replaced_existing_cache: report.replaced_existing_cache,
@@ -96,7 +80,7 @@ fn refresh_row_from_subnet_report(report: SubnetCatalogRefreshReport) -> NnsTopo
         source: "subnet_catalog".to_string(),
         cache_path: report.catalog_path,
         refresh_lock_path: report.refresh_lock_path,
-        registry_version: report.metadata.registry_version,
+        registry_version: Some(report.metadata.registry_version),
         fetched_at: report.metadata.fetched_at,
         source_endpoint: report.metadata.source_endpoints.join(","),
         fetched_by: report.fetched_by,
@@ -105,17 +89,4 @@ fn refresh_row_from_subnet_report(report: SubnetCatalogRefreshReport) -> NnsTopo
         replaced_existing_cache: report.replaced_existing_catalog,
         item_count: report.subnet_count,
     }
-}
-
-fn validate_inventory_refresh_collection(
-    report: &NnsInventoryRefreshReport,
-    expected: &str,
-) -> Result<(), String> {
-    if report.collection != expected {
-        return Err(format!(
-            "refresh collection is {:?}, expected {expected}",
-            report.collection
-        ));
-    }
-    Ok(())
 }

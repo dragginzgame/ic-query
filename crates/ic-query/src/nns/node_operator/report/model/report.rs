@@ -16,16 +16,6 @@ pub struct NnsNodeOperatorListReport {
     pub node_operators: Vec<NnsNodeOperatorRow>,
 }
 
-#[cfg(feature = "nns-host")]
-impl_nns_inventory_report!(
-    NnsNodeOperatorListReport,
-    super::super::NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
-    "node_operator",
-    super::super::COLLECTION,
-    node_operators,
-    |_report: &NnsNodeOperatorListReport| None,
-);
-
 ///
 /// NnsNodeOperatorRow
 ///
@@ -33,6 +23,7 @@ impl_nns_inventory_report!(
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNodeOperatorRow {
     pub node_operator_principal: String,
     pub node_provider_principal: String,

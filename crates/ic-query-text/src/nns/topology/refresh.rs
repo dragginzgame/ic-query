@@ -46,7 +46,7 @@ fn render_refresh_table(report: &NnsTopologyRefreshReport) -> String {
             [
                 row.source.clone(),
                 row.item_count.to_string(),
-                row.registry_version.to_string(),
+                crate::text_value::optional_u64_text(row.registry_version),
                 row.fetched_at.clone(),
                 yes_no(row.wrote_cache).to_string(),
                 yes_no(row.replaced_existing_cache).to_string(),

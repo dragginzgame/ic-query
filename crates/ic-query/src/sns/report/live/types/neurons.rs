@@ -4,7 +4,7 @@
 //! Does not own: live transport, neuron conversion, cache IO, or rendering.
 //! Boundary: mirrors list_neurons request and response payloads.
 
-use super::{SnsGovernanceError, SnsMetricsAccount, SnsTopic};
+use super::SnsGovernanceError;
 use crate::sns::report::SnsNeuronId;
 use ic_platform::candid::contract::{CandidType, Principal, serde::Deserialize};
 
@@ -42,7 +42,7 @@ pub(in crate::sns::report::live) struct GetNeuronResponse {
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) enum GetNeuronResult {
     Error(SnsGovernanceError),
-    Neuron(Box<SnsGovernanceNeuronDetail>),
+    Neuron(Box<SnsGovernanceNeuron>),
 }
 
 ///
@@ -80,32 +80,9 @@ pub(in crate::sns::report::live) struct ListNeuronsResponse {
 #[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
 #[candid_path("ic_platform::candid::contract")]
 pub(in crate::sns::report::live) struct SnsGovernanceNeuron {
-    pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
-    pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
-    pub(in crate::sns::report::live) maturity_e8s_equivalent: u64,
-    pub(in crate::sns::report::live) cached_neuron_stake_e8s: u64,
-    pub(in crate::sns::report::live) created_timestamp_seconds: u64,
-    pub(in crate::sns::report::live) source_nns_neuron_id: Option<u64>,
-    pub(in crate::sns::report::live) auto_stake_maturity: Option<bool>,
-    pub(in crate::sns::report::live) aging_since_timestamp_seconds: u64,
-    pub(in crate::sns::report::live) dissolve_state: Option<SnsGovernanceDissolveState>,
-    pub(in crate::sns::report::live) voting_power_percentage_multiplier: u64,
-    pub(in crate::sns::report::live) vesting_period_seconds: Option<u64>,
-    pub(in crate::sns::report::live) neuron_fees_e8s: u64,
-}
-
-///
-/// SnsGovernanceNeuronDetail
-///
-/// Full Candid SNS Governance neuron returned by exact lookup.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
-    pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
-    pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
     pub(in crate::sns::report::live) permissions: Vec<SnsGovernanceNeuronPermission>,
+    pub(in crate::sns::report::live) id: Option<SnsNeuronId>,
+    pub(in crate::sns::report::live) staked_maturity_e8s_equivalent: Option<u64>,
     pub(in crate::sns::report::live) maturity_e8s_equivalent: u64,
     pub(in crate::sns::report::live) cached_neuron_stake_e8s: u64,
     pub(in crate::sns::report::live) created_timestamp_seconds: u64,
@@ -115,10 +92,6 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
     pub(in crate::sns::report::live) dissolve_state: Option<SnsGovernanceDissolveState>,
     pub(in crate::sns::report::live) voting_power_percentage_multiplier: u64,
     pub(in crate::sns::report::live) vesting_period_seconds: Option<u64>,
-    pub(in crate::sns::report::live) disburse_maturity_in_progress:
-        Vec<SnsGovernanceMaturityDisbursement>,
-    pub(in crate::sns::report::live) followees: Vec<(u64, SnsGovernanceFollowees)>,
-    pub(in crate::sns::report::live) topic_followees: Option<SnsGovernanceTopicFollowees>,
     pub(in crate::sns::report::live) neuron_fees_e8s: u64,
 }
 
@@ -133,72 +106,6 @@ pub(in crate::sns::report::live) struct SnsGovernanceNeuronDetail {
 pub(in crate::sns::report::live) struct SnsGovernanceNeuronPermission {
     pub(in crate::sns::report::live) principal: Option<Principal>,
     pub(in crate::sns::report::live) permission_type: Vec<i32>,
-}
-
-///
-/// SnsGovernanceMaturityDisbursement
-///
-/// Native pending maturity disbursement embedded in one neuron.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceMaturityDisbursement {
-    pub(in crate::sns::report::live) timestamp_of_disbursement_seconds: u64,
-    pub(in crate::sns::report::live) amount_e8s: u64,
-    pub(in crate::sns::report::live) account_to_disburse_to: Option<SnsMetricsAccount>,
-    pub(in crate::sns::report::live) finalize_disbursement_timestamp_seconds: Option<u64>,
-}
-
-///
-/// SnsGovernanceFollowees
-///
-/// Native neuron-id collection used by legacy and topic following.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceFollowees {
-    pub(in crate::sns::report::live) followees: Vec<SnsNeuronId>,
-}
-
-///
-/// SnsGovernanceFollowee
-///
-/// Native topic followee with an optional neuron id and alias.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceFollowee {
-    pub(in crate::sns::report::live) neuron_id: Option<SnsNeuronId>,
-    pub(in crate::sns::report::live) alias: Option<String>,
-}
-
-///
-/// SnsGovernanceFolloweesForTopic
-///
-/// Native followee collection and topic variant for one topic map entry.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceFolloweesForTopic {
-    pub(in crate::sns::report::live) followees: Vec<SnsGovernanceFollowee>,
-    pub(in crate::sns::report::live) topic: Option<SnsTopic>,
-}
-
-///
-/// SnsGovernanceTopicFollowees
-///
-/// Native optional topic-following map wrapper embedded in one neuron.
-///
-
-#[derive(CandidType, Clone, Debug, Deserialize, Eq, PartialEq)]
-#[candid_path("ic_platform::candid::contract")]
-pub(in crate::sns::report::live) struct SnsGovernanceTopicFollowees {
-    pub(in crate::sns::report::live) topic_id_to_followees:
-        Vec<(i32, SnsGovernanceFolloweesForTopic)>,
 }
 
 ///

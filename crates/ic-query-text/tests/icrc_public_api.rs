@@ -1,22 +1,14 @@
 #[cfg(feature = "icrc-host")]
 use ic_query::QueryProgress;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::CachedIcrcAccountTransactionSnapshot;
 use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE;
 use ic_query::icrc::IcrcAccountRow;
 use ic_query::icrc::IcrcAccountTransactionCacheRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionCacheStatusReport;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcAccountTransactionCollectionData;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcAccountTransactionCollectionSource;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcAccountTransactionError;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionListReport;
 use ic_query::icrc::IcrcAccountTransactionListRequest;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcAccountTransactionPageData;
@@ -24,8 +16,6 @@ use ic_query::icrc::IcrcAccountTransactionPageReport;
 use ic_query::icrc::IcrcAccountTransactionPageRequest;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcAccountTransactionPageSource;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionRefreshReport;
 use ic_query::icrc::IcrcAccountTransactionRefreshRequest;
 use ic_query::icrc::IcrcAccountTransactionRow;
 use ic_query::icrc::IcrcAccountTransactionSort;
@@ -86,70 +76,26 @@ use ic_query::icrc::IcrcTransactionsRequest;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::IcrcTransactionsSource;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_account_transaction_cache_status_report;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_account_transaction_list_report;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_account_transaction_page_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_account_transaction_page_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_allowance_report;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_allowance_report_with_source;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_archives_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_archives_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_balance_report;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_balance_report_with_source;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_block_types_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_block_types_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_capabilities_report;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_capabilities_report_with_source;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_index_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_index_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_tip_certificate_report;
 #[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_tip_certificate_report_with_source;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_token_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_token_report_with_source;
 #[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_transactions_report;
-#[cfg(feature = "icrc-host")]
 use ic_query::icrc::build_icrc_transactions_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::icrc_account_transaction_cache_path;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::icrc_account_transaction_refresh_attempt_path;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::icrc_account_transaction_refresh_lock_path;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::load_cached_icrc_account_transactions;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::load_or_refresh_missing_icrc_account_transactions;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::load_or_refresh_missing_icrc_account_transactions_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::load_or_refresh_stale_icrc_account_transactions;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::load_or_refresh_stale_icrc_account_transactions_with_source;
 use ic_query::icrc::normalize_subaccount_hex;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::refresh_icrc_account_transaction_cache;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::refresh_icrc_account_transaction_cache_with_source_and_progress;
 use ic_query_text::icrc::icrc_account_transaction_page_report_text;
 use ic_query_text::icrc::icrc_allowance_report_text;
 use ic_query_text::icrc::icrc_archives_report_text;
@@ -161,12 +107,6 @@ use ic_query_text::icrc::icrc_tip_certificate_report_text;
 use ic_query_text::icrc::icrc_token_report_text;
 use ic_query_text::icrc::icrc_transactions_report_text;
 use serde_json::json;
-#[cfg(feature = "icrc-host")]
-use std::path::PathBuf;
-
-#[cfg(feature = "icrc-host")]
-type IcrcBuilder<Request, Report, Error> =
-    for<'a> fn(&'a Request) -> ic_query::report::SourceFuture<'a, Result<Report, Error>>;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 const ACCOUNT_OWNER: &str = "aaaaa-aa";
@@ -176,61 +116,6 @@ const FETCHED_AT: &str = "2023-11-14T22:13:20Z";
 const FETCHED_AT_UNIX_SECS: u64 = 1_700_000_000;
 const FETCHED_BY: &str = "ic-query";
 const SUBACCOUNT_HEX: &str = "0000000000000000000000000000000000000000000000000000000000000001";
-
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionListBuilder =
-    fn(
-        &IcrcAccountTransactionListRequest,
-    ) -> Result<IcrcAccountTransactionListReport, IcrcAccountTransactionError>;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionCacheLoader =
-    fn(
-        &IcrcAccountTransactionCacheRequest,
-    ) -> Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionRefreshWithSourceAndProgress =
-    for<'a> fn(
-        &'a IcrcAccountTransactionRefreshRequest,
-        &'a dyn IcrcAccountTransactionCollectionSource,
-        &'a mut (dyn QueryProgress + Send),
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<IcrcAccountTransactionRefreshReport, IcrcAccountTransactionError>,
-    >;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionLoadMissingWithSource = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-    &'a dyn IcrcAccountTransactionCollectionSource,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>,
->;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionLoadStaleWithSource = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-    u64,
-    &'a dyn IcrcAccountTransactionCollectionSource,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>,
->;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionCachePath =
-    fn(&IcrcAccountTransactionCacheRequest) -> Result<PathBuf, IcrcAccountTransactionError>;
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionCacheStatusBuilder =
-    fn(
-        &IcrcAccountTransactionCacheRequest,
-    ) -> Result<IcrcAccountTransactionCacheStatusReport, IcrcAccountTransactionError>;
-
-#[cfg(feature = "icrc-host")]
-type IcrcAccountTransactionLoadStale = for<'a> fn(
-    &'a IcrcAccountTransactionRefreshRequest,
-    u64,
-) -> ic_query::report::SourceFuture<
-    'a,
-    Result<CachedIcrcAccountTransactionSnapshot, IcrcAccountTransactionError>,
->;
 
 #[test]
 fn public_icrc_subaccount_normalization_is_available_without_host() {
@@ -357,101 +242,6 @@ fn public_icrc_request_constructors_set_expected_fields() {
         Some(ARCHIVE_CANISTER_ID)
     );
 }
-
-#[cfg(feature = "icrc-host")]
-#[test]
-fn public_icrc_host_api_exposes_live_builder_entry_points() {
-    assert_eq!(ICRC_ACCOUNT_TRANSACTION_MAX_PAGE_SIZE, 100);
-
-    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcTokenReport, IcrcError>>(|arg0| {
-        Box::pin(build_icrc_token_report(arg0))
-    });
-    accepts_public_function::<IcrcBuilder<IcrcBalanceRequest, IcrcBalanceReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_balance_report(arg0)),
-    );
-    accepts_public_function::<IcrcBuilder<IcrcAllowanceRequest, IcrcAllowanceReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_allowance_report(arg0)),
-    );
-    accepts_public_function::<
-        IcrcBuilder<
-            IcrcAccountTransactionPageRequest,
-            IcrcAccountTransactionPageReport,
-            IcrcAccountTransactionError,
-        >,
-    >(|arg0| Box::pin(build_icrc_account_transaction_page_report(arg0)));
-    accepts_public_function::<IcrcAccountTransactionListBuilder>(
-        build_icrc_account_transaction_list_report,
-    );
-    accepts_public_function::<IcrcAccountTransactionCacheLoader>(
-        load_cached_icrc_account_transactions,
-    );
-    accepts_public_function::<IcrcAccountTransactionRefreshWithSourceAndProgress>(
-        |request, source, progress| {
-            Box::pin(
-                refresh_icrc_account_transaction_cache_with_source_and_progress(
-                    request, source, progress,
-                ),
-            )
-        },
-    );
-    accepts_public_function::<IcrcAccountTransactionLoadMissingWithSource>(|arg0, arg1| {
-        Box::pin(load_or_refresh_missing_icrc_account_transactions_with_source(arg0, arg1))
-    });
-    accepts_public_function::<IcrcAccountTransactionLoadStaleWithSource>(|arg0, arg1, arg2| {
-        Box::pin(load_or_refresh_stale_icrc_account_transactions_with_source(
-            arg0, arg1, arg2,
-        ))
-    });
-    for path_builder in [
-        icrc_account_transaction_cache_path,
-        icrc_account_transaction_refresh_attempt_path,
-        icrc_account_transaction_refresh_lock_path,
-    ] {
-        accepts_public_function::<IcrcAccountTransactionCachePath>(path_builder);
-    }
-    accepts_public_function::<IcrcAccountTransactionCacheStatusBuilder>(
-        build_icrc_account_transaction_cache_status_report,
-    );
-    accepts_public_function::<
-        IcrcBuilder<
-            IcrcAccountTransactionRefreshRequest,
-            IcrcAccountTransactionRefreshReport,
-            IcrcAccountTransactionError,
-        >,
-    >(|arg0| Box::pin(refresh_icrc_account_transaction_cache(arg0)));
-
-    accepts_public_function::<
-        IcrcBuilder<
-            IcrcAccountTransactionRefreshRequest,
-            CachedIcrcAccountTransactionSnapshot,
-            IcrcAccountTransactionError,
-        >,
-    >(|arg0| Box::pin(load_or_refresh_missing_icrc_account_transactions(arg0)));
-    accepts_public_function::<IcrcAccountTransactionLoadStale>(|arg0, arg1| {
-        Box::pin(load_or_refresh_stale_icrc_account_transactions(arg0, arg1))
-    });
-    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcIndexReport, IcrcError>>(|arg0| {
-        Box::pin(build_icrc_index_report(arg0))
-    });
-    accepts_public_function::<
-        IcrcBuilder<IcrcTransactionsRequest, IcrcTransactionsReport, IcrcError>,
-    >(|arg0| Box::pin(build_icrc_transactions_report(arg0)));
-    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcBlockTypesReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_block_types_report(arg0)),
-    );
-    accepts_public_function::<IcrcBuilder<IcrcArchivesRequest, IcrcArchivesReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_archives_report(arg0)),
-    );
-    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcTipCertificateReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_tip_certificate_report(arg0)),
-    );
-    accepts_public_function::<IcrcBuilder<IcrcLedgerRequest, IcrcCapabilitiesReport, IcrcError>>(
-        |arg0| Box::pin(build_icrc_capabilities_report(arg0)),
-    );
-}
-
-#[cfg(feature = "icrc-host")]
-fn accepts_public_function<T>(_function: T) {}
 
 #[cfg(feature = "icrc-host")]
 #[tokio::test(flavor = "current_thread")]

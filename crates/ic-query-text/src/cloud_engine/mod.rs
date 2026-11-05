@@ -147,39 +147,21 @@ fn append_lookup_failures(report: &CloudEngineListReport, lines: &mut Vec<String
 #[must_use]
 pub fn cloud_engine_operator_report_text(report: &CloudEngineOperatorReport) -> String {
     let mut lines = context_lines(&report.context);
-    lines.extend([
-        field("subnet_id", &(report.subnet_id)),
-        field(
-            "operator_binding_present",
-            &(yes_no(report.operator_canister_id.is_some())),
-        ),
-        field(
-            "operator_canister_id",
-            &(optional_text(report.operator_canister_id.as_ref())),
-        ),
-        field(
-            "engine_owner",
-            &(optional_text(report.engine_owner.as_ref())),
-        ),
-        field(
-            "platform_admin",
-            &(optional_text(report.platform_admin.as_ref())),
-        ),
-        field(
-            "caffeine_enabled",
-            &(report
+    lines.extend(crate::text_value::report_fields!(report;
+        subnet_id,
+        operator_binding_present = yes_no(report.operator_canister_id.is_some()),
+        operator_canister_id = optional_text(report.operator_canister_id.as_ref()),
+        engine_owner = optional_text(report.engine_owner.as_ref()),
+        platform_admin = optional_text(report.platform_admin.as_ref()),
+        caffeine_enabled = report
                 .caffeine_enabled
-                .map_or_else(|| "-".to_string(), |enabled| yes_no(enabled).to_string())),
-        ),
-        field(
-            "claimed_domain_count",
-            &(report
+                .map_or_else(|| "-".to_string(), |enabled| yes_no(enabled).to_string()),
+        claimed_domain_count = report
                 .claimed_domains
                 .as_ref()
                 .map(Vec::len)
-                .map_or_else(|| "-".to_string(), |count| count.to_string())),
-        ),
-    ]);
+                .map_or_else(|| "-".to_string(), |count| count.to_string()),
+    ));
 
     if let Some(domains) = report.claimed_domains.as_ref()
         && !domains.is_empty()

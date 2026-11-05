@@ -73,7 +73,6 @@ async fn run_daily_stats(matches: &ArgMatches) -> Result<(), IcCommandError> {
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("network")
-        .bin_name("icq ic network")
         .about("Inspect bounded official Dashboard network analytics")
         .subcommand(boundary_node_data_centers_command())
         .subcommand(daily_stats_command())
@@ -81,7 +80,6 @@ pub(super) fn command() -> ClapCommand {
 
 fn boundary_node_data_centers_command() -> ClapCommand {
     ClapCommand::new("boundary-node-data-centers")
-        .bin_name("icq ic network boundary-node-data-centers")
         .about("List official Dashboard boundary-node data-center aggregates")
         .arg(json_arg())
         .arg(
@@ -96,7 +94,6 @@ fn boundary_node_data_centers_command() -> ClapCommand {
 
 fn daily_stats_command() -> ClapCommand {
     ClapCommand::new("daily-stats")
-        .bin_name("icq ic network daily-stats")
         .about("Query bounded official Dashboard daily network activity")
         .arg(
             value_arg("start")

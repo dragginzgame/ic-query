@@ -29,3 +29,19 @@ pub struct TextOptions {
     /// Expand human-facing report detail.
     pub verbose: bool,
 }
+
+/// Render shared refresh-attempt evidence with one human-facing field vocabulary.
+pub fn refresh_attempt_lines(
+    attempt: &ic_query::cache::SnapshotRefreshAttemptStatus,
+) -> [String; 8] {
+    crate::text_value::report_fields!(attempt;
+        attempt_status = attempt.status,
+        attempt_started_at = &attempt.started_at,
+        attempt_updated_at = &attempt.updated_at,
+        attempt_page_size = attempt.page_size,
+        attempt_pages_fetched = attempt.pages_fetched,
+        attempt_rows_fetched = attempt.rows_fetched,
+        attempt_last_cursor = crate::text_value::optional_text(attempt.last_cursor.as_ref()),
+        attempt_last_error = crate::text_value::optional_text(attempt.last_error.as_ref()),
+    )
+}

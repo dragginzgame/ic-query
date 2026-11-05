@@ -10,7 +10,7 @@ use serde::Serialize;
 ///
 /// SnsSnapshotRefreshReport
 ///
-/// Publication result shared by complete neuron and proposal snapshot refreshes.
+/// Publication result shared by complete neuron snapshot refreshes.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -20,7 +20,7 @@ pub struct SnsSnapshotRefreshReport {
     /// SNS identity and provenance, serialized as flat report fields.
     #[serde(flatten)]
     pub context: SnsReportContext,
-    /// Published collection: neurons or proposals.
+    /// Published collection: neurons.
     pub collection: String,
     /// Path of the published complete snapshot.
     pub cache_path: String,

@@ -56,7 +56,7 @@ Dependencies own the reusable mechanisms beneath that policy:
 
 Shared report records preserve flattened JSON while giving Rust callers one owner
 for acquisition metadata and payloads. Live ICRC reports carry ledger acquisition
-fields through `provenance`; NNS proposal and SNS list/proposal/neuron-list reports
+fields through `provenance`; NNS proposal and SNS neuron-list reports
 carry `ReportProvenance` through the same field. Catalog annotations live in
 `classification`, Dashboard release details in `release`, and detailed catalog
 failure progress in `evidence`. Custom sources and callers use these records
@@ -67,21 +67,12 @@ Registry collection returns the portable NNS version/evidence contract directly.
 Native node, operator and data-center projections carry their canonical NNS rows
 into report envelopes. Sources, list/detail reports, refresh outcomes and Registry version reports share
 `NnsRegistryInventoryProvenance` through `provenance`, flattened in JSON;
-provider-name enrichment remains a separate NNS projection. SNS Root reports
-carry their portable `MainnetSnsCanisterInventory` payload through `inventory`,
-also flattened in JSON. Host canonicalization remains independent of rendering.
-SNS Root, metrics, token and swap reports share `SnsInstanceContext` through
-`context`; Governance envelopes compose it as `SnsReportContext.instance` beside
-the Governance principal. NNS proposal activity and neuron distribution carry
-`NnsGovernanceAnalyticsContext` directly into validation. These context records
-remain flattened in JSON; see the [0.84 Rust consumer update](../changelog/0.84.md).
-Registry latest-version authentication carries its certificate record directly
-into the version result.
-SNS enrichment sources carry success or bounded failure outcomes. Joined catalogs
-and list rows retain lifecycle evidence as `SnsLifecycleOutcome`: not collected,
-a raw value, or bounded failure. Complete catalog admission rejects uncollected
-outcomes; direct lookups need not request lifecycle evidence. The schema-1
-catalog shape is replaced in 0.86; see the [consumer update](../changelog/0.86.md).
+provider-name enrichment remains a separate NNS projection. NNS proposal activity
+and neuron distribution retain `NnsGovernanceAnalyticsContext`. Registry latest-version
+authentication carries its certificate record directly into the version result.
+Retained neuron reports carry an explicit Governance principal and acquisition
+metadata through `SnsReportContext`; project metadata and discovery are retired.
+
 Shared report provenance represents live rows or a complete-cache path directly;
 text rendering derives completeness from that origin. Complete ICRC history
 snapshots, refreshes and lists carry identity and collection metadata through
@@ -252,7 +243,7 @@ no recursive conversions. There is no direct `ic-certification` declaration;
 Platform and Agent select the shared registry dependency.
 
 Platform's optional ledger surface owns the maintained ICRC Rust DTOs.
-`icrc-host` and `sns-host` select it directly; Host's
+`icrc-host` selects it directly; Host's
 `ledger-evidence` feature selects it for `ledger-evidence-host`. Query has
 no direct ledger-types declaration. Account semantics, generic-value hashes,
 wire variants and archive callbacks retain their external contracts. Query retains archive
@@ -309,17 +300,21 @@ network and collection provenance use a shared source request instead of
 per-report request DTOs. Native NNS, SNS, CMC and CloudEngine capabilities use
 `ic_query::report::CollectionSourceRequest`; network admission remains family-owned. Registry-derived NNS inventory operations
 share `NnsInventoryCacheRequest`, `NnsInventoryListRequest`,
-`NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Their refreshes
-return `NnsInventoryRefreshReport` with explicit collection identity, row count,
-publication evidence and optional provider Governance identity. Inventory
-snapshots keep their family row models and persisted field names. Simple
+`NnsInventoryInfoRequest`, and `NnsInventoryRefreshRequest`. Node, operator and data-centre views share one
+`NnsRegistryInventorySnapshot` and `NnsRegistryInventorySource`, with one
+Registry pin and complete-cache publication. Their refreshes return
+`NnsInventoryRefreshReport`. Node-provider metadata has its own Governance
+source, cache and acquisition provenance; joined provider reports derive node
+counts from the captured Registry snapshot. Provider refresh returns
+`NnsNodeProviderRefreshReport` with separate inventory and metadata publication
+outcomes. Topology reads reuse that captured snapshot and refresh reports three
+components: Subnet Catalog, Registry inventory and Governance metadata. A
+Governance failure does not invalidate the independently published Registry
+snapshot. Simple
 ledger-wide ICRC capabilities share `IcrcLedgerRequest`; balance, allowance,
 transaction, archive and account-page requests compose that same ledger scope.
-Clock-free account-cache identity remains separate from collection clocks. SNS neuron and
-proposal cache inspection shares the `SnsCache*` request and report contracts;
-the collection-specific builders still own their distinct cache paths and
-rendering. Targeted cache reads and status require an SNS root principal;
-numeric discovery is confined to live requests and explicit refresh. Complete NNS Governance proposal and neuron collections share
+Clock-free account-cache identity remains separate from collection clocks. Neuron cache inspection retains the `SnsCache*` contracts, addressed by an explicit
+Governance principal. There is no project-id or Root lookup. Complete NNS Governance proposal and neuron collections share
 `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 `NnsGovernanceRefreshAttemptStatus`, and `NnsGovernanceError`, while each
 capability retains its own page validation, cache identity, report, and
@@ -338,31 +333,18 @@ transport-aware `NnsGovernanceRequest`; its portable async sources select
 replica-query or replicated inter-canister collection. `LiveNnsSource` and
 `CanisterNnsSource` implement the native and Wasm canister transports. These
 remain live point-value reports rather than creating another collection cache.
-SNS capabilities share `CollectionSourceRequest`, including explicit network and
-collection provenance. Targeted live-capable requests compose a `SnsLookupRequest`
-for network, endpoint, caller clock and target. Builders borrow that scope;
-cache-only and whole-SNS list requests keep their distinct acquisition inputs. Complete neuron/proposal refreshes accept one
-`SnsSnapshotRefreshRequest` and return `SnsSnapshotRefreshReport`, whose
-`collection` and `row_count` identify the published data. Separate collectors
-own cursor and page validation; the common lifecycle owns publication and
-attempt-finalization evidence. Shared neuron report assembly receives explicit
-live owner scope or cached whole-collection totals before view limits. Neuron
-requests carry explicit live or cached acquisition inputs; only live requests
-accept an owner, while cached requests require their root and local sort. Complete catalog enrichment uses `SnsCatalogSource` to
-add exact-target Swap lifecycles to `SnsDiscoverySource` inventory and
-Governance metadata. SNS Root inventory and health use one
-`SnsCanisterSource` capability on `LiveSnsSource` rather than separate
-adapters for the Root inventory query and read-only health ingress.
-Bounded swap lifecycle, sale parameters, and derived state similarly share one
-`SnsSwapSource` capability rather than exposing one trait per native method.
-Bounded deployed/pending and next-blessed version evidence shares one
-`SnsUpgradeSource` capability across Governance and SNS-W rather than exposing
-one trait per query.
-Bounded proposal-window, cached treasury, voting-power, and ledger-timestamp
-evidence shares one `SnsMetricsSource` capability for Governance `get_metrics`
-rather than reconstructing treasury state through ledger-history scans.
-Exact neuron permission/followee detail uses `SnsNeuronSource` on `LiveSnsSource`;
-variable-size detail does not expand the ordinary fixed-size neuron collection cache.
+Neuron sources share `CollectionSourceRequest` and an explicit Governance principal.
+`SnsNeuronTargetRequest` selects that principal, endpoint, network and caller clock.
+`SnsNeuronSource` and `SnsNeuronsSource` require no discovery capability. Exact and
+paged reads project one native neuron contract with raw stake, fees, maturity,
+dissolve/vesting fields and principal permission codes. Unknown permission codes
+remain numeric evidence. Toko owns eligibility and all token mutations.
+Complete scans use `SnsSnapshotRefreshRequest`; pagination, locking, attempt
+sidecars, complete-only publication and invalid-content handling remain explicit.
+Cached views use the new Governance-addressed namespace and never load a retired
+Root-addressed file. There is no SNS-W, catalog, Root health, token wrapper,
+proposal, parameter, swap, upgrade or metrics report path.
+
 Dashboard caller requests share `IcDashboardRequest` for their explicit API
 endpoint and collection clock. Parameterized requests compose it as `dashboard`,
 including CloudEngine Dashboard requests and the shared ICRC analytics target; node-status snapshot and boundary-node
@@ -448,15 +430,13 @@ characters and signs are rejected without slicing unvalidated UTF-8 text.
 
 Raw ICRC numbers use plain base-10 strings, preserving arbitrary precision
 and signed integer values. The shared ledger `nat_text` helper owns conversion
-for account-history cursors, ledger reports, SNS token metadata, and SNS Root
-canister health fields. Candid's human-facing `Display` adds underscore grouping
+for account-history cursors and ledger reports. Candid's human-facing `Display` adds underscore grouping
 and is unsuitable for these
 raw fields or the history validator's decimal inputs.
 
 Token metadata payload and supported-standard/metadata rows have one portable owner under
-`icrc::model::token_metadata`. Ledger collection, ICRC reports and SNS reports
-use the same public ICRC rows. Native ledger fetching and SNS sources share
-`IcrcTokenData`; SNS composes it beside independent ledger-index discovery
+`icrc::model::token_metadata`. Ledger collection and ICRC reports use the same public ICRC rows and
+`IcrcTokenData`; native ledger index discovery remains explicit
 evidence and retains its own report and source provenance. The shared ledger
 module owns the typed ICRC-106 query and method identity; callers retain their
 distinct failure policies and account-history ledger/index binding checks.
@@ -465,11 +445,6 @@ standards decode directly into the canonical row without a wire-only copy.
 ICRC block-type and archive source capabilities return vectors of their report
 rows directly, without payload-only result envelopes. Requests retain archive
 cursors and reports retain collection provenance.
-
-SNS version hash validation belongs beside `SnsVersion`. Upgrade admission
-requires nonempty lowercase even-length hex, while reward evidence requires
-32-byte hashes. Each caller still validates its own target, consistency and
-bracketing evidence; shared representation checks do not replace those gates.
 
 Human-facing cycle counts and decimal cycle rates share the unit table in
 `human_quantity`. Integer counts use bounded arithmetic; rates use Host Text's
@@ -628,65 +603,13 @@ evidence lengths from the raw version-report fields.
 
 - NNS exact topology follows Subnet membership through nodes and operators to
   providers at one Registry version.
-- SNS discovery first reads unenriched SNS-W inventory. Direct id/Root lookup
-  resolves that inventory before requesting metadata for exactly one target;
-  unknown lookup requests no metadata. The resolved `MainnetSns` owns the
-  original inventory id used by live reports and complete-cache refreshes.
-  Its `canisters: MainnetSnsCanisters` value carries all five principals into
-  list and info reports without unpacking them. The canonical model is portable;
-  Serde flattening preserves the current report and catalog JSON fields.
-  Lookup owns root-principal text normalization for live resolution, complete
-  cache reads, and cache-status inspection.
-  Direct reports and refreshes retain that row and the shared source request;
-  inventory validation first requires its provenance to match the request and
-  its SNS-W identity to match the mainnet constant. The temporary joined lookup
-  inventory is consumed instead of retained alongside a second copy of its row.
-  Only `sns list` enriches every row with Governance metadata and Swap
-  `get_lifecycle`, then stores the full joined
-  catalog. Its default view retains lifecycle code `3` (`committed`); `--all`
-  includes every lifecycle and bounded lifecycle-query error while preserving
-  SNS-W ids.
-- SNS Root reporting resolves one deployed SNS, uses `list_sns_canisters` as
-  membership authority, and joins `get_sns_canisters_summary` health with
-  `update_canister_list = false`. The sequential reads retain typed gaps and
-  explicitly carry no point-in-time guarantee.
-- SNS swap reporting resolves one deployed SNS and attempts exactly
-  `get_lifecycle`, `get_sale_parameters`, and `get_derived_state` against its
-  discovered swap canister. Component failures remain typed gaps. The adapter
-  does not call the participant-bearing `get_state`, apply swap methods to
-  another SNS, create a cache, or claim that the sequential responses are one
-  point-in-time snapshot. Target resolution retains the existing SNS-W
-  targeted discovery behavior, so the complete direct command budget is one
-  SNS-W query, one selected-SNS metadata query, and three swap queries.
-- SNS upgrade reporting resolves one deployed SNS, requires Governance
-  `get_running_sns_version`, and compares that exact deployed version through
-  SNS-W `get_next_sns_version`. A successful absent successor remains distinct
-  from a typed next-version query gap. The flow makes at most four live calls
-  including targeted discovery, does not read the upgrade journal, download
-  Wasms, fan out, create a cache, or claim one point-in-time snapshot.
-- SNS metrics reporting resolves one deployed SNS and calls Governance
-  `get_metrics` with one bounded proposal-count window. The client makes three
-  requests including targeted discovery; Governance performs its bounded
-  latest-ledger-block lookup inside the composite query. The report preserves
-  cached treasury and voting-power timestamps, never treats them as current
-  ledger state, and does not enumerate transactions, fan out, create a cache,
-  or claim one point-in-time snapshot.
-- SNS neuron reporting preserves fixed-size native Governance fields from the
-  existing `list_neurons` response, including raw dissolve state, fees,
-  aging, vesting, source-NNS id, auto-stake setting, and voting multiplier.
-  Bounded live rows and complete refresh pages share canonical id, timestamp,
-  uniqueness, and requested-limit validation. Variable permission, followee,
-  and pending-disbursement graphs remain outside collection caches;
-  `sns neuron info` follows one exact 32-byte neuron id through the explicit
-  `SnsNeuronSource` detail capability instead.
-- SNS proposal list and detail assembly read view options from the original
-  request. Resolved live or cache context owns acquisition identity and
-  metadata, keeping cache provenance independent of the current request's
-  endpoint and clock.
-- Exact neuron detail retains raw integer permission codes and pending maturity
-  disbursements; Text derives permission names and the portable model derives
-  policy observations. Reward checkpoint/diff collection and persistence are
-  retired in 0.89; historical files remain caller-owned evidence.
+- Neuron reports query the explicitly configured Governance canister directly.
+  Live owner filtering preserves raw principal permission codes. Complete snapshots
+  retain the same stake and permission projection; repeated cursor boundaries are
+  deduplicated, and incomplete or failed collection cannot replace a complete file.
+  The namespace is `sns-neuron/<network>/<governance>/neurons/full.json`.
+  Permission presence is not a purchase-eligibility verdict and a paged scan is
+  not an atomic snapshot. Toko owns fresh decision-time checks and its gating policy.
 - NNS and SNS complete collections page until exhausted. Portable NNS proposal
   and public-neuron continuations expose one bounded call per advance for
   native or replicated canister collection, with caller-owned persistence and
@@ -863,11 +786,10 @@ The official IC Dashboard documents five read-only REST API families covering
 general IC state, metrics, ICRC analytics, the ICP ledger, and SNS analytics:
 <https://docs.internetcomputer.org/references/ic-dashboard-api/>.
 
-Expansion should proceed in layers:
+Expansion should proceed in layers within the retained product scope:
 
 | Priority | Reporting addition | Adapter direction |
 | --- | --- | --- |
-| 1 | Transaction-level SNS treasury history or current-ledger verification beyond the implemented fixed-size neurons, exact neuron detail, bounded metrics, swap, and upgrade reports | Extend focused SNS capability traits on `LiveSnsSource` only where the authority, visibility, and bounds are explicit |
 | 1 | NNS reward history, delegation, and governance analytics beyond the implemented native point-value, proposal-activity, and public-neuron distribution reports | Extend focused NNS capability traits on `LiveNnsSource` |
 | 2 | Broader daily analytics, API boundary-node operational/location enrichment, trustworthy running-version evidence, and trustworthy metrics beyond the implemented aggregate metric, daily-activity, data-center, certified configuration, and release-record sets | Extend the focused adapter that owns each authority; never promote Dashboard enrichment to certified state |
 | 2 | CloudEngine domain/operator operational evidence and stronger authority beyond the implemented provider footprint and explicit Type4 node health/detail | Extend the focused CloudEngine source owned by each authority; do not reconcile separately timed Dashboard aggregates or promote them to native/certified state |
@@ -890,16 +812,11 @@ validation contract.
 
 ICRC-106 source discovery returns `IcrcIndexData::Found(principal)` or
 `IcrcIndexData::Unavailable(reason)`. Transport failures remain the outer
-`IcrcError`. The ICRC report retains it in `index`; the SNS token report retains it in
-`ledger_index`. JSON uses externally tagged `found` or `unavailable` outcomes.
+`IcrcError`. The ICRC report retains it in `index`. JSON uses externally tagged `found` or `unavailable` outcomes.
 Tip-certificate reports carry one optional `certificate` evidence record, keeping
 the certificate and hash-tree hex and byte counts together. Text preserves the
 existing principal, error and presence labels. See the
 [0.83 consumer update](../changelog/0.83.md).
-
-SNS list text accepts a metadata-cell style callback after Host escaping and
-alignment. The callback receives the typed row's metadata failure state; the CLI
-owns terminal detection, `NO_COLOR` and ANSI selection.
 
 
 Returned array counts are derived, rather than stored alongside their rows, in the
@@ -962,8 +879,7 @@ bounds, view choices and cache settings through typed fields. Assignment-only
 fluent methods over public request/query fields are retired; callers set those
 fields directly. Fallible/normalizing methods and methods that update related
 state retain their behavior. In particular, proposal sort selection resets its
-default direction, and SNS proposal cache-route selection precedes status
-admission. This cut changes Rust API surface without moving validation out of
+default direction. This cut changes Rust API surface without moving validation out of
 source, collection or cache owners.
 
 CloudEngine price/provider counts, operator binding/domain summaries and NNS

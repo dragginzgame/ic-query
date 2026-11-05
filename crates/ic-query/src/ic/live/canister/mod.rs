@@ -86,6 +86,7 @@ fn canister_url(endpoint: &str, canister_id: &str) -> Result<Url, IcHostError> {
     dashboard_resource_url(endpoint, &["canisters", canister_id])
 }
 
+#[derive(Clone, Copy)]
 enum CollectionOperation<'a> {
     Count,
     Page {

@@ -1,3 +1,6 @@
 mod report;
 
-pub use report::{NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow};
+pub use report::{
+    NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderMetadata,
+    NnsNodeProviderRow,
+};

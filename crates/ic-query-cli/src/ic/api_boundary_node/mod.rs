@@ -46,14 +46,12 @@ async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("api-boundary-node")
-        .bin_name("icq ic api-boundary-node")
         .about("Inspect certified API boundary-node configuration")
         .subcommand(list_command())
 }
 
 fn list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq ic api-boundary-node list")
         .about("List the complete certified API boundary-node state tree")
         .arg(json_arg())
         .arg(

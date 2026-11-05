@@ -46,8 +46,6 @@ pub enum QueryProgressCollection {
     NnsProposals,
     /// Complete SNS neuron collection.
     SnsNeurons,
-    /// Complete SNS proposal collection.
-    SnsProposals,
     /// Complete ledger/index account transaction history.
     IcrcAccountTransactions,
 }
@@ -119,7 +117,6 @@ where
 #[cfg(any(
     feature = "icrc-host",
     feature = "nns-host",
-    feature = "sns-host",
     feature = "subnet-catalog-host",
     test
 ))]
@@ -128,7 +125,6 @@ pub struct IgnoreQueryProgress;
 #[cfg(any(
     feature = "icrc-host",
     feature = "nns-host",
-    feature = "sns-host",
     feature = "subnet-catalog-host",
     test
 ))]

@@ -7,7 +7,7 @@ fn usage_discloses_certificate_authority_and_semantic_limits() {
     let family = render_help(command());
     let list = render_help(list_command());
 
-    assert!(family.contains("Usage: icq ic api-boundary-node [COMMAND]"));
+    assert!(family.contains("Usage: api-boundary-node [COMMAND]"));
     assert!(family.contains("list"));
     assert!(list.contains("exactly one response-bounded IC read_state request"));
     assert!(list.contains("built-in mainnet root key"));

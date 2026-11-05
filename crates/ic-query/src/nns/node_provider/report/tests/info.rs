@@ -53,6 +53,12 @@ fn node_provider_info_resolves_unique_prefix() {
 #[test]
 fn node_provider_info_rejects_ambiguous_prefix() {
     let report = NnsNodeProviderListReport {
+        governance_source: crate::report::CollectionSourceRequest::from_unix_secs(
+            "ic",
+            "https://icp-api.io",
+            1_780_531_200,
+            "fixture",
+        ),
         schema_version: 1,
         provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
             network: MAINNET_NETWORK.to_string(),

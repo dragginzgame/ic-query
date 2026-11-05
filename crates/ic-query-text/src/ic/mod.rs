@@ -132,25 +132,16 @@ pub fn ic_daily_stats_report_text(report: &IcDailyStatsReport) -> String {
 #[must_use]
 pub fn ic_node_provider_reward_list_report_text(report: &IcNodeProviderRewardListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("limit", &(report.query.limit)),
-        field("offset", &(report.query.offset)),
-        field(
-            "requested_max_reward_index",
-            &(optional_u64_text(report.query.max_reward_index)),
-        ),
-        field(
-            "resolved_max_reward_index",
-            &(report.resolved_max_reward_index),
-        ),
-        field("total_reward_records", &(report.total_reward_records)),
-        field("returned_count", &(report.rows.len())),
-        field(
-            "next_offset_hint",
-            &(optional_u64_text(report.next_offset_hint)),
-        ),
-        field("pages_may_overlap", &(yes_no(report.pages_may_overlap))),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        limit = report.query.limit,
+        offset = report.query.offset,
+        requested_max_reward_index = optional_u64_text(report.query.max_reward_index),
+        resolved_max_reward_index,
+        total_reward_records,
+        returned_count = report.rows.len(),
+        next_offset_hint = optional_u64_text(report.next_offset_hint),
+        pages_may_overlap = yes_no(report.pages_may_overlap),
+    ));
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -275,21 +266,15 @@ pub fn ic_node_provider_reward_history_report_text(
 #[must_use]
 pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("limit", &(report.query.limit)),
-        field("offset", &(report.query.offset)),
-        field(
-            "requested_max_proposal_index",
-            &(optional_u64_text(report.query.max_proposal_index)),
-        ),
-        field(
-            "resolved_max_proposal_index",
-            &(report.resolved_max_proposal_index),
-        ),
-        field("total_proposals", &(report.total_proposals)),
-        field("returned_count", &(report.rows.len())),
-        field("next_offset", &(optional_u64_text(report.next_offset))),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        limit = report.query.limit,
+        offset = report.query.offset,
+        requested_max_proposal_index = optional_u64_text(report.query.max_proposal_index),
+        resolved_max_proposal_index,
+        total_proposals,
+        returned_count = report.rows.len(),
+        next_offset = optional_u64_text(report.next_offset),
+    ));
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -333,24 +318,18 @@ pub fn ic_replica_version_list_report_text(report: &IcReplicaVersionListReport) 
 #[must_use]
 pub fn ic_replica_version_info_report_text(report: &IcReplicaVersionInfoReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("replica_version_id", &report.release.replica_version_id),
-        field("proposal_id", &(report.release.proposal_id)),
-        field(
-            "executed_timestamp_seconds",
-            &(report.release.executed_timestamp_seconds),
-        ),
-        field("title", &(text_or_dash(&report.release.title))),
-        field("url", &(text_or_dash(&report.release.url))),
-        field("subnet_count", &(report.release.subnets.len())),
-        field(
-            "summary",
-            &(truncate_text(
+    lines.extend(crate::text_value::report_fields!(report;
+        replica_version_id = report.release.replica_version_id,
+        proposal_id = report.release.proposal_id,
+        executed_timestamp_seconds = report.release.executed_timestamp_seconds,
+        title = text_or_dash(&report.release.title),
+        url = text_or_dash(&report.release.url),
+        subnet_count = report.release.subnets.len(),
+        summary = truncate_text(
                 &report.release.summary,
                 IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT,
-            )),
-        ),
-    ]);
+            ),
+    ));
 
     if !report.release.subnets.is_empty() {
         lines.push(String::new());
@@ -704,26 +683,14 @@ pub fn ic_canister_count_report_text(report: &IcCanisterCountReport) -> String {
 #[must_use]
 pub fn ic_canister_page_report_text(report: &IcCanisterPageReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("returned_count", &(report.rows.len())),
-        field("requested_limit", &(report.requested_limit)),
-        field(
-            "after",
-            &(report.after.as_deref().map_or("-", |value| value)),
-        ),
-        field(
-            "before",
-            &(report.before.as_deref().map_or("-", |value| value)),
-        ),
-        field(
-            "previous_cursor",
-            &(report.previous_cursor.as_deref().map_or("-", |value| value)),
-        ),
-        field(
-            "next_cursor",
-            &(report.next_cursor.as_deref().map_or("-", |value| value)),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        returned_count = report.rows.len(),
+        requested_limit,
+        after = report.after.as_deref().map_or("-", |value| value),
+        before = report.before.as_deref().map_or("-", |value| value),
+        previous_cursor = report.previous_cursor.as_deref().map_or("-", |value| value),
+        next_cursor = report.next_cursor.as_deref().map_or("-", |value| value),
+    ));
     append_filters(&mut lines, &report.filters);
 
     if !report.rows.is_empty() {

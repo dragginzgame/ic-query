@@ -1,3 +1,6 @@
+#[cfg(feature = "nns-topology-host")]
+mod support;
+
 use ic_platform::candid::contract::Principal;
 use ic_query::nns::topology::NNS_SUBNET_TOPOLOGY_REPORT_SCHEMA_VERSION;
 use ic_query::nns::topology::NnsSubnetNodeProviderRow;
@@ -87,7 +90,7 @@ mod host {
         }
 
         let root = ic_host_fs::testing::create_fixture_directory(
-            &std::env::temp_dir(),
+            &crate::support::scratch_root(),
             "ic-query-subnet-topology-public",
         )
         .unwrap();

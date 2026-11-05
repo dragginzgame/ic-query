@@ -35,7 +35,13 @@ section encoding,
 `ic-agent` for direct protocol IO. It adds no production CLI operation or
 canister-runtime dependency. The workspace's Host registry selections are
 recorded in [Cargo.lock](../Cargo.lock). The canister Make entry points prepare
-that locked graph before offline runner builds. Archive support remains disabled
+that locked graph before offline runner builds. CI prepares it once, then runs
+one lint stage covering the complete native Clippy target and the Wasm probe.
+After successful lint, CI selects `canister-test-check`, `canister-smoke-check`
+and `canister-bundle-check`. These product-only targets require the prepared
+locked dependency cache and do not repeat lint or fetch dependencies. Use the
+ordinary `canister-test`, `canister-smoke` and `canister-bundle` commands for
+standalone development; their lint gates remain in place. Archive support remains disabled
 and `ic-host-tools` is not selected.
 Host's unified durable writer uses explicit publication options for receipts.
 Receipt, Wasm and raw-reply failures retain the complete typed publication error,
@@ -541,3 +547,11 @@ role comments or bind a receipt to the final deployed Wasm. The private probe
 intentionally uses the development-only Wire codec; the reusable library has no
 Wire runtime dependency. Neither graph inspection nor package availability is
 installed-canister qualification.
+
+## Maintained source layout
+
+The contributor runner is under `crates/ic-query-cli/tools/governance_smoke/` and
+the deployable fixture is `crates/ic-query/tests/fixtures/governance_probe.rs`.
+Cargo still selects `--example governance_smoke` and `--example governance_probe`;
+artifact names, endpoint policy, identity custody and deployment behavior remain.
+LOC metadata classifies the runner as build/tooling and the probe as tests.

@@ -7,18 +7,12 @@
 use super::validation::SnsSourceValidator;
 use crate::{
     hex::{decode_lowercase_hex, is_lowercase_hex_32_bytes},
-    sns::report::{
-        SnsHostError, SnsNeuronDetail, SnsNeuronRow,
-        model::reports::neurons::detail::{
-            validate_maturity_disbursements, validate_neuron_permissions,
-        },
-    },
+    sns::report::{SnsHostError, SnsNeuronRow},
 };
 use ic_platform::candid::contract::{CandidType, serde::Deserialize};
 use std::collections::HashSet;
 
 const SNS_NEURON_ID_HEX_LENGTH: usize = 64;
-const NEURON_DETAIL_CAPABILITY: &str = "SNS neuron detail";
 
 ///
 /// MainnetSnsNeuronPage
@@ -121,6 +115,26 @@ pub(in crate::sns::report) fn validate_sns_neuron_rows(
 
 /// Validate canonical fields derived for one SNS neuron row.
 pub(in crate::sns::report) fn validate_sns_neuron_row(neuron: &SnsNeuronRow) -> Result<(), String> {
+    let mut principals = HashSet::new();
+    for permission in &neuron.permissions {
+        crate::principal_text::validate_canonical(
+            &permission.principal,
+            |reason| format!("invalid permission principal: {reason}"),
+            |_| "noncanonical permission principal".to_string(),
+        )?;
+        if !principals.insert(&permission.principal) {
+            return Err("duplicate permission principal".to_string());
+        }
+        let mut codes = HashSet::new();
+        if permission
+            .permission_types
+            .iter()
+            .any(|code| !codes.insert(code))
+        {
+            return Err("duplicate permission code".to_string());
+        }
+    }
+
     if !is_lowercase_hex_32_bytes(&neuron.neuron_id) {
         return Err(format!(
             "neuron id {} is not 32-byte canonical lowercase hexadecimal",
@@ -148,86 +162,21 @@ pub(in crate::sns::report) fn sns_neuron_id_from_text(
 
 /// Validate one exact neuron detail result returned by a public source implementation.
 pub(in crate::sns::report) fn validate_mainnet_sns_neuron(
-    neuron: &SnsNeuronDetail,
+    neuron: &SnsNeuronRow,
     requested_neuron_id: &str,
 ) -> Result<(), SnsHostError> {
-    sns_neuron_id_from_text(requested_neuron_id)?;
-    validate_sns_neuron_row(&neuron.neuron).map_err(invalid_neuron_detail)?;
-    if neuron.neuron.neuron_id != requested_neuron_id {
-        return Err(invalid_neuron_detail(format!(
+    let invalid = |reason| SnsHostError::InvalidSourceData {
+        capability: "SNS neuron",
+        reason,
+    };
+    validate_sns_neuron_row(neuron).map_err(invalid)?;
+    if neuron.neuron_id != requested_neuron_id {
+        return Err(invalid(format!(
             "returned neuron id {}, expected {requested_neuron_id}",
-            neuron.neuron.neuron_id
+            neuron.neuron_id
         )));
     }
-
-    validate_neuron_permissions(&neuron.permissions).map_err(invalid_neuron_detail)?;
-    validate_maturity_disbursements(&neuron.disburse_maturity_in_progress)
-        .map_err(invalid_neuron_detail)?;
-
-    let mut function_ids = HashSet::new();
-    for followees in &neuron.followees {
-        if !function_ids.insert(followees.function_id) {
-            return Err(invalid_neuron_detail(format!(
-                "duplicate legacy followee function id {}",
-                followees.function_id
-            )));
-        }
-        validate_followee_ids(&followees.followee_neuron_ids)?;
-    }
-
-    if let Some(topic_followees) = neuron.topic_followees.as_ref() {
-        let mut topic_codes = HashSet::new();
-        for topic in topic_followees {
-            if !topic_codes.insert(topic.topic_code) {
-                return Err(invalid_neuron_detail(format!(
-                    "duplicate topic-following code {}",
-                    topic.topic_code
-                )));
-            }
-            if topic.topic.as_deref().is_some_and(str::is_empty) {
-                return Err(invalid_neuron_detail(
-                    "topic-following label must not be empty when present",
-                ));
-            }
-            for followee in &topic.followees {
-                if let Some(neuron_id) = followee.neuron_id.as_deref() {
-                    validate_exact_neuron_id(neuron_id, "topic followee neuron id")?;
-                }
-            }
-        }
-    }
-
     Ok(())
-}
-
-fn validate_followee_ids(neuron_ids: &[String]) -> Result<(), SnsHostError> {
-    let mut unique = HashSet::new();
-    for neuron_id in neuron_ids {
-        validate_exact_neuron_id(neuron_id, "legacy followee neuron id")?;
-        if !unique.insert(neuron_id) {
-            return Err(invalid_neuron_detail(format!(
-                "duplicate legacy followee neuron id {neuron_id}"
-            )));
-        }
-    }
-    Ok(())
-}
-
-pub(super) fn validate_exact_neuron_id(neuron_id: &str, field: &str) -> Result<(), SnsHostError> {
-    if is_lowercase_hex_32_bytes(neuron_id) {
-        Ok(())
-    } else {
-        Err(invalid_neuron_detail(format!(
-            "{field} {neuron_id} is not 32-byte lowercase hexadecimal text"
-        )))
-    }
-}
-
-fn invalid_neuron_detail(reason: impl Into<String>) -> SnsHostError {
-    SnsHostError::InvalidSourceData {
-        capability: NEURON_DETAIL_CAPABILITY,
-        reason: reason.into(),
-    }
 }
 
 #[cfg(test)]

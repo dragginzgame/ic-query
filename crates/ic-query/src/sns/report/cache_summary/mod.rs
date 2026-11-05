@@ -67,6 +67,10 @@ where
         .collect()
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes a discovered cache path together with its snapshot while constructing one summary."
+)]
 fn valid_sns_cache_summary<Data>(
     cache_path: PathBuf,
     cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
@@ -78,9 +82,6 @@ fn valid_sns_cache_summary<Data>(
         latest_attempt: None,
         admission: SnsCacheAdmission::Valid {
             data: SnsValidCacheSummary {
-                id: cache.metadata.id,
-                name: cache.metadata.name,
-                root_canister_id: cache.metadata.root_canister_id,
                 governance_canister_id: cache.metadata.governance_canister_id,
                 row_count: cache.completeness.row_count,
                 page_count: cache.completeness.page_count,
@@ -92,6 +93,10 @@ fn valid_sns_cache_summary<Data>(
     }
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes a discovered cache path while retaining its invalid-content evidence in one summary."
+)]
 fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCacheSummary {
     let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
@@ -133,16 +138,7 @@ where
     })
 }
 
-/// Sort SNS cache summaries by stable list id and root principal.
+/// Sort complete neuron cache summaries by their stable paths.
 fn sort_sns_cache_summaries(caches: &mut [SnsCacheSummary]) {
-    caches.sort_by(|left, right| {
-        let left_id = left.valid().map(|data| data.id);
-        let right_id = right.valid().map(|data| data.id);
-        left_id
-            .cmp(&right_id)
-            .then_with(|| left.cache_path.cmp(&right.cache_path))
-    });
+    caches.sort_by(|left, right| left.cache_path.cmp(&right.cache_path));
 }
-
-#[cfg(test)]
-mod tests;

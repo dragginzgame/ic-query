@@ -1,16 +1,7 @@
-//! Shared cache report models and host-only local inventory helpers.
+//! Shared complete-cache and refresh-attempt contracts.
 
 mod completeness;
 mod model;
-#[cfg(feature = "host")]
-mod status;
 
 pub use completeness::{CacheCollectionCompleteness, validate_cache_collection_completeness};
-pub use model::{
-    CACHE_STATUS_REPORT_SCHEMA_VERSION, CacheAgeStatus, CacheHeaderStatus, CacheRecoveryPolicy,
-    CacheRefreshAttemptStatus, CacheRefreshLockStatus, CacheRefreshLockStatusRow,
-    CacheStatusReport, CacheStatusRequest, CacheStatusRow, CacheValidationStatus,
-    SnapshotRefreshAttemptStatus,
-};
-#[cfg(feature = "host")]
-pub use status::{CacheStatusError, build_cache_status_report};
+pub use model::{CacheRefreshAttemptStatus, CacheValidationStatus, SnapshotRefreshAttemptStatus};

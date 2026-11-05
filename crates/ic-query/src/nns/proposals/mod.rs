@@ -21,10 +21,9 @@ pub use report::{
 };
 #[cfg(feature = "nns-host")]
 pub use report::{
-    NnsProposalCacheListReport, NnsProposalHostError, advance_nns_proposal_collection,
-    build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_list_report,
-    build_nns_proposal_cache_status_report, build_nns_proposal_list_report,
-    build_nns_proposal_list_report_from_cache,
+    NnsProposalHostError, advance_nns_proposal_collection,
+    build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_status_report,
+    build_nns_proposal_list_report, build_nns_proposal_list_report_from_cache,
     build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report,
     build_nns_proposal_report_from_cache, build_nns_proposal_report_with_cache_and_source,
     nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,

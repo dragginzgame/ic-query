@@ -2,18 +2,10 @@
 use crate::nns::NnsInventoryError;
 #[cfg(feature = "nns-host")]
 mod build;
-#[cfg(feature = "nns-host")]
-mod cache;
 mod model;
-#[cfg(feature = "nns-host")]
-mod refresh;
-#[cfg(feature = "nns-host")]
-mod source;
 
 #[cfg(feature = "nns-host")]
-use crate::nns::NnsInventoryRefreshRequest;
-#[cfg(feature = "nns-host")]
-use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+use crate::nns::{NnsInventoryInfoRequest, NnsInventoryListRequest};
 
 #[cfg(all(test, feature = "nns-host"))]
 use build::resolve_data_center;
@@ -22,12 +14,6 @@ pub use build::{
     build_nns_data_center_info_report, build_nns_data_center_info_report_with_source_and_progress,
     build_nns_data_center_list_report, build_nns_data_center_list_report_with_source_and_progress,
 };
-#[cfg(feature = "nns-host")]
-pub use cache::{nns_data_center_cache_path, nns_data_center_refresh_lock_path};
-#[cfg(feature = "nns-host")]
-pub use refresh::{refresh_nns_data_center_report, refresh_nns_data_center_report_with_source};
-#[cfg(feature = "nns-host")]
-pub use source::NnsDataCenterSource;
 
 pub use model::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRow};
 
@@ -37,13 +23,6 @@ pub const DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-const NNS_DATA_CENTER_CACHE_DIR: &str = "data-center";
-#[cfg(feature = "nns-host")]
-const NNS_DATA_CENTER_CACHE_FILE: &str = "data-centers.json";
-
-#[cfg(feature = "nns-host")]
-impl_nns_mainnet_network_enforcer!(NnsInventoryError, COLLECTION);
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

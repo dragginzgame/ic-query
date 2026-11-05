@@ -11,7 +11,7 @@ use crate::cli::{
 use clap::ArgMatches;
 use ic_query::sns::SnsCacheListRequest;
 use ic_query::sns::SnsCacheStatusRequest;
-use ic_query::sns::SnsLookupRequest;
+use ic_query::sns::SnsNeuronTargetRequest;
 use ic_query::sns::SnsSnapshotRefreshRequest;
 use std::path::PathBuf;
 
@@ -19,10 +19,10 @@ pub(in crate::sns::commands) fn lookup_request(
     matches: &ArgMatches,
     network: &str,
     now_unix_secs: u64,
-) -> Result<(OutputFormat, SnsLookupRequest), crate::sns::commands::SnsCommandError> {
+) -> Result<(OutputFormat, SnsNeuronTargetRequest), crate::sns::commands::SnsCommandError> {
     Ok((
         output_format(matches),
-        SnsLookupRequest::new(
+        SnsNeuronTargetRequest::new(
             network,
             required_string(matches, "source-endpoint"),
             now_unix_secs,
@@ -37,11 +37,11 @@ pub(in crate::sns::commands) fn snapshot_refresh_request(
     cache_root: PathBuf,
     now_unix_secs: u64,
 ) -> Result<(OutputFormat, SnsSnapshotRefreshRequest), crate::sns::commands::SnsCommandError> {
-    let (format, lookup) = lookup_request(matches, network, now_unix_secs)?;
+    let (format, target) = lookup_request(matches, network, now_unix_secs)?;
     Ok((
         format,
         SnsSnapshotRefreshRequest {
-            lookup,
+            target,
             cache_root,
             page_size: required_typed(matches, "page-size"),
             max_pages: typed_option(matches, "max-pages"),

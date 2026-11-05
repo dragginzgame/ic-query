@@ -251,7 +251,13 @@ fn assert_success(output: &Output) {
 }
 
 fn temp_cache_root(prefix: &str) -> std::path::PathBuf {
-    ic_host_fs::testing::create_fixture_directory(&std::env::temp_dir(), prefix)
+    let parent = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .expect("workspace root")
+        .join("target/tmp");
+    std::fs::create_dir_all(&parent).expect("create workspace test scratch");
+    ic_host_fs::testing::create_fixture_directory(&parent, prefix)
         .expect("create private CLI fixture directory")
 }
 
@@ -260,12 +266,7 @@ fn temp_cache_root(prefix: &str) -> std::path::PathBuf {
 fn closed_stdout_succeeds_for_text_json_help_and_version() {
     use std::os::unix::net::UnixStream;
     use std::process::Stdio;
-    for args in [
-        vec!["cache", "status"],
-        vec!["cache", "status", "--json"],
-        vec!["--help"],
-        vec!["--version"],
-    ] {
+    for args in [vec!["--help"], vec!["--version"]] {
         let (writer, reader) = UnixStream::pair().unwrap();
         drop(reader);
         let root = temp_cache_root("icq-closed-stdout");
@@ -394,59 +395,6 @@ const HELP_CASES: &[(&[&str], &[&str])] = &[
             "--from <canister-id>",
             "--source-endpoint <url>",
             "--json",
-        ],
-    ),
-    (
-        &["sns", "list", "--help"],
-        &[
-            "Usage: icq sns list [OPTIONS]",
-            "--sort <id|name>",
-            "--verbose",
-        ],
-    ),
-    (
-        &["sns", "swap", "--help"],
-        &[
-            "Usage: icq sns swap [OPTIONS] <id|root-principal>",
-            "--source-endpoint <url>",
-            "--json",
-            "exactly three bounded",
-        ],
-    ),
-    (
-        &["sns", "upgrade", "--help"],
-        &[
-            "Usage: icq sns upgrade [OPTIONS] <id|root-principal>",
-            "--source-endpoint <url>",
-            "--json",
-            "at most four live calls",
-        ],
-    ),
-    (
-        &["sns", "metrics", "--help"],
-        &[
-            "Usage: icq sns metrics [OPTIONS] <id|root-principal>",
-            "--window <duration>",
-            "--source-endpoint <url>",
-            "--json",
-            "get_metrics composite query",
-        ],
-    ),
-    (
-        &["sns", "parameters", "--help"],
-        &[
-            "Usage: icq sns parameters [OPTIONS] <id|root-principal>",
-            "nervous system parameters",
-            "--source-endpoint <url>",
-            "--json",
-        ],
-    ),
-    (
-        &["sns", "canister", "list", "--help"],
-        &[
-            "Usage: icq sns canister list [OPTIONS] <id|root-principal>",
-            "--source-endpoint <url>",
-            "update_canister_list=false",
         ],
     ),
     (
@@ -891,16 +839,10 @@ fn binary_command_namespaces_match_explicit_local_help() {
         (&["nns", "subnet"], &["nns", "subnet", "help"]),
         (&["nns", "topology"], &["nns", "topology", "help"]),
         (&["sns"], &["sns", "help"]),
-        (&["sns", "canister"], &["sns", "canister", "help"]),
         (&["sns", "neuron"], &["sns", "neuron", "help"]),
         (
             &["sns", "neuron", "cache"],
             &["sns", "neuron", "cache", "help"],
-        ),
-        (&["sns", "proposal"], &["sns", "proposal", "help"]),
-        (
-            &["sns", "proposal", "cache"],
-            &["sns", "proposal", "cache", "help"],
         ),
         (&["system"], &["system", "help"]),
         (&["cloud-engine"], &["cloud-engine", "help"]),
@@ -924,20 +866,12 @@ fn binary_command_namespaces_match_explicit_local_help() {
 
 #[test]
 fn binary_sns_nested_family_help_uses_operation_before_target() {
-    for (args, usage) in [
-        (
-            &["sns", "neuron", "list", "--help"][..],
-            "Usage: icq sns neuron list [OPTIONS] <id|root-principal>",
-        ),
-        (
-            &["sns", "proposal", "info", "--help"][..],
-            "Usage: icq sns proposal info [OPTIONS] <id|root-principal> <proposal-id>",
-        ),
-    ] {
-        let output = run_icq(args);
-        assert_success(&output);
-        assert!(stdout_text(&output).contains(usage));
-    }
+    let output = run_icq(&["sns", "neuron", "list", "--help"]);
+    assert_success(&output);
+    assert!(
+        stdout_text(&output)
+            .contains("Usage: icq sns neuron list [OPTIONS] <governance-canister-id>")
+    );
 }
 
 #[test]
@@ -968,12 +902,6 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
         serde_json::from_str(&stdout_text(&nns_status)).expect("nns cache status json");
     assert_eq!(nns_status["found"], false);
 
-    let sns_proposals = run_icq_in_root(&root, &["sns", "proposal", "cache", "list", "--json"]);
-    assert_success(&sns_proposals);
-    let sns_proposals: serde_json::Value =
-        serde_json::from_str(&stdout_text(&sns_proposals)).expect("sns proposals cache list json");
-    assert_eq!(sns_proposals["caches"].as_array().unwrap().len(), 0);
-
     let sns_neurons = run_icq_in_root(&root, &["sns", "neuron", "cache", "list", "--json"]);
     assert_success(&sns_neurons);
     let sns_neurons: serde_json::Value =
@@ -981,4 +909,29 @@ fn binary_local_cache_commands_emit_json_without_live_calls() {
     assert_eq!(sns_neurons["caches"].as_array().unwrap().len(), 0);
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn binary_runtime_diagnostics_escape_cache_paths_and_preserve_advice() {
+    let root = temp_cache_root("icq-diagnostic-escaping");
+    let selected = root.join("cache\nforged\u{1b}[31m");
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_icq"))
+        .args([
+            "sns",
+            "neuron",
+            "list",
+            "rrkah-fqaaa-aaaaa-aaaaq-cai",
+            "--sort",
+            "stake",
+        ])
+        .env("ICQ_CACHE_ROOT", &selected)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(!stderr.contains('\u{1b}'));
+    assert!(!stderr.lines().any(|line| line.starts_with("forged")));
+    assert!(stderr.contains("cache\\nforged"));
+    assert!(stderr.contains("\n\nRun `icq sns neuron refresh"));
+    std::fs::remove_dir_all(root).unwrap();
 }

@@ -133,6 +133,10 @@ fn validate_live_request(
     Ok(())
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The verified certificate is consumed by this projection and is not retained after its evidence is extracted."
+)]
 pub(super) fn source_data_from_certificate(
     request: &IcApiBoundaryNodeSourceRequest,
     certificate: Certificate,

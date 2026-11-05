@@ -6,16 +6,16 @@
 
 use crate::{
     cli::common::{COLLECTION_MODE_CACHE_ONLY, collection_help, json_arg},
-    sns::commands::spec::commands::args::sns_root_input_arg,
+    sns::commands::spec::commands::args::governance_input_arg,
 };
 use clap::Command as ClapCommand;
 
 const SNS_NEURONS_CACHE_HELP_AFTER: &str = "\
 Examples:
   icq sns neuron cache list
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai --json";
+  icq sns neuron cache status <governance-canister-id>
+  icq sns neuron cache status <governance-canister-id>
+  icq sns neuron cache status <governance-canister-id> --json";
 
 const SNS_NEURONS_CACHE_LIST_HELP_AFTER: &str = "\
 Examples:
@@ -24,13 +24,12 @@ Examples:
 
 const SNS_NEURONS_CACHE_STATUS_HELP_AFTER: &str = "\
 Examples:
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
-  icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai --json";
+  icq sns neuron cache status <governance-canister-id>
+  icq sns neuron cache status <governance-canister-id>
+  icq sns neuron cache status <governance-canister-id> --json";
 
 pub(in crate::sns::commands) fn sns_neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
-        .bin_name("icq sns neuron cache")
         .about("Inspect local complete SNS governance neuron snapshots")
         .subcommand(sns_neuron_cache_list_command())
         .subcommand(sns_neuron_cache_status_command())
@@ -42,7 +41,6 @@ pub(in crate::sns::commands) fn sns_neuron_cache_command() -> ClapCommand {
 
 pub(in crate::sns::commands) fn sns_neuron_cache_list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq sns neuron cache list")
         .about("List local complete SNS neuron snapshots")
         .arg(json_arg())
         .after_help(collection_help(
@@ -53,9 +51,8 @@ pub(in crate::sns::commands) fn sns_neuron_cache_list_command() -> ClapCommand {
 
 pub(in crate::sns::commands) fn sns_neuron_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
-        .bin_name("icq sns neuron cache status")
         .about("Show local SNS neuron snapshot and refresh-attempt status")
-        .arg(sns_root_input_arg())
+        .arg(governance_input_arg())
         .arg(json_arg())
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

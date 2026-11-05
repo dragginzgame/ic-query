@@ -5,6 +5,58 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.91.0]
+
+### ⚠️ Breaking
+
+- Reduce SNS support to explicitly targeted neuron ownership/stake reads. Remove
+  discovery/catalog, proposal, parameter, metrics, swap, upgrade and Root health
+  reports. ICRC balances, transaction/burn evidence and holder enumeration remain.
+  Adopt Governance principals and refresh the new schema-1 neuron snapshots.
+
+```bash
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --owner "$USER_PRINCIPAL" --json
+icq sns neuron refresh "$GOVERNANCE_CANISTER_ID"
+```
+
+- Collect NNS nodes, operators and data centres through one pinned Registry
+  snapshot and cache. Custom adapters use `NnsRegistryInventorySource`; first
+  reads collect the replacement schema-1 snapshot instead of older per-view files.
+- Keep Governance provider metadata separate and derive its node counts from that
+  shared Registry snapshot. Provider reports expose both acquisition records;
+  provider and topology refresh outcomes identify the separate publications.
+- Remove the global cache-inventory API. Family cache validation, confinement,
+  refresh exclusion and local collection-status APIs remain available.
+- Inspect the single complete NNS proposal snapshot through cache status. Remove
+  the redundant cache-list report and builder; Rust consumers use
+  `build_nns_proposal_cache_status_report` and its optional `cache` summary.
+- Read detailed Subnet Catalog failure classifications from the retained source
+  error instead of copied fields. Registry, node, operator, data-centre and
+  topology reports retain their behavior. See the [0.91 notes](0.91.md).
+
+### 🔧 Changed
+
+- Adopt Shared Tooling 0.30.0 with the latest compact LOC display, classify
+  fixture/tooling source explicitly and
+  place the Governance runner and probe with their source roles. Default local
+  fixture scratch to `target/tmp/` and replace the blanket pass-by-value lint
+  allowance with ownership fixes and scoped, reasoned expectations. Existing
+  Cargo target names, report contracts and recovery evidence remain.
+
+- Simplify topology provider aggregation and share subnet-kind counting while
+  retaining registration, capacity, location and unknown-reference evidence.
+  Provider distributions and ordering retain their existing meaning.
+
+### 🧹 Cleanup
+
+- Implement native SNS source capabilities beside their IO owners, removing the
+  central forwarding layer with the retained neuron scope described above.
+
+### 🧪 Testing
+
+- Run native and Wasm lint once per canister CI job before Testkit, local NNS
+  smoke and bundle checks. Standalone developer commands retain lint gates.
+
 ## [0.90.0] - 2026-11-04
 
 ### ⚠️ Breaking

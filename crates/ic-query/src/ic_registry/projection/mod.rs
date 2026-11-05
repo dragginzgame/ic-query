@@ -22,7 +22,7 @@ pub(super) use node_operator::node_operator_list_from_inventory;
 #[cfg(all(test, feature = "nns-host"))]
 pub(super) use node_provider::node_provider_from_governance;
 #[cfg(feature = "nns-host")]
-pub(super) use node_provider::node_provider_list_from_response;
+pub(super) use node_provider::node_provider_metadata_from_response;
 #[cfg(feature = "nns-topology-host")]
 pub(super) use subnet_topology::subnet_topology_from_inventory;
 

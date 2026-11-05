@@ -35,7 +35,11 @@ pub use governance::collection::{
     NnsGovernanceValidCacheSummary,
 };
 #[cfg(feature = "nns-host")]
-pub use inventory::NnsInventoryRefreshReport;
+pub use inventory::{
+    NnsInventoryRefreshReport, NnsRegistryInventorySnapshot, NnsRegistryInventorySource,
+    nns_registry_inventory_cache_path, nns_registry_inventory_refresh_lock_path,
+    refresh_nns_registry_inventory, refresh_nns_registry_inventory_with_source,
+};
 #[cfg(feature = "nns-host")]
 pub use inventory_request::NnsInventoryRefreshRequest;
 pub use inventory_request::{

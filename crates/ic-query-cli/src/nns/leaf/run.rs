@@ -10,7 +10,6 @@ use ic_query::QueryProgress;
 use ic_query::nns::NnsInventoryCacheRequest;
 use ic_query::nns::NnsInventoryInfoRequest;
 use ic_query::nns::NnsInventoryListRequest;
-use ic_query::nns::NnsInventoryRefreshReport;
 use ic_query::nns::NnsInventoryRefreshRequest;
 use serde::Serialize;
 
@@ -64,15 +63,15 @@ where
     write_text_or_json(options.common.format, &report, render)
 }
 
-pub(in crate::nns) async fn run_cached_leaf_refresh<Error>(
+pub(in crate::nns) async fn run_cached_leaf_refresh<Report, Error>(
     matches: &ArgMatches,
     network: &str,
-    refresh_report: impl AsyncFn(
-        &NnsInventoryRefreshRequest,
-    ) -> Result<NnsInventoryRefreshReport, Error>,
+    refresh_report: impl AsyncFn(&NnsInventoryRefreshRequest) -> Result<Report, Error>,
+    render: fn(&Report) -> String,
 ) -> Result<(), NnsCommandError>
 where
     Error: Into<NnsCommandError>,
+    Report: Serialize,
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
     let format = options.common.format;
@@ -88,9 +87,5 @@ where
         request.output_path = Some(output_path);
     }
     let report = refresh_report(&request).await.map_err(Into::into)?;
-    write_text_or_json(
-        format,
-        &report,
-        ic_query_text::nns::nns_inventory_refresh_report_text,
-    )
+    write_text_or_json(format, &report, render)
 }

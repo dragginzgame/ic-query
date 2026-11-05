@@ -3,11 +3,10 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 use super::{
     NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
     NnsInventoryListRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
-    cache::{load_cached_nns_node_operator_report, nns_node_operator_cache_path},
-    refresh::refresh_nns_node_operator_report_with_source,
-    source::NnsNodeOperatorSource,
 };
-use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
+use crate::nns::{
+    LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
+};
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_node_operator_list_report(
@@ -35,27 +34,22 @@ pub async fn build_nns_node_operator_info_report(
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_node_operator_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
-    source: &dyn NnsNodeOperatorSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeOperatorListReport, NnsInventoryError> {
-    load_or_refresh_nns_inventory_report(
-        request,
-        nns_node_operator_cache_path(&request.cache.cache_root, &request.cache.network),
-        progress,
-        |cache| load_cached_nns_node_operator_report(cache).map(|cached| cached.report),
-        async |refresh_request| {
-            refresh_nns_node_operator_report_with_source(refresh_request, source)
-                .await
-                .map(|_| ())
-        },
-    )
-    .await
+    let snapshot = load_or_refresh_nns_inventory_report(request, source, progress).await?;
+    let report = NnsNodeOperatorListReport {
+        schema_version: super::NNS_NODE_OPERATOR_LIST_REPORT_SCHEMA_VERSION,
+        provenance: snapshot.provenance,
+        node_operators: snapshot.node_operators,
+    };
+    Ok(report)
 }
 
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_node_operator_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
-    source: &dyn NnsNodeOperatorSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeOperatorInfoReport, NnsInventoryError> {
     let list_request = request.to_list_request();

@@ -38,15 +38,3 @@ impl From<CacheRootError> for SnsCommandError {
         Self::Usage(error.to_string())
     }
 }
-
-impl From<ic_query::sns::SnsLookupError> for SnsCommandError {
-    fn from(error: ic_query::sns::SnsLookupError) -> Self {
-        Self::Host(error.into())
-    }
-}
-
-impl From<ic_query::sns::SnsProposalViewError> for SnsCommandError {
-    fn from(error: ic_query::sns::SnsProposalViewError) -> Self {
-        Self::Host(error.into())
-    }
-}

@@ -1,9 +1,7 @@
 [workspace]
 members = [
-    # Production packages
     "crates/ic-query",
     "crates/ic-query-cli",
-    # Tests and tooling only
     "crates/ic-query-testkit",
     "crates/ic-query-text",
 ]
@@ -32,17 +30,19 @@ ic-query-text = { path = "crates/ic-query-text", version = "0.90.0", default-fea
 # Production dependencies
 clap = { version = "4.6.1", features = ["derive"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await", "async-await-macro"] }
-ic-host-artifacts = { version = "0.74.3", default-features = false }
-ic-host-fs = { version = "0.74.3", default-features = false }
 ic-host-http = { version = "0.74.3", default-features = false }
 ic-host-text = "0.74.1"
+prost = "0.14.3"
+thiserror = "2.0"
+
+# Production and test dependencies
+ic-host-artifacts = { version = "0.74.3", default-features = false }
+ic-host-fs = { version = "0.74.3", default-features = false }
 ic-host-tools = { version = "0.82.0", default-features = false }
 ic-platform = { version = "0.22.0", default-features = false, features = ["candid"] }
-prost = "0.14.3"
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_json = "1.0"
-thiserror = "2.0"
 tokio = "1.52.3"
 url = "2.5.8"
 
@@ -68,7 +68,7 @@ semicolon_if_nothing_returned = "warn"
 uninlined_format_args = "warn"
 use_self = "warn"
 
-# Workspace-wide documentation/ownership policies cannot use Cargo expectations.
+# Workspace-wide documentation and exported naming policies cannot use Cargo expectations.
 # Human-facing names follow local prose rather than Markdown identifier inference.
 doc_markdown = "allow"
 # Section-style type docs require a blank line before attributes and declarations.
@@ -77,5 +77,6 @@ empty_line_after_doc_comments = "allow"
 missing_errors_doc = "allow"
 # Qualified public names remain clear when imported outside their owner module.
 module_name_repetitions = "allow"
-# Public owned arguments preserve caller ownership even when a body only borrows.
-needless_pass_by_value = "allow"
+
+[workspace.lints.rust]
+unfulfilled_lint_expectations = "warn"

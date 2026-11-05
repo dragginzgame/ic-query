@@ -7,13 +7,17 @@
 use super::IcCommandError;
 use crate::cli::common::OutputFormat;
 use crate::cli::{
-    clap::{required_string, required_typed, string_option, typed_option, value_arg},
+    clap::{
+        principal_text_value_parser, required_string, required_typed, string_option, value_arg,
+    },
     common::{
         COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
         source_endpoint_arg, write_text_or_json,
     },
 };
-use clap::{ArgAction, ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::{
+    ArgMatches, Args, Command as ClapCommand, FromArgMatches, builder::RangedU64ValueParser,
+};
 use ic_query::ic::DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT;
 use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
 use ic_query::ic::IcCanisterCountRequest;
@@ -85,7 +89,6 @@ async fn run_info(matches: &ArgMatches) -> Result<(), IcCommandError> {
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("canister")
-        .bin_name("icq ic canister")
         .about("Inspect deployed canister metadata")
         .subcommand(info_command())
         .subcommand(count_command())
@@ -94,8 +97,7 @@ pub(super) fn command() -> ClapCommand {
 
 fn count_command() -> ClapCommand {
     collection_args(
-        ClapCommand::new("count")
-            .bin_name("icq ic canister count")
+        CanisterFilterOptions::augment_args(ClapCommand::new("count"))
             .about("Count canisters through one official Dashboard API request"),
     )
     .after_help(collection_help(
@@ -106,8 +108,7 @@ fn count_command() -> ClapCommand {
 
 fn page_command() -> ClapCommand {
     collection_args(
-        ClapCommand::new("page")
-            .bin_name("icq ic canister page")
+        CanisterFilterOptions::augment_args(ClapCommand::new("page"))
             .about("Show one bounded official Dashboard canister page"),
     )
     .arg(
@@ -124,6 +125,7 @@ fn page_command() -> ClapCommand {
         value_arg("after")
             .long("after")
             .value_name("canister-id")
+            .value_parser(principal_text_value_parser())
             .conflicts_with("before")
             .help("Exclusive forward cursor returned by a prior page"),
     )
@@ -131,6 +133,7 @@ fn page_command() -> ClapCommand {
         value_arg("before")
             .long("before")
             .value_name("canister-id")
+            .value_parser(principal_text_value_parser())
             .help("Exclusive backward cursor returned by a prior page"),
     )
     .after_help(collection_help(
@@ -140,63 +143,66 @@ fn page_command() -> ClapCommand {
 }
 
 fn collection_args(command: ClapCommand) -> ClapCommand {
-    filter_args(command).arg(json_arg()).arg(
+    command.arg(json_arg()).arg(
         source_endpoint_arg(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
             .help("Official IC Dashboard API v4 base endpoint"),
     )
 }
 
-fn filter_args(command: ClapCommand) -> ClapCommand {
-    command
-        .arg(
-            value_arg("has-name")
-                .long("has-name")
-                .value_name("true|false")
-                .value_parser(clap::value_parser!(bool))
-                .help("Filter by whether a Dashboard name is recorded"),
-        )
-        .arg(
-            value_arg("subnet-id")
-                .long("subnet-id")
-                .value_name("principal")
-                .help("Filter by Subnet principal"),
-        )
-        .arg(
-            value_arg("controller-id")
-                .long("controller-id")
-                .value_name("principal")
-                .help("Filter by controller principal"),
-        )
-        .arg(
-            value_arg("language")
-                .long("language")
-                .value_name("label")
-                .action(ArgAction::Append)
-                .help("Filter by a raw Dashboard language label; repeatable"),
-        )
-        .arg(
-            value_arg("canister-type")
-                .long("canister-type")
-                .value_name("classification")
-                .action(ArgAction::Append)
-                .help("Filter by a raw Dashboard canister classification; repeatable"),
-        )
-        .arg(
-            value_arg("query")
-                .long("query")
-                .value_name("text")
-                .help("Dashboard text search; two through 100 characters"),
-        )
+///
+/// CanisterFilterOptions
+///
+/// Clap-owned filter declarations shared by count and page commands.
+///
+
+#[derive(Args)]
+#[group(skip)]
+struct CanisterFilterOptions {
+    #[arg(
+        long,
+        value_name = "true|false",
+        help = "Filter by whether a Dashboard name is recorded"
+    )]
+    has_name: Option<bool>,
+    #[arg(long, value_name = "principal", value_parser = principal_text_value_parser(), help = "Filter by Subnet principal")]
+    subnet_id: Option<String>,
+    #[arg(
+        long,
+        value_name = "principal",
+        value_parser = principal_text_value_parser(),
+        help = "Filter by controller principal"
+    )]
+    controller_id: Option<String>,
+    #[arg(
+        long = "language",
+        value_name = "label",
+        value_parser = clap::builder::NonEmptyStringValueParser::new(),
+        help = "Filter by a raw Dashboard language label; repeatable"
+    )]
+    languages: Vec<String>,
+    #[arg(
+        long = "canister-type",
+        value_name = "classification",
+        value_parser = clap::builder::NonEmptyStringValueParser::new(),
+        help = "Filter by a raw Dashboard canister classification; repeatable"
+    )]
+    canister_types: Vec<String>,
+    #[arg(
+        long,
+        value_name = "text",
+        help = "Dashboard text search; two through 100 characters"
+    )]
+    query: Option<String>,
 }
 
 fn info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq ic canister info")
         .about("Show one canister from the official Dashboard API")
         .arg(
             value_arg("canister-id")
                 .required(true)
                 .value_name("canister-id")
+                .value_parser(principal_text_value_parser())
                 .help("Canister principal"),
         )
         .arg(json_arg())
@@ -211,21 +217,16 @@ fn info_command() -> ClapCommand {
 }
 
 fn canister_filters(matches: &ArgMatches) -> IcCanisterFilters {
+    let options = CanisterFilterOptions::from_arg_matches(matches)
+        .expect("Clap admitted the canister filter schema");
     IcCanisterFilters {
-        has_name: typed_option(matches, "has-name"),
-        subnet_id: string_option(matches, "subnet-id"),
-        controller_id: string_option(matches, "controller-id"),
-        languages: repeated_strings(matches, "language"),
-        canister_types: repeated_strings(matches, "canister-type"),
-        query: string_option(matches, "query"),
+        has_name: options.has_name,
+        subnet_id: options.subnet_id,
+        controller_id: options.controller_id,
+        languages: options.languages,
+        canister_types: options.canister_types,
+        query: options.query,
     }
-}
-
-fn repeated_strings(matches: &ArgMatches, id: &str) -> Vec<String> {
-    matches
-        .get_many::<String>(id)
-        .map(|values| values.cloned().collect())
-        .unwrap_or_default()
 }
 
 fn info_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcCanisterRequest) {

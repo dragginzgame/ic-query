@@ -521,6 +521,10 @@ fn block_type_row_from_wire(block_type: SupportedBlockType) -> IcrcBlockTypeRow 
     }
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes each decoded archive descriptor while projecting one report row."
+)]
 fn archive_row_from_wire(archive: ICRC3ArchiveInfo) -> IcrcArchiveRow {
     IcrcArchiveRow {
         canister_id: archive.canister_id.to_text(),

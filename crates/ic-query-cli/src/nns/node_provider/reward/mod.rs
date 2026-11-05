@@ -70,7 +70,6 @@ remain Unix seconds. The off-chain response is not certified and is not cached."
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("reward")
-        .bin_name("icq nns node-provider reward")
         .about("Inspect official Dashboard node-provider reward records")
         .subcommand(history_command())
         .subcommand(info_command())
@@ -106,7 +105,6 @@ async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
 
 fn info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq nns node-provider reward info")
         .about("Show one exact Dashboard node-provider reward record")
         .arg(
             value_arg("reward-id")
@@ -125,7 +123,6 @@ fn info_command() -> ClapCommand {
 
 fn list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq nns node-provider reward list")
         .about("Show one bounded Dashboard node-provider reward page")
         .arg(
             page_limit_arg(DEFAULT_LIMIT_ARG, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT)
@@ -146,7 +143,6 @@ fn list_command() -> ClapCommand {
 
 fn history_command() -> ClapCommand {
     ClapCommand::new("history")
-        .bin_name("icq nns node-provider reward history")
         .about("Show bounded aggregate Dashboard node-provider reward history")
         .arg(
             value_arg("start")

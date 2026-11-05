@@ -6,7 +6,18 @@
 
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::{Alignment, Options};
+pub use ic_host_text::width::fit_line as truncate_text;
 use std::{borrow::Cow, fmt::Display};
+
+// Keep scalar labels beside selected fields without repeating their access paths.
+macro_rules! report_fields {
+    ($report:expr; $($name:ident $(= $value:expr)?),+ $(,)?) => {
+        [$($crate::text_value::field(stringify!($name), &$crate::text_value::report_fields!(@value $report, $name $(, $value)?))),+]
+    };
+    (@value $report:expr, $name:ident, $value:expr) => { $value };
+    (@value $report:expr, $name:ident) => { $report.$name };
+}
+pub(crate) use report_fields;
 
 pub const REPORT_TABLE_OPTIONS: Options = Options {
     column_gap: 3,
@@ -31,16 +42,6 @@ pub fn optional_text(value: Option<&String>) -> String {
 /// Escape and retain the selected prefix for compact identity columns.
 pub fn compact_text(value: &str, chars: usize) -> String {
     terminal_text(value).chars().take(chars).collect()
-}
-
-pub fn truncate_text(value: &str, limit: usize) -> String {
-    let value = terminal_text(value).into_owned();
-    if value.chars().count() <= limit {
-        return value;
-    }
-    let mut truncated = value.chars().take(limit).collect::<String>();
-    truncated.push_str("...");
-    truncated
 }
 
 pub fn optional_u64_text(value: Option<u64>) -> String {

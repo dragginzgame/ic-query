@@ -14,7 +14,7 @@
 //! `ic-state-host` for certified IC state-tree reports,
 //! `cloud-engine-host` for native CloudEngine control-plane reports (combine it
 //! with `subnet-catalog-host` for the Registry-backed CloudEngine list),
-//! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for native SNS
+//! `icrc-host` for native ICRC ledger/index APIs, `sns-host` for explicitly targeted Governance neuron
 //! live/cache APIs, `cmc-host` for certified Cycles Minting Canister reports,
 //! `subnet-catalog-host` for the focused live/cache Subnet catalog API,
 //! `nns-topology-host` for that API plus exact-version joined NNS Subnet
@@ -79,14 +79,12 @@ pub mod cloud_engine;
 #[cfg(any(
     feature = "cloud-engine-host",
     feature = "dashboard-host",
-    feature = "icrc-host",
-    feature = "sns-host"
+    feature = "icrc-host"
 ))]
 mod decimal;
 #[cfg(any(
     feature = "dashboard-host",
     feature = "icrc-host",
-    feature = "sns-host",
     feature = "subnet-catalog-host"
 ))]
 mod freshness;

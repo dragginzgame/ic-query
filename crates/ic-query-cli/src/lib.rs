@@ -1,4 +1,3 @@
-mod cache;
 mod cli;
 mod cloud_engine;
 mod ic;
@@ -14,6 +13,7 @@ pub use crate::cli::clap::prepare_command_tree;
 
 use crate::cli::clap::{parse_matches, string_option};
 use clap::{Arg, Command, error::ErrorKind};
+use ic_host_text::escape::terminal_text;
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
 use thiserror::Error as ThisError;
@@ -36,9 +36,6 @@ pub enum IcqCliError {
     Io(#[from] std::io::Error),
     #[error("{0}")]
     Usage(String),
-
-    #[error("cache: {0}")]
-    Cache(#[from] cache::CacheCommandError),
 
     #[error("cloud-engine: {0}")]
     CloudEngine(#[from] cloud_engine::CloudEngineCommandError),
@@ -65,7 +62,6 @@ impl IcqCliError {
     pub fn is_broken_pipe(&self) -> bool {
         match self {
             Self::Io(err)
-            | Self::Cache(cache::CacheCommandError::Io(err))
             | Self::CloudEngine(cloud_engine::CloudEngineCommandError::Io(err))
             | Self::Ic(ic::IcCommandError::Io(err))
             | Self::Nns(nns::NnsCommandError::Io(err))
@@ -75,13 +71,33 @@ impl IcqCliError {
                 err.kind() == std::io::ErrorKind::BrokenPipe
             }
             Self::Usage(_)
-            | Self::Cache(_)
             | Self::CloudEngine(_)
             | Self::Nns(_)
             | Self::Icrc(_)
             | Self::Ic(_)
             | Self::Sns(_)
             | Self::System(_) => false,
+        }
+    }
+
+    /// Escape runtime error fields while retaining framework layout and local advice.
+    /// `Usage` contains trusted Clap/static layout and is retained verbatim.
+    #[must_use]
+    pub fn diagnostic_text(&self) -> String {
+        match self {
+            // This variant contains Clap-rendered diagnostics or static local usage.
+            Self::Usage(message) => message.clone(),
+            Self::Nns(error) => format!(
+                "nns: {}{}",
+                terminal_text(&error.to_string()),
+                cli::diagnostics::nns_advice(error)
+            ),
+            Self::Sns(error) => format!(
+                "sns: {}{}",
+                terminal_text(&error.to_string()),
+                cli::diagnostics::sns_advice(error)
+            ),
+            _ => terminal_text(&self.to_string()).into_owned(),
         }
     }
 
@@ -96,7 +112,6 @@ impl IcqCliError {
             | Self::Sns(sns::SnsCommandError::Usage(_))
             | Self::System(system::SystemCommandError::Usage(_)) => 2,
             Self::Io(_)
-            | Self::Cache(_)
             | Self::CloudEngine(_)
             | Self::Nns(_)
             | Self::Icrc(_)
@@ -150,14 +165,6 @@ where
     };
 
     match command {
-        "cache" => {
-            reject_network_option(
-                command,
-                selected_network.as_deref(),
-                "this command inspects every network under the local cache root",
-            )?;
-            Ok(cache::run_matches(matches)?)
-        }
         "cloud-engine" => Ok(cloud_engine::run_matches(matches, network).await?),
         "ic" => {
             reject_network_option(
@@ -214,7 +221,6 @@ fn top_level_command() -> Command {
         .subcommand_help_heading("Commands")
         .help_template(TOP_LEVEL_HELP_TEMPLATE)
         .after_help("Run `icq <command> --help` for command-specific help.")
-        .subcommand(cache::command())
         .subcommand(cloud_engine::command())
         .subcommand(ic::command())
         .subcommand(icrc::command())

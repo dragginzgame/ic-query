@@ -8,7 +8,7 @@ use std::ffi::OsString;
 #[test]
 fn usage_discloses_bounded_uncertified_reports() {
     let usage = render_help(command());
-    assert!(usage.contains("Usage: icq cloud-engine [COMMAND]"));
+    assert!(usage.contains("Usage: cloud-engine [COMMAND]"));
     assert!(usage.contains("info"));
     assert!(usage.contains("list"));
     assert!(usage.contains("node"));

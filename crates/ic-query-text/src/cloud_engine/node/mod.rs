@@ -20,29 +20,20 @@ use ic_query::cloud_engine::CloudEngineNodeRow;
 #[must_use]
 pub fn cloud_engine_node_list_report_text(report: &CloudEngineNodeListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("node_reward_type", &(report.node_reward_type)),
-        field("included_statuses", &(report.included_statuses.join(","))),
-        field(
-            "requested_node_provider_id",
-            &(optional_text(report.requested_node_provider_id.as_ref())),
-        ),
-        field("node_count", &(report.nodes.len())),
-        field("status_up", &(report.status_counts.up)),
-        field("status_down", &(report.status_counts.down)),
-        field("status_disabled", &(report.status_counts.disabled)),
-        field("status_degraded", &(report.status_counts.degraded)),
-        field("status_unknown", &(report.status_counts.unknown)),
-        field("node_provider_count", &(report.node_provider_count)),
-        field(
-            "cloud_engine_subnet_count",
-            &(report.cloud_engine_subnet_count),
-        ),
-        field(
-            "unassigned_cloud_engine_node_count",
-            &(report.unassigned_cloud_engine_node_count),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        node_reward_type,
+        included_statuses = report.included_statuses.join(","),
+        requested_node_provider_id = optional_text(report.requested_node_provider_id.as_ref()),
+        node_count = report.nodes.len(),
+        status_up = report.status_counts.up,
+        status_down = report.status_counts.down,
+        status_disabled = report.status_counts.disabled,
+        status_degraded = report.status_counts.degraded,
+        status_unknown = report.status_counts.unknown,
+        node_provider_count,
+        cloud_engine_subnet_count,
+        unassigned_cloud_engine_node_count,
+    ));
     if !report.nodes.is_empty() {
         lines.push(String::new());
         lines.push("CloudEngine nodes".to_string());

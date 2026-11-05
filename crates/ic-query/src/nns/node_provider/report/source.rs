@@ -1,28 +1,29 @@
-use super::{NnsInventoryError, NnsNodeProviderListReport};
+use super::{NnsInventoryError, NnsNodeProviderMetadata};
 use crate::report::CollectionSourceRequest;
 use crate::{
-    ic_registry::fetch_mainnet_node_provider_list,
+    ic_registry::fetch_mainnet_node_provider_metadata,
     nns::{LiveNnsSource, source::mainnet_registry_fetch_request},
 };
 
 ///
 /// NnsNodeProviderSource
 ///
-/// Source contract for fetching complete NNS node-provider list reports.
+/// Governance metadata capability paired with the independent Registry inventory source.
 ///
 
-pub trait NnsNodeProviderSource: Sync {
-    fn fetch_node_provider_list_report<'a>(
+pub trait NnsNodeProviderSource: crate::nns::NnsRegistryInventorySource {
+    /// Fetch provider identities and reward accounts without claiming Registry node counts.
+    fn fetch_node_provider_metadata<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>>;
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderMetadata, NnsInventoryError>>;
 }
 
 impl NnsNodeProviderSource for LiveNnsSource {
-    fn fetch_node_provider_list_report<'a>(
+    fn fetch_node_provider_metadata<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderMetadata, NnsInventoryError>> {
         Box::pin(async move {
             let fetch_request = mainnet_registry_fetch_request(request, |network| {
                 NnsInventoryError::UnsupportedNetwork {
@@ -30,7 +31,7 @@ impl NnsNodeProviderSource for LiveNnsSource {
                     network,
                 }
             })?;
-            fetch_mainnet_node_provider_list(&fetch_request)
+            fetch_mainnet_node_provider_metadata(&fetch_request)
                 .await
                 .map_err(|source| NnsInventoryError::Registry {
                     collection: super::COLLECTION,

@@ -120,6 +120,10 @@ fn account_transactions_page(
     })
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes each decoded native transaction while projecting one owned report row."
+)]
 fn account_transaction_row(transaction: IcpIndexTransactionWithId) -> IcrcAccountTransactionRow {
     let (kind, mut summary) = operation_summary(&transaction.transaction.operation);
     summary.memo_hex = transaction.transaction.icrc1_memo.as_deref().map(hex_bytes);

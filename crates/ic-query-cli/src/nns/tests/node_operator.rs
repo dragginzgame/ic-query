@@ -126,7 +126,10 @@ fn node_operator_help_is_advertised_under_nns() {
     assert!(nns.contains("node-operator"));
     assert!(node_operator.contains("List cached mainnet NNS node operators"));
     assert!(node_operator.contains("Show one cached mainnet NNS node operator"));
-    assert!(node_operator.contains("Force-refresh and cache NNS node-operator metadata"));
+    assert!(
+        node_operator
+            .contains("Refresh the shared Registry node, operator and data-centre snapshot")
+    );
     assert!(list.contains("icq nns node-operator list"));
     assert!(list.contains("--verbose"));
     assert!(list.contains("--json"));

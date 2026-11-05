@@ -877,6 +877,10 @@ fn load_fixture_snapshot(
     )
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The fixture writer consumes its JSON value after publishing it to the managed test path."
+)]
 fn write_snapshot_fixture(path: &Path, value: serde_json::Value) {
     let cache_root = path.parent().expect("snapshot fixture parent");
     crate::cache_file::write_managed_text_atomically(

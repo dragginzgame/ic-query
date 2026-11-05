@@ -82,10 +82,6 @@ pub(in crate::sns::report) type SnsStoredCacheWithPath<Family> = (PathBuf, SnsSt
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(in crate::sns::report) struct SnsCacheMetadata {
-    pub(in crate::sns::report) sns_wasm_canister_id: String,
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) name: String,
-    pub(in crate::sns::report) root_canister_id: String,
     pub(in crate::sns::report) governance_canister_id: String,
 }
 
@@ -104,23 +100,28 @@ where
 }
 
 /// Load one complete SNS cache by root canister principal.
-pub(in crate::sns::report) fn load_sns_cache_for_root<Family>(
+pub(in crate::sns::report) fn load_sns_cache_for_governance<Family>(
     cache_root: &Path,
     network: &str,
-    root_canister_id: &ic_platform::candid::contract::Principal,
+    governance_canister_id: &str,
 ) -> Result<SnsStoredCacheWithPath<Family>, SnsHostError>
 where
     Family: SnsCacheStorageFamily,
 {
     enforce_mainnet_network(network)?;
-    let root_canister_id = root_canister_id.to_text();
-    let path =
-        sns_snapshot_cache_paths::<Family>(cache_root, network, &root_canister_id).snapshot_path;
+    let governance_canister_id =
+        super::target::parse_governance_canister_input(governance_canister_id)?;
+    let path = sns_snapshot_cache_paths::<Family>(cache_root, network, &governance_canister_id)
+        .snapshot_path;
     let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None, None)?;
     Ok((path, cache))
 }
 
 /// Load and validate one complete SNS snapshot cache.
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the selected path as part of snapshot admission and owned error projection."
+)]
 pub(in crate::sns::report) fn load_sns_cache_at<Family>(
     cache_root: &Path,
     path: PathBuf,
@@ -183,27 +184,17 @@ fn validate_sns_cache_metadata(
     metadata: &SnsCacheMetadata,
     entity: &str,
 ) -> Result<(), SnsHostError> {
-    if metadata.id == 0 {
-        return Err(invalid_sns_cache_error(
-            path,
-            "SNS list id must be greater than zero".to_string(),
-        ));
-    }
-    if metadata.root_canister_id != entity {
+    if metadata.governance_canister_id != entity {
         return Err(invalid_sns_cache_error(
             path,
             format!(
-                "root_canister_id is {}, expected {entity}",
-                metadata.root_canister_id
+                "governance_canister_id is {}, expected {entity}",
+                metadata.governance_canister_id
             ),
         ));
     }
-    if metadata.governance_canister_id.is_empty() {
-        return Err(invalid_sns_cache_error(
-            path,
-            "governance_canister_id must not be empty".to_string(),
-        ));
-    }
+    super::target::parse_governance_canister_input(&metadata.governance_canister_id)
+        .map_err(|error| invalid_sns_cache_error(path, error.to_string()))?;
     Ok(())
 }
 

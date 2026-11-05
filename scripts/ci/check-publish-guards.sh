@@ -5,7 +5,8 @@ repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P
 export REAL_CARGO YQ
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-publish-guards.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-publish-guards.XXXXXX")"
 work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
 # shellcheck source=scripts/ci/fixture-lifecycle.sh

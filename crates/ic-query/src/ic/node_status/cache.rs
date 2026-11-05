@@ -341,6 +341,10 @@ fn load_node_status_cache(
     snapshot_from_cache(path, cache, now_unix_secs)
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the selected cache path while projecting it into owned report or error evidence."
+)]
 fn snapshot_from_cache(
     path: PathBuf,
     cache: NodeStatusCache,

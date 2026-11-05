@@ -1,12 +1,12 @@
-use super::NnsInventoryCacheRequest;
 use super::NnsInventoryError;
 use super::NnsInventoryListRequest;
 use super::NnsNodeOperatorListReport;
 use super::NnsNodeOperatorRow;
-use super::NnsNodeOperatorSource;
 use super::build_nns_node_operator_list_report_with_source_and_progress;
 use super::resolve_node_operator;
 use crate::nns::LiveNnsSource;
+use crate::nns::NnsInventoryCacheRequest;
+use crate::nns::NnsRegistryInventorySource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
@@ -22,13 +22,13 @@ async fn live_node_operator_source_rejects_non_mainnet_before_agent_construction
     );
 
     let error = LiveNnsSource::default()
-        .fetch_node_operator_list_report(&request)
+        .fetch_registry_inventory(&request)
         .await
         .expect_err("unsupported network");
 
     assert!(matches!(
         error,
-        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::NodeOperator, network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::RegistryInventory, network } if network == "local"
     ));
 }
 
@@ -120,25 +120,32 @@ struct FixtureNodeOperatorSource {
     node_operators: Vec<NnsNodeOperatorRow>,
 }
 
-impl NnsNodeOperatorSource for FixtureNodeOperatorSource {
-    fn fetch_node_operator_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for FixtureNodeOperatorSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeOperatorListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
-            let node_operators = self.node_operators.clone();
-            Ok(NnsNodeOperatorListReport {
-                schema_version: 1,
-                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-                    network: MAINNET_NETWORK.to_string(),
-                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                    registry_version: 42,
-                    fetched_at: request.fetched_at.clone(),
-                    source_endpoint: request.endpoint.clone(),
-                    fetched_by: request.fetched_by.clone(),
-                },
-                node_operators,
-            })
+            let result: Result<NnsNodeOperatorListReport, NnsInventoryError> = async move {
+                let node_operators = self.node_operators.clone();
+                Ok(NnsNodeOperatorListReport {
+                    schema_version: 1,
+                    provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                        network: MAINNET_NETWORK.to_string(),
+                        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                        registry_version: 42,
+                        fetched_at: request.fetched_at.clone(),
+                        source_endpoint: request.endpoint.clone(),
+                        fetched_by: request.fetched_by.clone(),
+                    },
+                    node_operators,
+                })
+            }
+            .await;
+            result.map(Into::into)
         })
     }
 }

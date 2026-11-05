@@ -96,7 +96,7 @@ fn data_center_list_aggregates_registry_relations() {
         )]),
     };
 
-    let list = data_center_list_from_inventory(inventory).expect("data centers");
+    let list = data_center_list_from_inventory(&inventory).expect("data centers");
 
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].data_center_id, "dc-a");

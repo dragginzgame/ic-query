@@ -27,8 +27,7 @@ pub use activity::{
 };
 #[cfg(feature = "nns-host")]
 pub use cache::{
-    NnsProposalCacheListReport, build_nns_proposal_activity_report_from_cache,
-    build_nns_proposal_cache_list_report, build_nns_proposal_cache_status_report,
+    build_nns_proposal_activity_report_from_cache, build_nns_proposal_cache_status_report,
     build_nns_proposal_list_report_from_cache,
     build_nns_proposal_list_report_with_cache_and_source, build_nns_proposal_report_from_cache,
     build_nns_proposal_report_with_cache_and_source, nns_proposal_cache_path,

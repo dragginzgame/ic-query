@@ -16,7 +16,7 @@ fn main() {
         if err.is_broken_pipe() {
             return;
         }
-        eprintln!("{err}");
+        eprintln!("{}", err.diagnostic_text());
         std::process::exit(err.exit_code());
     }
 }

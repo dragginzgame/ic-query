@@ -28,6 +28,9 @@ The [contribution rules](rules/contributions.md) own detailed action authority;
 local overlays must not duplicate it or add routine permission gates.
 
 - Prefer direct edits in the normal authorized checkout when a PR is optional.
+  Use branches there when needed; coordinate or wait when another session owns
+  the inputs. Separate checkouts are explicit exceptions, not the default for
+  isolation, PRs or deployment.
   Ordinary fixes include focused checks and pending notes, not staging, commits
   or delivery. Shared alone also prepares its pending `VERSION`.
 - A PR request includes its topic branch, scoped commits, branch push and PR.
@@ -42,8 +45,11 @@ local overlays must not duplicate it or add routine permission gates.
 - Preserve unrelated dirty work and reread files before editing. Sibling inspection
   is read-only; source contributions need scoped authority. Coordinate active
   sessions before changing their inputs or preparing an authorized fleet release.
-- Additional checkouts require approval of their location. Never leave the only
-  copy of lasting work in `/tmp`, `target/`, caches or a disposable patch.
+- Do not create new directories directly under `~/projects`; only an explicit
+  user exception for that exact directory permits it. Ordinary fix, PR and deploy
+  authority does not. Additional checkouts require approval of their location.
+  Never leave the only copy of lasting work in `/tmp`, `target/`, caches or a
+  disposable patch.
   Follow the [checkout contract](rules/contributions.md#durable-work-and-checkout-location).
 - Carry authorization forward without repeated approval. Inspection and readiness
   questions alone do not authorize repair or delivery. Ask only for a genuinely
@@ -102,6 +108,10 @@ when changing interfaces, persistence or installation/recovery behavior.
   report that limitation; do not silently broaden an ordinary task into the full
   suite. Name the changed behavior each selected check proves. Keep unchanged
   generic regression matrices with their producer.
+- Give repeated validation one execution owner: selected group scope must reach
+  the leaf commands, and aggregate gates must not repeat full lint/setup through
+  nested targets. Reuse unchanged release-stage evidence only through the
+  qualified contract; see [validation mechanics](rules/engineering-details.md#validation-and-evidence).
 - Reserve local full repository/workspace suites and broad gates for an explicitly
   authorized release or explicit request for those checks. Implementation,
   continuation, PR delivery and readiness wording do not authorize them. Focused
@@ -219,6 +229,9 @@ Keep plain `cargo clean` able to remove the owning workspace's entire `target/`
 directory. Put workspace build/test scratch and generated fixtures beneath
 `target/`; use `.tmp/` or other outside-target scratch only for a documented
 technical need. Artifact retention must not narrow explicit cleanup.
+Keep `.git` free of build trees and bulk retired-checkout archives. Git-side
+tool state needs explicit size/retention limits under the artifact contract;
+preserving evidence must not silently preserve every compiler output.
 
 ## IC stable-memory governance
 
@@ -228,12 +241,15 @@ storage allocation, admission, backing access or persistence integrations.
 
 ## Rust workspaces and portable tooling
 
-Keep Rust tests and test-only helpers in `tests.rs` or a `tests/` directory
-wherever practical, so file-based LOC tools can distinguish test source.
-Follow the [test layout rule](docs/principles/rust-code-hygiene.md#tests).
+Keep Rust tests and test-only helpers in `tests.rs`, `*_tests.rs` or `tests/`;
+declare fixture-only package roles explicitly. Adopt the naming layout as a
+hard cut, including references, under the
+[test layout rule](docs/principles/rust-code-hygiene.md#tests).
 
 Use ordinary Rust module discovery. `#[path]` module attributes, including
-conditional path overrides, are prohibited. Follow the
+conditional path overrides, are prohibited. Do not inject embedded Rust source
+or patch generated entrypoints to change executable code, including in tests.
+Follow the
 [module layout rule](docs/principles/rust-code-hygiene.md#ownership-and-module-shape)
 for source, tests and generated code.
 

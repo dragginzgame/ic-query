@@ -9,7 +9,7 @@ use ic_host_tools::registry::proto::NodeOperatorRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_operator_list_from_inventory(
-    inventory: RegistryRelationInventory,
+    inventory: &RegistryRelationInventory,
 ) -> Result<Vec<NnsNodeOperatorRow>, RegistryFetchError> {
     let node_counts = node_counts_from_relations(
         &inventory.node_principals,
@@ -19,23 +19,23 @@ pub(in crate::ic_registry) fn node_operator_list_from_inventory(
     )?;
     let node_operators = inventory
         .node_operator_records
-        .into_iter()
+        .iter()
         .map(|(principal, record)| node_operator_from_record(principal, record, &node_counts))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(node_operators)
 }
 
 fn node_operator_from_record(
-    principal: String,
-    record: NodeOperatorRecord,
+    principal: &str,
+    record: &NodeOperatorRecord,
     node_counts: &BTreeMap<String, u32>,
 ) -> Result<NnsNodeOperatorRow, RegistryFetchError> {
-    let node_provider_principal = node_provider_principal_from_record(&principal, &record)?;
+    let node_provider_principal = node_provider_principal_from_record(principal, record)?;
     Ok(NnsNodeOperatorRow {
-        node_count: Some(node_counts.get(&principal).copied().unwrap_or(0)),
-        node_operator_principal: principal,
+        node_count: Some(node_counts.get(principal).copied().unwrap_or(0)),
+        node_operator_principal: principal.to_string(),
         node_provider_principal,
         node_allowance: record.node_allowance,
-        data_center_id: record.dc_id,
+        data_center_id: record.dc_id.clone(),
     })
 }

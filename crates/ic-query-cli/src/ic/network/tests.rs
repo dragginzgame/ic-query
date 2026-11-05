@@ -8,13 +8,13 @@ fn usage_discloses_live_dashboard_authority_and_bounds() {
     let boundary_nodes = render_help(boundary_node_data_centers_command());
     let daily_stats = render_help(daily_stats_command());
 
-    assert!(network.contains("Usage: icq ic network [COMMAND]"));
+    assert!(network.contains("Usage: network [COMMAND]"));
     assert!(network.contains("boundary-node-data-centers"));
     assert!(network.contains("daily-stats"));
-    assert!(boundary_nodes.contains("Usage: icq ic network boundary-node-data-centers [OPTIONS]"));
+    assert!(boundary_nodes.contains("Usage: boundary-node-data-centers [OPTIONS]"));
     assert!(boundary_nodes.contains("exactly one official Dashboard v4 request"));
     assert!(boundary_nodes.contains("locations that currently report zero nodes"));
-    assert!(daily_stats.contains("Usage: icq ic network daily-stats [OPTIONS]"));
+    assert!(daily_stats.contains("Usage: daily-stats [OPTIONS]"));
     assert!(daily_stats.contains("exactly one official Dashboard v3 request"));
     assert!(daily_stats.contains("capped at one year and 366 returned rows"));
 }

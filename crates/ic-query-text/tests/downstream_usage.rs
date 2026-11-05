@@ -79,20 +79,6 @@ mod host {
     use ic_query::nns::topology::NnsSubnetTopologyRefreshRequest;
     use ic_query::nns::topology::refresh_nns_subnet_topology;
     use ic_query::report::CollectionSourceRequest;
-    use ic_query::report::SortDirection;
-    use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
-    use ic_query::sns::SnsCacheStatusRequest;
-    use ic_query::sns::SnsHostError;
-    use ic_query::sns::SnsMetricsRequest;
-    use ic_query::sns::SnsNeuronsCacheSort;
-    use ic_query::sns::SnsNeuronsRequest;
-    use ic_query::sns::SnsProposalsRequest;
-    use ic_query::sns::SnsProposalsSort;
-    use ic_query::sns::build_sns_metrics_report;
-    use ic_query::sns::build_sns_neurons_cache_status_report;
-    use ic_query::sns::build_sns_neurons_report;
-    use ic_query::sns::build_sns_proposals_cache_status_report;
-    use ic_query::sns::build_sns_proposals_report_with_source_and_progress;
     use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
     use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
     use ic_query::subnet_catalog::ResolveAs;
@@ -104,11 +90,6 @@ mod host {
     use ic_query_text::icrc::icrc_token_report_text;
     use ic_query_text::nns::node::nns_node_list_report_text;
     use ic_query_text::nns::registry::nns_registry_version_report_text;
-    use ic_query_text::sns::sns_metrics_report_text;
-    use ic_query_text::sns::sns_neurons_cache_status_report_text;
-    use ic_query_text::sns::sns_neurons_report_text;
-    use ic_query_text::sns::sns_proposals_cache_status_report_text;
-    use ic_query_text::sns::sns_proposals_report_text;
     use ic_query_text::subnet_catalog::subnet_catalog_info_report_text;
     use std::path::Path;
 
@@ -119,10 +100,6 @@ mod host {
         accepts_icrc_example(render_token);
         accepts_custom_source_example(render_registry_version_with_source);
         accepts_subnet_topology_example(refresh_subnet_topology);
-        accepts_sns_metrics_example(render_sns_metrics);
-        accepts_sns_proposals_example(render_recent_sns_proposals);
-        accepts_sns_neurons_example(render_cached_sns_neurons);
-        accepts_sns_cache_status_example(render_sns_cache_status);
         assert_progress_api_is_public();
 
         let text = render_registry_version_with_source(&FixtureRegistrySource, 1_700_000_000)
@@ -203,56 +180,6 @@ mod host {
         Ok(nns_registry_version_report_text(&report))
     }
 
-    async fn render_recent_sns_proposals(
-        cache_root: &Path,
-        sns_input: &str,
-        now_unix_secs: u64,
-    ) -> Result<String, SnsHostError> {
-        let mut request = SnsProposalsRequest::new(
-            ic_query::sns::SnsLookupRequest::new(
-                "ic",
-                DEFAULT_SNS_SOURCE_ENDPOINT,
-                now_unix_secs,
-                sns_input,
-            )
-            .expect("valid SNS selector"),
-            25,
-        )
-        .with_cache_root(cache_root)
-        .with_sort(SnsProposalsSort::Created);
-        request.sort_direction = SortDirection::Desc;
-
-        let report = build_sns_proposals_report_with_source_and_progress(
-            &request,
-            &ic_query::sns::LiveSnsSource::default(),
-            &mut |_| {},
-        )
-        .await?;
-        Ok(sns_proposals_report_text(
-            &report,
-            ic_query_text::TextOptions::default(),
-        ))
-    }
-
-    async fn render_sns_metrics(
-        sns_input: &str,
-        now_unix_secs: u64,
-    ) -> Result<String, SnsHostError> {
-        let mut request = SnsMetricsRequest::new(
-            ic_query::sns::SnsLookupRequest::new(
-                "ic",
-                DEFAULT_SNS_SOURCE_ENDPOINT,
-                now_unix_secs,
-                sns_input,
-            )
-            .expect("valid SNS selector"),
-        );
-        request.time_window_seconds = 90 * 24 * 60 * 60;
-
-        let report = build_sns_metrics_report(&request).await?;
-        Ok(sns_metrics_report_text(&report))
-    }
-
     async fn refresh_subnet_topology(
         cache_root: &Path,
         now_unix_secs: u64,
@@ -263,45 +190,6 @@ mod host {
             now_unix_secs,
         );
         refresh_nns_subnet_topology(&request).await
-    }
-
-    async fn render_cached_sns_neurons(
-        cache_root: &Path,
-        sns_input: &str,
-        now_unix_secs: u64,
-    ) -> Result<String, SnsHostError> {
-        let request = SnsNeuronsRequest::cached(
-            ic_query::sns::SnsLookupRequest::new(
-                "ic",
-                DEFAULT_SNS_SOURCE_ENDPOINT,
-                now_unix_secs,
-                sns_input,
-            )
-            .expect("valid SNS selector"),
-            500,
-            cache_root,
-            SnsNeuronsCacheSort::Stake,
-        );
-
-        let report = build_sns_neurons_report(&request).await?;
-        Ok(sns_neurons_report_text(
-            &report,
-            ic_query_text::TextOptions::default(),
-        ))
-    }
-
-    fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
-        let proposals = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
-        let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
-
-        let neurons = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
-        let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
-
-        Ok(format!(
-            "{}\n{}",
-            sns_proposals_cache_status_report_text(&proposals_report),
-            sns_neurons_cache_status_report_text(&neurons_report)
-        ))
     }
 
     struct FixtureRegistrySource;
@@ -347,16 +235,6 @@ mod host {
     ) {
     }
 
-    fn accepts_sns_proposals_example(
-        _example: impl AsyncFn(&Path, &str, u64) -> Result<String, SnsHostError>,
-    ) {
-    }
-
-    fn accepts_sns_metrics_example(
-        _example: impl AsyncFn(&str, u64) -> Result<String, SnsHostError>,
-    ) {
-    }
-
     fn accepts_subnet_topology_example(
         _example: impl AsyncFn(
             &Path,
@@ -364,14 +242,6 @@ mod host {
         )
             -> Result<CachedNnsSubnetTopologyReport, NnsSubnetTopologyHostError>,
     ) {
-    }
-
-    fn accepts_sns_neurons_example(
-        _example: impl AsyncFn(&Path, &str, u64) -> Result<String, SnsHostError>,
-    ) {
-    }
-
-    fn accepts_sns_cache_status_example(_example: fn(&Path, &str) -> Result<String, SnsHostError>) {
     }
 }
 

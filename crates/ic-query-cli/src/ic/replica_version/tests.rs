@@ -11,7 +11,7 @@ fn usage_discloses_bounds_authority_and_runtime_limit() {
     let info = render_help(info_command());
     let list = render_help(list_command());
 
-    assert!(family.contains("Usage: icq ic replica-version [COMMAND]"));
+    assert!(family.contains("Usage: replica-version [COMMAND]"));
     assert!(family.contains("info"));
     assert!(family.contains("list"));
     assert!(info.contains("exactly one official Dashboard detail request"));

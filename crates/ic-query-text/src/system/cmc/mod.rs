@@ -28,12 +28,12 @@ pub fn cmc_xdr_report_text(report: &CmcXdrReport) -> String {
 pub fn cmc_cycles_report_text(report: &CmcCyclesReport) -> String {
     let mut lines = context_lines(&report.xdr.context);
     lines.extend(rate_lines(&report.xdr.rate));
-    lines.extend([
-        field("cycles_per_xdr", &(cycle_count_text(report.cycles_per_xdr))),
-        field("cycles_per_xdr_source", &(report.cycles_per_xdr_source)),
-        field("cycles_per_icp", &(cycle_count_text(report.cycles_per_icp))),
-        field("cycles_per_icp_formula", &(report.cycles_per_icp_formula)),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        cycles_per_xdr = cycle_count_text(report.cycles_per_xdr),
+        cycles_per_xdr_source,
+        cycles_per_icp = cycle_count_text(report.cycles_per_icp),
+        cycles_per_icp_formula,
+    ));
     lines.extend(certification_lines(&report.xdr.certification));
     lines.join("\n")
 }

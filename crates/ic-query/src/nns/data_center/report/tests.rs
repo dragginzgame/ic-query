@@ -1,12 +1,12 @@
 use super::NnsDataCenterListReport;
 use super::NnsDataCenterRow;
-use super::NnsDataCenterSource;
-use super::NnsInventoryCacheRequest;
 use super::NnsInventoryError;
 use super::NnsInventoryListRequest;
 use super::build_nns_data_center_list_report_with_source_and_progress;
 use super::resolve_data_center;
 use crate::nns::LiveNnsSource;
+use crate::nns::NnsInventoryCacheRequest;
+use crate::nns::NnsRegistryInventorySource;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
@@ -22,13 +22,13 @@ async fn live_data_center_source_rejects_non_mainnet_before_agent_construction()
     );
 
     let error = LiveNnsSource::default()
-        .fetch_data_center_list_report(&request)
+        .fetch_registry_inventory(&request)
         .await
         .expect_err("unsupported network");
 
     assert!(matches!(
         error,
-        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::DataCenter, network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::RegistryInventory, network } if network == "local"
     ));
 }
 
@@ -120,25 +120,32 @@ struct FixtureDataCenterSource {
     data_centers: Vec<NnsDataCenterRow>,
 }
 
-impl NnsDataCenterSource for FixtureDataCenterSource {
-    fn fetch_data_center_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for FixtureDataCenterSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsDataCenterListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
-            let data_centers = self.data_centers.clone();
-            Ok(NnsDataCenterListReport {
-                schema_version: 1,
-                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-                    network: MAINNET_NETWORK.to_string(),
-                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                    registry_version: 42,
-                    fetched_at: request.fetched_at.clone(),
-                    source_endpoint: request.endpoint.clone(),
-                    fetched_by: request.fetched_by.clone(),
-                },
-                data_centers,
-            })
+            let result: Result<NnsDataCenterListReport, NnsInventoryError> = async move {
+                let data_centers = self.data_centers.clone();
+                Ok(NnsDataCenterListReport {
+                    schema_version: 1,
+                    provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                        network: MAINNET_NETWORK.to_string(),
+                        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                        registry_version: 42,
+                        fetched_at: request.fetched_at.clone(),
+                        source_endpoint: request.endpoint.clone(),
+                        fetched_by: request.fetched_by.clone(),
+                    },
+                    data_centers,
+                })
+            }
+            .await;
+            result.map(Into::into)
         })
     }
 }

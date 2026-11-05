@@ -20,7 +20,6 @@ const TOPOLOGY_REFRESH_SOURCE_HELP: &str =
 
 pub(in crate::nns) fn topology_refresh_command() -> clap::Command {
     clap::Command::new("refresh")
-        .bin_name("icq nns topology refresh")
         .about("Refresh cached mainnet NNS topology component reports")
         .arg(leaf::json_arg())
         .arg(

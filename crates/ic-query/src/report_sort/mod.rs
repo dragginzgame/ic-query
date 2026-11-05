@@ -92,7 +92,7 @@ pub fn compare_ascii_case_insensitive_text(left: &str, right: &str, descending: 
 
 pub fn compare_optional_ord<T>(left: Option<T>, right: Option<T>, descending: bool) -> Ordering
 where
-    T: Ord,
+    T: Ord + Copy,
 {
     compare_optional_by(left, right, |left, right| {
         compare_ord(left, right, descending)
@@ -114,7 +114,7 @@ fn compare_optional_by<T>(
 
 pub fn compare_ord<T>(left: T, right: T, descending: bool) -> Ordering
 where
-    T: Ord,
+    T: Ord + Copy,
 {
     if descending {
         right.cmp(&left)

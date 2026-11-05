@@ -218,6 +218,10 @@ struct DashboardNodeProviderRewardHistory {
     reward_node_providers: Vec<[Number; 2]>,
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes each decoded JSON number during reply projection without retaining the wire response."
+)]
 fn number_to_u64(field: &str, value: Number) -> Result<u64, IcHostError> {
     if let Some(value) = value.as_u64() {
         return Ok(value);

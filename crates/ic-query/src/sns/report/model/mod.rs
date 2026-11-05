@@ -1,73 +1,15 @@
-//! Module: sns::report::model
-//!
-//! Responsibility: root SNS report model exports.
-//! Does not own: command parsing, live source calls, cache IO, or text output.
-//! Boundary: exposes report DTOs, request DTOs, errors, and selectors.
-
+//! Neuron models and explicit Governance targets.
 #[cfg(feature = "sns-host")]
 mod errors;
 mod identity;
 pub(in crate::sns::report) mod reports;
 mod requests;
 mod sorts;
-
-pub use identity::{MainnetSnsCanisters, SnsInstanceContext, SnsReportContext};
-
 #[cfg(feature = "sns-host")]
 pub use errors::SnsHostError;
-pub use reports::{
-    MainnetSnsCanisterInventory, SnsCanisterCallType, SnsCanisterCycleBalanceStatus,
-    SnsCanisterGap, SnsCanisterGapKind, SnsCanisterHealthQueryGap, SnsCanisterMethod,
-    SnsCanisterReport, SnsCanisterRole, SnsCanisterRow, SnsCanisterStatus,
-    SnsCustomProposalCriticality, SnsDefaultFollowees, SnsDefaultFolloweesRow,
-    SnsGovernanceParameters, SnsInfoReport, SnsLifecycleOutcome, SnsListReport, SnsListRow,
-    SnsMaturityDisbursementRow, SnsMetricsReport, SnsNeuronAccount, SnsNeuronDetail,
-    SnsNeuronDetailReport, SnsNeuronDissolveState, SnsNeuronFolloweeRow, SnsNeuronFolloweesRow,
-    SnsNeuronPermissionList, SnsNeuronPermissionRow, SnsNeuronRow, SnsNeuronTopicFolloweesRow,
-    SnsParamsReport, SnsPendingUpgrade, SnsPolicyObservationStatus, SnsProposalBallotRow,
-    SnsProposalDecisionState, SnsProposalFailureReason, SnsProposalReport, SnsProposalRow,
-    SnsProposalTally, SnsProposalsReport, SnsSwapComponent, SnsSwapDerivedState, SnsSwapLifecycle,
-    SnsSwapNeuronBasketConstructionParameters, SnsSwapQueryGap, SnsSwapReport,
-    SnsSwapSaleParameters, SnsTokenReport, SnsTreasuryMetricRow, SnsUpgradeQueryGap,
-    SnsUpgradeReport, SnsVersion, SnsVotingPowerMetrics, SnsVotingRewardsParameters,
-    sns_neuron_permission_name,
-};
+pub use identity::{SnsInstanceContext, SnsReportContext};
+pub use reports::*;
 #[cfg(feature = "sns-host")]
-pub use reports::{
-    SnsCacheAdmission, SnsCacheListReport, SnsCacheStatusReport, SnsCacheSummary, SnsNeuronsReport,
-    SnsRefreshAttemptStatus, SnsSnapshotRefreshReport, SnsValidCacheSummary,
-};
-pub use requests::{
-    DEFAULT_SNS_METRICS_TIME_WINDOW_SECONDS, MAX_SNS_METRICS_TIME_WINDOW_SECONDS, SnsListRequest,
-    SnsLookupError, SnsLookupRequest, SnsMetricsRequest, SnsProposalCollection, SnsProposalRequest,
-    SnsProposalViewError, SnsProposalsRequest,
-};
+pub use requests::*;
 #[cfg(feature = "sns-host")]
-pub use requests::{
-    SnsCacheListRequest, SnsCacheStatusRequest, SnsNeuronCollection, SnsNeuronRequest,
-    SnsNeuronsRequest, SnsSnapshotRefreshRequest,
-};
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use requests::{
-    validate_sns_metrics_request, validate_sns_metrics_time_window,
-};
-#[cfg(feature = "sns-host")]
-pub use sorts::SnsNeuronsCacheSort;
-#[cfg(feature = "sns-host")]
-pub(in crate::sns::report) use sorts::{
-    SNS_PROPOSAL_STATUS_ADOPTED_CODE, SNS_PROPOSAL_STATUS_REJECTED_CODE,
-};
-#[cfg(all(test, feature = "sns-host"))]
-pub(in crate::sns::report) use sorts::{
-    SNS_PROPOSAL_STATUS_EXECUTED_CODE, SNS_PROPOSAL_STATUS_OPEN_CODE,
-};
-pub use sorts::{
-    SnsListSort, SnsProposalEligibilityFilter, SnsProposalStatusFilter, SnsProposalTopicFilter,
-    SnsProposalsSort,
-};
-
-pub use reports::MainnetSnsMetrics;
-
-pub use reports::MainnetSnsSwap;
-
-pub use reports::sns_proposal_action_label;
+pub use sorts::*;

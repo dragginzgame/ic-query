@@ -445,6 +445,10 @@ impl<'a> RegistryKeyFamilyState<'a> {
         Ok(page_end)
     }
 
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "The observed protobuf content is a single-use wire value owned by this Registry observation."
+    )]
     fn apply_mutation(
         &mut self,
         key: &str,

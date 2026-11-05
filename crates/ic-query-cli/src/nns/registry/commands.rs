@@ -13,14 +13,12 @@ Examples:
 
 pub(in crate::nns) fn registry_command() -> ClapCommand {
     ClapCommand::new("registry")
-        .bin_name("icq nns registry")
         .about("Inspect NNS registry metadata")
         .subcommand(registry_version_command())
 }
 
 pub(in crate::nns) fn registry_version_command() -> ClapCommand {
     ClapCommand::new("version")
-        .bin_name("icq nns registry version")
         .about("Show the certified latest mainnet NNS registry version")
         .arg(leaf::json_arg())
         .arg(

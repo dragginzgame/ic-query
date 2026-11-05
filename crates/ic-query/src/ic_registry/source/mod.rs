@@ -12,11 +12,9 @@ mod subnet_catalog;
 mod subnet_topology;
 
 #[cfg(feature = "nns-host")]
-pub use governance::fetch_mainnet_node_provider_list;
+pub use governance::fetch_mainnet_node_provider_metadata;
 #[cfg(feature = "nns-host")]
-pub use nodes::{
-    fetch_mainnet_data_center_list, fetch_mainnet_node_list, fetch_mainnet_node_operator_list,
-};
+pub use nodes::fetch_mainnet_registry_inventory;
 #[cfg(feature = "nns-host")]
 pub use registry::fetch_mainnet_registry_version;
 pub use subnet_catalog::fetch_mainnet_subnet_catalog_async;

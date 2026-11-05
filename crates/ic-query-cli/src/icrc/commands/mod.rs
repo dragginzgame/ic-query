@@ -33,11 +33,10 @@ pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{IcrcAccountOptions, IcrcLedgerOptions};
 
 use crate::cli::{
-    clap::value_arg,
+    clap::{principal_text_value_parser, value_arg},
     common::{json_arg, source_endpoint_arg},
 };
 use clap::{Command as ClapCommand, builder::ValueParser};
-use ic_platform::candid::contract::Principal;
 use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
 use ic_query::icrc::normalize_subaccount_hex;
 
@@ -53,14 +52,8 @@ const SUBACCOUNT_ARG: &str = "subaccount";
 const OWNER_SUBACCOUNT_ARG: &str = "owner-subaccount";
 const SPENDER_SUBACCOUNT_ARG: &str = "spender-subaccount";
 const START_ARG: &str = "start";
-const END_ARG: &str = "end";
-const STEP_ARG: &str = "step";
 const LIMIT_ARG: &str = "limit";
-const AFTER_ARG: &str = "after";
-const BEFORE_ARG: &str = "before";
 const ACCOUNT_ID_ARG: &str = "account-id";
-const OWNER_ARG: &str = "owner";
-const SORT_BY_ARG: &str = "sort-by";
 const PAGE_SIZE_ARG: &str = "page-size";
 const MAX_PAGES_ARG: &str = "max-pages";
 const SORT_ARG: &str = "sort";
@@ -70,7 +63,6 @@ const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger qu
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
-        .bin_name("icq icrc")
         .about("Inspect generic ICRC ledgers and official analytics")
         .subcommand(ledger::command())
         .subcommand(account::command())
@@ -103,14 +95,6 @@ fn principal_arg(id: &'static str, help: &'static str) -> clap::Arg {
         .required(true)
         .value_parser(principal_text_value_parser())
         .help(help)
-}
-
-fn principal_text_value_parser() -> ValueParser {
-    ValueParser::new(|value: &str| {
-        Principal::from_text(value)
-            .map(|principal| principal.to_text())
-            .map_err(|err| err.to_string())
-    })
 }
 
 fn subaccount_hex_value_parser() -> ValueParser {

@@ -37,28 +37,4 @@ impl SnsSourceValidator {
         }
         Ok(())
     }
-
-    pub(super) fn exact(
-        self,
-        field: &'static str,
-        expected: &str,
-        actual: &str,
-    ) -> Result<(), SnsHostError> {
-        if actual != expected {
-            return Err(self.invalid(format!("{field} is {actual:?}, expected {expected:?}")));
-        }
-        Ok(())
-    }
-
-    pub(super) fn canonical_principal(
-        self,
-        field: &'static str,
-        value: &str,
-    ) -> Result<(), SnsHostError> {
-        crate::principal_text::validate_canonical(
-            value,
-            |reason| self.invalid(format!("{field} {value:?} is invalid: {reason}")),
-            |_| self.invalid(format!("{field} {value:?} is not canonical principal text")),
-        )
-    }
 }

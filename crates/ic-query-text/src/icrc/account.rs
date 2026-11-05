@@ -253,19 +253,16 @@ pub fn icrc_account_transaction_refresh_report_text(
 pub fn icrc_account_transaction_cache_status_report_text(
     report: &IcrcAccountTransactionCacheStatusReport,
 ) -> String {
-    let mut lines = vec![
-        field("ledger_canister_id", &(report.ledger_canister_id)),
-        field("account_owner", &(report.account_owner)),
-        field(
-            "subaccount_hex",
-            &(optional_text(report.subaccount_hex.as_ref())),
-        ),
-        field("source_endpoint", &report.source_endpoint),
-        field("found", &(report.found)),
-        field("expected_cache_path", &report.expected_cache_path),
-        field("refresh_attempt_path", &report.refresh_attempt_path),
-        field("refresh_lock_path", &report.refresh_lock_path),
-    ];
+    let mut lines = Vec::from(crate::text_value::report_fields!(report;
+        ledger_canister_id,
+        account_owner,
+        subaccount_hex = optional_text(report.subaccount_hex.as_ref()),
+        source_endpoint,
+        found,
+        expected_cache_path,
+        refresh_attempt_path,
+        refresh_lock_path,
+    ));
     match report.cache.as_ref() {
         Some(ic_query::icrc::IcrcAccountTransactionCacheSummary::Valid { data: cache }) => {
             lines.extend([
@@ -305,26 +302,11 @@ pub fn icrc_account_transaction_cache_status_report_text(
         None => {}
     }
     if let Some(attempt) = report.latest_attempt.as_ref() {
-        lines.extend([
-            field("latest_attempt_status", &(attempt.lifecycle.status)),
-            field("latest_attempt_started_at", &(attempt.lifecycle.started_at)),
-            field("latest_attempt_updated_at", &(attempt.lifecycle.updated_at)),
-            field(
-                "latest_attempt_index_canister_id",
-                &(optional_text(attempt.index_canister_id.as_ref())),
-            ),
-            field("latest_attempt_page_size", &(attempt.lifecycle.page_size)),
-            field("latest_attempt_pages", &(attempt.lifecycle.pages_fetched)),
-            field("latest_attempt_rows", &(attempt.lifecycle.rows_fetched)),
-            field(
-                "latest_attempt_cursor",
-                &(optional_text(attempt.lifecycle.last_cursor.as_ref())),
-            ),
-            field(
-                "latest_attempt_error",
-                &(optional_text(attempt.lifecycle.last_error.as_ref())),
-            ),
-        ]);
+        lines.push(field(
+            "attempt_index_canister_id",
+            &optional_text(attempt.index_canister_id.as_ref()),
+        ));
+        lines.extend(crate::report::refresh_attempt_lines(&attempt.lifecycle));
     }
     lines.join("\n")
 }

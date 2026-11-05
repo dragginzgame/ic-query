@@ -61,15 +61,9 @@ icq nns proposal activity --json
 icq nns neuron refresh
 icq nns neuron distribution --json
 
-# Deployed SNS reports
-icq sns list
-icq sns list --all
-icq sns refresh
-icq sns canister list 1
-icq sns metrics 1
-icq sns upgrade 1
-icq sns proposal list 1 --limit 25
-icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+# Explicit neuron stake and permission evidence
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --owner "$USER_PRINCIPAL" --json
+icq sns neuron info "$GOVERNANCE_CANISTER_ID" "$NEURON_ID" --json
 
 # Generic ICRC reports
 icq icrc ledger token ryjl3-tyaaa-aaaaa-aaaba-cai
@@ -87,8 +81,6 @@ icq icrc analytics transaction count mxzaz-hqaaa-aaaar-qaada-cai
 icq system xdr
 icq system cycles --json
 
-# Local cache inventory
-icq cache status
 ```
 
 Text is the default human-facing format. Use `--json` on report commands
@@ -154,7 +146,6 @@ authority model and follow-up query rules.
 ### Command families
 
 ```text
-icq cache status
 
 icq cloud-engine info <subnet-id>
 icq cloud-engine list
@@ -177,21 +168,15 @@ icq nns node-operator info|list|refresh
 icq nns node-provider info|list|refresh|status
 icq nns node-provider reward history|info|list
 icq nns proposal activity|cache|info|list|refresh
+icq nns proposal cache status
 icq nns registry version
 icq nns subnet info|list|refresh|status
 icq nns topology capacity|check|coverage|gaps|providers|refresh|regions|summary|versions
 
-icq sns list|refresh
-icq sns info|metrics|parameters|swap|token|upgrade <SNS>
-icq sns canister list <SNS>
 icq sns neuron cache list
-icq sns neuron cache status <SNS>
-icq sns neuron info <SNS> <neuron-id>
-icq sns neuron list|refresh <SNS>
-icq sns proposal cache list
-icq sns proposal cache status <SNS>
-icq sns proposal info <SNS> <proposal-id>
-icq sns proposal list|refresh <SNS>
+icq sns neuron cache status <governance-canister-id>
+icq sns neuron info <governance-canister-id> <neuron-id>
+icq sns neuron list|refresh <governance-canister-id>
 
 icq icrc account allowance|balance
 icq icrc account transaction cache|list|page|refresh
@@ -306,12 +291,10 @@ node-id request and rejects a returned non-Type4 row. Both are live and
 uncached; they do not reuse the default-scope node-status cache or reconcile a
 separately timed provider aggregate.
 
-Successful SNS metrics queries default to a 30-day proposal-count window
-capped at 365 days. They make three targeted client requests, preserve
-Governance-cached treasury and voting-power timestamps, and do not scan
-transactions, fan out, or create a cache. Paged proposal, neuron, and
-account-history collections retain refresh attempt state. Failed or capped
-refreshes do not replace the last complete snapshot.
+SNS neuron queries target an explicit Governance principal and preserve principal
+permissions and raw stake/fee/dissolve evidence. Complete neuron and account-history
+refreshes retain attempt state; failures or page ceilings preserve the last
+complete snapshot. Token balance and burn/transaction evidence stays under ICRC.
 
 Subnet Catalog callers select `CacheOnly`, refresh-missing,
 refresh-missing-or-invalid, refresh-older-than, or force-refresh behavior and
@@ -371,28 +354,12 @@ resurrect a deleted Subnet or mask lost modern authority. Size-bounded
 `get_changes_since` pages advance by their highest returned mutation version;
 the response's latest-version field is not treated as a page watermark.
 
-`sns list` uses a one-hour joined catalog cache containing Governance metadata
-and raw Swap lifecycle evidence, so consecutive fresh reads make no live calls.
-Missing, stale, malformed, incompatible, or semantically invalid catalogs
-produce visible refresh progress and are replaced only after a valid complete
-snapshot is ready; failed refreshes leave the prior file untouched. Cache-only
-and family-specific cache-status operations remain local and report invalid
-evidence directly.
-The default view includes lifecycle `3` (`committed`, successfully launched)
-SNSes; `sns list --all` also shows failed/aborted, pending, unknown, and
-lifecycle-query-error rows. `sns refresh` forces replacement. Targeted SNS
-commands keep their bounded targeted discovery and never refresh the all-SNS
-catalog.
+SNS neuron snapshots use the explicit Governance identity under `sns-neuron/`.
+The retired SNS-W catalog and Root-addressed files are neither read nor migrated.
+Cache discovery remains bounded to 1,024 candidates and 16,384 directory entries,
+with a shared 1 GiB read allowance. Direct Governance status reads use exact paths.
 
-SNS collection cache lists and numeric-id lookups bound local discovery to
-1,024 candidates and 16,384 directory entries per scan, with a shared 1 GiB
-read allowance across snapshots and attempt evidence. Exceeding a bound returns
-an error rather than an incomplete list or lookup result. Root-principal
-operations use their direct paths and existing per-file limits.
-Numeric reads also verify the loaded snapshot's id after discovery, rejecting
-an atomic replacement that changes it instead of returning another SNS.
-
-SNS neuron/proposal cache lists and direct cache status both return errors for
+SNS neuron cache lists and direct cache status both return errors for
 malformed or invalid refresh-attempt files. A missing attempt is valid absence.
 Cache lists still show invalid snapshots as invalid rows when their attempt
 evidence is absent or valid; they never refresh or repair files implicitly.
@@ -426,15 +393,18 @@ that a read-through call may silently replace. Explicit caller-selected output
 files are outside this cache policy, but refresh exports must not alias the
 managed snapshot or its refresh lock, including during a dry run.
 
-Use `icq cache status` to inspect known complete caches across that root,
-including generic header integrity, separate fresh/stale/unmanaged/unknown age,
-sizes, stale thresholds, and automatic/explicit/missing-only invalid-content
-recovery policy. The bounded inventory explicitly reports that it did not
-perform family-specific semantic validation. It also reports active, available,
-and invalid refresh coordination files without live calls, process probes, full history
-scans, or cache mutation. Cache content inspection shares a 1 GiB byte budget
-across the inventory; exhaustion returns an error rather than a partial success.
+NNS node, operator and data-centre views share
+`nns/ic/inventory/snapshot.json` and one refresh lock. Refreshing any of those
+views refreshes all three Registry tables. Provider metadata is stored separately
+at `nns/ic/node-provider/metadata.json`; provider list/info joins it with the
+current shared Registry snapshot and retains both acquisition records.
 
-Subnet Catalog history transcripts and their writer lock appear as
-`nns/registry-history`. Their unmanaged age is separate from catalog freshness;
-full transcript validation occurs only during authorized live acquisition.
+Node-provider refresh reports separate `inventory` and `metadata` outcomes.
+Its `--output` export contains Governance metadata without Registry node counts;
+use `nns node-provider list --json` for the joined report. Topology refresh reports
+Subnet Catalog, shared inventory and provider metadata as three components.
+Governance metadata has no Registry version; that refresh row emits `null`.
+
+Family-specific cache list/status commands remain local-only. There is no
+cross-family cache inventory command. Strict loading, confinement, exclusion,
+invalid-content recovery and bounded discovery remain with each cache owner.

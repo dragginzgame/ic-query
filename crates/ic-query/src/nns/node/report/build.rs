@@ -2,13 +2,11 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
     NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
-    NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest,
-    cache::{load_cached_nns_node_report, nns_node_cache_path},
-    filters::filter_node_list_report,
-    refresh::refresh_nns_node_report_with_source,
-    source::NnsNodeSource,
+    NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest, filters::filter_node_list_report,
 };
-use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
+use crate::nns::{
+    LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
+};
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_node_list_report(
@@ -36,31 +34,23 @@ pub async fn build_nns_node_info_report(
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_node_list_report_with_source_and_progress(
     request: &NnsNodeListRequest,
-    source: &dyn NnsNodeSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeListReport, NnsInventoryError> {
-    let report = load_or_refresh_nns_inventory_report(
-        &request.inventory,
-        nns_node_cache_path(
-            &request.inventory.cache.cache_root,
-            &request.inventory.cache.network,
-        ),
-        progress,
-        |cache| load_cached_nns_node_report(cache).map(|cached| cached.report),
-        async |refresh_request| {
-            refresh_nns_node_report_with_source(refresh_request, source)
-                .await
-                .map(|_| ())
-        },
-    )
-    .await?;
+    let snapshot =
+        load_or_refresh_nns_inventory_report(&request.inventory, source, progress).await?;
+    let report = NnsNodeListReport {
+        schema_version: super::NNS_NODE_LIST_REPORT_SCHEMA_VERSION,
+        provenance: snapshot.provenance,
+        nodes: snapshot.nodes,
+    };
     Ok(filter_node_list_report(report, &request.filters))
 }
 
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_node_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
-    source: &dyn NnsNodeSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeInfoReport, NnsInventoryError> {
     let list_request = NnsNodeListRequest::new(

@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared SNS refresh context and attempt-sidecar lifecycle.
 //! Does not own: family page fetching, cache publication, or text rendering.
-//! Boundary: one resolved context and attempt contract serves neuron and proposal refreshes.
+//! Boundary: one resolved context and attempt contract serves neuron refreshes.
 
 use crate::cache_file::{ManagedReadBudget, write_managed_json_pretty_atomically};
 use crate::report::CollectionSourceRequest;
@@ -16,7 +16,7 @@ use crate::{
     },
     sns::report::{
         SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
-        cache_paths::sns_root_from_cache_path, source::MainnetSns,
+        cache_paths::sns_governance_from_cache_path,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -25,15 +25,13 @@ use std::path::Path;
 ///
 /// SnsRefreshAttemptMetadata
 ///
-/// Snapshot refresh-attempt metadata shared by SNS neuron and proposal cache
+/// Snapshot refresh-attempt metadata shared by SNS neuron cache
 /// refresh sidecars.
 ///
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(in crate::sns::report) struct SnsRefreshAttemptMetadata {
-    pub(in crate::sns::report) id: usize,
-    pub(in crate::sns::report) root_canister_id: String,
     pub(in crate::sns::report) governance_canister_id: String,
 }
 
@@ -51,7 +49,7 @@ pub(in crate::sns::report) struct SnsRefreshContext<'a> {
     pub(in crate::sns::report) path: &'a Path,
     pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
     pub(in crate::sns::report) fetch_request: &'a CollectionSourceRequest,
-    pub(in crate::sns::report) sns: &'a MainnetSns,
+    pub(in crate::sns::report) governance_canister_id: &'a str,
 }
 
 impl SnsRefreshContext<'_> {
@@ -130,7 +128,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
     let latest = read_sns_refresh_attempt(
         &context.request.cache_root,
         context.path,
-        &context.request.lookup.network,
+        &context.request.target.network,
         None,
     )
     .ok()
@@ -155,14 +153,12 @@ fn write_sns_refresh_attempt_status(
 ) -> Result<(), SnsHostError> {
     let attempt = SnsRefreshAttempt {
         schema_version: SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        network: context.request.lookup.network.clone(),
-        source_endpoint: context.request.lookup.source_endpoint.clone(),
+        network: context.request.target.network.clone(),
+        source_endpoint: context.request.target.source_endpoint.clone(),
         started_at: context.fetch_request.fetched_at.clone(),
         updated_at: current_attempt_timestamp(&context.fetch_request.fetched_at),
         metadata: SnsRefreshAttemptMetadata {
-            id: context.sns.id,
-            root_canister_id: context.sns.canisters.root_canister_id.clone(),
-            governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
+            governance_canister_id: context.governance_canister_id.to_string(),
         },
         status,
         page_size: context.request.page_size,
@@ -197,23 +193,19 @@ fn validate_sns_refresh_attempt(
         reason,
     };
     validate_snapshot_refresh_attempt(attempt, expected_network).map_err(invalid)?;
-    if attempt.metadata.id == 0 {
-        return Err(invalid("SNS list id must be greater than zero".to_string()));
-    }
-    let expected_root = sns_root_from_cache_path(path)
+    let expected_governance = sns_governance_from_cache_path(path)
         .and_then(|name| name.to_str())
-        .ok_or_else(|| invalid("attempt path does not contain an SNS root identity".to_string()))?;
-    if attempt.metadata.root_canister_id != expected_root {
+        .ok_or_else(|| {
+            invalid("attempt path does not contain a Governance identity".to_string())
+        })?;
+    if attempt.metadata.governance_canister_id != expected_governance {
         return Err(invalid(format!(
-            "root_canister_id is {}, expected {expected_root}",
-            attempt.metadata.root_canister_id
+            "governance_canister_id is {}, expected {expected_governance}",
+            attempt.metadata.governance_canister_id
         )));
     }
-    if attempt.metadata.governance_canister_id.is_empty() {
-        return Err(invalid(
-            "governance_canister_id must not be empty".to_string(),
-        ));
-    }
+    super::target::parse_governance_canister_input(expected_governance)
+        .map_err(|error| invalid(error.to_string()))?;
     Ok(())
 }
 

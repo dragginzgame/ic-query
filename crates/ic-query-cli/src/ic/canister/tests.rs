@@ -1,7 +1,6 @@
 use super::*;
 use crate::cli::clap::render_help;
 use crate::ic::tests::parse_test_options;
-use ic_query::ic::IcHostError;
 use std::ffi::OsString;
 
 const CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
@@ -13,17 +12,17 @@ fn usage_discloses_live_dashboard_authority_and_command_shape() {
     let count = render_help(count_command());
     let page = render_help(page_command());
 
-    assert!(canister.contains("Usage: icq ic canister [COMMAND]"));
+    assert!(canister.contains("Usage: canister [COMMAND]"));
     assert!(canister.contains("info"));
     assert!(canister.contains("count"));
     assert!(canister.contains("page"));
-    assert!(info.contains("Usage: icq ic canister info [OPTIONS] <canister-id>"));
+    assert!(info.contains("Usage: info [OPTIONS] <canister-id>"));
     assert!(info.contains("Live query; does not read or write a report cache."));
     assert!(info.contains("off-chain analytics authority"));
     assert!(info.contains("--source-endpoint"));
-    assert!(count.contains("Usage: icq ic canister count [OPTIONS]"));
+    assert!(count.contains("Usage: count [OPTIONS]"));
     assert!(count.contains("exactly one official Dashboard count request"));
-    assert!(page.contains("Usage: icq ic canister page [OPTIONS]"));
+    assert!(page.contains("Usage: page [OPTIONS]"));
     assert!(page.contains("limit is capped at 100"));
     assert!(page.contains("No cache is used"));
 }
@@ -143,11 +142,6 @@ async fn invalid_principal_fails_before_endpoint_or_network_use() {
     .await
     .expect_err("invalid principal must fail");
 
-    assert!(matches!(
-        error,
-        crate::IcqCliError::Ic(IcCommandError::Host(IcHostError::InvalidPrincipal {
-            field: "canister_id",
-            ..
-        }))
-    ));
+    assert_eq!(error.exit_code(), 2);
+    assert!(matches!(error, crate::IcqCliError::Usage(_)));
 }

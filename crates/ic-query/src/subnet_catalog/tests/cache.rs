@@ -177,10 +177,16 @@ async fn oversized_catalog_is_rejected_before_decoding_without_source_calls() {
             failure.cache_disposition,
             SubnetCatalogFailureCacheDisposition::CacheRejected
         );
-        assert_eq!(failure.code, SubnetCatalogErrorCode::CachedCatalogTooLarge);
-        assert_eq!(failure.category, SubnetCatalogErrorCategory::Validation);
         assert_eq!(
-            failure.retryability,
+            failure.source.code(),
+            SubnetCatalogErrorCode::CachedCatalogTooLarge
+        );
+        assert_eq!(
+            failure.source.category(),
+            SubnetCatalogErrorCategory::Validation
+        );
+        assert_eq!(
+            failure.source.retryability(),
             SubnetCatalogRetryability::NotRetryable
         );
         assert_eq!(failure.evidence.registry_version, None);
@@ -344,10 +350,16 @@ async fn detailed_refresh_failure_retains_request_version_subject_and_unknown_re
         failure.request.source,
         Some(CatalogSourceSelection::uncertified_query(endpoint))
     );
-    assert_eq!(failure.code, SubnetCatalogErrorCode::RegistryRefresh);
-    assert_eq!(failure.category, SubnetCatalogErrorCategory::Network);
     assert_eq!(
-        failure.retryability,
+        failure.source.code(),
+        SubnetCatalogErrorCode::RegistryRefresh
+    );
+    assert_eq!(
+        failure.source.category(),
+        SubnetCatalogErrorCategory::Network
+    );
+    assert_eq!(
+        failure.source.retryability(),
         SubnetCatalogRetryability::Unknown(SubnetCatalogUnknownRetryReason::RegistryResponse)
     );
     assert!(matches!(

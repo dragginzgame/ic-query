@@ -30,6 +30,8 @@ pub enum SnsNeuronDissolveState {
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SnsNeuronRow {
+    /// Principal permissions observed on this neuron, including unknown native codes.
+    pub permissions: Vec<super::SnsNeuronPermissionRow>,
     /// Lowercase hexadecimal SNS neuron identifier.
     pub neuron_id: String,
     /// Cached neuron stake in e8s.

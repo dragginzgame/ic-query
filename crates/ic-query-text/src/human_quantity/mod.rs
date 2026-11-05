@@ -65,11 +65,5 @@ pub fn byte_count_text(value: u128) -> String {
     scaled_quantity_text(value, BYTE_UNITS).expect("byte unit divisors form a valid scale")
 }
 
-pub fn decimal_byte_count_text(value: &str) -> String {
-    value
-        .parse::<u128>()
-        .map_or_else(|_| terminal_text(value).into_owned(), byte_count_text)
-}
-
 #[cfg(test)]
 mod tests;

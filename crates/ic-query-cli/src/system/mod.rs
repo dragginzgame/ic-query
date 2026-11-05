@@ -97,7 +97,6 @@ where
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("system")
-        .bin_name("icq system")
         .about("Inspect native IC system-canister metadata")
         .subcommand(report_command(
             "xdr",
@@ -114,7 +113,6 @@ pub fn command() -> ClapCommand {
 
 fn report_command(name: &'static str, about: &'static str, examples: &'static str) -> ClapCommand {
     ClapCommand::new(name)
-        .bin_name(format!("icq system {name}"))
         .about(about)
         .arg(json_arg())
         .arg(

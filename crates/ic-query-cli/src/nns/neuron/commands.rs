@@ -53,7 +53,6 @@ Examples:
 
 pub(in crate::nns) fn neuron_command() -> ClapCommand {
     ClapCommand::new("neuron")
-        .bin_name("icq nns neuron")
         .about("Inspect public NNS Governance neuron views")
         .subcommand(neuron_list_command())
         .subcommand(neuron_distribution_command())
@@ -65,7 +64,6 @@ pub(in crate::nns) fn neuron_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_distribution_command() -> ClapCommand {
     ClapCommand::new("distribution")
-        .bin_name("icq nns neuron distribution")
         .about("Summarize public-neuron distribution from the complete local snapshot")
         .arg(leaf::json_arg())
         .after_help(collection_help(
@@ -76,7 +74,6 @@ pub(in crate::nns) fn neuron_distribution_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq nns neuron list")
         .about("List public NNS neurons")
         .arg(leaf::json_arg())
         .arg(
@@ -114,7 +111,6 @@ pub(in crate::nns) fn neuron_list_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq nns neuron info")
         .about("Show one public NNS neuron")
         .arg(
             value_arg("neuron-id")
@@ -141,7 +137,6 @@ pub(in crate::nns) fn neuron_info_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name("icq nns neuron refresh")
         .about("Refresh the complete public NNS neuron snapshot")
         .arg(leaf::json_arg())
         .arg(
@@ -161,7 +156,6 @@ pub(in crate::nns) fn neuron_refresh_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
-        .bin_name("icq nns neuron cache")
         .about("Inspect the local complete public NNS neuron snapshot")
         .subcommand(neuron_cache_status_command())
         .after_help(collection_help(
@@ -172,7 +166,6 @@ pub(in crate::nns) fn neuron_cache_command() -> ClapCommand {
 
 pub(in crate::nns) fn neuron_cache_status_command() -> ClapCommand {
     ClapCommand::new("status")
-        .bin_name("icq nns neuron cache status")
         .about("Show public NNS neuron snapshot and refresh-attempt status")
         .arg(leaf::json_arg())
         .after_help(collection_help(

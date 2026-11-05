@@ -3,8 +3,6 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 use super::{
     NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
     NnsInventoryListRequest, NnsNodeProviderInfoReport, NnsNodeProviderListReport,
-    cache::{load_cached_nns_node_provider_report, nns_node_provider_cache_path},
-    refresh::refresh_nns_node_provider_report_with_source,
     source::NnsNodeProviderSource,
 };
 use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
@@ -38,18 +36,10 @@ pub async fn build_nns_node_provider_list_report_with_source_and_progress(
     source: &dyn NnsNodeProviderSource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeProviderListReport, NnsInventoryError> {
-    load_or_refresh_nns_inventory_report(
-        request,
-        nns_node_provider_cache_path(&request.cache.cache_root, &request.cache.network),
-        progress,
-        |cache| load_cached_nns_node_provider_report(cache).map(|cached| cached.report),
-        async |refresh_request| {
-            refresh_nns_node_provider_report_with_source(refresh_request, source)
-                .await
-                .map(|_| ())
-        },
-    )
-    .await
+    let snapshot = load_or_refresh_nns_inventory_report(request, source, progress).await?;
+    let metadata =
+        super::cache::load_or_refresh_metadata(request, source, &snapshot, progress).await?;
+    Ok(node_provider_report_from_snapshot(&snapshot, metadata))
 }
 
 /// Build the report with a caller-owned source and progress sink.
@@ -73,6 +63,7 @@ pub async fn build_nns_node_provider_info_report_with_source_and_progress(
         resolved_from,
         provenance: report.provenance,
         governance_canister_id: report.governance_canister_id,
+        governance_source: report.governance_source,
         node_provider: provider,
     })
 }
@@ -89,4 +80,33 @@ pub(super) fn resolve_node_provider(
         "node_provider_principal",
     )
     .map_err(|error| error.for_collection(super::COLLECTION))
+}
+
+pub(in crate::nns) fn node_provider_report_from_snapshot(
+    snapshot: &crate::nns::NnsRegistryInventorySnapshot,
+    metadata: super::NnsNodeProviderMetadata,
+) -> NnsNodeProviderListReport {
+    let mut counts = std::collections::BTreeMap::<&str, u32>::new();
+    for node in &snapshot.nodes {
+        let count = counts
+            .entry(node.node_provider_principal.as_str())
+            .or_default();
+        *count = count.saturating_add(1);
+    }
+    let mut node_providers = metadata.node_providers;
+    for provider in &mut node_providers {
+        provider.node_count = Some(
+            counts
+                .get(provider.node_provider_principal.as_str())
+                .copied()
+                .unwrap_or(0),
+        );
+    }
+    NnsNodeProviderListReport {
+        schema_version: super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
+        provenance: snapshot.provenance.clone(),
+        governance_canister_id: metadata.governance_canister_id,
+        governance_source: metadata.source,
+        node_providers,
+    }
 }

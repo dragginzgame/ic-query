@@ -3,11 +3,10 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 use super::{
     NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION, NnsDataCenterInfoReport, NnsDataCenterListReport,
     NnsInventoryError, NnsInventoryInfoRequest, NnsInventoryListRequest,
-    cache::{load_cached_nns_data_center_report, nns_data_center_cache_path},
-    refresh::refresh_nns_data_center_report_with_source,
-    source::NnsDataCenterSource,
 };
-use crate::nns::{LiveNnsSource, inventory::load_or_refresh_nns_inventory_report};
+use crate::nns::{
+    LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
+};
 use crate::{QueryProgress, progress::IgnoreQueryProgress};
 
 pub async fn build_nns_data_center_list_report(
@@ -35,27 +34,22 @@ pub async fn build_nns_data_center_info_report(
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_data_center_list_report_with_source_and_progress(
     request: &NnsInventoryListRequest,
-    source: &dyn NnsDataCenterSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsDataCenterListReport, NnsInventoryError> {
-    load_or_refresh_nns_inventory_report(
-        request,
-        nns_data_center_cache_path(&request.cache.cache_root, &request.cache.network),
-        progress,
-        |cache| load_cached_nns_data_center_report(cache).map(|cached| cached.report),
-        async |refresh_request| {
-            refresh_nns_data_center_report_with_source(refresh_request, source)
-                .await
-                .map(|_| ())
-        },
-    )
-    .await
+    let snapshot = load_or_refresh_nns_inventory_report(request, source, progress).await?;
+    let report = NnsDataCenterListReport {
+        schema_version: super::NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION,
+        provenance: snapshot.provenance,
+        data_centers: snapshot.data_centers,
+    };
+    Ok(report)
 }
 
 /// Build the report with a caller-owned source and progress sink.
 pub async fn build_nns_data_center_info_report_with_source_and_progress(
     request: &NnsInventoryInfoRequest,
-    source: &dyn NnsDataCenterSource,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsDataCenterInfoReport, NnsInventoryError> {
     let list_request = request.to_list_request();

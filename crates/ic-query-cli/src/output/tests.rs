@@ -1,5 +1,5 @@
 use super::*;
-use crate::cache::CacheCommandError;
+use crate::nns::NnsCommandError;
 
 struct ClosedWriter;
 
@@ -15,9 +15,9 @@ impl Write for ClosedWriter {
 
 #[test]
 fn json_writer_preserves_io_error_kind() {
-    let error: CacheCommandError =
+    let error: NnsCommandError =
         write_json_to(ClosedWriter, &vec![1, 2]).expect_err("closed output is a writer failure");
     assert!(
-        matches!(error, CacheCommandError::Io(error) if error.kind() == io::ErrorKind::BrokenPipe)
+        matches!(error, NnsCommandError::Io(error) if error.kind() == io::ErrorKind::BrokenPipe)
     );
 }

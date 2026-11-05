@@ -1,35 +1,14 @@
-use crate::nns::NnsInventoryRefreshReport;
 use crate::nns::node_provider::{NnsNodeProviderListReport, NnsNodeProviderRow};
-
-pub(in crate::nns::topology::report::tests) fn node_provider_refresh_report_fixture()
--> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        schema_version: 1,
-        collection: "node_providers".to_string(),
-        provenance: super::inventory_provenance(44, "2026-06-04T00:02:00Z"),
-        cache_path: "/cache/nns/ic/node-provider/providers.json".to_string(),
-        refresh_lock_path: "/cache/nns/ic/node-provider/refresh.lock".to_string(),
-        output_path: None,
-        governance_canister_id: Some("rrkah-fqaaa-aaaaa-aaaaq-cai".to_string()),
-        dry_run: false,
-        wrote_cache: true,
-        replaced_existing_cache: false,
-        row_count: 1,
-    }
-}
-
-pub(in crate::nns::topology::report::tests) fn dry_run_node_provider_refresh_report_fixture()
--> NnsInventoryRefreshReport {
-    NnsInventoryRefreshReport {
-        dry_run: true,
-        wrote_cache: false,
-        ..node_provider_refresh_report_fixture()
-    }
-}
 
 pub(in crate::nns::topology::report::tests) fn node_provider_report_fixture()
 -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
+        governance_source: crate::report::CollectionSourceRequest::from_unix_secs(
+            "ic",
+            "https://icp-api.io",
+            1_780_531_200,
+            "fixture",
+        ),
         schema_version: 1,
         provenance: super::inventory_provenance(44, "2026-06-04T00:02:00Z"),
         governance_canister_id: "rrkah-fqaaa-aaaaa-aaaaq-cai".to_string(),

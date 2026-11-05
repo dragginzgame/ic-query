@@ -8,7 +8,8 @@ esac
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS
 unset IC_TOOL_PINS IC_TOOLS FORMAT_CARGO SHARED_TOOLING_ROOT
 repo_root="$(CDPATH='' cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-group-validation.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-group-validation.XXXXXX")"
 work_dir="$(CDPATH='' cd -P -- "$work_dir" && pwd -P)"
 # shellcheck source=scripts/ci/fixture-lifecycle.sh
 source "$repo_root/scripts/ci/fixture-lifecycle.sh"

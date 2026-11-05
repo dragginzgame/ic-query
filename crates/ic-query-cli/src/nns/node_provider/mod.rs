@@ -73,7 +73,13 @@ pub(in crate::nns) async fn run(
             .await
         }
         Some(("refresh", matches)) => {
-            leaf::run_cached_leaf_refresh(matches, network, refresh_nns_node_provider_report).await
+            leaf::run_cached_leaf_refresh(
+                matches,
+                network,
+                refresh_nns_node_provider_report,
+                ic_query_text::nns::node_provider::nns_node_provider_refresh_report_text,
+            )
+            .await
         }
         _ => unreachable!("clap requires a known NNS leaf subcommand"),
     }

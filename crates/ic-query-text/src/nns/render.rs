@@ -48,6 +48,9 @@ pub fn nns_inventory_refresh_report_text(
     if let Some(governance_canister_id) = &report.governance_canister_id {
         lines.push(field("governance_canister_id", &(governance_canister_id)));
     }
+    if let Some(source) = &report.governance_source {
+        lines.extend(governance_provenance_lines(source));
+    }
     lines.extend([
         registry_id,
         version,
@@ -87,4 +90,14 @@ pub(super) fn identity(value: &str, verbose: bool) -> String {
     } else {
         compact_text(value, 5)
     }
+}
+
+pub(super) fn governance_provenance_lines(
+    source: &ic_query::report::CollectionSourceRequest,
+) -> [String; 3] {
+    [
+        field("governance_fetched_at", &source.fetched_at),
+        field("governance_source_endpoint", &source.endpoint),
+        field("governance_fetched_by", &source.fetched_by),
+    ]
 }

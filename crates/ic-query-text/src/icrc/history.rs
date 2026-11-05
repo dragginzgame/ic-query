@@ -41,32 +41,17 @@ const ARCHIVE_RANGE_TABLE_ALIGNMENTS: [Alignment; 4] = [
 #[must_use]
 /// Render the ICRC transactions report as human-facing text.
 pub fn icrc_transactions_report_text(report: &IcrcTransactionsReport) -> String {
-    let mut lines = vec![
-        field(
-            "ledger_canister_id",
-            &(report.provenance.ledger_canister_id),
-        ),
-        field("requested_start", &(report.requested_start)),
-        field("requested_limit", &(report.requested_limit)),
-        field("follow_archives", &(report.follow_archives)),
-        field(
-            "log_length",
-            &(optional_text(report.transactions.log_length.as_ref())),
-        ),
-        field("returned_blocks", &(report.transactions.blocks.len())),
-        field(
-            "archived_callbacks",
-            &(report.transactions.archived_blocks.len()),
-        ),
-        field(
-            "followed_archive_blocks",
-            &(report.transactions.followed_archive_blocks.len()),
-        ),
-        field(
-            "archive_follow_errors",
-            &(report.transactions.archive_follow_errors.len()),
-        ),
-    ];
+    let mut lines = Vec::from(crate::text_value::report_fields!(report;
+        ledger_canister_id = report.provenance.ledger_canister_id,
+        requested_start,
+        requested_limit,
+        follow_archives,
+        log_length = optional_text(report.transactions.log_length.as_ref()),
+        returned_blocks = report.transactions.blocks.len(),
+        archived_callbacks = report.transactions.archived_blocks.len(),
+        followed_archive_blocks = report.transactions.followed_archive_blocks.len(),
+        archive_follow_errors = report.transactions.archive_follow_errors.len(),
+    ));
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     push_table_section(
         &mut lines,

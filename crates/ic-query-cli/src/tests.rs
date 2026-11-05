@@ -7,8 +7,6 @@ fn usage_lists_query_families_and_native_help_guidance() {
     assert!(text.contains("Usage: icq [OPTIONS] [COMMAND]"));
     assert!(text.contains("ic"));
     assert!(text.contains("Inspect certified IC state and official Dashboard data"));
-    assert!(text.contains("cache"));
-    assert!(text.contains("Inspect the local ic-query cache"));
     assert!(text.contains("cloud-engine"));
     assert!(text.contains("Inspect public CloudEngine metadata"));
     assert!(text.contains("icrc"));
@@ -16,7 +14,7 @@ fn usage_lists_query_families_and_native_help_guidance() {
     assert!(text.contains("nns"));
     assert!(text.contains("Inspect NNS metadata"));
     assert!(text.contains("sns"));
-    assert!(text.contains("Inspect SNS metadata"));
+    assert!(text.contains("Inspect neuron ownership and stake"));
     assert!(text.contains("system"));
     assert!(text.contains("Inspect native IC system-canister metadata"));
     assert!(text.contains("Run `icq <command> --help`"));
@@ -78,7 +76,6 @@ async fn native_help_and_propagated_version_return_without_dispatch() {
     for args in [
         &["--help"][..],
         &["ic", "canister", "info", "--help"],
-        &["cache", "status", "--help"],
         &[
             "icrc",
             "account",
@@ -91,7 +88,7 @@ async fn native_help_and_propagated_version_return_without_dispatch() {
         &["cloud-engine", "node", "list", "--help"],
         &["cloud-engine", "provider", "list", "--help"],
         &["nns", "topology", "providers", "--help"],
-        &["sns", "proposal", "cache", "status", "--help"],
+        &["sns", "neuron", "cache", "status", "--help"],
         &["system", "cycles", "--help"],
         &["--version"],
         &["nns", "subnet", "list", "--version"],
@@ -209,31 +206,16 @@ async fn network_is_rejected_for_endpoint_identified_families() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn explicit_network_is_rejected_for_cross_network_cache_status() {
-    let error = run([
-        OsString::from("--network"),
-        OsString::from("ic"),
-        OsString::from("cache"),
-        OsString::from("status"),
-    ])
-    .await
-    .expect_err("cross-network cache status must reject one selected network");
-
-    assert_eq!(error.exit_code(), 2);
-    assert!(error.to_string().contains("every network"));
-}
-
-#[tokio::test(flavor = "current_thread")]
 async fn targeted_sns_leaves_require_their_identifiers() {
     for args in [
         &["sns", "neuron", "list"][..],
-        &["sns", "proposal", "refresh"][..],
+        &["sns", "neuron", "refresh"][..],
     ] {
         let error = run(args.iter().map(OsString::from))
             .await
             .expect_err("targeted SNS operation must require an SNS selector");
         assert_eq!(error.exit_code(), 2);
-        assert!(error.to_string().contains("<id|root-principal>"));
+        assert!(error.to_string().contains("<governance-canister-id>"));
     }
 }
 
@@ -272,4 +254,35 @@ async fn assert_run_ok(args: &[&str]) {
     if let Err(err) = run(args.clone()).await {
         panic!("expected {args:?} to succeed, got {err}");
     }
+}
+
+#[test]
+fn terminal_diagnostics_escape_remote_text_and_keep_local_advice() {
+    let remote = IcqCliError::Sns(
+        ic_query::sns::SnsHostError::GovernanceError {
+            method: "get_neuron",
+            error_type: 1,
+            message: "remote\nforged: value\u{1b}[31m\u{202e}".to_string(),
+        }
+        .into(),
+    );
+    let diagnostic = remote.diagnostic_text();
+    assert!(!diagnostic.chars().any(char::is_control));
+    assert!(!diagnostic.contains('\u{202e}'));
+    assert!(diagnostic.contains("remote\\nforged: value"));
+    assert!(remote.to_string().contains('\u{1b}'));
+
+    let missing = IcqCliError::Sns(
+        ic_query::sns::SnsHostError::MissingNeuronsCache {
+            path: "/cache\nforged\u{1b}".into(),
+        }
+        .into(),
+    );
+    let diagnostic = missing.diagnostic_text();
+    assert!(diagnostic.contains("/cache\\nforged"));
+    assert!(diagnostic.contains("\n\nRun `icq sns neuron refresh"));
+
+    let usage =
+        IcqCliError::Usage("error: incomplete command\n\nUsage: icq sns neuron info".to_string());
+    assert_eq!(usage.diagnostic_text(), usage.to_string());
 }

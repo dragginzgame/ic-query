@@ -49,6 +49,10 @@ pub(super) fn cache_only_load_request(root: &Path) -> SubnetCatalogLoadRequest {
     SubnetCatalogLoadRequest::cache_only(cache_request(root), 1_780_531_300)
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The fixture writer consumes its catalog after publishing it to the managed test path."
+)]
 pub(super) fn write_catalog(root: &Path, catalog: RawSubnetCatalog) {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
     crate::cache_file::write_managed_text_atomically(

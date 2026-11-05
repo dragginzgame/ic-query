@@ -87,6 +87,15 @@ where
 #[cfg(test)]
 pub use super::tests::render_help;
 
+/// Parse and canonicalize a principal through Clap's typed parser.
+pub fn principal_text_value_parser() -> impl TypedValueParser<Value = String> {
+    clap::builder::StringValueParser::new().try_map(|value| {
+        value
+            .parse::<ic_platform::candid::contract::Principal>()
+            .map(|principal| principal.to_text())
+    })
+}
+
 /// Adapt a domain-owned choice list to Clap without duplicating its vocabulary.
 pub fn choice_parser<T: Copy + Send + Sync + 'static>(
     choices: &'static [T],

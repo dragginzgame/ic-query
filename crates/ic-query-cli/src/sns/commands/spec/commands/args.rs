@@ -5,40 +5,21 @@
 //! Boundary: centralizes reusable clap argument shapes for SNS commands.
 
 use crate::cli::{
-    clap::value_arg,
+    clap::{principal_text_value_parser, value_arg},
     common::{
         COLLECTION_MODE_FORCE_REFRESH, collection_help, json_arg, max_pages_arg, page_size_arg,
         source_endpoint_arg,
     },
 };
-use ic_platform::candid::contract::Principal;
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
 use ic_query::sns::SNS_REFRESH_MAX_PAGE_SIZE;
 
-pub(super) fn sns_lookup_input_arg() -> clap::Arg {
+pub(super) fn governance_input_arg() -> clap::Arg {
     value_arg("input")
-        .value_name("id|root-principal")
+        .value_name("governance-canister-id")
         .required(true)
-        .value_parser(sns_lookup_input_value_parser())
-        .help("SNS list id or root canister principal")
-}
-
-pub(super) fn sns_root_input_arg() -> clap::Arg {
-    value_arg("input")
-        .value_name("root-principal")
-        .required(true)
-        .value_parser(clap::builder::ValueParser::new(|value: &str| {
-            Principal::from_text(value)
-                .map(|_| value.to_string())
-                .map_err(|error| error.to_string())
-        }))
-        .help("SNS root canister principal identifying the complete collection")
-}
-
-pub(super) fn principal_value_parser() -> clap::builder::ValueParser {
-    clap::builder::ValueParser::new(|value: &str| {
-        Principal::from_text(value).map_err(|err| err.to_string())
-    })
+        .value_parser(principal_text_value_parser())
+        .help("Governance canister principal holding the neurons")
 }
 
 pub(super) fn sns_neuron_id_value_parser() -> clap::builder::ValueParser {
@@ -53,16 +34,6 @@ pub(super) fn sns_neuron_id_value_parser() -> clap::builder::ValueParser {
     })
 }
 
-fn sns_lookup_input_value_parser() -> clap::builder::ValueParser {
-    clap::builder::ValueParser::new(|value: &str| {
-        if value.parse::<usize>().is_ok_and(|id| id > 0) || Principal::from_text(value).is_ok() {
-            Ok(value.to_string())
-        } else {
-            Err("must be a positive SNS list id or root canister principal".to_string())
-        }
-    })
-}
-
 pub(super) fn sns_snapshot_refresh_command(
     command: clap::Command,
     default_page_size: &'static str,
@@ -70,11 +41,11 @@ pub(super) fn sns_snapshot_refresh_command(
     examples: &'static str,
 ) -> clap::Command {
     command
-        .arg(sns_lookup_input_arg())
+        .arg(governance_input_arg())
         .arg(json_arg())
         .arg(
             source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for SNS-W and governance queries"),
+                .help("IC API endpoint used for Governance neuron queries"),
         )
         .arg(page_size_arg(default_page_size, SNS_REFRESH_MAX_PAGE_SIZE).help(page_help))
         .arg(

@@ -8,7 +8,7 @@ use std::ffi::OsString;
 #[test]
 fn help_discloses_type4_scope_authority_and_bounds() {
     let namespace = render_help(command());
-    assert!(namespace.contains("Usage: icq cloud-engine node [COMMAND]"));
+    assert!(namespace.contains("Usage: node [COMMAND]"));
     assert!(namespace.contains("info"));
     assert!(namespace.contains("list"));
 

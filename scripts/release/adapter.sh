@@ -96,7 +96,13 @@ admit_paths() {
 check_manifest_order() {
   local selected_root="$repo_root" observation
   if [[ -n "${1:-}" ]]; then
-    observation="$(mktemp -d "$state_root/$release_identity.manifest-order.XXXXXX")"
+    local directory
+    for directory in target target/release-validation; do
+      [[ ! -L "$directory" && ( ! -e "$directory" || -d "$directory" ) ]] \
+        || fail 'manifest ordering output directory is redirected'
+    done
+    mkdir -p target/release-validation
+    observation="$(mktemp -d "$repo_root/target/release-validation/$release_identity.manifest-order.XXXXXX")"
     selected_root="$observation/source"
     mkdir "$selected_root"
     printf '%s\n' "$1" > "$observation/commit"

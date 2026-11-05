@@ -1,16 +1,16 @@
-use super::NnsInventoryCacheRequest;
 use super::NnsInventoryError;
 use super::NnsNodeListFilters;
 use super::NnsNodeListReport;
 use super::NnsNodeListRequest;
 use super::NnsNodeRow;
-use super::NnsNodeSource;
 use super::build_nns_node_list_report_with_source_and_progress;
-use super::cache::load_cached_nns_node_report;
 use super::filter_node_list_report;
-use super::nns_node_cache_path;
 use super::resolve_node;
 use crate::nns::LiveNnsSource;
+use crate::nns::NnsInventoryCacheRequest;
+use crate::nns::NnsRegistryInventorySource;
+use crate::nns::inventory::load_registry_inventory;
+use crate::nns::nns_registry_inventory_cache_path;
 use crate::report::CollectionSourceRequest;
 use crate::subnet_catalog::MAINNET_NETWORK;
 use crate::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
@@ -21,7 +21,7 @@ use std::fs;
 #[tokio::test(flavor = "current_thread")]
 async fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
     let cache = test_cache_request(MAINNET_NETWORK, "progress-read-policy");
-    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    let path = nns_registry_inventory_cache_path(&cache.cache_root, &cache.network);
     let request = NnsNodeListRequest::new(cache.clone(), "https://icp-api.io", 1_780_531_200);
     let source = FixtureNodeSource {
         nodes: vec![node_fixture()],
@@ -34,7 +34,7 @@ async fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
     assert_eq!(
         events,
         vec![crate::QueryProgressEvent::CacheRefresh {
-            component: "node".to_string(),
+            component: "inventory".to_string(),
             path: path.clone(),
             source_endpoint: request.inventory.source_endpoint.clone(),
         }]
@@ -63,7 +63,7 @@ async fn node_progress_tracks_actual_missing_invalid_and_cached_reads() {
 async fn node_authority_refusal_never_announces_or_calls_a_source() {
     use std::os::unix::fs::symlink;
     let cache = test_cache_request(MAINNET_NETWORK, "progress-authority");
-    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    let path = nns_registry_inventory_cache_path(&cache.cache_root, &cache.network);
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "{}").unwrap();
     fs::remove_file(&path).unwrap();
     symlink(cache.cache_root.join("missing-target"), &path).unwrap();
@@ -79,7 +79,7 @@ async fn node_authority_refusal_never_announces_or_calls_a_source() {
     assert!(matches!(
         error,
         NnsInventoryError::Cache {
-            collection: crate::nns::NnsInventoryCollection::Node,
+            collection: crate::nns::NnsInventoryCollection::RegistryInventory,
             source: crate::HostCacheError::Operation { .. }
         }
     ));
@@ -97,13 +97,13 @@ async fn live_node_source_rejects_non_mainnet_before_agent_construction() {
     );
 
     let error = LiveNnsSource::default()
-        .fetch_node_list_report(&request)
+        .fetch_registry_inventory(&request)
         .await
         .expect_err("unsupported network");
 
     assert!(matches!(
         error,
-        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::Node, network } if network == "local"
+        NnsInventoryError::UnsupportedNetwork { collection: crate::nns::NnsInventoryCollection::RegistryInventory, network } if network == "local"
     ));
 }
 
@@ -142,8 +142,8 @@ async fn node_report_uses_live_registry_source() {
 #[tokio::test(flavor = "current_thread")]
 async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-cache-refresh");
-    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
-    let mut invalid = node_report_fixture();
+    let path = nns_registry_inventory_cache_path(&cache.cache_root, &cache.network);
+    let mut invalid: crate::nns::NnsRegistryInventorySnapshot = node_report_fixture().into();
     invalid.provenance.fetched_at = "invalid-timestamp".to_string();
     let invalid_json = serde_json::to_string_pretty(&invalid).expect("serialize invalid cache");
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, &invalid_json)
@@ -154,11 +154,11 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
         1_780_531_200,
     );
 
-    let error = load_cached_nns_node_report(&cache).expect_err("cache-only load is strict");
+    let error = load_registry_inventory(&cache).expect_err("cache-only load is strict");
     assert!(matches!(
         error,
         NnsInventoryError::Cache {
-            collection: crate::nns::NnsInventoryCollection::Node,
+            collection: crate::nns::NnsInventoryCollection::RegistryInventory,
             source: crate::HostCacheError::InvalidCache { .. }
         }
     ));
@@ -184,7 +184,7 @@ async fn node_report_refreshes_invalid_cache_but_cache_only_load_remains_strict(
 #[tokio::test(flavor = "current_thread")]
 async fn invalid_node_source_does_not_replace_existing_invalid_cache() {
     let cache = test_cache_request(MAINNET_NETWORK, "invalid-source-preserves-cache");
-    let path = nns_node_cache_path(&cache.cache_root, &cache.network);
+    let path = nns_registry_inventory_cache_path(&cache.cache_root, &cache.network);
     crate::cache_file::write_managed_text_atomically(&cache.cache_root, &path, "not-json")
         .expect("write invalid cache");
     let request = NnsNodeListRequest::new(
@@ -349,43 +349,57 @@ struct FixtureNodeSource {
 
 struct InvalidNodeSource;
 
-impl NnsNodeSource for InvalidNodeSource {
-    fn fetch_node_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for InvalidNodeSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
-            let mut report = node_report_fixture();
-            report.provenance.fetched_at.clone_from(&request.fetched_at);
-            report
-                .provenance
-                .source_endpoint
-                .clone_from(&request.endpoint);
-            report.schema_version = 0;
-            Ok(report)
+            let result: Result<NnsNodeListReport, NnsInventoryError> = async move {
+                let mut report = node_report_fixture();
+                report.provenance.fetched_at.clone_from(&request.fetched_at);
+                report
+                    .provenance
+                    .source_endpoint
+                    .clone_from(&request.endpoint);
+                report.schema_version = 0;
+                Ok(report)
+            }
+            .await;
+            result.map(Into::into)
         })
     }
 }
 
-impl NnsNodeSource for FixtureNodeSource {
-    fn fetch_node_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for FixtureNodeSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
-            let nodes = self.nodes.clone();
-            Ok(NnsNodeListReport {
-                schema_version: 1,
-                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-                    network: MAINNET_NETWORK.to_string(),
-                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                    registry_version: 42,
-                    fetched_at: request.fetched_at.clone(),
-                    source_endpoint: request.endpoint.clone(),
-                    fetched_by: request.fetched_by.clone(),
-                },
-                nodes,
-            })
+            let result: Result<NnsNodeListReport, NnsInventoryError> = async move {
+                let nodes = self.nodes.clone();
+                Ok(NnsNodeListReport {
+                    schema_version: 1,
+                    provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
+                        network: MAINNET_NETWORK.to_string(),
+                        registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
+                        registry_version: 42,
+                        fetched_at: request.fetched_at.clone(),
+                        source_endpoint: request.endpoint.clone(),
+                        fetched_by: request.fetched_by.clone(),
+                    },
+                    nodes,
+                })
+            }
+            .await;
+            result.map(Into::into)
         })
     }
 }

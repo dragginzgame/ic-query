@@ -121,7 +121,7 @@ these cached copies.
 | See how the network is changing | Node counts and other network measurements over time | `icq ic metrics ic-node-count` |
 | Understand who supports the network | Nodes, providers, locations, capacity, software versions, and missing information | `icq nns topology summary` |
 | Follow network governance | Recent proposals and their status, plus public neuron, economics, and reward reports | `icq nns proposal list --limit 25` |
-| Explore governed projects | Deployed SNS projects, their applications, settings, proposals, neurons, and upgrades | `icq sns list` |
+| Inspect existing neuron stakes | Principal permissions, raw stake, fees and dissolve state for a configured Governance canister | `icq sns neuron list <governance-canister-id> --json` |
 | Inspect a token | Its name, symbol, fees, supply, balances, transactions, and available history | `icq icrc ledger token <ledger-canister-id>` |
 | Check the ICP/XDR conversion rate | The current certified rate used by the IC to price cycles | `icq system xdr` |
 | Explore public CloudEngine infrastructure | Subnets, operators, providers, nodes, and published prices | `icq cloud-engine list` |
@@ -187,25 +187,16 @@ collected, and `certified` states whether this particular source supplied
 cryptographic proof. The two sections contain the reported total and available
 node counts.
 
-Next, list deployed SNS-governed projects:
+To inspect existing neuron ownership and stake, supply the Governance principal:
 
 ```bash
-icq sns list
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --owner "$USER_PRINCIPAL" --json
 ```
 
-Text output is designed for reading in a terminal. Add `--json` when you want
-to save, filter, or process the complete raw report:
-
-```bash
-icq sns list --json
-```
-
-Every report command explains where it gets its data and whether it uses live
-network access or a local cache:
-
-```bash
-icq sns list --help
-```
+JSON preserves permission codes and raw stake/fee values for application policy.
+Use ICRC balance and transaction reads for known accounts, and paginated holder
+analytics to enumerate the selected index. Query remains read-only; Toko owns
+acceptance, burns, credits and purchase gating.
 
 The [CLI Usage guide](https://github.com/dragginzgame/ic-query/blob/main/docs/cli-usage.md)
 contains the complete command map. The living
@@ -237,10 +228,7 @@ cover advanced commands, evidence, caching, and use as a Rust library.
 - [Subnet Catalog acquisition and performance](https://github.com/dragginzgame/ic-query/blob/main/docs/design/subnet-catalog-acquisition-performance.md)
 - [Subnet Catalog downstream adoption](https://github.com/dragginzgame/ic-query/blob/main/docs/design/subnet-catalog-downstream-adoption.md)
 - [0.22 structural consolidation](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.22/0.22-design.md)
-- [0.23 bounded SNS completeness](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.23/0.23-design.md)
-- [0.24 bounded SNS Governance metrics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.24/0.24-design.md)
 - [0.25 fuller fixed-size SNS neuron evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.25/0.25-design.md)
-- [0.26 SNS maturity reward evidence](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.26/0.26-design.md)
 - [0.27 bounded official ICRC analytics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.27/0.27-design.md)
 - [0.28 observed IC node and Subnet status](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.28/0.28-design.md)
 - [0.29 Subnet Catalog authority and embedder hardening](https://github.com/dragginzgame/ic-query/blob/main/docs/design/0.29/0.29-design.md)
@@ -260,7 +248,6 @@ cover advanced commands, evidence, caching, and use as a Rust library.
 - [IC Dashboard daily statistics](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-daily-stats.md)
 - [IC Dashboard boundary-node reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/ic-dashboard-boundary-node-reporting.md)
 - [Exact-version NNS Subnet topology](https://github.com/dragginzgame/ic-query/blob/main/docs/design/nns-subnet-topology.md)
-- [SNS Root canister inventory and health](https://github.com/dragginzgame/ic-query/blob/main/docs/design/sns-root-canister-reporting.md)
 - [Certified CMC system reporting](https://github.com/dragginzgame/ic-query/blob/main/docs/design/cmc-system-reporting.md)
 - [Release ledger](https://github.com/dragginzgame/ic-query/blob/main/CHANGELOG.md)
 - [Maintainer release workflow](docs/release-workflow.md)

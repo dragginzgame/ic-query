@@ -3,19 +3,11 @@ use crate::nns::NnsInventoryError;
 #[cfg(feature = "nns-host")]
 mod build;
 #[cfg(feature = "nns-host")]
-mod cache;
-#[cfg(feature = "nns-host")]
 mod filters;
 mod model;
-#[cfg(feature = "nns-host")]
-mod refresh;
-#[cfg(feature = "nns-host")]
-mod source;
 
 #[cfg(feature = "nns-host")]
-use crate::nns::NnsInventoryRefreshRequest;
-#[cfg(feature = "nns-host")]
-use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest};
+use crate::nns::NnsInventoryInfoRequest;
 
 #[cfg(all(test, feature = "nns-host"))]
 use build::resolve_node;
@@ -24,14 +16,8 @@ pub use build::{
     build_nns_node_info_report, build_nns_node_info_report_with_source_and_progress,
     build_nns_node_list_report, build_nns_node_list_report_with_source_and_progress,
 };
-#[cfg(feature = "nns-host")]
-pub use cache::{nns_node_cache_path, nns_node_refresh_lock_path};
 #[cfg(all(test, feature = "nns-host"))]
 use filters::filter_node_list_report;
-#[cfg(feature = "nns-host")]
-pub use refresh::{refresh_nns_node_report, refresh_nns_node_report_with_source};
-#[cfg(feature = "nns-host")]
-pub use source::NnsNodeSource;
 
 pub use model::{
     NnsNodeInfoReport, NnsNodeListFilters, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
@@ -43,13 +29,6 @@ pub const DEFAULT_NNS_NODE_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 pub const NNS_NODE_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_NODE_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-const NNS_NODE_CACHE_DIR: &str = "node";
-#[cfg(feature = "nns-host")]
-const NNS_NODE_CACHE_FILE: &str = "nodes.json";
-
-#[cfg(feature = "nns-host")]
-impl_nns_mainnet_network_enforcer!(NnsInventoryError, COLLECTION);
 
 #[cfg(all(test, feature = "nns-host"))]
 mod tests;

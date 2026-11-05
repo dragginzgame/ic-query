@@ -1,4 +1,7 @@
 #[cfg(feature = "subnet-catalog-host")]
+mod support;
+
+#[cfg(feature = "subnet-catalog-host")]
 use ic_query::report::CollectionSourceRequest;
 use ic_query::subnet_catalog::CANISTER_RANGES_KEY_PREFIX;
 use ic_query::subnet_catalog::CATALOG_SCHEMA_VERSION;
@@ -90,8 +93,6 @@ use ic_query::subnet_catalog::load_subnet_catalog;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::load_subnet_catalog_with_source;
 use ic_query::subnet_catalog::parse_catalog_json;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::refresh_subnet_catalog;
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query::subnet_catalog::refresh_subnet_catalog_with_source;
 #[cfg(feature = "subnet-catalog-host")]
@@ -229,10 +230,6 @@ async fn public_subnet_catalog_host_api_builds_reports_and_renders_text() {
     assert!(refresh_text.contains("agreement_digest: -"));
     assert!(refresh_text.contains("registry_query_call_count: 5"));
 
-    assert!(refresh_api_accepts_public_types(
-        refresh_subnet_catalog,
-        &refresh_request
-    ));
     let async_refresh = futures::executor::block_on(refresh_subnet_catalog_with_source(
         &refresh_request,
         &FixtureSubnetCatalogSource,
@@ -601,19 +598,8 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
 
 #[cfg(feature = "subnet-catalog-host")]
 #[must_use]
-fn refresh_api_accepts_public_types(
-    _refresh: impl AsyncFn(
-        &SubnetCatalogRefreshRequest,
-    ) -> Result<SubnetCatalogRefreshReport, SubnetCatalogHostError>,
-    request: &SubnetCatalogRefreshRequest,
-) -> bool {
-    request.dry_run
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-#[must_use]
 fn temp_root(name: &str) -> PathBuf {
-    let mut path = std::env::temp_dir();
+    let mut path = crate::support::scratch_root();
     path.push(format!("ic-query-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     path

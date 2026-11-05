@@ -5,32 +5,18 @@
 //! Boundary: carries parsed values into requests without report construction or IO.
 
 use super::{
-    ACCOUNT_ID_ARG, AFTER_ARG, BEFORE_ARG, DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE,
-    DEFAULT_ICRC_TRANSACTIONS_LIMIT, END_ARG, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG,
-    INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG, LIMIT_ARG, MAX_ICRC_TRANSACTIONS_LIMIT,
-    MAX_PAGES_ARG, OWNER_ARG, OWNER_PRINCIPAL_ARG, OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG,
-    PRINCIPAL_ARG, SORT_ARG, SORT_BY_ARG, SPENDER_PRINCIPAL_ARG, SPENDER_SUBACCOUNT_ARG, START_ARG,
-    STEP_ARG, SUBACCOUNT_ARG, principal_text_value_parser, subaccount_hex_value_parser,
+    ACCOUNT_ID_ARG, DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE, DEFAULT_ICRC_TRANSACTIONS_LIMIT,
+    FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
+    LIMIT_ARG, MAX_ICRC_TRANSACTIONS_LIMIT, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG,
+    OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG,
+    SPENDER_SUBACCOUNT_ARG, START_ARG, SUBACCOUNT_ARG, principal_text_value_parser,
+    subaccount_hex_value_parser,
 };
 use crate::cli::{
-    clap::{required_string, required_typed, string_option, typed_option},
-    common::{OutputFormat, SourceOutputOptions, resolve_time_bounds},
+    clap::{required_typed, string_option},
+    common::{OutputFormat, SourceOutputOptions},
 };
 use clap::{ArgMatches, Args, FromArgMatches, builder::RangedU64ValueParser};
-use ic_query::ic::DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS;
-use ic_query::ic::DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS;
-use ic_query::ic::IcIcrcAccountInfoRequest;
-use ic_query::ic::IcIcrcAccountListQuery;
-use ic_query::ic::IcIcrcAccountListRequest;
-use ic_query::ic::IcIcrcAccountSort;
-use ic_query::ic::IcIcrcHolderListQuery;
-use ic_query::ic::IcIcrcHolderListRequest;
-use ic_query::ic::IcIcrcHolderSort;
-use ic_query::ic::IcIcrcTokenValueQuery;
-use ic_query::ic::IcIcrcTokenValueRequest;
-use ic_query::ic::IcIcrcTotalSupplyQuery;
-use ic_query::ic::IcIcrcTotalSupplyRequest;
-use ic_query::ic::MIN_ICRC_ANALYTICS_TIMESTAMP;
 use ic_query::icrc::IcrcAccountTransactionCacheRequest;
 use ic_query::icrc::IcrcAccountTransactionListRequest;
 use ic_query::icrc::IcrcAccountTransactionPageRequest;
@@ -40,107 +26,8 @@ use ic_query::icrc::IcrcAllowanceRequest;
 use ic_query::icrc::IcrcArchivesRequest;
 use ic_query::icrc::IcrcTransactionsRequest;
 
-pub(in crate::icrc) fn analytics_account_list_request(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-) -> (OutputFormat, IcIcrcAccountListRequest) {
-    let (format, dashboard, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let mut query = IcIcrcAccountListQuery::new(
-        required_typed(matches, LIMIT_ARG),
-        required_typed::<IcIcrcAccountSort>(matches, SORT_BY_ARG),
-    );
-    query.owner = string_option(matches, OWNER_ARG);
-    query.after = string_option(matches, AFTER_ARG);
-    query.before = string_option(matches, BEFORE_ARG);
-    (
-        format,
-        IcIcrcAccountListRequest::new(dashboard, ledger, query),
-    )
-}
-
-pub(in crate::icrc) fn analytics_account_info_request(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-) -> (OutputFormat, IcIcrcAccountInfoRequest) {
-    let (format, dashboard, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    (
-        format,
-        IcIcrcAccountInfoRequest::new(dashboard, ledger, required_string(matches, ACCOUNT_ID_ARG)),
-    )
-}
-
-pub(in crate::icrc) fn analytics_holder_list_request(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-) -> (OutputFormat, IcIcrcHolderListRequest) {
-    let (format, dashboard, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let mut query = IcIcrcHolderListQuery::new(
-        required_typed(matches, LIMIT_ARG),
-        required_typed::<IcIcrcHolderSort>(matches, SORT_BY_ARG),
-    );
-    query.after = string_option(matches, AFTER_ARG);
-    query.before = string_option(matches, BEFORE_ARG);
-    (
-        format,
-        IcIcrcHolderListRequest::new(dashboard, ledger, query),
-    )
-}
-
-pub(in crate::icrc) fn analytics_token_value_request(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-) -> (OutputFormat, IcIcrcTokenValueRequest) {
-    let (format, dashboard, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let (start, end) = analytics_time_bounds(
-        matches,
-        now_unix_secs,
-        DEFAULT_ICRC_TOKEN_VALUE_WINDOW_SECS,
-        0,
-    );
-    let query = IcIcrcTokenValueQuery::new(start, end, required_typed(matches, LIMIT_ARG));
-    (
-        format,
-        IcIcrcTokenValueRequest::new(dashboard, ledger, query),
-    )
-}
-
-pub(in crate::icrc) fn analytics_total_supply_request(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-) -> (OutputFormat, IcIcrcTotalSupplyRequest) {
-    let (format, dashboard, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let (start, end) = analytics_time_bounds(
-        matches,
-        now_unix_secs,
-        DEFAULT_ICRC_TOTAL_SUPPLY_WINDOW_SECS,
-        MIN_ICRC_ANALYTICS_TIMESTAMP,
-    );
-    let query = IcIcrcTotalSupplyQuery::new(start, end, required_typed(matches, STEP_ARG));
-    (
-        format,
-        IcIcrcTotalSupplyRequest::new(dashboard, ledger, query),
-    )
-}
-
-fn analytics_time_bounds(
-    matches: &ArgMatches,
-    now_unix_secs: u64,
-    default_window_secs: u64,
-    minimum_default_start: u64,
-) -> (u64, u64) {
-    resolve_time_bounds(
-        typed_option(matches, START_ARG),
-        typed_option(matches, END_ARG),
-        now_unix_secs,
-        default_window_secs,
-        minimum_default_start,
-    )
-}
+mod analytics;
+pub(in crate::icrc) use analytics::*;
 
 ///
 /// IcrcLedgerOptions

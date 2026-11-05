@@ -61,8 +61,8 @@ this contract; the [release contract](../docs/releases.md) owns release executio
   `Owning changes` list or a comma-separated issue dump to an omnibus paragraph.
   Prefer one or two links per bullet; when more are needed, split by outcome or
   move the supporting detail into the minor-line notes, retaining every fixed
-  issue's direct link in the root. Keep titles concise and descriptive rather
-  than copying a lengthy diagnostic into the link label.
+  issue's direct link in its owning release changelog. Keep titles concise and
+  descriptive rather than copying a lengthy diagnostic into the link label.
 - Separate unfinished follow-up from delivered changes. Mention it only when
   needed to explain a release limitation, with a clear label and its owning link.
 - When the root entry becomes difficult to scan, retain the release outcome,

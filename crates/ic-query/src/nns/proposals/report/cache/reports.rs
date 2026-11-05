@@ -1,13 +1,11 @@
 //! Module: nns::proposals::report::cache::reports
 //!
-//! Responsibility: build NNS proposal cache list and status reports.
+//! Responsibility: build NNS proposal cache-backed reports and snapshot status.
 //! Does not own: refresh execution, transport execution, or text rendering.
 //! Boundary: loads local complete snapshots and projects cache metadata.
 
 use super::{
-    NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
-    NNS_PROPOSAL_CACHE_SCHEMA_VERSION,
-    model::{NnsProposalCache, NnsProposalCacheListReport},
+    NNS_PROPOSAL_CACHE_COMPONENT, NNS_PROPOSAL_CACHE_SCHEMA_VERSION, model::NnsProposalCache,
     paths::nns_proposal_cache_paths,
 };
 use crate::nns::proposals::report::source::{
@@ -118,24 +116,6 @@ pub fn build_nns_proposal_activity_report_from_cache(
     Ok(build_activity_from_cache(request, &cache)?)
 }
 
-/// Build a local NNS proposal cache list report.
-pub fn build_nns_proposal_cache_list_report(
-    request: &NnsGovernanceCacheRequest,
-) -> Result<NnsProposalCacheListReport, NnsProposalHostError> {
-    let status = build_nns_proposal_cache_status_report(request)?;
-    let caches = status.cache.into_iter().collect::<Vec<_>>();
-    Ok(NnsProposalCacheListReport {
-        schema_version: NNS_PROPOSAL_CACHE_LIST_REPORT_SCHEMA_VERSION,
-        network: status.network,
-        collection: status.collection,
-        cache_root: status.cache_root,
-
-        caches,
-        refresh_attempt_path: status.refresh_attempt_path,
-        latest_attempt: status.latest_attempt,
-    })
-}
-
 /// Build a local NNS proposal cache status report.
 pub fn build_nns_proposal_cache_status_report(
     request: &NnsGovernanceCacheRequest,
@@ -184,6 +164,10 @@ pub fn build_nns_proposal_report_from_cache(
     Ok(nns_proposal_report_from_cache(request, path, cache))
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes a discovered cache path and admitted file to construct one owned summary."
+)]
 fn load_nns_proposal_cache_summary(
     cache_root: &Path,
     cache_path: PathBuf,
@@ -196,6 +180,10 @@ fn load_nns_proposal_cache_summary(
     }
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the selected path as part of snapshot admission and owned error projection."
+)]
 fn load_nns_proposal_cache(
     cache_root: &Path,
     cache_path: PathBuf,
@@ -261,6 +249,10 @@ fn validate_nns_proposal_cache(
     Ok(state)
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the cache path together with the snapshot during report projection."
+)]
 fn nns_proposal_list_report_from_cache(
     request: &NnsProposalListRequest,
     cache_path: PathBuf,
@@ -284,6 +276,10 @@ fn nns_proposal_list_report_from_cache(
     )
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes the cache path together with the snapshot during exact report projection."
+)]
 fn nns_proposal_report_from_cache(
     request: &NnsProposalRequest,
     cache_path: PathBuf,

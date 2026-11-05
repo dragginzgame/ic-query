@@ -23,7 +23,7 @@ Group-qualified recovery journals and receipts bind the group, policy digest,
 source, versions and destination. Resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the pending 0.90 dependency alignment, release and publish Query first, then the CLI group.
+For the pending 0.91 hard cut, release and publish Query first, then the CLI group.
 Later presentation-only changes can advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed
@@ -173,7 +173,7 @@ dependencies` separately from `Tests and tooling only`; role labels describe use
 not registry publication. The hook and CI use the same formatter pair. Prepared
 release admission checks grouped ordering, and committed/tagged/push admission
 checks an archived copy of the exact selected release source, retaining that copy
-beside its immutable validation attempt. It never formats the real source or executes
+under `target/release-validation/` with its selected commit identity. It never formats the real source or executes
 scripts from the archive.
 
 Formatting checks the reviewed cargo-sort pin before sorting and Rust formatting,
@@ -484,10 +484,14 @@ and incomplete evidence stop preflight. Explicit resume remains bound to the
 saved source/version. Real restart and release execution require a maintainer request or delegated
 delivery scope; ordinary repair does not perform them.
 
-Unique validation directories under Git's `release-state` directory retain the
-selected source, previous/candidate versions, kind, UTC date, remote/branch,
-before-files, complete validation log, and success marker. Failed attempts retain
-their own logs; subsequent validation does not overwrite them. Shared schema-1
+Git's `release-state` directory retains compact source/version intent, journals,
+receipts, before-files and validation pointers. Reproducible validation trees,
+compiler outputs and scratch belong under the workspace's `target/`, with the
+complete validation evidence at its recorded location. Shared Tooling 0.30 admits
+retained Git-side state against its byte, file-size and age limits before release;
+it refuses legacy build/check-out trees and preserves them for owner review.
+Adoption never deletes or relocates old recovery evidence automatically. Failed
+attempts retain their own logs; subsequent validation does not overwrite them. Shared schema-1
 plans retain intent before metadata preparation and record the exact staged tree
 and completed phases. Do not remove plans or evidence to obtain a clean retry.
 CI uses the pinned `run-validation-targets.sh` with fail-fast ordering. After

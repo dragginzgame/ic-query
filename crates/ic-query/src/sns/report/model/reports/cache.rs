@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared SNS complete-snapshot cache inspection DTOs.
 //! Does not own: cache discovery, collection-specific storage, or rendering.
-//! Boundary: preserves fields common to neuron and proposal cache list/status reports.
+//! Boundary: preserves fields common to neuron cache list/status reports.
 
 use super::SnsRefreshAttemptStatus;
 use crate::cache::CacheValidationStatus;
@@ -122,11 +122,11 @@ pub enum SnsCacheAdmission {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsValidCacheSummary {
     /// Observed SNS-W list position.
-    pub id: usize,
+
     /// Observed SNS name.
-    pub name: String,
-    /// Admitted SNS root principal.
-    pub root_canister_id: String,
+
+    /// Admitted Governance principal.
+
     /// Admitted Governance principal.
     pub governance_canister_id: String,
     /// Rows in the admitted complete collection.

@@ -58,7 +58,7 @@ where
 }
 
 /// Query a method accepting an empty Candid argument list.
-#[cfg(any(feature = "icrc-host", feature = "sns-host"))]
+#[cfg(feature = "icrc-host")]
 pub async fn query_no_args<T, E>(
     agent: &Agent,
     canister: &Principal,

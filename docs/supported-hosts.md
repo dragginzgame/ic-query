@@ -122,8 +122,10 @@ lane is consolidated into these six jobs. The complete gate retains workspace
 all-target/all-feature compilation, isolated library feature and public-consumer
 checks, archive qualification, and the native CLI/Testkit dependency paths. The general checks compile Governance runner fixtures through
 `ci-scripts-check`; the all-target test gate executes them. The canister lane
-separately prepares/checks Testkit, executes `make canister-test`, then runs local
-NNS deployment smoke and bundle construction. Cross-compilation does not qualify
+separately prepares/checks Testkit and runs one lint stage containing the complete
+native Clippy target and the Wasm probe lint. It then executes the product-only
+Testkit, local NNS deployment smoke and bundle checks without nested lint or
+dependency preparation. Standalone developer commands retain their lint gates. Cross-compilation does not qualify
 native macOS behavior or installed-IC callbacks, traps and lifecycle semantics.
 
 CI provisioning explicitly uses `/bin/bash` and `/bin` first on PATH. The macOS
@@ -184,3 +186,21 @@ admission, quotas, transport policy and error projection. The
 [declaration boundary](../ci/cargo-dependency-boundaries.json) enforce these
 profiles. Native and installed-IC qualification remains distinct from source
 review, Linux tests and Wasm cross-compilation.
+
+## Source roles and scratch
+
+Shared Tooling 0.30 owns LOC classification. `make cloc` separates library/app,
+tests, examples, benchmarks and build/tooling source and reports unclassified
+paths. The private Testkit package declares its test role. The deployable
+Governance probe lives in `crates/ic-query/tests/fixtures/`; its contributor
+runner lives in `crates/ic-query-cli/tools/governance_smoke/` and the timing
+utility in `crates/ic-query-cli/tools/subnet_catalog_timing.rs`. Their existing
+Cargo example target names and Make commands remain available.
+
+Query-owned shell fixtures default to `target/tmp/`, retaining an explicit
+caller-selected `TMPDIR`. Rust fixtures use their workspace's `target/tmp/`.
+Successful helpers remove only their own temporary directories; failed script
+fixtures retain diagnostics there. Explicit `cargo clean` reclaims this scratch.
+The persistent ICP identity home has a separate credential-custody contract in
+[the smoke guide](canister-smoke.md), and remains outside this scratch policy.
+Existing outside-target evidence is preserved pending a scoped owner review.

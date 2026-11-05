@@ -8,7 +8,7 @@ use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
 use ic_query::nns::data_center::build_nns_data_center_info_report_with_source_and_progress;
 use ic_query::nns::data_center::build_nns_data_center_list_report_with_source_and_progress;
-use ic_query::nns::data_center::refresh_nns_data_center_report;
+use ic_query::nns::refresh_nns_registry_inventory;
 use ic_query_text::nns::data_center::nns_data_center_info_report_text;
 use ic_query_text::nns::data_center::nns_data_center_list_report_text;
 
@@ -59,7 +59,13 @@ pub(in crate::nns) async fn run(
             .await
         }
         Some(("refresh", matches)) => {
-            leaf::run_cached_leaf_refresh(matches, network, refresh_nns_data_center_report).await
+            leaf::run_cached_leaf_refresh(
+                matches,
+                network,
+                refresh_nns_registry_inventory,
+                ic_query_text::nns::nns_inventory_refresh_report_text,
+            )
+            .await
         }
         _ => unreachable!("clap requires a known NNS leaf subcommand"),
     }

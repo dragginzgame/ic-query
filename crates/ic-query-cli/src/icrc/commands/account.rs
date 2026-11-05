@@ -16,7 +16,6 @@ use clap::{Args, Command as ClapCommand};
 
 pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("account")
-        .bin_name("icq icrc account")
         .about("Inspect ICRC account balances, allowances, and transaction history")
         .subcommand(icrc_balance_command())
         .subcommand(icrc_allowance_command())
@@ -25,7 +24,7 @@ pub(in crate::icrc) fn command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_balance_command() -> ClapCommand {
     let command = ClapCommand::new("balance")
-        .bin_name("icq icrc account balance")
+
         .about("Show a generic ICRC account balance")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
@@ -36,7 +35,7 @@ pub(in crate::icrc) fn icrc_balance_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_allowance_command() -> ClapCommand {
     let command = ClapCommand::new("allowance")
-        .bin_name("icq icrc account allowance")
+
         .about("Show a generic ICRC account allowance")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
@@ -47,7 +46,6 @@ pub(in crate::icrc) fn icrc_allowance_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_account_transaction_command() -> ClapCommand {
     ClapCommand::new("transaction")
-        .bin_name("icq icrc account transaction")
         .about("Inspect live pages and complete cached account transaction history")
         .subcommand(icrc_account_transaction_page_command())
         .subcommand(icrc_account_transaction_list_command())
@@ -57,7 +55,7 @@ pub(in crate::icrc) fn icrc_account_transaction_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_account_transaction_page_command() -> ClapCommand {
     let command = ClapCommand::new("page")
-        .bin_name("icq icrc account transaction page")
+
         .about("Show an ICRC account transaction-history page from its index")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
@@ -68,7 +66,7 @@ pub(in crate::icrc) fn icrc_account_transaction_page_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_account_transaction_list_command() -> ClapCommand {
     let command = ClapCommand::new("list")
-        .bin_name("icq icrc account transaction list")
+
         .about("List rows from a complete local ICRC account-history cache")
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,
@@ -79,7 +77,7 @@ pub(in crate::icrc) fn icrc_account_transaction_list_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_account_transaction_refresh_command() -> ClapCommand {
     let command = ClapCommand::new("refresh")
-        .bin_name("icq icrc account transaction refresh")
+
         .about("Fetch and atomically cache complete ICRC account history")
         .after_help(collection_help(
             COLLECTION_MODE_FORCE_REFRESH,
@@ -90,14 +88,13 @@ pub(in crate::icrc) fn icrc_account_transaction_refresh_command() -> ClapCommand
 
 pub(in crate::icrc) fn icrc_account_transaction_cache_command() -> ClapCommand {
     ClapCommand::new("cache")
-        .bin_name("icq icrc account transaction cache")
         .about("Inspect local complete account-history cache state")
         .subcommand(icrc_account_transaction_cache_status_command())
 }
 
 pub(in crate::icrc) fn icrc_account_transaction_cache_status_command() -> ClapCommand {
     let command = ClapCommand::new("status")
-        .bin_name("icq icrc account transaction cache status")
+
         .about("Show local account-history cache and latest refresh-attempt status")
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_ONLY,

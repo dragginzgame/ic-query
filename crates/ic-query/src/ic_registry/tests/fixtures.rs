@@ -14,6 +14,10 @@ pub(super) fn registry_fetch_request() -> MainnetRegistryFetchRequest {
     }
 }
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "The fixture constructor owns its supplied records for the duration of one catalog assembly."
+)]
 pub(super) fn catalog_from_parts_for_test(
     request: &MainnetRegistryFetchRequest,
     registry_version: u64,

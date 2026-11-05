@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared SNS snapshot refresh-attempt status DTO.
 //! Does not own: attempt sidecar loading, refresh lifecycle, or text rendering.
-//! Boundary: preserves the JSON fields used by neuron and proposal cache status reports.
+//! Boundary: preserves the JSON fields used by neuron cache status reports.
 
 use crate::{
     snapshot_cache::SnapshotRefreshAttempt, sns::report::cache_attempt::SnsRefreshAttemptMetadata,
@@ -17,10 +17,9 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct SnsRefreshAttemptStatus {
-    pub id: usize,
     pub network: String,
     pub source_endpoint: String,
-    pub root_canister_id: String,
+
     pub governance_canister_id: String,
     /// Validated shared lifecycle evidence.
     #[serde(flatten)]
@@ -32,10 +31,9 @@ impl SnsRefreshAttemptStatus {
         attempt: SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>,
     ) -> Self {
         Self {
-            id: attempt.metadata.id,
             network: attempt.network.clone(),
             source_endpoint: attempt.source_endpoint.clone(),
-            root_canister_id: attempt.metadata.root_canister_id.clone(),
+
             governance_canister_id: attempt.metadata.governance_canister_id.clone(),
             lifecycle: attempt.into(),
         }

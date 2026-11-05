@@ -26,7 +26,7 @@ pub(super) fn acquire_refresh_lock(
     Ok(RefreshLockGuard::new(file, request.lock_path.to_path_buf()))
 }
 
-#[cfg(any(feature = "host", test))]
+#[cfg(test)]
 pub fn inspect_open_refresh_lock(path: &Path, file: &File) -> Result<bool, CacheFileError> {
     validate_refresh_lock(path, file)?;
     match try_lock_exclusive(file) {

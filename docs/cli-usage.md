@@ -39,6 +39,12 @@ generated `help` entry.
 
 ## Common behavior
 
+Human text clips long summaries and metadata to terminal-column budgets with an
+`…` marker. Raw JSON retains the complete strings. NNS Governance, SNS neuron
+and ICRC history cache status use common `attempt_*` labels for lifecycle,
+progress, cursor and failure evidence; ICRC includes `attempt_index_canister_id`.
+
+
 ```bash
 icq help
 icq help nns
@@ -78,7 +84,7 @@ identity:
 ```bash
 icq --network ic cloud-engine prices
 icq --network ic nns registry version
-icq --network ic sns list
+icq --network ic sns neuron list "$GOVERNANCE_CANISTER_ID" --json
 icq --network ic system xdr
 ```
 
@@ -492,134 +498,43 @@ does not scrape the CMC's explicitly uncertified Prometheus metrics, call
 hidden methods, enumerate canisters, or create a cache. See
 [Certified CMC System Reporting](design/cmc-system-reporting.md).
 
-## SNS
+## SNS neuron ownership and stake
 
-Resolve a deployed SNS by list id or Root principal:
-
-Replace `<sns-root-principal>` with a Root principal returned by `icq sns list`.
-
-```bash
-icq sns list
-icq sns refresh
-icq sns info 1
-icq sns token 1
-icq sns parameters 1
-icq sns metrics 1
-icq sns metrics <sns-root-principal> --window 90d --json
-icq sns swap 1
-icq sns upgrade 1
-```
-
-`sns list` reads one complete joined discovery catalog and visibly refreshes
-it when missing or older than one hour. A fresh consecutive read makes no
-SNS-W or Governance request. `sns refresh` forces the same finite all-SNS
-metadata collection and atomically replaces the cache after validation.
-Targeted commands continue to make their existing targeted discovery calls;
-they do not refresh or depend on this all-SNS catalog.
-
-`sns metrics` calls the Governance `get_metrics` composite query for the
-resolved SNS. Its recent submitted/executed proposal window accepts nonzero
-integer seconds, minutes, hours, or days, defaults to 30 days, and is capped
-at 365 days before any live access. The report also preserves the latest
-SNS-ledger block timestamp observed by Governance, genesis time, cached
-treasury ledger/accounts and current/original e8s amounts with their own
-timestamps, and cached voting-power metrics.
-
-Including targeted discovery, the client makes three requests: one SNS-W
-inventory query, one Governance metadata query for the resolved SNS, and the
-metrics query. Governance performs its own bounded latest-block lookup inside
-the composite query. The differently timestamped values do not form one
-point-in-time snapshot. `icq` does not enumerate ledger transactions, fan out
-to another SNS, or create a cache. See
-[Bounded SNS Governance Metrics](design/0.24/0.24-design.md) for the complete
-authority and validation contract.
-
-`sns swap` makes exactly three bounded native swap queries for the resolved
-SNS: `get_lifecycle`, `get_sale_parameters`, and `get_derived_state`. It keeps
-component failures as typed gaps, does not claim the sequential responses are
-one point-in-time snapshot, and never calls the potentially large
-`get_state`, enumerates participants, or creates a cache. Including targeted
-discovery, the command makes five canister queries: one SNS-W inventory query,
-one Governance metadata query for the resolved SNS, and the three swap
-queries. It does not enrich metadata for every deployed SNS.
-
-`sns upgrade` makes two bounded report-specific queries: Governance
-`get_running_sns_version` and SNS-W `get_next_sns_version`. Including targeted
-discovery, it makes at most four canister queries. It preserves the native
-six-role Wasm hashes and pending-upgrade state, and distinguishes a successful
-response with no blessed successor from a failed next-version query. It does
-not read the upgrade journal, download Wasms, fan out, create a cache, or claim
-that the sequential responses form one point-in-time snapshot.
-
-Inspect Root membership and read-only operational health:
+Configure the Governance canister that holds the existing neurons. Operations
+use that explicit principal; SNS-W discovery, numeric project ids, Root lookup,
+project catalogs, proposals, parameters, swaps, upgrades, metrics and canister
+health reports are retired in 0.91. Use the generic ICRC ledger commands for token
+metadata, balances and transaction/burn evidence. Indexed holder enumeration stays
+under `icrc analytics holder`; its paginated results describe the selected index.
 
 ```bash
-icq sns canister list 1
-icq sns canister list <sns-root-principal> --json
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --owner "$USER_PRINCIPAL" --json
+icq sns neuron info "$GOVERNANCE_CANISTER_ID" "$NEURON_ID" --json
+icq sns neuron refresh "$GOVERNANCE_CANISTER_ID"
+icq sns neuron list "$GOVERNANCE_CANISTER_ID" --sort stake --limit 1000 --json
+icq sns neuron cache status "$GOVERNANCE_CANISTER_ID" --json
 ```
 
-Inventory comes from `list_sns_canisters`. Health comes from
-`get_sns_canisters_summary` with `update_canister_list = false`; `icq` never
-asks Root to mutate its stored archive inventory. The sequential reads retain
-typed relation gaps and do not claim one point-in-time snapshot. Each JSON
-canister row classifies its raw cycle observation as `reported_zero`,
-`reported_nonzero`, or `unavailable`, while report counts summarize exact-zero
-and unavailable balances. If inventory succeeds but the health ingress fails,
-the report retains inventory with unavailable operational values and a typed
-`health_query_gap` instead of treating absence as zero or discarding the
-inventory.
+Live `list --sort api` reads one bounded page; owner filtering selects principals
+with neuron permissions. A principal's presence alone does not establish purchase
+eligibility. JSON retains every native permission code, including unknown codes,
+for each principal. Toko owns the permission and stake policy.
 
-Proposal and neuron collections:
+Complete refresh pages until exhaustion, preserves inclusive cursor boundaries
+once and rejects page ceilings before publishing. Cached sorts use only complete
+local snapshots. Stake, neuron fees, maturity and staked maturity remain separate
+raw values. Dissolve and vesting evidence is retained. Sequential scans can span
+state changes; collection completeness does not imply one atomic snapshot.
 
-```bash
-icq sns proposal list be2us-64aaa-aaaaa-qaabq-cai --limit 25
-icq sns proposal info 1 387
-icq sns proposal refresh 1
-icq sns proposal cache status be2us-64aaa-aaaaa-qaabq-cai
+The schema-1 hard cut uses `sns-neuron/<network>/<governance>/neurons/full.json`
+and matching lock/attempt files. Old Root-addressed `sns/` files stay untouched;
+there is no discovery, old reader, migration or automatic deletion. Explicitly
+refresh the new Governance target before using a cached sort. Family cache status
+and list remain local and preserve invalid-content and failed-attempt evidence.
 
-icq sns neuron list 1 --sort api
-icq sns neuron info 1 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
-icq sns neuron refresh 1
-icq sns neuron list be2us-64aaa-aaaaa-qaabq-cai --sort stake --limit 500
-icq sns neuron cache status be2us-64aaa-aaaaa-qaabq-cai
-
-```
-
-SNS neuron and proposal refresh results share schema 1. Their JSON reports
-`collection` (`neurons` or `proposals`) and `row_count`, along with publication
-paths, page counts and any post-publication attempt-finalization error. Text
-refresh results use the same collection and row-count labels.
-
-SNS proposal list views can create a missing complete proposal cache and apply
-supported filters and sorts locally. Root-addressed proposal detail prefers a complete cache
-that contains the row and otherwise performs a live lookup. Numeric proposal
-detail selectors always use live discovery. Cache-backed lists, neuron sorts
-and cache status require root principals; explicit refresh still accepts list ids.
-
-SNS neuron `--sort api` is a bounded live view. Whole-collection sorts require
-a previously refreshed complete neuron snapshot so a normal view command
-cannot hide an expensive crawl. Each row preserves the fixed-size native
-Governance values already returned by `list_neurons`: stake and maturity,
-creation and aging timestamps, source NNS neuron id, auto-stake setting, raw
-dissolve state, voting-power percentage multiplier, vesting period, and fees.
-JSON exposes all of those raw fields; compact text selects the operationally
-useful subset. This adds no follow-up request or cache fanout. Neuron report
-and cache schema 1 replace the prior contract in place; a snapshot with any
-other schema identifier requires an explicit refresh.
-
-`sns neuron info` is a separate live-only exact lookup. It accepts exactly one
-32-byte neuron id as 64 lowercase hexadecimal characters and calls native
-Governance `get_neuron` after targeted SNS discovery. The report preserves
-every principal and raw permission code with its current native label, pending
-maturity disbursement destinations including owner and subaccount, legacy and
-topic followees, and the fixed-size state above. Unknown permission codes stay
-visible and make the affected neuron-local maturity policy observation
-unassessable. Including targeted discovery, the command makes exactly three
-queries and never reads or writes the complete neuron cache.
-
-SNS reward checkpoint collection and local checkpoint diffs are retired in 0.89.
-Preserve any historical checkpoint files with the earlier reader needed to inspect
-them. Current commands do not load, migrate or delete those files.
+Query supplies read-only evidence. Token acceptance, transfers, burns, idempotent
+credits and NFT purchase decisions belong in Toko's application flow. Balance
+reads address known accounts; holder lists page the configured Dashboard index.
 
 ## ICRC
 

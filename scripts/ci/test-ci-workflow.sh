@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+[[ $# == 0 || ( $# == 1 && "$1" == --workflow-only ) ]] || {
+  echo "usage: $0 [--workflow-only]" >&2
+  exit 2
+}
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 yq="$repo_root/.tools/host/bin/yq"
@@ -39,7 +43,18 @@ jq="$repo_root/.tools/host/bin/jq"
     all(.steps[]; .with.ref == null))) and
   ($workflow.jobs | all(.[]; any(.steps[]; .run == "make compiler-check"))) and
   ($workflow.jobs.checks.steps | any(.[]; .run == "make ci")) and
-  ($workflow.jobs.canister.steps | any(.[]; .run == "make canister-test")) and
+  ([$workflow.jobs.canister.steps[] | select((.run // "") | test("(^|\n)(make|cargo) clippy( |\n|$)"))] | length == 1) and
+  ($workflow.jobs.canister.steps | all(.[] |
+    select((.run // "") | test("(^|\n)(make|cargo) clippy( |\n|$)") or startswith("make canister-"));
+    .if == null and (.["continue-on-error"] // false) == false and .env.CARGO_NET_OFFLINE == "true")) and
+  ([$workflow.jobs.canister.steps[].run // empty |
+      select(startswith("make clippy\n") or startswith("make canister-"))] |
+    length == 4 and
+    (.[0] | split("\n") | map(select(length > 0)) == [
+      "make clippy",
+      "cargo clippy -p ic-query --example governance_probe --target wasm32-unknown-unknown --no-default-features --features canister --locked --offline -- -D warnings"
+    ]) and
+    .[1:] == ["make canister-test-check", "make canister-smoke-check", "make canister-bundle-check"]) and
   ($workflow.jobs.canister.steps | any(.[]; .if == "always()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | any(.[]; .if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")))) and
   ($workflow.jobs.checks.steps | all(.[] | select(.if == "failure()" and ((.uses // "") | startswith("actions/upload-artifact@")));
@@ -56,9 +71,11 @@ jq="$repo_root/.tools/host/bin/jq"
       ((.with.path // "") | contains("ic-query-tool-evidence.*/")) and
       .with["include-hidden-files"] == true and .with["retention-days"] == 30)))
 ' > /dev/null
-echo 'CI event selection and six-job native coverage fixtures passed'
+echo 'CI event selection, one canister lint stage and six-job native coverage fixtures passed'
+if [[ "${1:-}" == --workflow-only ]]; then exit 0; fi
 
-fixture="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-ci-retention.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+fixture="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-ci-retention.XXXXXX")"
 fixture_complete=false
 finish() {
   local status=$?

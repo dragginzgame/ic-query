@@ -24,7 +24,7 @@ async fn topology_versions_report_preserves_component_registry_provenance() {
     assert_eq!(report.registry_versions, summary.registry_versions);
     assert_eq!(report.registry_versions[0].stale, Some(false));
     assert_eq!(report.registry_versions[0].source_endpoint, "-");
-    for (row, version) in report.registry_versions.iter().zip(42..=46) {
+    for (row, version) in report.registry_versions.iter().zip([42, 43, 43, 43, 43]) {
         assert_eq!(row.registry_version, version);
         assert_ne!(row.fetched_at, "");
     }

@@ -21,7 +21,6 @@ Refresh stale cache:
 
 pub(in crate::nns) fn list_command() -> ClapCommand {
     ClapCommand::new("list")
-        .bin_name("icq nns subnet list")
         .about("List cached mainnet IC subnets")
         .arg(kind_arg())
         .arg(specialization_arg())

@@ -5,7 +5,7 @@ use std::ffi::OsString;
 #[test]
 fn usage_describes_bounded_native_reports() {
     let text = render_help(command());
-    assert!(text.contains("Usage: icq system [COMMAND]"));
+    assert!(text.contains("Usage: system [COMMAND]"));
     assert!(text.contains("xdr"));
     assert!(text.contains("cycles"));
 

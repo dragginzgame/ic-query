@@ -24,6 +24,9 @@ pub fn nns_node_provider_list_report_text(
             &report.provenance,
         ));
     }
+    lines.extend(crate::nns::render::governance_provenance_lines(
+        &report.governance_source,
+    ));
     if report.node_providers.is_empty() {
         lines.push("node providers: none".to_string());
         return lines.join("\n");

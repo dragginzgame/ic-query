@@ -2,7 +2,7 @@
 //!
 //! Responsibility: shared SNS snapshot lookup, locking, attempt lifecycle, and publication.
 //! Does not own: family paging, row validation, report DTOs, or text rendering.
-//! Boundary: one lifecycle serves proposal and neuron complete-cache refreshes.
+//! Boundary: one lifecycle serves neuron complete-cache refreshes.
 
 use crate::cache_file::write_collection_snapshot;
 use crate::report::CollectionSourceRequest;
@@ -15,16 +15,15 @@ use crate::{
         with_locked_snapshot_refresh,
     },
     sns::report::{
-        MAINNET_SNS_WASM_CANISTER_ID, SNS_CACHE_COMPONENT, SnsHostError, SnsReportContext,
-        SnsSnapshotRefreshReport, SnsSnapshotRefreshRequest,
+        SNS_CACHE_COMPONENT, SnsHostError, SnsReportContext, SnsSnapshotRefreshReport,
+        SnsSnapshotRefreshRequest,
         cache_attempt::{
             SnsRefreshContext, write_complete_sns_refresh_attempt,
             write_failed_sns_refresh_attempt, write_starting_sns_refresh_attempt,
         },
         cache_paths::sns_snapshot_cache_paths,
         cache_storage::{SnsCacheMetadata, SnsCacheStorageFamily},
-        lookup::{resolve_sns_lookup, validate_sns_refresh_page_size},
-        source::{MainnetSns, SnsDiscoverySource},
+        target::{resolve_neuron_target, validate_sns_refresh_page_size},
     },
 };
 use std::marker::PhantomData;
@@ -41,7 +40,7 @@ pub(in crate::sns::report) struct SnsSnapshotRefreshContext<'a, Collection> {
     /// Canonical source request shared by lookup and collection calls.
     pub(in crate::sns::report) fetch_request: CollectionSourceRequest,
     /// Resolved SNS identity and canister principals.
-    pub(in crate::sns::report) sns: MainnetSns,
+    pub(in crate::sns::report) governance_canister_id: String,
     /// Complete-cache, lock, and attempt paths for the family collection.
     pub(in crate::sns::report) paths: &'a SnapshotJsonPaths,
     /// Whether publication replaces an existing complete cache.
@@ -56,7 +55,7 @@ impl<Collection> SnsSnapshotRefreshContext<'_, Collection> {
             path: &self.paths.refresh_attempt_path,
             request: self.request,
             fetch_request: &self.fetch_request,
-            sns: &self.sns,
+            governance_canister_id: &self.governance_canister_id,
         }
     }
 }
@@ -68,7 +67,6 @@ impl<Collection> SnsSnapshotRefreshContext<'_, Collection> {
 )]
 pub(in crate::sns::report) async fn run_resolved_sns_snapshot_refresh<Collection, Report>(
     request: &SnsSnapshotRefreshRequest,
-    source: &dyn SnsDiscoverySource,
 
     run_locked: impl AsyncFnOnce(
         &SnsSnapshotRefreshContext<'_, Collection>,
@@ -78,11 +76,11 @@ where
     Collection: SnsCacheStorageFamily,
 {
     validate_sns_refresh_page_size(request.page_size)?;
-    let lookup = resolve_sns_lookup(&request.lookup, source).await?;
+    let lookup = resolve_neuron_target(&request.target)?;
     let paths = sns_snapshot_cache_paths::<Collection>(
         &request.cache_root,
-        &request.lookup.network,
-        &lookup.sns.canisters.root_canister_id,
+        &request.target.network,
+        &lookup.governance_canister_id,
     );
     with_locked_snapshot_refresh(
         LockedSnapshotRefreshRequest {
@@ -95,7 +93,7 @@ where
             let context = SnsSnapshotRefreshContext {
                 request,
                 fetch_request: lookup.fetch_request,
-                sns: lookup.sns,
+                governance_canister_id: lookup.governance_canister_id,
                 paths: &paths,
                 replaced_existing_cache: replaced_existing_snapshot,
                 collection: PhantomData,
@@ -128,16 +126,12 @@ where
         fetched_at: context.fetch_request.fetched_at.clone(),
         source_endpoint: context.fetch_request.endpoint.clone(),
         fetched_by: context.fetch_request.fetched_by.clone(),
-        domain: "sns".to_string(),
-        entity: context.sns.canisters.root_canister_id.clone(),
+        domain: "sns-neuron".to_string(),
+        entity: context.governance_canister_id.clone(),
         collection: Collection::COLLECTION.to_string(),
         scope: "full".to_string(),
         metadata: SnsCacheMetadata {
-            sns_wasm_canister_id: MAINNET_SNS_WASM_CANISTER_ID.to_string(),
-            id: context.sns.id,
-            name: context.sns.name.clone(),
-            root_canister_id: context.sns.canisters.root_canister_id.clone(),
-            governance_canister_id: context.sns.canisters.governance_canister_id.clone(),
+            governance_canister_id: context.governance_canister_id.clone(),
         },
         completeness: CacheCollectionCompleteness::api_exhausted(
             context.request.page_size,

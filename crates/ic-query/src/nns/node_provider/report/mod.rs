@@ -13,7 +13,7 @@ mod source;
 #[cfg(feature = "nns-host")]
 use crate::nns::NnsInventoryRefreshRequest;
 #[cfg(feature = "nns-host")]
-use crate::nns::{NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest};
+use crate::nns::{NnsInventoryInfoRequest, NnsInventoryListRequest};
 
 #[cfg(all(test, feature = "nns-host"))]
 use build::resolve_node_provider;
@@ -27,11 +27,17 @@ pub use build::{
 #[cfg(feature = "nns-host")]
 pub use cache::{nns_node_provider_cache_path, nns_node_provider_refresh_lock_path};
 #[cfg(feature = "nns-host")]
-pub use refresh::{refresh_nns_node_provider_report, refresh_nns_node_provider_report_with_source};
+pub use refresh::{
+    NnsNodeProviderRefreshReport, refresh_nns_node_provider_report,
+    refresh_nns_node_provider_report_with_source,
+};
 #[cfg(feature = "nns-host")]
 pub use source::NnsNodeProviderSource;
 
-pub use model::{NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow};
+pub use model::{
+    NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderMetadata,
+    NnsNodeProviderRow,
+};
 
 pub const DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "nns-host")]
@@ -39,10 +45,6 @@ pub const DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT: &str = "https://icp-api.io"
 pub const NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;
-#[cfg(feature = "nns-host")]
-const NNS_NODE_PROVIDER_CACHE_DIR: &str = "node-provider";
-#[cfg(feature = "nns-host")]
-const NNS_NODE_PROVIDER_CACHE_FILE: &str = "providers.json";
 
 #[cfg(feature = "nns-host")]
 impl_nns_mainnet_network_enforcer!(NnsInventoryError, COLLECTION);
@@ -53,3 +55,8 @@ mod tests;
 #[cfg(feature = "nns-host")]
 const COLLECTION: crate::nns::NnsInventoryCollection =
     crate::nns::NnsInventoryCollection::NodeProvider;
+
+#[cfg(feature = "nns-host")]
+pub(in crate::nns) use build::node_provider_report_from_snapshot;
+#[cfg(feature = "nns-host")]
+pub(in crate::nns) use cache::load_or_refresh_metadata;

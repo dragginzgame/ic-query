@@ -159,7 +159,7 @@ fn render_table_escapes_headers_and_cells_without_double_escaping() {
         Some("a\\n\\r\\t\\u{9b}\\u{1b}]0;title\\u{7}\\u{2028}\\u{202e}\\n")
     );
     assert_eq!(terminal_text(&table), table.replace('\n', "\\n"));
-    assert!(truncate_text("\u{202e}abcdef", 9).ends_with("..."));
+    assert!(truncate_text("\u{202e}abcdef", 9).ends_with("…"));
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn scalar_text_helpers_escape_controls_without_changing_raw_models() {
 
     assert_eq!(terminal_text(&optional), "line one\\nline two\\u{1b}[31m");
     assert_eq!(optional_text(Some(&optional)), terminal_text(&optional));
-    assert_eq!(truncate_text("abcdef", 3), "abc...");
+    assert_eq!(truncate_text("abcdef", 3), "ab…");
     assert_eq!(optional_u64_text(None), "-");
     assert_eq!(optional_u64_text(Some(42)), "42");
     assert_eq!(yes_no(true), "yes");

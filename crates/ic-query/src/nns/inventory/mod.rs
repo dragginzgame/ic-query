@@ -1,24 +1,31 @@
-//! Module: nns::inventory
-//!
-//! Responsibility: share Registry-inventory lifecycle and row-resolution mechanics.
-//! Does not own: family row DTOs, source implementations, cache identity, or public errors.
-//! Boundary: one lifecycle and publication outcome serve node, provider, operator, and data-center reports.
+//! Shared Registry snapshot lifecycle and NNS row resolution.
+
+mod model;
+mod source;
+pub use model::NnsRegistryInventorySnapshot;
+pub use source::NnsRegistryInventorySource;
 
 use super::{
-    NnsInventoryCacheRequest, NnsInventoryCollection, NnsInventoryError, NnsInventoryListRequest,
-    NnsInventoryRefreshRequest,
+    LiveNnsSource, NnsInventoryCacheRequest, NnsInventoryCollection, NnsInventoryError,
+    NnsInventoryListRequest, NnsInventoryRefreshRequest,
 };
-use crate::identifier_match::{IdentifierMatch, match_identifier};
-use crate::report::CollectionSourceRequest;
 use crate::{
     QueryProgress, QueryProgressEvent,
     cache_file::{RefreshCacheWriteResult, load_or_refresh_cache},
-    nns::leaf::write_nns_leaf_json_refresh_cache,
+    identifier_match::{IdentifierMatch, match_identifier},
+    report::CollectionSourceRequest,
     subnet_catalog::{MAINNET_NETWORK, MAINNET_REGISTRY_CANISTER_ID, canonical_principal_text},
 };
-use ic_host_text::timestamp::{format_utc_timestamp_secs, parse_utc_timestamp_secs};
+use ic_host_text::timestamp::parse_utc_timestamp_secs;
 use serde::Serialize;
-use std::{borrow::Cow, path::PathBuf};
+use std::{
+    borrow::Cow,
+    path::{Path, PathBuf},
+};
+
+const COLLECTION: NnsInventoryCollection = NnsInventoryCollection::RegistryInventory;
+const COMPONENT: &str = "inventory";
+const CACHE_FILE: &str = "snapshot.json";
 
 ///
 /// NnsInventoryRefreshReport
@@ -45,6 +52,8 @@ pub struct NnsInventoryRefreshReport {
     pub output_path: Option<String>,
     /// Governance principal supplying provider metadata, when applicable.
     pub governance_canister_id: Option<String>,
+    /// Independently collected Governance metadata, when applicable.
+    pub governance_source: Option<CollectionSourceRequest>,
     /// Whether managed-cache publication was disabled.
     pub dry_run: bool,
     /// Whether the managed complete cache was published.
@@ -53,160 +62,228 @@ pub struct NnsInventoryRefreshReport {
     pub replaced_existing_cache: bool,
 }
 
-///
-/// NnsInventoryReport
-///
-/// Shared provenance and family-evidence contract for one complete NNS inventory report.
-///
+/// Return the shared complete Registry snapshot path.
+#[must_use]
+pub fn nns_registry_inventory_cache_path(root: &Path, network: &str) -> PathBuf {
+    root.join("nns")
+        .join(network)
+        .join(COMPONENT)
+        .join(CACHE_FILE)
+}
 
-pub(in crate::nns) trait NnsInventoryReport {
-    const SCHEMA_VERSION: u32;
-    const ITEM_NAME: &'static str;
-    const COLLECTION: NnsInventoryCollection;
+/// Return the shared Registry refresh exclusion path.
+#[must_use]
+pub fn nns_registry_inventory_refresh_lock_path(root: &Path, network: &str) -> PathBuf {
+    root.join("nns")
+        .join(network)
+        .join(COMPONENT)
+        .join("refresh.lock")
+}
 
-    fn schema_version(&self) -> u32;
-    fn provenance(&self) -> &super::registry::NnsRegistryInventoryProvenance;
-
-    /// Project an admitted inventory and the actual publication result.
-    fn refresh_outcome(
-        &self,
-        request: &NnsInventoryRefreshRequest,
-        write: RefreshCacheWriteResult,
-    ) -> NnsInventoryRefreshReport;
-
-    /// Validate cache-stable provenance and family-specific evidence.
-    fn validate(&self) -> Result<(), String> {
-        let provenance = self.provenance();
-        if self.schema_version() != Self::SCHEMA_VERSION {
-            return Err(format!(
-                "schema_version is {}, expected {}",
-                self.schema_version(),
-                Self::SCHEMA_VERSION
-            ));
-        }
-        if provenance.network != MAINNET_NETWORK {
-            return Err(format!(
-                "network is {}, expected {MAINNET_NETWORK}",
-                provenance.network
-            ));
-        }
-        if provenance.registry_canister_id != MAINNET_REGISTRY_CANISTER_ID {
+impl NnsRegistryInventorySnapshot {
+    pub(in crate::nns) fn validate(&self) -> Result<(), String> {
+        validate_inventory_metadata(
+            self.schema_version,
+            &self.provenance.network,
+            &self.provenance.source_endpoint,
+            &self.provenance.fetched_at,
+        )?;
+        if self.provenance.registry_canister_id != MAINNET_REGISTRY_CANISTER_ID {
             return Err(format!(
                 "registry_canister_id is {}, expected {MAINNET_REGISTRY_CANISTER_ID}",
-                provenance.registry_canister_id
-            ));
-        }
-        if parse_utc_timestamp_secs(&provenance.fetched_at).is_none() {
-            return Err(format!(
-                "fetched_at is invalid: {:?}",
-                provenance.fetched_at
-            ));
-        }
-        if provenance.source_endpoint.trim().is_empty() {
-            return Err("source_endpoint must not be empty".to_string());
-        }
-        self.validate_family()
-    }
-
-    /// Validate evidence owned only by one inventory family.
-    fn validate_family(&self) -> Result<(), String> {
-        Ok(())
-    }
-
-    /// Validate source provenance against the exact request used for refresh.
-    fn validate_source(&self, request: &CollectionSourceRequest) -> Result<(), String> {
-        self.validate()?;
-        let provenance = self.provenance();
-        if provenance.network != request.network {
-            return Err(format!(
-                "network is {}, requested {}",
-                provenance.network, request.network
-            ));
-        }
-        if provenance.fetched_at != request.fetched_at {
-            return Err(format!(
-                "fetched_at is {:?}, requested {:?}",
-                provenance.fetched_at, request.fetched_at
-            ));
-        }
-        if provenance.source_endpoint != request.endpoint {
-            return Err(format!(
-                "source_endpoint is {:?}, requested {:?}",
-                provenance.source_endpoint, request.endpoint
+                self.provenance.registry_canister_id
             ));
         }
         Ok(())
     }
 }
 
-/// Load one Registry inventory cache, refreshing missing or invalid local content.
-pub(in crate::nns) async fn load_or_refresh_nns_inventory_report<Report>(
-    request: &NnsInventoryListRequest,
-    expected_cache_path: PathBuf,
+pub(in crate::nns) fn validate_inventory_metadata(
+    schema: u32,
+    network: &str,
+    endpoint: &str,
+    fetched_at: &str,
+) -> Result<(), String> {
+    if schema != 1 {
+        return Err(format!("schema_version is {schema}, expected 1"));
+    }
+    if network != MAINNET_NETWORK {
+        return Err(format!("network is {network}, expected {MAINNET_NETWORK}"));
+    }
+    if parse_utc_timestamp_secs(fetched_at).is_none() {
+        return Err(format!("fetched_at is invalid: {fetched_at:?}"));
+    }
+    if endpoint.trim().is_empty() {
+        return Err("source_endpoint must not be empty".to_string());
+    }
+    Ok(())
+}
 
+pub(in crate::nns) fn validate_inventory_source(
+    request: &CollectionSourceRequest,
+    network: &str,
+    endpoint: &str,
+    fetched_at: &str,
+) -> Result<(), String> {
+    for (field, actual, expected) in [
+        ("network", network, request.network.as_str()),
+        ("source_endpoint", endpoint, request.endpoint.as_str()),
+        ("fetched_at", fetched_at, request.fetched_at.as_str()),
+    ] {
+        if actual != expected {
+            return Err(format!("{field} is {actual:?}, requested {expected:?}"));
+        }
+    }
+    Ok(())
+}
+
+pub(in crate::nns) fn load_registry_inventory(
+    cache: &NnsInventoryCacheRequest,
+) -> Result<NnsRegistryInventorySnapshot, NnsInventoryError> {
+    crate::network::enforce_mainnet_network_with(&cache.network, |network| {
+        NnsInventoryError::UnsupportedNetwork {
+            collection: COLLECTION,
+            network,
+        }
+    })?;
+    let cached = super::leaf::load_nns_leaf_json_cache::<NnsRegistryInventorySnapshot>(
+        cache, COMPONENT, CACHE_FILE, 1,
+    )
+    .map_err(|source| NnsInventoryError::Cache {
+        collection: COLLECTION,
+        source,
+    })?;
+    cached
+        .report
+        .validate()
+        .map_err(|reason| NnsInventoryError::Cache {
+            collection: COLLECTION,
+            source: crate::HostCacheError::invalid_cache(COMPONENT, cached.path, reason),
+        })?;
+    Ok(cached.report)
+}
+
+pub(in crate::nns) async fn load_or_refresh_nns_inventory_report(
+    request: &NnsInventoryListRequest,
+    source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
-    mut load: impl FnMut(&NnsInventoryCacheRequest) -> Result<Report, NnsInventoryError>,
-    refresh: impl AsyncFnOnce(&NnsInventoryRefreshRequest) -> Result<(), NnsInventoryError>,
-) -> Result<Report, NnsInventoryError>
-where
-    Report: NnsInventoryReport,
-{
+) -> Result<NnsRegistryInventorySnapshot, NnsInventoryError> {
+    let path = nns_registry_inventory_cache_path(&request.cache.cache_root, &request.cache.network);
     load_or_refresh_cache(
-        || load(&request.cache),
+        || load_registry_inventory(&request.cache),
         |_| false,
-        |error| error.cache_refresh_reason(expected_cache_path.clone()),
+        |error| error.cache_refresh_reason(path.clone()),
         async |_| {
             progress.report(QueryProgressEvent::CacheRefresh {
-                component: Report::ITEM_NAME.replace('_', "-"),
-                path: expected_cache_path.clone(),
+                component: COMPONENT.to_string(),
+                path: path.clone(),
                 source_endpoint: request.source_endpoint.clone(),
             });
-            let refresh_request = NnsInventoryRefreshRequest::new(
-                request.cache.clone(),
-                &request.source_endpoint,
-                request.now_unix_secs,
-            );
-            refresh(&refresh_request).await
+            refresh_nns_registry_inventory_with_source(
+                &NnsInventoryRefreshRequest::new(
+                    request.cache.clone(),
+                    &request.source_endpoint,
+                    request.now_unix_secs,
+                ),
+                source,
+            )
+            .await
+            .map(|_| ())
         },
     )
     .await
 }
 
-/// Fetch and atomically publish one network-validated Registry inventory cache.
-#[expect(
-    clippy::future_not_send,
-    reason = "Borrowing AsyncFn callbacks select their future Send bounds at the concrete report caller; downstream probes admit those futures."
-)]
-pub(in crate::nns) async fn refresh_nns_inventory_cache<Report>(
+/// Refresh the shared Registry snapshot through the built-in native source.
+pub async fn refresh_nns_registry_inventory(
     request: &NnsInventoryRefreshRequest,
-    component_dir: &'static str,
-    cache_file: &str,
-    fetch: impl AsyncFnOnce(&CollectionSourceRequest) -> Result<Report, NnsInventoryError>,
-) -> Result<NnsInventoryRefreshReport, NnsInventoryError>
-where
-    Report: NnsInventoryReport + Serialize,
-{
-    let source_request = CollectionSourceRequest::new(
-        &request.cache.network,
-        &request.source_endpoint,
-        format_utc_timestamp_secs(request.now_unix_secs),
-        "ic-query",
-    );
-    let report = fetch(&source_request).await?;
-    report.validate_source(&source_request).map_err(|reason| {
-        NnsInventoryError::InvalidSourceData {
-            collection: Report::COLLECTION,
-            reason,
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError> {
+    refresh_nns_registry_inventory_with_source(request, &LiveNnsSource::default()).await
+}
+
+/// Refresh all Registry inventory views through one caller-owned source.
+pub async fn refresh_nns_registry_inventory_with_source(
+    request: &NnsInventoryRefreshRequest,
+    source: &dyn NnsRegistryInventorySource,
+) -> Result<NnsInventoryRefreshReport, NnsInventoryError> {
+    collect_registry_inventory(request, source)
+        .await
+        .map(|(_, report)| report)
+}
+
+pub(in crate::nns) async fn collect_registry_inventory(
+    request: &NnsInventoryRefreshRequest,
+    source: &dyn NnsRegistryInventorySource,
+) -> Result<(NnsRegistryInventorySnapshot, NnsInventoryRefreshReport), NnsInventoryError> {
+    crate::network::enforce_mainnet_network_with(&request.cache.network, |network| {
+        NnsInventoryError::UnsupportedNetwork {
+            collection: COLLECTION,
+            network,
         }
     })?;
-    let write_result =
-        write_nns_leaf_json_refresh_cache(request, component_dir, cache_file, &report)
+    let source_request = CollectionSourceRequest::from_unix_secs(
+        &request.cache.network,
+        &request.source_endpoint,
+        request.now_unix_secs,
+        "ic-query",
+    );
+    let snapshot = source.fetch_registry_inventory(&source_request).await?;
+    snapshot
+        .validate()
+        .and_then(|()| {
+            validate_inventory_source(
+                &source_request,
+                &snapshot.provenance.network,
+                &snapshot.provenance.source_endpoint,
+                &snapshot.provenance.fetched_at,
+            )
+        })
+        .map_err(|reason| NnsInventoryError::InvalidSourceData {
+            collection: COLLECTION,
+            reason,
+        })?;
+    let write =
+        super::leaf::write_nns_leaf_json_refresh_cache(request, COMPONENT, CACHE_FILE, &snapshot)
             .await
             .map_err(|source| NnsInventoryError::Cache {
-                collection: Report::COLLECTION,
+                collection: COLLECTION,
                 source,
             })?;
-    Ok(report.refresh_outcome(request, write_result))
+    let report = inventory_refresh_outcome(
+        request,
+        COMPONENT,
+        snapshot.nodes.len() + snapshot.node_operators.len() + snapshot.data_centers.len(),
+        snapshot.provenance.clone(),
+        None,
+        write,
+    );
+    Ok((snapshot, report))
+}
+
+pub(in crate::nns) fn inventory_refresh_outcome(
+    request: &NnsInventoryRefreshRequest,
+    collection: &str,
+    row_count: usize,
+    provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
+    governance_source: Option<CollectionSourceRequest>,
+    write: RefreshCacheWriteResult,
+) -> NnsInventoryRefreshReport {
+    NnsInventoryRefreshReport {
+        schema_version: 1,
+        collection: collection.to_string(),
+        row_count,
+        provenance,
+        cache_path: write.cache_path,
+        refresh_lock_path: write.refresh_lock_path,
+        output_path: write.output_path,
+        governance_canister_id: governance_source
+            .as_ref()
+            .map(|_| super::MAINNET_GOVERNANCE_CANISTER_ID.to_string()),
+        governance_source,
+        dry_run: request.dry_run,
+        wrote_cache: write.wrote_cache,
+        replaced_existing_cache: write.replaced_existing_cache,
+    }
 }
 
 ///

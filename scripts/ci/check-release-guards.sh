@@ -4,7 +4,8 @@ set -euo pipefail
 # Release effects are file-backed stubs, never real Git mutations.
 export RELEASE_DELIVERY=direct RELEASE_GROUP=query
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-release-guards.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-release-guards.XXXXXX")"
 work_dir="$(CDPATH="" cd -P -- "$work_dir" && printf '%s/.' "$PWD")"
 work_dir="${work_dir%/.}"
 # shellcheck source=scripts/ci/fixture-lifecycle.sh

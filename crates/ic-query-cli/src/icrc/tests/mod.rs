@@ -580,7 +580,7 @@ fn usage_mentions_icrc_command_surface() {
 
     assert!(token.contains("icq icrc ledger token"));
     assert!(balance.contains("icq icrc account balance"));
-    assert!(account_transaction.contains("icq icrc account transaction"));
+    assert!(account_transaction.contains("Usage: transaction [COMMAND]"));
     assert!(account_transaction_page.contains("icq icrc account transaction page"));
 
     for usage in [

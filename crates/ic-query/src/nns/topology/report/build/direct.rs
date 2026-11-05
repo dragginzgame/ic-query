@@ -44,7 +44,17 @@ pub async fn build_nns_topology_capacity_report_with_source(
 ) -> Result<NnsTopologyCapacityReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.cache.network.as_str())?;
 
-    let node_operator_report = source.fetch_node_operator_list_report(request).await?;
+    let snapshot = crate::nns::inventory::load_or_refresh_nns_inventory_report(
+        request,
+        source,
+        &mut crate::progress::IgnoreQueryProgress,
+    )
+    .await?;
+    let node_operator_report = crate::nns::node_operator::NnsNodeOperatorListReport {
+        schema_version: 1,
+        provenance: snapshot.provenance,
+        node_operators: snapshot.node_operators,
+    };
 
     Ok(topology_capacity_report_from_report(
         request.cache.network.clone(),
@@ -65,7 +75,17 @@ pub async fn build_nns_topology_regions_report_with_source(
 ) -> Result<NnsTopologyRegionsReport, NnsTopologyHostError> {
     enforce_mainnet_network(request.cache.network.as_str())?;
 
-    let data_center_report = source.fetch_data_center_list_report(request).await?;
+    let snapshot = crate::nns::inventory::load_or_refresh_nns_inventory_report(
+        request,
+        source,
+        &mut crate::progress::IgnoreQueryProgress,
+    )
+    .await?;
+    let data_center_report = crate::nns::data_center::NnsDataCenterListReport {
+        schema_version: 1,
+        provenance: snapshot.provenance,
+        data_centers: snapshot.data_centers,
+    };
 
     Ok(topology_regions_report_from_report(
         request.cache.network.clone(),

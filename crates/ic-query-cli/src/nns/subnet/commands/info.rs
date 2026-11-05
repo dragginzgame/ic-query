@@ -20,7 +20,6 @@ Refresh stale cache:
 
 pub(in crate::nns) fn info_command() -> ClapCommand {
     ClapCommand::new("info")
-        .bin_name("icq nns subnet info")
         .about("Resolve a subnet, canister, or subnet prefix to cached subnet info")
         .arg(
             value_arg("input")

@@ -1,3 +1,6 @@
+> Historical design: this report family is retired in 0.91. The retained neuron
+> boundary uses explicit Governance targets; see [the current CLI scope](../cli-usage.md#sns-neuron-ownership-and-stake).
+
 # SNS Root Canister Inventory and Health
 
 ## Status

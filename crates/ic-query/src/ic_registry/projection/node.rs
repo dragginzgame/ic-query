@@ -11,7 +11,7 @@ use ic_host_tools::registry::proto::SubnetRecord;
 use std::collections::BTreeMap;
 
 pub(in crate::ic_registry) fn node_list_from_inventory(
-    inventory: RegistryRelationInventory,
+    inventory: &RegistryRelationInventory,
 ) -> Result<Vec<NnsNodeRow>, RegistryFetchError> {
     let node_subnets = node_subnet_assignments_from_records(&inventory.subnet_records)?;
     let node_relations = resolved_node_relations(

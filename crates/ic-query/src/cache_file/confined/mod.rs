@@ -45,8 +45,6 @@ pub use read::open_managed_file;
     test
 ))]
 pub use read::read_bounded_managed_file;
-#[cfg(feature = "host")]
-pub use read::read_bounded_stream;
 pub use read::{BoundedManagedFileReadError, managed_file_exists};
 #[cfg(any(
     feature = "dashboard-host",
@@ -57,8 +55,6 @@ pub use read::{BoundedManagedFileReadError, managed_file_exists};
 pub use read::{ManagedReadBudget, read_opened_file_bounded};
 #[cfg(feature = "sns-host")]
 pub use scan::collect_managed_collection_files;
-#[cfg(feature = "host")]
-pub use scan::collect_managed_files;
 
 const MANAGED_DIRECTORY_MODE: u32 = 0o700;
 const MANAGED_FILE_MODE: u32 = 0o600;

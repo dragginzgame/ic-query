@@ -1,6 +1,5 @@
 use super::refresh::refresh_nns_proposal_cache_with_source_and_progress;
 use super::reports::build_nns_proposal_activity_report_from_cache;
-use super::reports::build_nns_proposal_cache_list_report;
 use super::reports::build_nns_proposal_cache_status_report;
 use super::reports::build_nns_proposal_list_report_from_cache;
 use super::reports::build_nns_proposal_list_report_with_cache_and_source;
@@ -285,13 +284,12 @@ async fn nns_proposal_failed_refresh_preserves_page_progress() {
     assert_eq!(attempt["rows_fetched"], 2);
     assert_eq!(attempt["last_cursor"], "2");
     let cache_request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
-    let list = build_nns_proposal_cache_list_report(&cache_request).expect("failed attempt list");
     let status =
         build_nns_proposal_cache_status_report(&cache_request).expect("failed attempt status");
-    assert_eq!(list.caches.len(), 0);
-    assert_eq!(list.latest_attempt, status.latest_attempt);
+    assert!(status.cache.is_none());
     assert_eq!(
-        list.latest_attempt
+        status
+            .latest_attempt
             .expect("failed attempt without snapshot")
             .status,
         CacheRefreshAttemptStatus::Failed
@@ -393,22 +391,6 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
     assert_eq!(cache["collection"], "proposals");
     assert_eq!(cache["scope"], "full");
 
-    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.clone(),
-    })
-    .expect("cache list");
-
-    assert_eq!(
-        list.collection,
-        crate::nns::NnsGovernanceCollection::Proposals
-    );
-    assert_eq!(list.caches.len(), 1);
-    assert_eq!(list.caches[0].cache_status(), CacheValidationStatus::Valid);
-    assert_eq!(list.caches[0].cache_error(), None);
-    assert_eq!(list.caches[0].valid().unwrap().row_count, 3);
-    assert_eq!(list.caches[0].valid().unwrap().page_count, 2);
-
     let status = build_nns_proposal_cache_status_report(&NnsGovernanceCacheRequest {
         network: MAINNET_NETWORK.to_string(),
         cache_root: root,
@@ -426,22 +408,17 @@ async fn nns_proposal_refresh_writes_complete_cache_and_status_reports() {
             .status,
         CacheRefreshAttemptStatus::Complete
     );
-    assert_eq!(list.latest_attempt.as_ref(), status.latest_attempt.as_ref());
-    assert_eq!(list.refresh_attempt_path, status.refresh_attempt_path);
     assert_eq!(
         status.collection,
         crate::nns::NnsGovernanceCollection::Proposals
     );
-    assert_eq!(status.cache.as_ref(), list.caches.first());
     let data = summary.valid().expect("valid cache metadata");
+    assert_eq!(data.row_count, 3);
+    assert_eq!(data.page_count, 2);
     assert_eq!(data.governance_canister_id, MAINNET_GOVERNANCE_CANISTER_ID);
     assert!(!data.point_in_time_guaranteed);
-    let list_json = serde_json::to_value(&list).expect("list JSON");
     let status_json = serde_json::to_value(&status).expect("status JSON");
-    assert_eq!(list_json["schema_version"], 1);
     assert_eq!(status_json["schema_version"], 1);
-    assert_eq!(list_json["latest_attempt"], status_json["latest_attempt"]);
-    assert_eq!(list_json["caches"][0], status_json["cache"]);
 }
 
 #[test]
@@ -458,14 +435,6 @@ fn nns_proposal_cache_status_reports_missing_cache() {
     assert!(status.cache.is_none());
     assert!(status.latest_attempt.is_none());
 
-    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.clone(),
-    })
-    .expect("cache list");
-    assert_eq!(list.caches.len(), 0);
-    assert_eq!(list.caches, Vec::new());
-
     let _ = fs::remove_dir_all(root);
 }
 
@@ -477,17 +446,12 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
         .expect("write malformed attempt");
     let request = NnsGovernanceCacheRequest::new(&root, MAINNET_NETWORK);
 
-    for result in [
-        build_nns_proposal_cache_status_report(&request).map(|_| ()),
-        build_nns_proposal_cache_list_report(&request).map(|_| ()),
-    ] {
-        assert!(matches!(
-            result,
-            Err(NnsProposalHostError::Cache(
-                HostCacheError::ParseCache { .. }
-            ))
-        ));
-    }
+    assert!(matches!(
+        build_nns_proposal_cache_status_report(&request),
+        Err(NnsProposalHostError::Cache(
+            HostCacheError::ParseCache { .. }
+        ))
+    ));
 
     refresh_nns_proposal_cache_with_source_and_progress(
         &NnsGovernanceRefreshRequest {
@@ -513,16 +477,11 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
             network: MAINNET_NETWORK.to_string(),
             cache_root: root.clone(),
         };
-        for result in [
-            build_nns_proposal_cache_status_report(&request).map(|_| ()),
-            build_nns_proposal_cache_list_report(&request).map(|_| ()),
-        ] {
-            assert!(matches!(
-                result,
-                Err(NnsProposalHostError::Cache(HostCacheError::ParseCache { path, .. }))
-                    if path == paths.refresh_attempt_path
-            ));
-        }
+        assert!(matches!(
+            build_nns_proposal_cache_status_report(&request),
+            Err(NnsProposalHostError::Cache(HostCacheError::ParseCache { path, .. }))
+                if path == paths.refresh_attempt_path
+        ));
 
         fs::remove_file(&paths.refresh_attempt_path).expect("remove attempt");
         let status =
@@ -538,10 +497,6 @@ async fn nns_proposal_cache_status_surfaces_malformed_attempt_sidecar() {
                 .is_some(),
             invalid_snapshot
         );
-        let list = build_nns_proposal_cache_list_report(&request).expect("absent attempt list");
-        assert_eq!(list.caches.len(), 1);
-        assert_eq!(list.caches.first(), status.cache.as_ref());
-        assert_eq!(list.latest_attempt, status.latest_attempt);
     }
     let _ = fs::remove_dir_all(root);
 }
@@ -1051,22 +1006,6 @@ fn assert_invalid_nns_proposal_cache_status(root: &std::path::Path, expected_err
     }
     assert!(
         cache
-            .cache_error()
-            .is_some_and(|error| error.contains(expected_error))
-    );
-
-    let list = build_nns_proposal_cache_list_report(&NnsGovernanceCacheRequest {
-        network: MAINNET_NETWORK.to_string(),
-        cache_root: root.to_path_buf(),
-    })
-    .expect("cache list");
-    assert_eq!(list.caches.len(), 1);
-    assert_eq!(
-        list.caches[0].cache_status(),
-        CacheValidationStatus::Invalid
-    );
-    assert!(
-        list.caches[0]
             .cache_error()
             .is_some_and(|error| error.contains(expected_error))
     );

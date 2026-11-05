@@ -59,51 +59,36 @@ pub fn icrc_index_report_text(report: &IcrcIndexReport) -> String {
 #[must_use]
 /// Render the ICRC tip certificate report as human-facing text.
 pub fn icrc_tip_certificate_report_text(report: &IcrcTipCertificateReport) -> String {
-    let mut lines = vec![
-        field(
-            "ledger_canister_id",
-            &(report.provenance.ledger_canister_id),
-        ),
-        field("certificate_present", &(report.certificate.is_some())),
-        field(
-            "certificate_bytes",
-            &(optional_byte_count_text(
+    let mut lines = Vec::from(crate::text_value::report_fields!(report;
+        ledger_canister_id = report.provenance.ledger_canister_id,
+        certificate_present = report.certificate.is_some(),
+        certificate_bytes = optional_byte_count_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| evidence.certificate_bytes),
-            )),
-        ),
-        field(
-            "hash_tree_bytes",
-            &(optional_byte_count_text(
+            ),
+        hash_tree_bytes = optional_byte_count_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| evidence.hash_tree_bytes),
-            )),
-        ),
-        field(
-            "certificate_hex",
-            &(optional_truncated_text(
+            ),
+        certificate_hex = optional_truncated_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| &evidence.certificate_hex),
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT,
-            )),
-        ),
-        field(
-            "hash_tree_hex",
-            &(optional_truncated_text(
+            ),
+        hash_tree_hex = optional_truncated_text(
                 report
                     .certificate
                     .as_ref()
                     .map(|evidence| &evidence.hash_tree_hex),
                 ICRC_TIP_CERTIFICATE_HEX_TEXT_LIMIT,
-            )),
-        ),
-    ];
+            ),
+    ));
     lines.extend(crate::icrc::acquisition_lines(&report.provenance));
     lines.join("\n")
 }

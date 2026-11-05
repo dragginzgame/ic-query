@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh the Toko stack dependency documentation daily
+
+[Timer]
+OnCalendar=*-*-* 09:15:00
+Persistent=true
+Unit=shared-tooling-stack-graph.service
+
+[Install]
+WantedBy=timers.target

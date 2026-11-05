@@ -4,6 +4,12 @@ use crate::tests::temp_dir;
 
 pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
     NnsNodeProviderListReport {
+        governance_source: crate::report::CollectionSourceRequest::from_unix_secs(
+            "ic",
+            "https://icp-api.io",
+            1_780_531_200,
+            "fixture",
+        ),
         schema_version: 1,
         provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
             network: MAINNET_NETWORK.to_string(),
@@ -34,50 +40,62 @@ pub(super) fn node_provider_report_fixture() -> NnsNodeProviderListReport {
 ///
 /// FixtureNodeProviderSource
 ///
-/// Successful node provider source used by report tests.
+/// Fixture Registry counts and independent Governance metadata.
 ///
 
 pub(super) struct FixtureNodeProviderSource {
     pub(super) node_providers: Vec<NnsNodeProviderRow>,
 }
-
-impl NnsNodeProviderSource for FixtureNodeProviderSource {
-    fn fetch_node_provider_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for FixtureNodeProviderSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
-            let node_providers = self.node_providers.clone();
-            Ok(NnsNodeProviderListReport {
+            Ok(crate::tests::inventory_for_provider_rows(
+                request,
+                &self.node_providers,
+            ))
+        })
+    }
+}
+impl NnsNodeProviderSource for FixtureNodeProviderSource {
+    fn fetch_node_provider_metadata<'a>(
+        &'a self,
+        request: &'a CollectionSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderMetadata, NnsInventoryError>> {
+        Box::pin(async move {
+            let mut node_providers = self.node_providers.clone();
+            for row in &mut node_providers {
+                row.node_count = None;
+            }
+            Ok(NnsNodeProviderMetadata {
                 schema_version: 1,
-                provenance: crate::nns::registry::NnsRegistryInventoryProvenance {
-                    network: MAINNET_NETWORK.to_string(),
-                    registry_canister_id: MAINNET_REGISTRY_CANISTER_ID.to_string(),
-                    registry_version: 42,
-                    fetched_at: request.fetched_at.clone(),
-                    source_endpoint: request.endpoint.clone(),
-                    fetched_by: "test".to_string(),
-                },
+                source: request.clone(),
                 governance_canister_id: MAINNET_GOVERNANCE_CANISTER_ID.to_string(),
                 node_providers,
             })
         })
     }
 }
-
 ///
 /// FailingNodeProviderSource
 ///
-/// Node provider source that rejects unexpected live fetches in cache tests.
+/// Reject live calls to prove complete-cache reuse.
 ///
 
 pub(super) struct FailingNodeProviderSource;
-
-impl NnsNodeProviderSource for FailingNodeProviderSource {
-    fn fetch_node_provider_list_report<'a>(
+impl crate::nns::NnsRegistryInventorySource for FailingNodeProviderSource {
+    fn fetch_registry_inventory<'a>(
         &'a self,
         _request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderListReport, NnsInventoryError>> {
+    ) -> crate::report::SourceFuture<
+        'a,
+        Result<crate::nns::NnsRegistryInventorySnapshot, NnsInventoryError>,
+    > {
         Box::pin(async move {
             Err(NnsInventoryError::NotFound {
                 collection: crate::nns::NnsInventoryCollection::NodeProvider,
@@ -86,7 +104,19 @@ impl NnsNodeProviderSource for FailingNodeProviderSource {
         })
     }
 }
-
+impl NnsNodeProviderSource for FailingNodeProviderSource {
+    fn fetch_node_provider_metadata<'a>(
+        &'a self,
+        _request: &'a CollectionSourceRequest,
+    ) -> crate::report::SourceFuture<'a, Result<NnsNodeProviderMetadata, NnsInventoryError>> {
+        Box::pin(async move {
+            Err(NnsInventoryError::NotFound {
+                collection: crate::nns::NnsInventoryCollection::NodeProvider,
+                input: "unexpected-live-fetch".to_string(),
+            })
+        })
+    }
+}
 pub(super) fn test_cache_request(network: &str, name: &str) -> NnsInventoryCacheRequest {
     NnsInventoryCacheRequest {
         cache_root: temp_dir(&format!("ic-query-nns-node-provider-{name}")),

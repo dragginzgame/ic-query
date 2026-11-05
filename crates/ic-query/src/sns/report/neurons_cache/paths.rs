@@ -2,7 +2,7 @@
 //!
 //! Responsibility: own SNS neuron snapshot identity, storage admission, and cache paths.
 //! Does not own: cache reads/writes, refresh policy, report construction, or rendering.
-//! Boundary: maps SNS root principals to generic snapshot-cache file locations.
+//! Boundary: maps Governance principals to generic snapshot-cache file locations.
 
 use crate::sns::report::{
     SnsHostError,
@@ -23,29 +23,45 @@ use std::path::{Path, PathBuf};
 pub(super) enum SnsNeuronsCacheCollection {}
 
 #[must_use]
-pub fn sns_neurons_cache_path(cache_root: &Path, network: &str, root_canister_id: &str) -> PathBuf {
-    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
-        .snapshot_path
+pub fn sns_neurons_cache_path(
+    cache_root: &Path,
+    network: &str,
+    governance_canister_id: &str,
+) -> PathBuf {
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(
+        cache_root,
+        network,
+        governance_canister_id,
+    )
+    .snapshot_path
 }
 
 #[must_use]
 pub fn sns_neurons_refresh_lock_path(
     cache_root: &Path,
     network: &str,
-    root_canister_id: &str,
+    governance_canister_id: &str,
 ) -> PathBuf {
-    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
-        .refresh_lock_path
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(
+        cache_root,
+        network,
+        governance_canister_id,
+    )
+    .refresh_lock_path
 }
 
 #[must_use]
 pub fn sns_neurons_refresh_attempt_path(
     cache_root: &Path,
     network: &str,
-    root_canister_id: &str,
+    governance_canister_id: &str,
 ) -> PathBuf {
-    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(cache_root, network, root_canister_id)
-        .refresh_attempt_path
+    sns_snapshot_cache_paths::<SnsNeuronsCacheCollection>(
+        cache_root,
+        network,
+        governance_canister_id,
+    )
+    .refresh_attempt_path
 }
 
 impl SnsCacheStorageFamily for SnsNeuronsCacheCollection {

@@ -2,8 +2,6 @@ use ic_query::cloud_engine::CLOUD_ENGINE_NODE_INCLUDED_STATUSES;
 use ic_query::cloud_engine::CLOUD_ENGINE_NODE_REWARD_TYPE;
 #[cfg(feature = "cloud-engine-host")]
 use ic_query::cloud_engine::CloudEngineHostError;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::cloud_engine::CloudEngineListReport;
 use ic_query::cloud_engine::CloudEngineNodeInfoReport;
 use ic_query::cloud_engine::CloudEngineNodeInfoRequest;
 #[cfg(feature = "dashboard-host")]
@@ -47,22 +45,12 @@ use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT;
 use ic_query::cloud_engine::MAINNET_CLOUD_ENGINE_CANISTER_ID;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_DOMAINS;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_LIST_ROWS;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_NODE_ROWS;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PRICE_ROWS;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS;
 use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::cloud_engine::build_cloud_engine_list_report;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::cloud_engine::build_cloud_engine_list_report_with_sources_and_progress;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_node_info_report;
 #[cfg(feature = "dashboard-host")]
 use ic_query::cloud_engine::build_cloud_engine_node_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_node_list_report;
 #[cfg(feature = "dashboard-host")]
 use ic_query::cloud_engine::build_cloud_engine_node_list_report_with_source;
 #[cfg(feature = "cloud-engine-host")]
@@ -70,11 +58,7 @@ use ic_query::cloud_engine::build_cloud_engine_operator_report_with_source;
 #[cfg(feature = "cloud-engine-host")]
 use ic_query::cloud_engine::build_cloud_engine_prices_report_with_source;
 #[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_provider_info_report;
-#[cfg(feature = "dashboard-host")]
 use ic_query::cloud_engine::build_cloud_engine_provider_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_provider_list_report;
 #[cfg(feature = "dashboard-host")]
 use ic_query::cloud_engine::build_cloud_engine_provider_list_report_with_source;
 use ic_query::ic::IcDashboardReportProvenance;
@@ -85,10 +69,6 @@ use ic_query::ic::IcNodeStatusCounts;
 use ic_query::ic::IcSourceRequest;
 #[cfg(feature = "cloud-engine-host")]
 use ic_query::report::CollectionSourceRequest;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query::subnet_catalog::SubnetCatalogListRequest;
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-use ic_query_text::cloud_engine::cloud_engine_list_report_text;
 use ic_query_text::cloud_engine::cloud_engine_node_info_report_text;
 use ic_query_text::cloud_engine::cloud_engine_node_list_report_text;
 use ic_query_text::cloud_engine::cloud_engine_operator_report_text;
@@ -260,18 +240,6 @@ async fn public_cloud_engine_provider_host_api_accepts_a_dashboard_source() {
     assert_eq!(list.source_node_provider_count, 1);
     assert_eq!(list.providers.len(), 1);
     assert!(info.cloud_engine_evidence_present);
-    let _: for<'a> fn(
-        &'a CloudEngineProviderListRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<CloudEngineProviderListReport, IcHostError>,
-    > = |arg0| Box::pin(build_cloud_engine_provider_list_report(arg0));
-    let _: for<'a> fn(
-        &'a CloudEngineProviderInfoRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<CloudEngineProviderInfoReport, IcHostError>,
-    > = |arg0| Box::pin(build_cloud_engine_provider_info_report(arg0));
 }
 
 #[cfg(feature = "dashboard-host")]
@@ -302,18 +270,6 @@ async fn public_cloud_engine_node_host_api_accepts_a_dashboard_source() {
     assert_eq!(list.nodes.len(), 1);
     assert_eq!(list.status_counts.up, 1);
     assert_eq!(info.node.node_id, NODE_ID);
-    let _: for<'a> fn(
-        &'a CloudEngineNodeListRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<CloudEngineNodeListReport, IcHostError>,
-    > = |arg0| Box::pin(build_cloud_engine_node_list_report(arg0));
-    let _: for<'a> fn(
-        &'a CloudEngineNodeInfoRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<CloudEngineNodeInfoReport, IcHostError>,
-    > = |arg0| Box::pin(build_cloud_engine_node_info_report(arg0));
 }
 
 #[cfg(feature = "cloud-engine-host")]
@@ -336,25 +292,6 @@ async fn public_cloud_engine_host_api_accepts_a_custom_source() {
     assert_eq!(operator.context.fetched_at, "2023-11-14T22:13:20Z");
     assert_eq!(operator.context.query_call_count, 5);
     assert_eq!(prices.context.query_call_count, 2);
-}
-
-#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
-#[test]
-fn public_cloud_engine_list_api_exposes_bounded_registry_join() {
-    let _: for<'a> fn(
-        &'a SubnetCatalogListRequest,
-        &'a CollectionSourceRequest,
-    ) -> ic_query::report::SourceFuture<
-        'a,
-        Result<CloudEngineListReport, CloudEngineHostError>,
-    > = |arg0, arg1| Box::pin(build_cloud_engine_list_report(arg0, arg1));
-    assert_eq!(
-        std::mem::size_of_val(&build_cloud_engine_list_report_with_sources_and_progress),
-        0
-    );
-    let _: fn(&CloudEngineListReport) -> String = cloud_engine_list_report_text;
-
-    assert_eq!(MAX_CLOUD_ENGINE_LIST_ROWS, 100);
 }
 
 #[cfg(feature = "cloud-engine-host")]

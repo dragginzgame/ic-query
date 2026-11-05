@@ -17,7 +17,7 @@ without `.md`; people and agents use the same definitions.
 | [dependency-security](dependency-security.md) | Does the selected dependency graph have new advisories? | Every 3 days |
 | [readme-freshness](readme-freshness.md) | Do maintained README claims and examples match their owners? | Every 3 days |
 | [code-audit](code-audit.md) | What concrete correctness or complexity problems exist in one selected area? | Rotate one audit per pass |
-| [tooling-duplication](tooling-duplication.md) | Which locally owned tooling could share an existing implementation? | Alternate with code-audit |
+| [tooling-duplication](tooling-duplication.md) | Are shared capabilities wired correctly, and which local tooling can be consolidated? | Alternate with code-audit |
 
 The interactive `maintenance` pass runs the eight routine tasks above for the selected
 repositories, then alternates the two audit tasks. Bound each audit to one useful area; record

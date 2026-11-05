@@ -376,142 +376,45 @@ from those fields when needed; `ic-query-text` does this automatically.
 Before adopting 0.74, preserve required proposal snapshots and caller-retained
 collection evidence, update custom sources and JSON consumers, and explicitly
 refresh the local proposal cache. Schema identifiers remain 1 and no reader
-migrates or deletes rejected evidence. NNS proposal cache listing surfaces invalid
-refresh-attempt errors, matching cache status, and retains valid attempts even
-when no complete snapshot exists.
+migrates or deletes rejected evidence. NNS proposal cache status surfaces invalid refresh-attempt errors and retains
+valid attempts even when no complete snapshot exists.
 
 ICRC tip-certificate custom sources return the standard optional
 `ic_platform::icrc_ledger_types::ICRC3DataCertificate` byte pair. Complete
 authentication before returning it. The report builder derives its hex strings
 and byte counts from those same bytes.
 
-SNS joined catalog, list and info models share `MainnetSnsCanisters` through
-their `canisters` field. For example, access a list row’s Root principal with
-`row.canisters.root_canister_id`. This identity model is portable. Serde keeps
-the five existing principal fields flat in report and catalog JSON.
+For direct neuron ownership/stake queries, enable `sns-host`. The target is an
+explicit Governance principal; no discovery, Root, Swap or metadata capability is
+required. `SnsNeuronSource` returns one `SnsNeuronRow`; `SnsNeuronsSource` returns a
+bounded row list or `MainnetSnsNeuronPage`. Both receive `CollectionSourceRequest`
+and the Governance principal. Every row carries canonical permission principals,
+raw permission codes, stake, fees, maturity and dissolve/vesting fields.
 
-For targeted cache reads and `SnsCacheStatusRequest`, supply the SNS root
-principal in `input`. Cache-backed proposal lists and neuron sorts resolve one
-root path without inventory discovery. Numeric selectors remain supported for
-live requests with no cache selected and for explicit refresh. Proposal-detail
-CLI calls with numeric selectors use live lookup; root selectors may use a
-complete local snapshot before live fallback.
+```rust
+use ic_query::sns::{SnsHostError, SnsNeuronTargetRequest, SnsNeuronsRequest,
+    build_sns_neurons_report};
 
-For native SNS discovery, targeted reports and complete proposal/neuron caches, use:
-
-```toml
-[dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["sns-host"] }
+async fn user_stakes(governance: &str, user: &str, now: u64)
+    -> Result<ic_query::sns::SnsNeuronsReport, SnsHostError>
+{
+    let target = SnsNeuronTargetRequest::new("ic", "https://icp-api.io", now, governance)?;
+    build_sns_neurons_report(&SnsNeuronsRequest::live(target, 100, Some(user.to_string()))).await
+}
 ```
 
-`sns-host` exposes `LiveSnsSource`, its report-specific source traits and
-builders, confined caches, refresh-attempt evidence and progress events. It enables `ic-agent`, Futures, Tokio, URL, and the
-capability-filesystem dependencies required by those APIs. It also enables
-Platform's `icrc-ledger-types` feature for canonical account and metadata wire
-records, without upstream storage integration. It shares
-the ICRC token-metadata query mechanics required by SNS ledger reports; native
-ICRC transaction, archive, certificate, and account-history adapters remain
-disabled. It has no direct ic-query dependency on Reqwest, Prost, CBOR, or
-SHA-256, although the selected dependencies retain Reqwest, CBOR, and cryptographic
-packages transitively.
+Use `SnsSnapshotRefreshRequest` and `refresh_sns_neurons_cache_with_source_and_progress`
+for complete scans. A page ceiling is incomplete and cannot replace a complete
+snapshot. Cached views, cache list/status and sidecars retain confinement,
+validation, contention and partial-failure behavior. New schema-1 paths use
+`sns-neuron/<network>/<governance>/neurons/full.json`; old Root-based files are
+not read, migrated or deleted. Refresh explicitly before cached stake ordering.
 
-SNS custom sources return the existing domain models directly:
-`SnsNeuronSource::fetch_sns_neuron` returns `SnsNeuronDetail`,
-`SnsProposalSource::fetch_sns_proposal` returns `SnsProposalRow`, and bounded
-neuron/proposal listings plus proposal pages return vectors of their row type.
-There are no single-payload source result wrappers. `MainnetSnsNeuronPage` retains
-its rows and native cursor for complete refreshes. Builders still validate source
-identity, row limits, raw evidence and pagination before report assembly or
-cache publication. Exact details retain integer permission
-codes directly; derive names with `sns_neuron_permission_name(code)` and exact-detail
-policy results with `detail.derived_policy_observations()`. Returned row counts come
-from their vectors. These JSON and persisted-shape changes require the consumer
-coordination and evidence preservation described in the
-[0.88 hard-cut notes](../releases/query/0.88.md).
-
-For a native embedder that needs only the live/cache Subnet catalog API, use
-the narrower feature:
-
-```toml
-[dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["subnet-catalog-host"] }
-```
-
-`subnet-catalog-host` includes the IC agent, Registry protobuf decoding,
-hashing, caller-runtime async APIs,
-capability-rooted cache IO through
-`cap-std`/`cap-fs-ext`, and endpoint validation required by
-`ic_query::subnet_catalog`. It does not enable `ic-query`'s direct optional
-Dashboard `reqwest` transport or `serde_cbor` certification dependencies. Those
-packages may still appear transitively through `ic-agent`. The full `host`
-feature is a strict superset.
-
-The standard Subnet Catalog live load/refresh APIs retain bounded Registry
-history under the request's private cache root. For caller-owned sources, use
-`LiveSubnetCatalogSource::default().with_history_cache(cache_root)`, or append
-the builder to `LiveSubnetCatalogSource::with_progress(observer)`. Recreate the
-source with the same root in another process to resume its endpoint-local
-prefix. Cache hits and cache-only reads do no history IO; dry-run convenience
-refreshes use memory-only history. These transcripts are trusted local query
-evidence and do not change assurance or replace fresh pinned record reads and
-endpoint agreement. See the
-[transcript contract](design/subnet-catalog-acquisition-performance.md#cross-process-transcript-contract)
-for bounds, confinement, typed progress, and invalid-content recovery.
-
-For the Subnet Catalog plus exact-version joined NNS Subnet topology, use:
-
-```toml
-[dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["nns-topology-host"] }
-```
-
-`nns-topology-host` exposes the joined topology live source, strict cache load,
-explicit refresh, refresh-missing, and refresh-stale APIs. It includes
-`subnet-catalog-host` and shares its Registry agent, runtime, and confined-cache
-substrate. It does not enable ic-query's direct optional Dashboard Reqwest or
-CBOR certification dependencies, and it does not expose the broader
-independently cached topology summary builders. Those require `nns-host` or the
-complete `host` feature.
-
-For the complete NNS governance, proposal, neuron, Registry inventory,
-component-cache, and derived topology surface, use:
-
-```toml
-[dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["nns-host"] }
-```
-
-`nns-host` includes `nns-topology-host`. It exposes
-`LiveNnsSource`, all NNS report-specific source traits and builders, Governance
-proposal/neuron complete snapshots, component inventory caches, explicit
-refresh policies, and progress events. Registry Prost decoding and SHA-256 are
-direct dependencies through the topology/catalog substrate; CBOR is direct for
-the authenticated Registry latest-version certificate. Dashboard Reqwest is
-not a direct ic-query edge, although it remains transitive through `ic-agent`.
-The certified version report does not promote ordinary Subnet Catalog
-`get_value` reads beyond their separately recorded assurance. Registry archive,
-delta replay and archive-backed catalog authority are retired; preserve historical
-archives unchanged with the earlier tooling needed to inspect them. Current
-readers do not migrate archive evidence or accept certified catalog claims.
-
-For pure model/rendering use, keep all features off:
-
-```toml
-[dependencies]
-ic-query = { version = "0.90", default-features = false }
-```
-
-No-default builds are checked for `wasm32-unknown-unknown` without `clap`,
-`ic-agent`, Reqwest, Tokio, or `futures`. That is a host-dependency boundary,
-not a `no_std` promise; the public DTOs may still use `String`, `Vec`, `serde`,
-and other normal `std`-using crates.
-
-NNS neuron rows, recent ballots and distribution buckets expose raw codes only.
-Use the public classification types' `from_code` helpers for labels; terminal
-rendering already does this. The 0.61 contract requires updating consumers of
-classification fields and explicitly refreshing existing neuron snapshots after
-preserving any evidence still needed. Strict row decoding rejects unknown fields;
-cache-only operations never rewrite a refused snapshot.
+The `sns-host` feature needs no ledger types or SNS-W discovery joins. Native
+balance, metadata and transaction/burn queries stay in `icrc-host`; indexed holder
+enumeration remains a Dashboard capability. Purchase/permission policy and token
+mutations remain in Toko. Unknown permission codes are evidence, not an implicit
+eligibility grant; scans do not establish a point-in-time snapshot.
 
 ## Async host execution
 
@@ -607,15 +510,12 @@ implementation details but are not available to downstream crates.
 
 The library modules do not mirror every clap option type. They expose request
 DTOs, report DTOs, builders, cache helpers, refresh helpers, and renderers.
-SNS info, token, parameter, swap, upgrade, and Root-canister builders share
-`SnsLookupRequest`; the bounded Governance metrics builder uses
-`SnsMetricsRequest` because its proposal-count window is part of collection
-intent. All read-only NNS topology builders share
-`nns::NnsInventoryListRequest`, including its nested `cache` scope;
-Registry-derived NNS inventory families share the `NnsInventory*Request` contracts; SNS neuron and
-proposal cache inspection shares the `SnsCache*` request and report contracts
-plus `SnsRefreshAttemptStatus`; the joined discovery catalog uses
-`SnsCatalogCacheRequest` and `SnsCatalogRefreshRequest`; complete NNS
+SNS neuron reads use `SnsNeuronTargetRequest`, carrying an explicit Governance
+principal. Cache inspection uses the `SnsCache*` request and report contracts
+plus `SnsRefreshAttemptStatus`; discovery and proposal contracts are retired.
+All read-only NNS topology builders share `nns::NnsInventoryListRequest`, including
+its nested `cache` scope. Registry-derived NNS inventory families share the
+`NnsInventory*Request` contracts; complete NNS
 Governance proposal and neuron
 collections share `NnsGovernanceRefreshRequest`, `NnsGovernanceCacheRequest`,
 and `NnsGovernanceRefreshAttemptStatus`; direct NNS Governance point-value
@@ -624,14 +524,10 @@ reports share the transport-aware `NnsGovernanceRequest` and one portable async
 simple ledger-wide ICRC metadata and capability builders share
 `IcrcLedgerRequest`. There are no per-report aliases for those canonical
 types.
-Governance parameter, proposal, neuron, upgrade and complete-refresh envelopes carry
-their common identity and provenance in `SnsReportContext` through `report.context`. Topology summary
-and coverage expose their counters through `report.join_coverage`. Both are
-flattened by Serde, so the JSON field names and schema 1 remain unchanged.
-NNS and SNS proposal requests use `report::SortDirection`; each family's sort
-key retains its own default direction. `MainnetSnsToken::ledger_index` uses
-`icrc::IcrcIndexData::Found` or `Unavailable`, retaining SNS discovery failures
-as nonfatal evidence while ICRC transport errors remain fatal.
+Neuron envelopes carry their explicit Governance identity and acquisition
+metadata in `SnsReportContext` through `report.context`. The schema-1 JSON shape
+is replaced in 0.91. NNS proposal requests retain `report::SortDirection` and
+Topology summary/coverage retain their existing counters and context.
 
 The `downstream_usage` integration test type-checks representative examples
 below; other examples show the same public request and report APIs.
@@ -644,8 +540,7 @@ adapters. Most live source seams require their focused host feature; direct
 Governance sources and async builders are portable to native and canister
 runtimes. CloudEngine, the official Dashboard, generic ICRC,
 subnet catalog, NNS registry, NNS inventory, NNS proposal, NNS neuron, NNS
-topology, SNS list/info/token/params/metrics/swap/upgrade/canister, SNS
-proposal, and SNS neuron host APIs expose this pattern with
+topology and explicitly targeted neuron host APIs expose this pattern with
 `CloudEngineSource`, `CloudEngineNodeSource`, `CloudEngineProviderSource`,
 `IcCanisterSource`,
 `IcCanisterCollectionSource`,
@@ -661,15 +556,8 @@ ICRC capabilities such as
 `NnsNeuronSource`, `NnsGovernanceSource`,
 `NnsTopologySource`, `NnsTopologyRefreshSource`, `NnsSubnetTopologySource`,
 `IcrcAccountTransactionPageSource`, `IcrcAccountTransactionCollectionSource`,
-`SnsDiscoverySource`, `SnsCanisterSource`, `SnsTokenSource`, `SnsParamsSource`,
-`SnsMetricsSource`, `SnsSwapSource`, `SnsUpgradeSource`,
-`SnsProposalSource`, `SnsProposalsSource`, `SnsNeuronSource`,
-and `SnsNeuronsSource`.
-`SnsDiscoverySource` keeps the authoritative SNS-W inventory separate from
-explicit metadata targets. Direct report builders enrich exactly one resolved
-SNS; `sns list` requests metadata for every inventory row. Custom sources must
-return one canonical, unique metadata row for every requested Root principal
-and no unrequested rows.
+`SnsNeuronSource` and `SnsNeuronsSource`. Those neuron seams require an explicit
+Governance principal and have no discovery supertrait.
 Certified Cycle Minting Canister reports expose `CmcSource` and the paired
 `build_cmc_*_report_with_source` builders.
 CloudEngine direct reports expose `CloudEngineSource` and the paired
@@ -1183,36 +1071,23 @@ fn render_registry_version(report: &NnsRegistryVersionReport) -> String {
 
 ## Host Cache Example
 
-Native tools can inventory every known complete cache locally through the
-same generic report used by `icq cache status`:
+Node, operator and data-centre builders share one complete Registry snapshot and
+refresh lock under `nns/ic/inventory/`. Implement `nns::NnsRegistryInventorySource`
+to supply all three tables at one Registry version. Use
+`refresh_nns_registry_inventory[_with_source]` and the
+`nns_registry_inventory_cache_path` / `nns_registry_inventory_refresh_lock_path`
+helpers; per-view source traits, refresh functions and cache paths are retired.
 
-```rust
-use std::path::Path;
+`NnsNodeProviderSource` also supplies `NnsNodeProviderMetadata` through
+`fetch_node_provider_metadata`. Its rows carry identities/reward accounts with
+`node_count: None`; Query joins counts from the shared Registry snapshot. Provider
+reports retain `governance_source` separately from Registry provenance. Provider
+refresh returns both `inventory` and `metadata` outcomes, while its explicit export
+contains only Governance metadata. Shared Registry first reads include referenced
+data centres; Governance collection remains independent of those three views.
 
-use ic_query::cache::CacheStatusError;
-use ic_query::cache::CacheStatusRequest;
-use ic_query::cache::build_cache_status_report;
-use ic_query_text::cache::cache_status_report_text;
-
-fn render_cache_status(
-    cache_root: &Path,
-    now_unix_secs: u64,
-) -> Result<String, CacheStatusError> {
-    let request = CacheStatusRequest::new(cache_root, now_unix_secs);
-    let report = build_cache_status_report(&request)?;
-    Ok(cache_status_report_text(&report))
-}
-```
-
-This inventory is bounded and local-only. Selected files use `scan_limit`;
-visited entries are capped at 16 times that limit and directory depth at 32.
-Any reached bound sets `truncated`, and sibling directories do not retain
-open handles. It reports separate generic
-`CacheHeaderStatus`, `CacheAgeStatus`, and `CacheRecoveryPolicy` evidence plus
-self-described `CacheRefreshLockStatus`. The report records that it did not
-perform family-specific semantic validation, does not scan large history
-payloads, probe lock processes, or mutate local files, and leaves owning
-family loaders authoritative for complete validation.
+The generic cache inventory API and renderer are retired. Cache correctness,
+coordination and family-specific list/status APIs remain at their owning boundaries.
 
 Native tools can use the same subnet catalog cache/report path as
 `icq nns subnet info` without spawning `icq`:
@@ -1454,8 +1329,8 @@ page/row/cursor evidence when collection reached that point.
 
 ## Native Report Example
 
-NNS inventory modules expose cache/list/info request constructors, cache-backed
-builders, refresh helpers, and renderers under `features = ["host"]`:
+NNS inventory modules expose list/info request constructors, shared cache-backed
+builders and renderers under `features = ["host"]`:
 
 ```rust
 use std::path::Path;
@@ -1473,141 +1348,24 @@ async fn render_application_nodes(
     now_unix_secs: u64,
 ) -> Result<String, NnsInventoryError> {
     let cache = NnsInventoryCacheRequest::new(cache_root, "ic");
-    let request =
-        NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs)
-            .with_subnet_kind(SubnetKind::Application);
+    let mut request =
+        NnsNodeListRequest::new(cache, DEFAULT_NNS_NODE_SOURCE_ENDPOINT, now_unix_secs);
+    request.filters.subnet_kind = Some(SubnetKind::Application);
 
     let report = build_nns_node_list_report(&request).await?;
-    Ok(nns_node_list_report_text(&report))
+    Ok(nns_node_list_report_text(&report, ic_query_text::TextOptions::default()))
 }
 ```
 
-## Live SNS Metrics Example
+## Complete neuron snapshots
 
-The bounded SNS Governance metrics builder uses two-request targeted discovery
-and one metrics query. The window controls recent proposal counts; treasury
-and voting-power values remain explicitly cached Governance evidence with
-their own timestamps.
-
-```rust
-use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
-use ic_query::sns::SnsHostError;
-use ic_query::sns::SnsMetricsRequest;
-use ic_query::sns::build_sns_metrics_report;
-use ic_query_text::sns::sns_metrics_report_text;
-
-async fn render_sns_metrics(sns_input: &str, now_unix_secs: u64) -> Result<String, SnsHostError> {
-    let mut request = SnsMetricsRequest::new(ic_query::sns::SnsLookupRequest::new(
-        "ic",
-        DEFAULT_SNS_SOURCE_ENDPOINT,
-        now_unix_secs,
-        sns_input,
-    )?);
-    request.time_window_seconds = 90 * 24 * 60 * 60;
-
-    let report = build_sns_metrics_report(&request).await?;
-    Ok(sns_metrics_report_text(&report))
-}
-```
-
-## SNS Snapshot Example
-
-Native tools can use SNS proposal and neuron snapshot APIs through `host`.
-The joined deployed-SNS catalog also exposes cache-only,
-refresh-if-one-hour-stale, and forced-refresh operations. Its cache identity is
-the network-level collected catalog; list sorting and verbosity remain views.
-Proposal list reports can create a missing complete proposal snapshot
-through the public builder; whole-collection neuron sorts expect a prior
-explicit refresh, matching the CLI cache policy. `SnsNeuronRow` preserves the
-fixed-size native Governance values from the same `list_neurons` response,
-including `SnsNeuronDissolveState`; variable permission and followee graphs
-are not collected implicitly. The current neuron report and cache schema is 1;
-any other snapshot shape is rejected and requires an explicit refresh.
-
-```rust
-use std::path::Path;
-
-use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
-use ic_query::sns::SnsHostError;
-use ic_query::sns::SnsNeuronsRequest;
-use ic_query::sns::SnsNeuronsCacheSort;
-use ic_query::sns::SnsProposalsRequest;
-use ic_query::sns::SnsProposalsSort;
-use ic_query::sns::build_sns_neurons_report;
-use ic_query::sns::build_sns_proposals_report;
-use ic_query_text::sns::sns_neurons_report_text;
-use ic_query_text::sns::sns_proposals_report_text;
-
-async fn render_recent_sns_proposals(
-    cache_root: &Path,
-    sns_input: &str,
-    now_unix_secs: u64,
-) -> Result<String, SnsHostError> {
-    let mut request = SnsProposalsRequest::new(
-        ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            now_unix_secs,
-            sns_input,
-        )?,
-        25,
-    )
-    .with_cache_root(cache_root)
-    .with_sort(SnsProposalsSort::Created);
-    request.sort_direction = ic_query::report::SortDirection::Desc;
-
-    let report = build_sns_proposals_report(&request).await?;
-    Ok(sns_proposals_report_text(&report, ic_query_text::TextOptions::default()))
-}
-
-async fn render_cached_sns_neurons(
-    cache_root: &Path,
-    sns_input: &str,
-    now_unix_secs: u64,
-) -> Result<String, SnsHostError> {
-    let request = SnsNeuronsRequest::cached(
-        ic_query::sns::SnsLookupRequest::new(
-            "ic",
-            DEFAULT_SNS_SOURCE_ENDPOINT,
-            now_unix_secs,
-            sns_input,
-        )?,
-        500,
-        cache_root,
-        SnsNeuronsCacheSort::Stake,
-    );
-
-    let report = build_sns_neurons_report(&request).await?;
-    Ok(sns_neurons_report_text(&report, ic_query_text::TextOptions::default()))
-}
-```
-
-Local cache inspection remains available without making live calls:
-
-```rust
-use std::path::Path;
-
-use ic_query::sns::SnsCacheStatusRequest;
-use ic_query::sns::SnsHostError;
-use ic_query::sns::build_sns_neurons_cache_status_report;
-use ic_query::sns::build_sns_proposals_cache_status_report;
-use ic_query_text::sns::sns_neurons_cache_status_report_text;
-use ic_query_text::sns::sns_proposals_cache_status_report_text;
-
-fn render_sns_cache_status(cache_root: &Path, sns_input: &str) -> Result<String, SnsHostError> {
-    let proposals = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
-    let proposals_report = build_sns_proposals_cache_status_report(&proposals)?;
-
-    let neurons = SnsCacheStatusRequest::new(cache_root, "ic", sns_input);
-    let neurons_report = build_sns_neurons_cache_status_report(&neurons)?;
-
-    Ok(format!(
-        "{}\n{}",
-        sns_proposals_cache_status_report_text(&proposals_report),
-        sns_neurons_cache_status_report_text(&neurons_report)
-    ))
-}
-```
+Use `SnsNeuronTargetRequest` with an explicit Governance principal. Pass it to
+`SnsSnapshotRefreshRequest::new(cache_root, target, 100)` and call
+`refresh_sns_neurons_cache`. Read the complete snapshot with
+`SnsNeuronsRequest::cached(target, limit, cache_root, SnsNeuronsCacheSort::Stake)`.
+Inspect it with `build_sns_neurons_cache_status_report` and
+`SnsCacheStatusRequest::new(cache_root, "ic", governance)`; status performs no live
+lookup. Principal permissions are present in both cached and live rows.
 
 ## Live ICRC Example
 
@@ -1641,7 +1399,7 @@ rendering, a direct frontend query can be simpler and cheaper.
 `ic-query` is most useful when a downstream crate wants one of these:
 
 - A typed report model shared with `icq`.
-- Cache-backed NNS/SNS inventory or topology behavior.
+- Cache-backed NNS inventory/topology or explicit Governance neuron behavior.
 - Complete snapshot refresh and local inspection.
 - Reusable text/JSON rendering that matches the CLI.
 - A native Rust boundary instead of a child-process boundary.
@@ -1686,7 +1444,7 @@ values. Query report builders retain their report-specific projections.
 
 ### Shared token report payload
 
-ICRC and SNS token reports compose `token: icrc::IcrcTokenData`; Rust consumers
+ICRC reports compose `token: icrc::IcrcTokenData`; Rust consumers
 read values such as `report.token.transfer_fee` and `report.token.decimals`.
 Their JSON remains flat and preserves exact base-unit strings and metadata.
 Constructing the canonical payload once avoids copying fields into each report.
@@ -1701,11 +1459,11 @@ without host features. Report JSON remains flat. IC transport continues to use
 published ledger types such as `ic_platform::icrc_ledger_types::Account` and
 Candid `Nat`; the report payload adds display metadata and lossless JSON rows.
 
-SNS proposal rows retain the native `u64` action ID and `i32` ballot vote code.
+SNS proposal reporting is retired in 0.91.
 Text and view filters derive their labels without a second classification field
 or reverse label parser. Unknown codes remain raw numeric evidence.
 
-SNS neuron, proposal and ballot rows retain their native timestamp fields only.
+SNS neuron rows retain their native timestamp fields only.
 Text derives UTC creation/decision/execution/failure times; an absent optional
 time or zero ballot time displays `-`. JSON retains Unix seconds rather than
 stored display strings. Update consumers and preserve needed evidence before
@@ -1715,13 +1473,9 @@ SNS reward checkpoints and local diffs are retired in 0.89. Keep historical file
 with the earlier tooling needed to inspect them; current Query does not read,
 migrate or delete those files.
 
-`SnsMetricsReport.metrics` and `SnsSwapReport.swap` carry the existing
-`MainnetSnsMetrics` and `MainnetSnsSwap` payloads, also available without host
-features. Their report JSON fields remain flat. Native SNS lifecycle and
-treasury codes are retained without stored labels or a second classification
-type; text derives those labels. Lifecycle query failures remain separate from
-absent/raw values. Coordinate catalog consumers and retain needed evidence
-before explicit refresh; schemas stay 1 without migration.
+SNS discovery, proposal, metrics, swap, upgrade and Root-health payloads are
+retired in 0.91. Retained neuron rows carry principal permissions and raw stake,
+fee and dissolve evidence; their context has no SNS-W or project metadata.
 
 Refresh coordination uses persistent empty regular files and nonblocking Host
 descriptor locks. Requests no longer accept a lock-age policy. Cancellation and

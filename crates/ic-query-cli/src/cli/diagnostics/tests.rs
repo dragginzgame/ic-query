@@ -39,7 +39,7 @@ fn command_errors_keep_typed_failures_and_add_actionable_advice() {
                 }
                 .into(),
             ),
-            "icq sns neuron refresh <id|root-principal>",
+            "icq sns neuron refresh <governance-canister-id>",
         ),
     ] {
         assert_eq!(error.exit_code(), 1);

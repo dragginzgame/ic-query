@@ -4,6 +4,10 @@ use super::{
 use crate::nns::data_center::NnsDataCenterListReport;
 use std::collections::BTreeMap;
 
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Consumes one complete inventory acquisition when projecting the regions report."
+)]
 pub(super) fn topology_regions_report_from_report(
     network: String,
     source_endpoint: String,

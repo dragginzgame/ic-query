@@ -34,12 +34,6 @@ pub fn is_lowercase_hex_32_bytes(value: &str) -> bool {
     value.len() == 64 && is_lowercase_hex(value)
 }
 
-#[must_use]
-#[cfg(any(test, feature = "sns-host"))]
-pub fn is_canonical_lowercase_hex(value: &str) -> bool {
-    !value.is_empty() && value.len().is_multiple_of(2) && is_lowercase_hex(value)
-}
-
 ///
 /// decode_lowercase_hex
 ///

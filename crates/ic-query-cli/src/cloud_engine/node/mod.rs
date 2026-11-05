@@ -83,7 +83,6 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngine
 
 pub(super) fn command() -> ClapCommand {
     ClapCommand::new("node")
-        .bin_name("icq cloud-engine node")
         .about("Inspect official Dashboard CloudEngine Type4 node observations")
         .subcommand(info_command())
         .subcommand(list_command())
@@ -95,7 +94,6 @@ pub(super) fn command() -> ClapCommand {
 fn info_command() -> ClapCommand {
     report_args(
         ClapCommand::new("info")
-            .bin_name("icq cloud-engine node info")
             .about("Show one exact node required to carry the Type4 reward type")
             .arg(
                 value_arg("node-id")
@@ -112,7 +110,6 @@ fn info_command() -> ClapCommand {
 fn list_command() -> ClapCommand {
     report_args(
         ClapCommand::new("list")
-            .bin_name("icq cloud-engine node list")
             .about("List the complete explicitly scoped Dashboard Type4 node resource")
             .arg(
                 value_arg("node-provider-id")

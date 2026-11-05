@@ -45,6 +45,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOp
         lines.push(table(
             &[
                 "NEURON_ID",
+                "PRINCIPALS",
                 "STAKE",
                 "FEES",
                 "MATURITY",
@@ -60,6 +61,12 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOp
                 .map(|neuron| {
                     [
                         neuron_id_text(&neuron.neuron_id, options.verbose),
+                        neuron
+                            .permissions
+                            .iter()
+                            .map(|permission| permission.principal.as_str())
+                            .collect::<Vec<_>>()
+                            .join(","),
                         e8s_decimal_text(neuron.cached_neuron_stake_e8s),
                         e8s_decimal_text(neuron.neuron_fees_e8s),
                         e8s_decimal_text(neuron.maturity_e8s_equivalent),
@@ -72,6 +79,7 @@ pub fn sns_neurons_report_text(report: &SnsNeuronsReport, options: crate::TextOp
                 })
                 .collect::<Vec<_>>(),
             &[
+                Alignment::Left,
                 Alignment::Left,
                 Alignment::Right,
                 Alignment::Right,

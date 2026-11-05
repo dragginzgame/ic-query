@@ -16,32 +16,28 @@ pub(super) fn topology_summary_report_from_reports(
     subnet_report: SubnetCatalogListReport,
     reports: &TopologyInventoryReports,
 ) -> NnsTopologySummaryReport {
-    let mut application_subnet_count = 0;
-    let mut cloud_engine_subnet_count = 0;
-    let mut system_subnet_count = 0;
-    let mut unknown_subnet_count = 0;
-    let mut routing_range_count = 0;
-    for subnet in &subnet_report.subnets {
-        match subnet.classification.subnet_kind {
-            SubnetKind::Application => application_subnet_count += 1,
-            SubnetKind::CloudEngine => cloud_engine_subnet_count += 1,
-            SubnetKind::System => system_subnet_count += 1,
-            SubnetKind::Unknown => unknown_subnet_count += 1,
-        }
-        routing_range_count += subnet.range_count;
-    }
-    let mut application_node_count = 0;
-    let mut cloud_engine_node_count = 0;
-    let mut system_node_count = 0;
-    let mut unknown_node_count = 0;
-    for node in &reports.node.nodes {
-        match node.subnet_kind {
-            SubnetKind::Application => application_node_count += 1,
-            SubnetKind::CloudEngine => cloud_engine_node_count += 1,
-            SubnetKind::System => system_node_count += 1,
-            SubnetKind::Unknown => unknown_node_count += 1,
-        }
-    }
+    let [
+        application_subnet_count,
+        cloud_engine_subnet_count,
+        system_subnet_count,
+        unknown_subnet_count,
+    ] = count_subnet_kinds(
+        subnet_report
+            .subnets
+            .iter()
+            .map(|subnet| subnet.classification.subnet_kind),
+    );
+    let [
+        application_node_count,
+        cloud_engine_node_count,
+        system_node_count,
+        unknown_node_count,
+    ] = count_subnet_kinds(reports.node.nodes.iter().map(|node| node.subnet_kind));
+    let routing_range_count = subnet_report
+        .subnets
+        .iter()
+        .map(|subnet| subnet.range_count)
+        .sum();
     let coverage = topology_join_coverage_counts(reports);
     let registry_versions = topology_registry_versions(&subnet_report, reports);
 
@@ -68,4 +64,17 @@ pub(super) fn topology_summary_report_from_reports(
         subnet_catalog_stale_reason: subnet_report.stale_reason,
         registry_versions,
     }
+}
+
+fn count_subnet_kinds(kinds: impl Iterator<Item = SubnetKind>) -> [usize; 4] {
+    let mut counts = [0; 4];
+    for kind in kinds {
+        counts[match kind {
+            SubnetKind::Application => 0,
+            SubnetKind::CloudEngine => 1,
+            SubnetKind::System => 2,
+            SubnetKind::Unknown => 3,
+        }] += 1;
+    }
+    counts
 }

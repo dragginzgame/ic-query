@@ -201,7 +201,7 @@ fn fresh_sources_restore_tombstones_and_resume_only_the_bound_endpoint_and_prefi
         }
         let keys = collect_key_family(PREFIX, 4, &counter(&root, ENDPOINT), |_| {
             panic!("same pin must not fetch any history pages");
-            #[expect(unreachable_code)]
+            #[expect(unreachable_code, reason = "This fixture deliberately exits the subprocess before the fallback expression.")]
             std::future::ready(Ok(response(4, &[])))
         })
         .await
@@ -609,7 +609,7 @@ fn confinement_and_permissions_remain_errors_without_cold_network_fallback() {
             &counter(&root, ENDPOINT),
             |_| {
                 panic!("filesystem authority errors must not trigger cold collection");
-                #[expect(unreachable_code)]
+                #[expect(unreachable_code, reason = "This fixture deliberately exits the subprocess before the fallback expression.")]
                 std::future::ready(Ok(response(4, &[])))
             },
         ))

@@ -22,30 +22,6 @@ use ic_platform::agent::Agent;
 use ic_platform::candid::contract::Principal;
 use std::collections::{BTreeMap, BTreeSet};
 
-#[cfg(feature = "nns-host")]
-use crate::ic_registry::relations::node_counts_from_relations;
-
-#[cfg(feature = "nns-host")]
-pub(in crate::ic_registry) async fn fetch_node_provider_node_counts(
-    agent: &Agent,
-    registry_canister: &Principal,
-    registry_version: u64,
-) -> Result<BTreeMap<String, u32>, RegistryFetchError> {
-    let inventory = fetch_registry_relation_inventory(
-        agent,
-        registry_canister,
-        registry_version,
-        RegistryRelationInventoryScope::BaseRelations,
-    )
-    .await?;
-    node_counts_from_relations(
-        &inventory.node_principals,
-        &inventory.node_operator_principals,
-        &inventory.node_operator_records,
-        |relation| Some(relation.node_provider_principal),
-    )
-}
-
 pub(in crate::ic_registry) async fn fetch_registry_relation_inventory(
     agent: &Agent,
     registry_canister: &Principal,

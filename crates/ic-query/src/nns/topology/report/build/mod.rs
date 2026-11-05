@@ -29,11 +29,36 @@ async fn fetch_topology_inventory_reports(
     request: &NnsInventoryListRequest,
     source: &dyn NnsTopologySource,
 ) -> Result<TopologyInventoryReports, NnsTopologyHostError> {
+    let mut progress = crate::progress::IgnoreQueryProgress;
+    let snapshot =
+        crate::nns::inventory::load_or_refresh_nns_inventory_report(request, source, &mut progress)
+            .await?;
+    let metadata = crate::nns::node_provider::load_or_refresh_metadata(
+        request,
+        source,
+        &snapshot,
+        &mut progress,
+    )
+    .await?;
+    let node_provider =
+        crate::nns::node_provider::node_provider_report_from_snapshot(&snapshot, metadata);
     Ok(TopologyInventoryReports {
-        node: source.fetch_node_list_report(request).await?,
-        node_provider: source.fetch_node_provider_list_report(request).await?,
-        node_operator: source.fetch_node_operator_list_report(request).await?,
-        data_center: source.fetch_data_center_list_report(request).await?,
+        node: crate::nns::node::NnsNodeListReport {
+            schema_version: 1,
+            provenance: snapshot.provenance.clone(),
+            nodes: snapshot.nodes,
+        },
+        node_operator: crate::nns::node_operator::NnsNodeOperatorListReport {
+            schema_version: 1,
+            provenance: snapshot.provenance.clone(),
+            node_operators: snapshot.node_operators,
+        },
+        data_center: crate::nns::data_center::NnsDataCenterListReport {
+            schema_version: 1,
+            provenance: snapshot.provenance,
+            data_centers: snapshot.data_centers,
+        },
+        node_provider,
     })
 }
 

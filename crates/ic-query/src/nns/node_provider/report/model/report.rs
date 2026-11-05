@@ -14,28 +14,10 @@ pub struct NnsNodeProviderListReport {
     #[serde(flatten)]
     pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     pub governance_canister_id: String,
+    /// Independently collected Governance provider metadata provenance.
+    pub governance_source: crate::report::CollectionSourceRequest,
     pub node_providers: Vec<NnsNodeProviderRow>,
 }
-
-#[cfg(feature = "nns-host")]
-impl_nns_inventory_report!(
-    NnsNodeProviderListReport,
-    super::super::NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION,
-    "node_provider",
-    super::super::COLLECTION,
-    node_providers,
-    |report: &NnsNodeProviderListReport| Some(report.governance_canister_id.clone()),
-    |report: &NnsNodeProviderListReport| {
-        if report.governance_canister_id != crate::nns::MAINNET_GOVERNANCE_CANISTER_ID {
-            return Err(format!(
-                "governance_canister_id is {}, expected {}",
-                report.governance_canister_id,
-                crate::nns::MAINNET_GOVERNANCE_CANISTER_ID
-            ));
-        }
-        Ok(())
-    },
-);
 
 ///
 /// NnsNodeProviderRow
@@ -44,6 +26,7 @@ impl_nns_inventory_report!(
 ///
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct NnsNodeProviderRow {
     pub node_provider_principal: String,
     pub name: Option<String>,
@@ -66,7 +49,39 @@ pub struct NnsNodeProviderInfoReport {
     #[serde(flatten)]
     pub provenance: crate::nns::registry::NnsRegistryInventoryProvenance,
     pub governance_canister_id: String,
+    /// Independently collected Governance provider metadata provenance.
+    pub governance_source: crate::report::CollectionSourceRequest,
     /// Resolved inventory row.
     #[serde(flatten)]
     pub node_provider: NnsNodeProviderRow,
+}
+
+///
+/// NnsNodeProviderMetadata
+///
+/// Governance provider metadata collected independently of Registry membership and counts.
+///
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct NnsNodeProviderMetadata {
+    /// Current persisted metadata contract, always 1 before 1.0.
+    pub schema_version: u32,
+    /// Governance acquisition time, endpoint and collector.
+    #[serde(flatten)]
+    pub source: crate::report::CollectionSourceRequest,
+    /// Governance canister returning the provider list.
+    pub governance_canister_id: String,
+    /// Provider identities and reward accounts; Registry node counts must be absent.
+    pub node_providers: Vec<NnsNodeProviderRow>,
+}
+
+#[cfg(feature = "nns-host")]
+impl crate::cache_file::JsonCacheReport for NnsNodeProviderMetadata {
+    fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+    fn network(&self) -> &str {
+        &self.source.network
+    }
 }

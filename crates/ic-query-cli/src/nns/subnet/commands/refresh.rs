@@ -16,7 +16,6 @@ Examples:
 
 pub(in crate::nns) fn refresh_command() -> ClapCommand {
     ClapCommand::new("refresh")
-        .bin_name("icq nns subnet refresh")
         .about("Force-refresh and cache NNS subnet metadata")
         .arg(leaf::json_arg())
         .arg(

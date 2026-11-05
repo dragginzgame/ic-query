@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo_root="$(CDPATH='' cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/ic-query-compiler.XXXXXX")"
+mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
+work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-compiler.XXXXXX")"
 # shellcheck source=scripts/ci/fixture-lifecycle.sh
 source "$repo_root/scripts/ci/fixture-lifecycle.sh"
 fixture_complete=false

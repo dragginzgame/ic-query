@@ -17,7 +17,6 @@ use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
 
 pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("ledger")
-        .bin_name("icq icrc ledger")
         .about("Inspect ledger-wide ICRC metadata and transactions")
         .subcommand(icrc_capabilities_command())
         .subcommand(icrc_token_command())
@@ -54,7 +53,7 @@ pub(in crate::icrc) fn icrc_index_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_transactions_command() -> ClapCommand {
     let command = ClapCommand::new("transactions")
-        .bin_name("icq icrc ledger transactions")
+
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
@@ -97,7 +96,7 @@ pub(in crate::icrc) fn icrc_block_types_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_archives_command() -> ClapCommand {
     let command = ClapCommand::new("archives")
-        .bin_name("icq icrc ledger archives")
+
         .about("Show generic ICRC-3 ledger archive ranges")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
@@ -128,7 +127,6 @@ fn simple_icrc_ledger_command(
     examples: &'static str,
 ) -> ClapCommand {
     let command = ClapCommand::new(name)
-        .bin_name(format!("icq icrc ledger {name}"))
         .about(about)
         .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
         .arg(ledger_canister_id_arg());

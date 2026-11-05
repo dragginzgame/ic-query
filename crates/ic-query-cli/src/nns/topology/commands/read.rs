@@ -88,7 +88,6 @@ Examples:
   icq nns topology {name} --source-endpoint https://icp-api.io"
     );
     clap::Command::new(name)
-        .bin_name(format!("icq nns topology {name}"))
         .about(about)
         .arg(leaf::json_arg())
         .arg(leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT).help(source_help))

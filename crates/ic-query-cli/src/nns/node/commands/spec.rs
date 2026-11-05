@@ -20,7 +20,7 @@ Examples:
 Force-refresh cached native NNS data:
   icq nns node refresh";
 const NODE_REFRESH_HELP_AFTER: &str = "\
-Examples:
+Refreshes one shared snapshot used by all three Registry inventory views.\n\nExamples:
   icq nns node refresh
   icq --network ic nns node refresh --json
   icq nns node refresh --dry-run --output /tmp/icq-nodes.preview.json";
@@ -30,7 +30,7 @@ pub(in crate::nns) const NODE_SPEC: NnsLeafCommandSpec = NnsLeafCommandSpec {
     about: "Inspect NNS node metadata",
     list_about: "List cached mainnet NNS nodes",
     info_about: "Show one cached mainnet NNS node",
-    refresh_about: "Force-refresh and cache NNS node metadata",
+    refresh_about: "Refresh the shared Registry node, operator and data-centre snapshot",
     list_help_after: NODE_LIST_HELP_AFTER,
     info_help_after: NODE_INFO_HELP_AFTER,
     refresh_help_after: NODE_REFRESH_HELP_AFTER,

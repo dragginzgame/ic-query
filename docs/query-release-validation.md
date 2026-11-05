@@ -140,8 +140,10 @@ artifacts were warm and other Cargo activity caused cache waits, so these totals
 are observations rather than a controlled speedup benchmark.
 
 The complete plans, contexts, checkpoints, logs, timings and proofs are retained
-beneath `.git/release-state/group-qualification.wPWwrY/source/target/release-validation/`.
-The comparison record is `qualification.r9VdIJ/qualification.json`. Interrupted
+beneath `.git/release-state/group-qualification.wPWwrY/qualification-evidence/release-validation/`.
+The historical checkout commits are preserved in the adjacent verified
+`source-history.bundle`; approved retirement removed its generated source/build
+copies. The comparison record is `qualification.r9VdIJ/qualification.json`. Interrupted
 and failed attempts remain separate and do not grant admission.
 
 That earlier Linux mapping was admitted. It does not qualify the later product

@@ -62,7 +62,7 @@ impl<Pages: SnsCollectionPages> PagedSnapshotRefresh for SnsCollectionRefresh<'_
     fn progress(&self) -> crate::PagedQueryProgress {
         crate::PagedQueryProgress {
             collection: Pages::PROGRESS_COLLECTION,
-            target: Some(self.context.sns.name.clone()),
+            target: Some(self.context.governance_canister_id.to_string()),
             pages_fetched: self.pages.page_count(),
             rows_fetched: self.pages.row_count(),
         }

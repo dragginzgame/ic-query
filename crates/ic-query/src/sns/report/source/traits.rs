@@ -1,67 +1,6 @@
-//! Module: sns::report::source::traits
-//!
-//! Responsibility: group SNS report source contracts.
-//! Does not own: live transport, cache IO, report assembly, or rendering.
-//! Boundary: defines source contracts used by report builders and tests.
-
+//! Read-only neuron capabilities for explicitly addressed Governance canisters.
+use super::super::{MainnetSnsNeuronPage, SnsHostError, SnsNeuronId, SnsNeuronRow};
 use crate::report::CollectionSourceRequest;
-use crate::sns::report::{
-    MainnetSns, MainnetSnsCanisterInventory, MainnetSnsCanisters, MainnetSnsInventory,
-    MainnetSnsLifecycle, MainnetSnsMetadata, MainnetSnsMetrics, MainnetSnsNeuronPage,
-    MainnetSnsSwap, MainnetSnsToken, MainnetSnsUpgrade, SnsGovernanceParameters, SnsHostError,
-    SnsNeuronDetail, SnsNeuronId, SnsNeuronRow, SnsProposalRow, SnsProposalTopicFilter,
-};
-
-///
-/// SnsDiscoverySource
-///
-/// Source contract for fetching deployed SNS inventory and explicit metadata targets.
-///
-
-pub trait SnsDiscoverySource: Sync {
-    /// Fetch the unenriched deployed-SNS inventory for one source endpoint and network.
-    fn fetch_sns_inventory<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsInventory, SnsHostError>>;
-
-    /// Fetch metadata for exactly the supplied deployed-SNS targets.
-    fn fetch_sns_metadata<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        targets: &'a [MainnetSnsCanisters],
-    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsMetadata>, SnsHostError>>;
-}
-
-///
-/// SnsCatalogSource
-///
-/// Source contract for enriching a complete deployed-SNS catalog with Swap lifecycles.
-///
-
-pub trait SnsCatalogSource: SnsDiscoverySource + Sync {
-    /// Fetch lifecycle evidence for exactly the supplied deployed-SNS targets.
-    fn fetch_sns_lifecycles<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        targets: &'a [MainnetSnsCanisters],
-    ) -> crate::report::SourceFuture<'a, Result<Vec<MainnetSnsLifecycle>, SnsHostError>>;
-}
-
-///
-/// SnsCanisterSource
-///
-/// Source contract for fetching SNS Root canister inventory and health.
-///
-
-pub trait SnsCanisterSource: SnsDiscoverySource + Sync {
-    /// Fetch Root inventory and operational health for one resolved SNS.
-    fn fetch_sns_canisters<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsCanisterInventory, SnsHostError>>;
-}
 
 ///
 /// SnsNeuronSource
@@ -69,14 +8,14 @@ pub trait SnsCanisterSource: SnsDiscoverySource + Sync {
 /// Source contract for fetching one exact full SNS neuron detail.
 ///
 
-pub trait SnsNeuronSource: SnsDiscoverySource + Sync {
+pub trait SnsNeuronSource: Sync {
     /// Fetch exactly one full native SNS Governance neuron.
     fn fetch_sns_neuron<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
+        governance_canister_id: &'a str,
         neuron_id: &'a str,
-    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronDetail, SnsHostError>>;
+    ) -> crate::report::SourceFuture<'a, Result<SnsNeuronRow, SnsHostError>>;
 }
 
 ///
@@ -85,12 +24,12 @@ pub trait SnsNeuronSource: SnsDiscoverySource + Sync {
 /// Source contract for fetching bounded and paged SNS neuron data.
 ///
 
-pub trait SnsNeuronsSource: SnsDiscoverySource + Sync {
+pub trait SnsNeuronsSource: Sync {
     /// Fetch a bounded SNS neuron listing for one resolved SNS.
     fn fetch_sns_neurons<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
+        governance_canister_id: &'a str,
         limit: u32,
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<Vec<SnsNeuronRow>, SnsHostError>>;
@@ -102,129 +41,9 @@ pub trait SnsNeuronsSource: SnsDiscoverySource + Sync {
     fn fetch_sns_neuron_page<'a>(
         &'a self,
         request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
+        governance_canister_id: &'a str,
         limit: u32,
         start_page_at: Option<&'a SnsNeuronId>,
         owner_principal_id: Option<&'a str>,
     ) -> crate::report::SourceFuture<'a, Result<MainnetSnsNeuronPage, SnsHostError>>;
-}
-
-///
-/// SnsParamsSource
-///
-/// Source contract for fetching governance parameters for one deployed SNS.
-///
-
-pub trait SnsParamsSource: SnsDiscoverySource + Sync {
-    /// Fetch SNS governance parameters for one resolved SNS.
-    fn fetch_sns_params<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<SnsGovernanceParameters, SnsHostError>>;
-}
-
-///
-/// SnsSwapSource
-///
-/// Source contract for bounded lifecycle and sale-state queries against one deployed SNS.
-///
-
-pub trait SnsSwapSource: SnsDiscoverySource + Sync {
-    /// Fetch three bounded native swap query components for one resolved SNS.
-    fn fetch_sns_swap<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsSwap, SnsHostError>>;
-}
-
-///
-/// SnsMetricsSource
-///
-/// Source contract for one bounded SNS Governance metrics query.
-///
-
-pub trait SnsMetricsSource: SnsDiscoverySource + Sync {
-    /// Fetch native Governance metrics for one resolved SNS and proposal window.
-    fn fetch_sns_metrics<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        time_window_seconds: u64,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsMetrics, SnsHostError>>;
-}
-
-///
-/// SnsUpgradeSource
-///
-/// Source contract for bounded native upgrade-version queries for one deployed SNS.
-///
-
-pub trait SnsUpgradeSource: SnsDiscoverySource + Sync {
-    /// Fetch the running Governance version and next blessed SNS-W version.
-    fn fetch_sns_upgrade<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsUpgrade, SnsHostError>>;
-}
-
-///
-/// SnsProposalSource
-///
-/// Source contract for fetching one SNS proposal by id.
-///
-
-pub trait SnsProposalSource: SnsDiscoverySource + Sync {
-    /// Fetch one SNS governance proposal for one resolved SNS.
-    fn fetch_sns_proposal<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        proposal_id: u64,
-    ) -> crate::report::SourceFuture<'a, Result<SnsProposalRow, SnsHostError>>;
-}
-
-///
-/// SnsProposalsSource
-///
-/// Source contract for fetching bounded SNS proposal listings.
-///
-
-pub trait SnsProposalsSource: SnsDiscoverySource + Sync {
-    /// Fetch a bounded SNS governance proposal page for one resolved SNS.
-    fn fetch_sns_proposals<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        limit: u32,
-        before_proposal_id: Option<u64>,
-        include_status: &'a [i32],
-        topic: SnsProposalTopicFilter,
-    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>>;
-
-    /// Fetch one unfiltered SNS governance proposal page for snapshot refresh.
-    fn fetch_sns_proposal_page<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-        limit: u32,
-        before_proposal_id: Option<u64>,
-    ) -> crate::report::SourceFuture<'a, Result<Vec<SnsProposalRow>, SnsHostError>>;
-}
-
-///
-/// SnsTokenSource
-///
-/// Source contract for fetching token metadata for one deployed SNS.
-///
-
-pub trait SnsTokenSource: SnsDiscoverySource + Sync {
-    /// Fetch SNS ledger token metadata for one resolved SNS.
-    fn fetch_sns_token<'a>(
-        &'a self,
-        request: &'a CollectionSourceRequest,
-        sns: &'a MainnetSns,
-    ) -> crate::report::SourceFuture<'a, Result<MainnetSnsToken, SnsHostError>>;
 }

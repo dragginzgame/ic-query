@@ -7,56 +7,26 @@ use ic_query::subnet_catalog::SubnetCatalogInfoReport;
 /// Render resolved subject, catalog provenance, and execution-rate details as text.
 #[must_use]
 pub fn subnet_catalog_info_report_text(report: &SubnetCatalogInfoReport) -> String {
-    let mut lines = vec![
-        field("input_principal", &report.input_principal),
-        field("resolved_as", &report.resolved_as),
-        field("resolved_from", &report.resolved_from),
-        field("subnet_principal", &(report.subnet_principal)),
-        field(
-            "registry_subnet_type",
-            &(report.classification.registry_subnet_type),
-        ),
-        field("subnet_kind", &(report.classification.subnet_kind.as_str())),
-        field(
-            "subnet_kind_source",
-            &(report.classification.subnet_kind_source.as_str()),
-        ),
-        field(
-            "subnet_specialization",
-            &(report.classification.subnet_specialization.as_str()),
-        ),
-        field(
-            "subnet_specialization_source",
-            &(report.classification.subnet_specialization_source.as_str()),
-        ),
-        field(
-            "geographic_scope",
-            &(report.classification.geographic_scope.as_str()),
-        ),
-        field(
-            "geographic_scope_source",
-            &(report.classification.geographic_scope_source.as_str()),
-        ),
-        field("subnet_label", &report.classification.subnet_label),
-        field(
-            "subnet_label_source",
-            &(report.classification.subnet_label_source.as_str()),
-        ),
-        field(
-            "node_count",
-            &(report
+    let mut lines = Vec::from(crate::text_value::report_fields!(report;
+        input_principal,
+        resolved_as,
+        resolved_from,
+        subnet_principal,
+        registry_subnet_type = report.classification.registry_subnet_type,
+        subnet_kind = report.classification.subnet_kind.as_str(),
+        subnet_kind_source = report.classification.subnet_kind_source.as_str(),
+        subnet_specialization = report.classification.subnet_specialization.as_str(),
+        subnet_specialization_source = report.classification.subnet_specialization_source.as_str(),
+        geographic_scope = report.classification.geographic_scope.as_str(),
+        geographic_scope_source = report.classification.geographic_scope_source.as_str(),
+        subnet_label = report.classification.subnet_label,
+        subnet_label_source = report.classification.subnet_label_source.as_str(),
+        node_count = report
                 .node_count
-                .map_or_else(|| "unknown".to_string(), |count| count.to_string())),
-        ),
-        field(
-            "charges_apply_to_subject",
-            &(yes_no(report.charges_apply_to_subject)),
-        ),
-        field(
-            "charge_applicability_reason",
-            &report.charge_applicability_reason,
-        ),
-    ];
+                .map_or_else(|| "unknown".to_string(), |count| count.to_string()),
+        charges_apply_to_subject = yes_no(report.charges_apply_to_subject),
+        charge_applicability_reason,
+    ));
     append_catalog_evidence(&mut lines, report);
     if let Some(canister) = &report.matched_canister_principal {
         lines.push(field("matched_canister_principal", &(canister)));

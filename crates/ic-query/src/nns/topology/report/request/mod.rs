@@ -4,7 +4,7 @@ pub use model::NnsTopologyRefreshRequest;
 
 #[cfg(feature = "nns-host")]
 use crate::{
-    nns::{NnsInventoryListRequest, NnsInventoryRefreshRequest, node::NnsNodeListRequest},
+    nns::{NnsInventoryListRequest, NnsInventoryRefreshRequest},
     subnet_catalog::{
         CatalogSourceSelection, DEFAULT_STALE_AFTER_SECONDS, SubnetCatalogCacheRequest,
         SubnetCatalogListRequest, SubnetCatalogRefreshRequest,
@@ -33,15 +33,6 @@ pub(super) fn subnet_catalog_list_request(
     );
     configured_request.range_limit = 1;
     configured_request
-}
-
-#[cfg(feature = "nns-host")]
-pub(super) fn node_list_request(request: &NnsInventoryListRequest) -> NnsNodeListRequest {
-    NnsNodeListRequest::new(
-        request.cache.clone(),
-        request.source_endpoint.as_str(),
-        request.now_unix_secs,
-    )
 }
 
 #[cfg(feature = "nns-host")]

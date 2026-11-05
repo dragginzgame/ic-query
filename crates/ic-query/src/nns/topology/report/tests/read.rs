@@ -13,13 +13,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
         &'a dyn NnsTopologySource,
     )
         -> crate::report::SourceFuture<'a, Result<(), NnsTopologyHostError>>;
-    let all = &[
-        "subnet_catalog",
-        "nodes",
-        "node_providers",
-        "node_operators",
-        "data_centers",
-    ][..];
+    let all = &["subnet_catalog", "inventory", "metadata"][..];
     let inventory = &all[1..];
     let builders: [(Build, &[&str]); 8] = [
         (
@@ -90,7 +84,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
                         .map(|_| ())
                 })
             },
-            &["node_operators"],
+            &["inventory"],
         ),
         (
             |r, s| {
@@ -100,7 +94,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
                         .map(|_| ())
                 })
             },
-            &["data_centers"],
+            &["inventory"],
         ),
     ];
 
@@ -111,6 +105,7 @@ async fn topology_reads_preserve_dependencies_and_stop_at_the_first_source_failu
         assert_eq!(*source.calls.lock().unwrap(), expected);
 
         for (index, component) in expected.iter().enumerate() {
+            let request = topology_read_request_fixture();
             let source = RecordingTopologySource {
                 fail_at: Some(component),
                 ..RecordingTopologySource::default()

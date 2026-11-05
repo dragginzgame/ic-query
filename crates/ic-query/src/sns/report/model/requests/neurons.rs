@@ -4,7 +4,7 @@
 //! Does not own: command option parsing, cache storage, or live neuron fetches.
 //! Boundary: carries validated neuron inputs into SNS report builders.
 
-use super::lookup::SnsLookupRequest;
+use super::target::SnsNeuronTargetRequest;
 use crate::sns::report::SnsNeuronsCacheSort;
 use std::path::PathBuf;
 
@@ -17,7 +17,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronRequest {
     /// SNS target, explicit endpoint, network and caller clock.
-    pub lookup: SnsLookupRequest,
+    pub target: SnsNeuronTargetRequest,
     /// Exact 32-byte neuron id encoded as 64 lowercase hexadecimal characters.
     pub neuron_id: String,
 }
@@ -25,9 +25,9 @@ pub struct SnsNeuronRequest {
 impl SnsNeuronRequest {
     /// Construct one exact SNS neuron detail request.
     #[must_use]
-    pub fn new(lookup: SnsLookupRequest, neuron_id: impl Into<String>) -> Self {
+    pub fn new(target: SnsNeuronTargetRequest, neuron_id: impl Into<String>) -> Self {
         Self {
-            lookup,
+            target,
             neuron_id: neuron_id.into(),
         }
     }
@@ -73,7 +73,7 @@ impl SnsNeuronCollection {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SnsNeuronsRequest {
     /// Explicit target, endpoint, network and caller clock.
-    pub lookup: SnsLookupRequest,
+    pub target: SnsNeuronTargetRequest,
     /// Maximum displayed rows; does not change snapshot identity.
     pub limit: u32,
     /// Inputs specific to the selected acquisition route.
@@ -84,12 +84,12 @@ impl SnsNeuronsRequest {
     /// Request one live API page with optional owner filtering.
     #[must_use]
     pub const fn live(
-        lookup: SnsLookupRequest,
+        target: SnsNeuronTargetRequest,
         limit: u32,
         owner_principal_id: Option<String>,
     ) -> Self {
         Self {
-            lookup,
+            target,
             limit,
             collection: SnsNeuronCollection::Live { owner_principal_id },
         }
@@ -98,13 +98,13 @@ impl SnsNeuronsRequest {
     /// Request a locally ordered view of a complete snapshot.
     #[must_use]
     pub fn cached(
-        lookup: SnsLookupRequest,
+        target: SnsNeuronTargetRequest,
         limit: u32,
         cache_root: impl Into<PathBuf>,
         sort: SnsNeuronsCacheSort,
     ) -> Self {
         Self {
-            lookup,
+            target,
             limit,
             collection: SnsNeuronCollection::Cached {
                 cache_root: cache_root.into(),

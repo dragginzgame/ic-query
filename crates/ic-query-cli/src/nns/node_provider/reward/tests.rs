@@ -13,7 +13,7 @@ fn help_discloses_authority_bounds_and_page_overlap() {
     let list = render_help(list_command());
     let history = render_help(history_command());
 
-    assert!(family.contains("Usage: icq nns node-provider reward [COMMAND]"));
+    assert!(family.contains("Usage: reward [COMMAND]"));
     assert!(family.contains("history"));
     assert!(family.contains("info"));
     assert!(family.contains("list"));
