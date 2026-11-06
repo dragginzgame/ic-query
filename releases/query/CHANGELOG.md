@@ -5,6 +5,32 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.93.3]
+
+### 🔧 Tooling
+
+- Adopt Shared Tooling 0.31.0 and frozen grouped delivery. Capture selected source
+  once, preserve deferred normal-checkout edits, and retain per-group validation,
+  supplier-first publication, registry receipts and explicit recovery.
+  [Details](0.93.md).
+- Use shared candidate setup and batch status/resume/reconcile/retire commands.
+  Keep recovery offline, propagate saved publication context, and reject clearing
+  the frozen roster for a selected group. [Details](0.93.md).
+- Use the current `RELEASE_GROUPS` configuration and shared batch runner. Adopt
+  the supplying contributor recovery-journal format and checksum verification
+  fixes while keeping Query's public schemas at 1. [Details](0.93.md).
+
+```bash
+make release-patch RELEASE_GROUPS=query,cli
+make release-batch-status BATCH=batch-XXXXXXXX
+```
+
+### ⬆️ Dependencies
+
+- Align the locked workspace graph on Platform 0.23.4, Runtime 0.19.4,
+  Wire 0.17.5 and Testkit 0.89.3, with compatible TOML support patches.
+  Preserve published package APIs and Query's schema-1 contracts. [Details](0.93.md).
+
 ## [0.93.2] - 2026-11-06
 
 ### 🧹 Cleanup

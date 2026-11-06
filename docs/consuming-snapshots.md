@@ -208,8 +208,10 @@ then narrow roots in a later reviewed adoption.
 
 The same v1 manifest retains exact payload hashes, modes, source and revision.
 `# entrypoint` annotations record selection intent separately from generated
-`file` records. Integrity-only readers can still inspect historical manifests;
-refresh without recorded entrypoints requires explicit selection. Never hand-edit
+`file` records. Integrity-only readers can still inspect historical manifests.
+New exports require both version and entrypoint annotations, checked before
+installation and during final verification with `--require-annotations`.
+Refresh without recorded entrypoints requires explicit selection. Never hand-edit
 payload records to remove ownership evidence, or use an older exporter after
 adopting entrypoint selection. The current verifier validates any recorded roots
 against the payload roster; byte integrity does not prove that local callers were
@@ -1150,3 +1152,30 @@ fields fail closed before Cargo runs. The selected consumer must be the workspac
 root with a regular `Cargo.toml`; failed or incomplete Cargo output and mismatched
 workspace identity refuse before any success report. This opt-in policy is
 separate from version pinning; consumers choose their own ownership rules.
+
+
+### CBOR boundary coverage
+
+With `--external-ic`, the Cargo checker includes the centrally maintained CBOR
+inventory as a snapshot companion; local allowed-package lists cannot relax it.
+Pair this with `check-candid-boundary.pl --cbor ROOT POLICY SOURCE...` and the
+browser SDK boundary checker, which also rejects direct CBOR packages/imports.
+Do not copy the package list into each consumer or replay Shared's generic tests.
+
+Run Cargo admission separately for every maintained independent Cargo workspace,
+including fixtures and generators; a parent workspace's metadata does not cover
+excluded packages. Select browser and generated source roots explicitly. An
+alternate `manifest.toml` template is not admitted by Cargo metadata: retire an
+obsolete executable fixture, or check its actual materialized Cargo workspace
+through the owning fixture workflow before compilation. Review the template and
+its materialization as inputs; a root-only pass does not cover them. Do not rename
+or materialize consumer manifests inside the shared checker.
+
+Platform implementation roots are producers, not browser consumer roots. Rust
+source exceptions use exact file/crate entries with reasons and review conditions;
+Cargo/browser consumer checks have no generic bypass flag. A new exceptional
+package owner needs an explicit reviewed shared-policy change, not a permissive
+consumer allowlist. Source masking/literal imports are lexical evidence only;
+dynamic imports, generated aliases, copied parsers and byte compatibility retain
+explicit review/consumer qualification obligations. No automatic release gate or
+fleet adoption is activated by exporting these helpers.

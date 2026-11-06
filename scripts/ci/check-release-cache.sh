@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export RELEASE_BATCH_ACTIVE=1 RELEASE_GROUP=query
 
 # Exercise only consumer cache dispatch, with no real release or network effects.
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS IC_QUERY_RELEASE_PREPARE_CACHE CARGO_NET_OFFLINE

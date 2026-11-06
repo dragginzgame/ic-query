@@ -1546,8 +1546,8 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "thiserror 2.0.21",
- "toml 1.2.0+spec-1.1.0",
- "toml_edit 0.25.18+spec-1.1.0",
+ "toml 1.2.1+spec-1.1.0",
+ "toml_edit 0.25.19+spec-1.1.0",
 ]
 
 [[package]]
@@ -1665,9 +1665,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.23.3"
+version = "0.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cc1339800b899f8bb7a03e660a09809f1f745a9935e75694e819082478b97db"
+checksum = "bda7d1cedd38ce59904030b348ed8387eb561784bee29a41b4744135da82383f"
 dependencies = [
  "candid",
  "candid_parser",
@@ -1692,9 +1692,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-macros"
-version = "0.19.3"
+version = "0.19.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb5029d3e4de9b75e8bcc02e9108177fd3f14c4fe42b94175d11161e777703ef"
+checksum = "c0e5f1c4b4931ed6cc321160096f19c1b6449f7a118c0da1bcca76664b04a529"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1703,9 +1703,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-runtime"
-version = "0.19.3"
+version = "0.19.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8f42e3d97dd6a5dd20372eb3f3f8cc417415644c5f6ad83eecbcbe8891cf4fa"
+checksum = "c36c7a65b74de9cb53145545a50f3603d988f61d24936923cfba720f19f16c57"
 dependencies = [
  "ic-platform-runtime-guard",
  "ic-platform-types",
@@ -1717,9 +1717,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-runtime-guard"
-version = "0.19.3"
+version = "0.19.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d68a4b1fc2a57275f43b49ecba75245976eee5181ad214e91f30acf7c3a99f4"
+checksum = "eca2d68a0a478b5eccf82d55776a8a095a3dea822f9e097888199faa39951616"
 
 [[package]]
 name = "ic-platform-types"
@@ -1813,9 +1813,9 @@ dependencies = [
 
 [[package]]
 name = "ic-testkit"
-version = "0.89.1"
+version = "0.89.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd2879282c81fc23e57d00e89dd8f8a87564c624110f0c7bf800e704aaffa944"
+checksum = "df8ce0ea709c2b8b747274540b230a42e5bc39348e71046383189b2005d1695e"
 dependencies = [
  "backon",
  "base64 0.23.1",
@@ -1871,9 +1871,9 @@ dependencies = [
 
 [[package]]
 name = "ic-wire"
-version = "0.17.4"
+version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b725872a30be01790e4b7e5c64ad65c2247a08231385dae11c8cf857487f0b8"
+checksum = "b65a20ea8ba6b677e6a85e16e0d60cc24c069c2e9f8965ca954034f81eda0c3e"
 dependencies = [
  "bytemuck",
  "postcard",
@@ -3283,9 +3283,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "1.1.2"
+version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e7523beb55eece201a2356bee0bbca0d1ab466c14c07703b2e0ee6d42cb0c2c"
+checksum = "9c187e0a369471c550af028cba56d4f4fa2a489ad28151ae95a4d340a2a8b782"
 dependencies = [
  "serde_core",
 ]
@@ -3681,14 +3681,14 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "1.2.0+spec-1.1.0"
+version = "1.2.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5ffcdf8f50436dbbfd675c1fe1b8e0854f42b7defea8584bdebe1aee900e561"
+checksum = "d5755c51863cdac711f1956baf8eb9588e060755f7d3c4c979e70ea1e1f32cd7"
 dependencies = [
  "indexmap",
  "serde_core",
- "serde_spanned 1.1.2",
- "toml_datetime 1.1.2+spec-1.1.0",
+ "serde_spanned 1.1.3",
+ "toml_datetime 1.1.3+spec-1.1.0",
  "toml_parser",
  "toml_writer",
  "winnow 1.0.5",
@@ -3705,9 +3705,9 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "1.1.2+spec-1.1.0"
+version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b86d767906c6c42421dcba507eb9d203e779497710a47782a224bb871653053"
+checksum = "173f25c883cd2176a2d8212155638c0a60d484a9d84546d270866f40f56b6e49"
 dependencies = [
  "serde_core",
 ]
@@ -3727,12 +3727,12 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.18+spec-1.1.0"
+version = "0.25.19+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ec6e78bd70db9420d8d212fa9dc97f116448a1ceff5d00eabb991d407e21396"
+checksum = "dd43688c4858d7264ae1cf9a9f874a67c3feb74a883b1cd7bebd6a4ea8307218"
 dependencies = [
  "indexmap",
- "toml_datetime 1.1.2+spec-1.1.0",
+ "toml_datetime 1.1.3+spec-1.1.0",
  "toml_parser",
  "toml_writer",
  "winnow 1.0.5",

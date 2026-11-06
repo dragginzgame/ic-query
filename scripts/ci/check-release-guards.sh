@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Release effects are file-backed stubs, never real Git mutations.
-export RELEASE_DELIVERY=direct RELEASE_GROUP=query
+export RELEASE_DELIVERY=direct RELEASE_GROUP=query RELEASE_BATCH_ACTIVE=1
 repo_root="$(CDPATH="" cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
 work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-release-guards.XXXXXX")"

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 For scope, delegated delivery, validation, compiler support and reporting, use
-[Shared policy at a08f03a](https://github.com/dragginzgame/shared-tooling/blob/a08f03a6c8b5d67d62308ec45d202bfcbd90c048/DRAGGINZGAME.md)
+[Shared policy at 7431394](https://github.com/dragginzgame/shared-tooling/blob/74313941af2fce4399bec0e6909ca6229673c3f8/DRAGGINZGAME.md)
 and its revision-bound references over older snapshot or local-guide wording.
 This includes Rust 1.99.1 as minimum and pinned development/release compiler;
 check local declarations and qualification before claiming adoption is complete.
@@ -47,6 +47,13 @@ request includes the existing runner's required Git and metadata effects;
 ordinary implementation, readiness and PR requests retain their narrower scope.
 Release fixtures use simulated effects and do not grant authority over the real
 repository. Preserve Query's native host matrix and release/registry checks.
+Selected release groups use the shared frozen-batch runner, with managed delivery
+under `target/release-frozen/` and durable recovery under
+`.git/release-state/frozen/`. Preserve deferred normal-checkout edits and follow
+the reconciliation contract in [the release workflow](docs/release-workflow.md).
+Shared Tooling owns its contributor-only release-batch journals, including the
+schema-2 format adopted with 0.31. Query-owned product schemas remain `1`;
+the supplying journal format is not a Query report, cache, sidecar or lock schema.
 
 ## Pre-1.0 Compatibility
 
@@ -57,8 +64,8 @@ repository. Preserve Query's native host matrix and release/registry checks.
   tooling, CI, formatting and PATH changes use patch notes when public APIs,
   product behavior and supported consumer build requirements remain unchanged;
   an upstream tooling minor does not automatically require a Query minor.
-- Before `1.0.0`, every current emitted or persisted schema version must remain
-  `1`, including report, cache, sidecar, and lock schemas. Breaking shape
+- Before `1.0.0`, every current emitted or persisted Query-owned product schema
+  version must remain `1`, including report, cache, sidecar, and lock schemas. Breaking shape
   changes replace the version-1 contract in place; do not increment a schema
   to `2` or higher, retain an older reader, or add a migration. Treat any
   existing schema version above `1` as nonconforming debt to remove in a

@@ -8,4 +8,6 @@
 [Coordinated history through 0.85.0](releases/history.md) retains earlier releases
 once, under their original scope. Both groups keep the existing workspace,
 dependency catalog and lockfile; release/publication commands require an explicit
-`RELEASE_GROUP=query` or `RELEASE_GROUP=cli`.
+`RELEASE_GROUP=query`, `RELEASE_GROUP=cli`, or the supplier-first
+`RELEASE_GROUPS=query,cli` batch. See the
+[frozen release workflow](docs/release-workflow.md).

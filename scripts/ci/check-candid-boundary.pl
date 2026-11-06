@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Shared companions: scripts/ci/RustSource.pm docs/candid-boundary.md
+# Shared companions: scripts/ci/RustSource.pm docs/candid-boundary.md ci/cbor-dependencies.json
 use strict;
 use warnings;
 use Cwd qw(abs_path);
@@ -11,7 +11,8 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 use RustSource qw(code_mask);
 
-@ARGV >= 3 or die "usage: check-candid-boundary.pl ROOT POLICY.json SOURCE...\n";
+my $cbor_mode = @ARGV && $ARGV[0] eq '--cbor' ? shift(@ARGV) : '';
+@ARGV >= 3 or die "usage: check-candid-boundary.pl [--cbor] ROOT POLICY.json SOURCE...\n";
 my ($root, $policy_path, @roots) = @ARGV;
 $root = abs_path($root) // die "missing root\n";
 sub read_text {
@@ -47,7 +48,18 @@ sub keys_exact {
         or die "invalid policy fields\n";
 }
 my $policy = JSON::PP->new->decode(read_text(relative_path($policy_path)));
-keys_exact($policy, qw(schema allowances));
+keys_exact($policy, qw(schema allowances), (exists($policy->{cbor_allowances}) ? 'cbor_allowances' : ()));
+exists($policy->{cbor_allowances}) && !$cbor_mode and die "CBOR policy requires --cbor\n";
+my (%cbor_names, %cbor_allow);
+if ($cbor_mode) {
+    my $inventory = JSON::PP->new->decode(read_text("$RealBin/../../ci/cbor-dependencies.json"));
+    ref($inventory->{rust}) eq 'ARRAY' && @{$inventory->{rust}} or die "invalid CBOR inventory\n";
+    for my $name (@{$inventory->{rust}}) {
+        $name =~ /\A[A-Za-z0-9_-]+\z/ or die "invalid CBOR crate name\n";
+        $name =~ tr/-/_/;
+        !$cbor_names{$name}++ or die "duplicate CBOR crate name\n";
+    }
+}
 $policy->{schema} == 1 && ref($policy->{allowances}) eq 'ARRAY' or die "invalid policy schema\n";
 my %files;
 for my $selection (@roots) {
@@ -64,6 +76,20 @@ for my $selection (@roots) {
         $files{File::Spec->abs2rel($name, $root)} = $name; $count++;
     }}, $path);
     $count or die "no Rust sources selected: $selection\n";
+}
+if ($cbor_mode) {
+    my $entries = $policy->{cbor_allowances} // [];
+    ref($entries) eq 'ARRAY' or die "invalid CBOR allowances\n";
+    for my $entry (@$entries) {
+        keys_exact($entry, qw(path crate reason review));
+        exists($files{$entry->{path}}) or die "CBOR allowance outside selection\n";
+        $cbor_names{$entry->{crate}} or die "unknown CBOR allowance crate\n";
+        for (qw(reason review)) {
+            defined($entry->{$_}) && !ref($entry->{$_}) && $entry->{$_} =~ /\S/
+                or die "empty CBOR allowance $_\n";
+        }
+        !$cbor_allow{$entry->{path}}{$entry->{crate}}++ or die "duplicate CBOR allowance\n";
+    }
 }
 my %allow;
 for my $entry (@{$policy->{allowances}}) {
@@ -90,6 +116,19 @@ for my $entry (@{$policy->{allowances}}) {
 my @errors;
 for my $file (sort keys %files) {
     my ($t, $lines) = lex(read_text($files{$file}));
+    if ($cbor_mode) {
+        my %seen;
+        for my $i (0..$#$t) {
+            my $name = $t->[$i]; $name =~ s/^r#//;
+            next unless $cbor_names{$name};
+            $seen{$name} = 1;
+            push @errors, "$file:$lines->[$i]: direct CBOR crate reference '$name'; use typed Platform APIs"
+                unless $cbor_allow{$file}{$name};
+        }
+        for my $name (keys %{$cbor_allow{$file}//{}}) {
+            $seen{$name} or die "$file: stale CBOR allowance: $name\n";
+        }
+    }
     my (%imports, %names); $names{CandidType}=1;
     # Imports are not implementations. Resolve explicit same-file aliases,
     # conservatively across scopes; qualify all cfg branches without compiling.
@@ -137,4 +176,5 @@ for my $file (sort keys %files) {
     }
 }
 if (@errors) { print STDERR "$_\n" for @errors; exit 1; }
-print "Candid source boundary passed (",scalar(keys %files)," Rust files; lexical, not macro expansion/type resolution).\n";
+print +($cbor_mode ? "Candid/CBOR source boundary passed (" : "Candid source boundary passed (");
+print scalar(keys %files)," Rust files; lexical, not macro expansion/type resolution).\n";

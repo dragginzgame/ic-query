@@ -6,25 +6,93 @@ Release groups share one Cargo workspace and root lockfile. Select
 explicit package version; the root catalog records the exact current version of
 every local member. Missing and unknown selections fail before setup or effects.
 
-The maintainer runs `make release-minor RELEASE_GROUP=query` (or `release-patch`
-for a compatible batch). Both groups use the qualified
+Select the complete affected roster once:
+
+```bash
+make release-patch RELEASE_GROUPS=query,cli
+# A presentation-only batch can instead select RELEASE_GROUP=cli.
+```
+
+`release-patch`, `release-minor` and `release-major` use Shared Tooling's
+[frozen batch runner](release-batches.md). Each selected group is validated,
+committed, tagged, pushed and published before its downstream group starts.
+Select `query,cli` in that order when both change, or one group explicitly;
+there is no default all-group release. The same increment applies to every group.
+An explicit `RELEASE_PUBLISH_TARGET=` selects Git-only delivery.
+
+Shared Tooling 0.31 replaces the earlier release setting names with
+`RELEASE_GROUPS`, `RELEASE_PUBLISH_TARGET`, `RELEASE_SETUP_TARGET`,
+`RELEASE_SETUP_MODE` and `RELEASE_BATCH_ACTIVE`. Retired settings are errors;
+there are no aliases. The shared runner is `scripts/ci/run-release-batch.pl`.
+Its contributor-only batch journals use the supplying schema-2 format and
+require a recorded publication commit. Finish pre-0.31 batches with their
+original reviewed tooling before adoption; never relabel their journals or infer
+publication identity from current HEAD. Query-owned public schemas remain `1`.
+Recovery storage paths and source pins retain their existing names.
+
+Both groups use the qualified
 [group validation mapping](query-release-validation.md), with full-gate fallback
 for shared/unknown inputs and unqualified hosts. Full repository CI and the native
 host matrix remain required. The shared runner stages the selected policy's explicit files,
 commits, creates an annotated `query-vX.Y.Z` or `cli-vX.Y.Z` tag, and atomically
-pushes the selected branch and tag. Publication remains separate:
-`make publish RELEASE_GROUP=query` or `make publish RELEASE_GROUP=cli`.
+pushes the selected branch and tag. The batch then invokes Query's existing
+publication adapter, retaining per-package registry observations and receipts.
+Standalone `make publish RELEASE_GROUP=query` or `RELEASE_GROUP=cli` remains
+available for a separately reconciled Git-only release.
+
+The runner captures clean committed source into
+`target/release-frozen/batch-XXXXXXXX`. Its durable Git store, intent and standard
+release journals live under `.git/release-state/frozen/batch-XXXXXXXX`, with the
+base pinned by a Git ref. Tools are prepared for that checkout through the same
+selected installers; no live lockfile or `.tools` directory is copied from the
+normal checkout. The shared runner invokes `release-candidate-setup` before
+version lookup and release/publication recovery. It prepares the selected host
+tools for a fresh group and admits them offline in recovery; it does not install
+from partially prepared Cargo metadata. Saved group, source, kind, remote and
+branch selections reach every hook, with the delivered commit added for
+publication. Version bootstrap uses locked, offline Cargo metadata without
+requiring an installed checkout-local TOML parser. Complete group, catalog and
+lock admission still runs during preflight and metadata preparation.
+
+Later normal-checkout source or lock edits belong to the next batch. The current
+batch continues from its captured graph, and the runner never resets, stashes,
+stages or merges those edits. After completion, reconcile the normal branch with
+the delivered commit and explicitly reapply or refresh deferred updates. A dirty
+lockfile must never be silently replaced or described as released. Ancestor Cargo
+configuration and host/tool environment are outside this source-isolation promise.
+
+Recover the whole saved roster with:
+
+```bash
+make release-batch-resume BATCH=batch-XXXXXXXX
+```
+
+The shared `release-batch-status` command inspects one saved batch without running
+its hooks. After preserving deferred edits on a durable branch, use
+`make release-batch-reconcile BATCH=...` to import its tags and fast-forward a
+clean normal checkout. It refuses dirty or divergent work and never stashes or
+resets it. The separately selected `release-batch-retire` command removes only
+that completed, integrated batch's managed checkout and recovery state after
+admitting its refs and retained files. Preserve any required artifacts first;
+adopting this command does not authorize cleanup of existing batches.
+
+An uncertain publication stops automatic replay. Verify the registry and the
+candidate's `target/publication/` receipts, then use `PUBLICATION_RESULT=published`
+or `PUBLICATION_RESULT=not-published` with that same batch resume. These values
+assert verified external state. A completed resume never republishes. Preserve
+the durable Git store, source pin and retained delivery checkout until recovery
+and normal-branch reconciliation are complete; artifact cleanup is separate work.
 
 Root [CHANGELOG.md](../CHANGELOG.md) indexes the group ledgers. Finalized common
 history remains once in [releases/history.md](../releases/history.md). Each group
 owns its numbered pending ledger entry and detailed minor-line notes. The policy
 lists the selected detail path; review that path when starting a new minor draft.
 Group-qualified recovery journals and receipts bind the group, policy digest,
-source, versions and destination. Resume with
+source, versions and destination. Inside the saved delivery checkout, resume with
 `make release-resume RELEASE_GROUP=query VERSION=X.Y.Z` for that exact attempt.
 
-For the pending 0.93 hard cut, release and publish Query first, then the CLI group.
-Later presentation-only changes can advance the CLI group independently.
+Query is the supplier of the CLI/Text group. Presentation-only changes can
+advance the CLI group independently.
 
 Normal release commands select the next version from current clean, committed
 metadata and run fresh validation. They do not scan historical plans, reuse old
@@ -82,15 +150,16 @@ network access or installation. The retired Perl editors are no longer selected.
 
 Update shared files through the canonical snapshot exporter, never local patches.
 The exporter protects staged, unstaged, deleted and untracked destinations before
-replacement. For an authorized refresh of an already-staged snapshot, export into
-an isolated checkout, verify the existing snapshot, and reconcile only its known
-shared bytes; preserve the consumer index and unrelated edits.
+replacement. Coordinate conflicting snapshot edits with their owner; preserve the
+consumer index and unrelated work. Adoption does not authorize an additional
+implementation checkout.
 
 Package and publication admission use the shared read-only source checker with
 no allowed dirty paths. It lists staged, unstaged and untracked changes without
 updating the Git index. Finish and commit reviewed source/dependency changes
-before starting validation; changes made while a gate is running invalidate
-its source qualification and require a fresh attempt. A failed validation does
+before starting validation. Changes to the delivery checkout while its gate is
+running invalidate its source qualification and require a fresh attempt; deferred
+normal-checkout changes do not affect a frozen batch. A failed validation does
 not authorize reverting those changes or clearing its retained evidence.
 
 The manifest records the selected entrypoints and derived companion closure.
@@ -527,29 +596,15 @@ Each invocation creates and reports a unique subdirectory with raw logs and
 Interrupted runs retain completed target evidence. This optional selection does
 not replace failure logs or enable additional validation targets.
 
-A normal target rerun first reconciles an unfinished release at its saved
-candidate, except superseded direct preparation restarts under the contract
-above. An unchanged same-kind retry finishes only that release. After its
-release commit exists, a newer descendant or different requested increment is
-handled internally: finish the older release, then read the current manifest
-version and run fresh preflight and complete validation for the next increment.
-For example, after an interrupted `0.47.0` minor push and a committed callback
-fix, `make release-patch` completes `0.47.0` and validates the fix for `0.47.1`.
-Prepare matching numbered next-release notes with that fix before invoking the
-command. Maintainers do not need to edit plans or reconstruct an old checkout.
-`make release-resume VERSION=X.Y.Z` explicitly selects only retained intent and
-starts no next increment. Source, metadata, destination, index/tree, and tag
-conflicts stop recovery.
-A saved `prepare` plan with its candidate version manually committed is a distinct
-recovery case. If the source is a clean descendant and no staging evidence exists,
-a normal release target archives the earlier plan byte-for-byte and selects the
-requested increment from current metadata. Missing earlier tags or incomplete Git
-delivery do not block that next release. The runner reports the archived delivery
-as unconfirmed, never marks the earlier release complete, and does not recreate
-its tag or publication. Fresh preflight and complete validation qualify the new
-release; actual source/ref, destination and index conflicts still stop recovery.
-Exact-version `release-resume` remains restricted to its saved intent. Maintainers
-need not delete or edit the plan to advance from committed preparation.
+A normal release starts a new frozen batch from clean committed source. It does
+not finish an earlier batch or reconcile deferred edits automatically. Use
+`release-batch-resume BATCH=...` for the saved roster and delivery checkout. The
+shared batch runner selects exact-version recovery when a standard release plan
+exists; a clean pre-mutation failure may retry the same increment. Missing plans
+after mutation refuse. Source, metadata, destination, index/tree and tag conflicts
+stop recovery. Pre-frozen attempts retain their original checkout and exact
+`release-resume RELEASE_GROUP=... VERSION=...` contract; do not move their journals
+into a newly captured batch or treat them as a fresh release.
 
 An occupied lock is never stolen; inspect its owner before any manual removal.
 An interrupted preparation admits only files equal to their validated before
@@ -568,11 +623,26 @@ No force push or unrelated tag publication is used. Failed Git inventory stops
 both release admission and publication prerequisites, even with empty output.
 
 The former separate bump/stage/commit/push targets and local bump/commit scripts
-are retired. Use the standard maintainer targets above. Agents prepare source and
-run isolated fixture checks; they never invoke the real release workflow or its
-version-changing adapter against this repository.
+are retired. Use the standard maintainer targets above. Delegated release
+authority follows [the shared contribution rules](../rules/contributions.md#delegated-delivery);
+ordinary implementation and fixture validation do not authorize real delivery.
 
 ## Qualification
+
+`make release-batch-check` qualifies the actual Query metadata, setup, Git and
+publication hooks in a disposable normal checkout and its managed frozen batch.
+Product gate bodies and registry effects are substituted; real offline Cargo
+creates all three archives. The fixture checks parser-free version bootstrap,
+supplier-order refusal, a deferred normal lock edit, interrupted validation,
+uncertain publication reconciliation, archive/receipt commit identities, completed
+resume without repeat uploads, saved hook context, status, guarded fast-forward
+reconciliation, retired-setting/old-journal refusal, required publication identity,
+scoped fixture retirement and remote advancement. It preserves its
+fixture and evidence under `target/tmp/` for inspection. This is consumer hook
+qualification, not a claim of product builds or installed/native acceptance.
+The full CI roster runs it on all supported hosts. Linux execution alone does
+not qualify either macOS host; group mapping admission still requires matching
+native proofs.
 
 `make release-guards-check` uses isolated workspaces and file-backed Git/Cargo
 stubs. It exercises Query's increments and stage order, dependency preparation,
@@ -599,9 +669,11 @@ Use `make release-guards-check` for focused qualification; Make supplies the
 metadata editor's configured input-byte allowance. Full CI and release gates
 retain their separate authorization requirements.
 Failed CI, publication and release fixture directories retain their inputs and
-diagnostics and print their paths. These diagnostics intentionally default outside
-Cargo’s `target/` so explicit Cargo cleanup preserves failure and release
-evidence. The shared fixture lifecycle removes only its caller’s successful
+diagnostics and print their paths. Disposable fixtures default beneath `target/`;
+an explicit `TMPDIR` may select a CI-owned location. Cargo cleanup can remove
+those diagnostics and managed delivery checkouts. Preserve incomplete release
+recovery references before explicit cleanup; the frozen batch's Git store and
+intent remain under `.git/release-state/frozen/`. The shared fixture lifecycle removes only its caller’s successful
 temporary directory. Feature-boundary and public rustdoc checks
 retain their diagnostics on failure too; successful checks remove their own
 temporary files. Hosted CI puts validation scratch files in a physical,

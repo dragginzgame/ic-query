@@ -1,5 +1,5 @@
 # IC Query development and validation targets.
-# Shared companions: make/consumer.mk scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh docs/candid-boundary.md ci/candid-boundary.json
+# Shared companions: make/consumer.mk scripts/release/selection.sh scripts/ci/check-cargo-dependency-boundaries.sh ci/cargo-dependency-boundaries.json ci/release-validation-scopes.json scripts/ci/check-rust-compiler.sh scripts/ci/run-ci.sh docs/candid-boundary.md ci/candid-boundary.json
 .PHONY: \
 	canister-build canister-bundle canister-smoke canister-test install-testkit testkit-check \
 	canister-build-check canister-bundle-check canister-smoke-check canister-test-check \
@@ -7,7 +7,7 @@
 	candid-boundary-check dependency-boundary-check dependency-check dependency-pins-check doc-links-check ensure-clean feature-boundary-check help \
 	install install-dependency-tools dependency-tools-check format-installation-check library-process-boundary-check compiler-check package \
 	package-contents-check public-docs-check publish publish-guards-check \
-	release-guards-check release-validation-check qualify-release-groups \
+	release-guards-check release-batch-check release-validation-check qualify-release-groups \
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
 	release-tagged-check release-push-check release-tag-check \
@@ -47,10 +47,29 @@ CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
 IC_TOOLS := didc ic-wasm icp quill wasm-opt
+RELEASE_PUBLISH_TARGET ?= publish
+RELEASE_SETUP_TARGET := release-candidate-setup
 override SHARED_TOOLING_ROOT := $(patsubst %/,%,$(REPO_ROOT))
 LOCAL_TOOL_INSTALL_TARGETS += install-ic-tools install-dependency-tools install-release-tools
 LOCAL_TOOL_CHECK_TARGETS += ic-tools-check format-tools-check dependency-tools-check release-tools-check
 include $(REPO_ROOT)make/consumer.mk
+ifeq ($(RELEASE_BATCH_ACTIVE),1)
+override YQ := $(REPO_ROOT).tools/host/bin/yq
+export YQ
+endif
+ifneq ($(filter $(SHARED_RELEASE_TARGETS) publish,$(MAKECMDGOALS)),)
+_query_release_selection := $(RELEASE_GROUP)
+_query_release_selection_mode := group
+ifneq ($(filter release-patch release-minor release-major,$(MAKECMDGOALS)),)
+ifneq ($(RELEASE_BATCH_ACTIVE),1)
+_query_release_selection := $(RELEASE_GROUPS)
+_query_release_selection_mode := batch
+endif
+endif
+ifneq ($(shell bash '$(subst ','"'"',$(REPO_ROOT))scripts/release/selection.sh' '$(_query_release_selection_mode)' '$(subst ','"'"',$(_query_release_selection))' && printf admitted),admitted)
+$(error Select RELEASE_GROUP=query or cli, or RELEASE_GROUPS=query,cli in supplier-first order)
+endif
+endif
 export IC_TOOL_PINS IC_TOOLS FORMAT_CARGO
 export PATH := $(REPO_ROOT).tools/ic/bin:$(PATH)
 
@@ -124,9 +143,10 @@ help:
 	@echo "  publish    Publish the selected RELEASE_GROUP to crates.io"
 	@echo "  version    Show current version"
 	@echo "  tags       List recent git tags"
-	@echo "  release-patch  Bump, stage, commit, tag, and push a patch release"
-	@echo "  release-minor  Bump, stage, commit, tag, and push a minor release"
-	@echo "  release-major  Bump, stage, commit, tag, and push a major release"
+	@echo "  release-patch/minor/major  Freeze, validate, push and publish selected groups"
+	@echo "    RELEASE_GROUP=query|cli or RELEASE_GROUPS=query,cli"
+	@echo "  release-batch-resume  Resume frozen delivery with BATCH=batch-XXXXXXXX"
+	@echo "  release-batch-status/reconcile/retire  Inspect or explicitly finish a saved batch"
 	@echo "  release-resume  Reconcile a retained release with VERSION=X.Y.Z"
 	@echo "  clean      Remove build artifacts"
 
@@ -134,7 +154,7 @@ ensure-clean:
 	@bash "$(REPO_ROOT)scripts/ci/check-release-source.sh"
 
 version release-version:
-	@CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 YQ="$(YQ)" bash "$(REPO_ROOT)scripts/ci/cargo-release-group.sh" version "$(RELEASE_GROUP)"
+	@CARGO_NET_OFFLINE=true RUSTUP_AUTO_INSTALL=0 bash "$(REPO_ROOT)scripts/release/selection.sh" version "$(RELEASE_GROUP)"
 
 tags:
 	@git tag --sort=-version:refname | head -10
@@ -165,6 +185,17 @@ library-process-boundary-check:
 
 release-guards-check:
 	bash scripts/ci/check-release-guards.sh
+
+release-batch-check:
+	bash scripts/ci/test-release-batch.sh
+
+.PHONY: release-candidate-setup
+release-candidate-setup:
+	+@case "$(RELEASE_SETUP_MODE)" in \
+		prepare) $(MAKE) --no-print-directory install-host-tools ;; \
+		check) $(MAKE) --no-print-directory host-tools-check ;; \
+		*) echo 'Select frozen candidate setup mode prepare or check' >&2; exit 2 ;; \
+	esac
 
 release-validation-check:
 	bash scripts/ci/check-release-validation.sh
@@ -249,7 +280,7 @@ compiler-check:
 	bash scripts/ci/check-rust-compiler.sh
 
 candid-boundary-check:
-	perl "$(REPO_ROOT)scripts/ci/check-candid-boundary.pl" "$(REPO_ROOT)" ci/candid-boundary.json crates
+	perl "$(REPO_ROOT)scripts/ci/check-candid-boundary.pl" --cbor "$(REPO_ROOT)" ci/candid-boundary.json crates
 
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline

@@ -4,6 +4,8 @@ Query adopts Shared Tooling 0.29.3's [group plans](release-group-validation.md)
 and [roster, baseline and evidence interfaces](group-validation-adoption.md).
 The existing release runner still owns source admission, metadata preparation,
 Git effects and recovery. Publication order and archive admission are unchanged.
+The [frozen delivery adapter](release-workflow.md) captures the complete selected
+group roster once; each group's validation runs against its managed checkout.
 
 ## One roster, complete product coverage
 
@@ -62,7 +64,7 @@ native canister lanes. Source/index, publication and recovery admission remain
 owned by their existing adapters.
 
 Both groups also omit the unchanged `ci-scripts-check`,
-`publish-guards-check` and `release-guards-check` automation regressions.
+`publish-guards-check`, `release-guards-check` and `release-batch-check` automation regressions.
 Repository-wide CI retains every stage. New stages default to required; unknown
 exclusion targets or groups refuse rather than silently dropping an obligation.
 
