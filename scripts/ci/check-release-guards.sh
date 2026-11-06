@@ -29,6 +29,7 @@ REAL_MAKE="$(command -v make)"
 REAL_GIT="$(command -v git)"
 REAL_CARGO="$(command -v cargo)"
 YQ="${YQ:-$repo_root/.tools/host/bin/yq}"
+export FIXTURE_HOST_YQ="$YQ"
 fixture_native_path="$PATH"
 mkdir -p "$work_dir/bin"
 cat > "$work_dir/bin/git" <<'STUB'
@@ -202,7 +203,7 @@ cat > "$work_dir/bin/cargo" <<'STUB'
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ "$1" == locate-project ]]; then exec "$REAL_CARGO" "$@"; fi
-if [[ "$*" != 'metadata --locked --offline --format-version 1' ]]; then printf 'cargo %s\n' "$*" >> events; fi
+if [[ "$1" != metadata ]]; then printf 'cargo %s\n' "$*" >> events; fi
 case "$*" in
   'fetch --locked'|'fetch --locked --offline') [[ "${FIXTURE_MISSING_DEPENDENCY:-}" != yes ]] || exit 43 ;;
   'sort --version'|'fmt --version')
@@ -215,8 +216,7 @@ case "$*" in
       echo rustfmt
     fi ;;
   'sort --workspace --grouped --check') [[ "${FIXTURE_MANIFEST_ORDER_FAILURE:-}" != yes ]] || exit 79 ;;
-  'metadata --locked --offline --no-deps --format-version 1') printf '{}\n' ;;
-  'metadata --locked --offline --format-version 1')
+  'metadata --locked --offline --no-deps --format-version 1'|'metadata --locked --offline --format-version 1')
     packages='[]'
     for package in ic-query ic-query-testkit ic-query-cli ic-query-text; do
       version="$("$YQ" -p toml -o json -r '.package.version' "crates/$package/Cargo.toml")"
@@ -301,6 +301,8 @@ new_fixture() {
   cd "$work_dir/$name"
   bash "$repo_root/scripts/ci/prepare-script-fixture.sh" "$repo_root" "$PWD" \
     Makefile scripts/release/adapter.sh scripts/ci/check-changelog-version.sh scripts/ci/cargo-release-group.sh
+  # This file-backed suite substitutes setup; the batch suite owns real selections.
+  printf '\noverride YQ := $(FIXTURE_HOST_YQ)\n' >> Makefile
   cp "$work_dir/install-rust-tools.sh" scripts/dev/
   # Runner recovery effects are simulated here; the real plan/custody boundary
   # is qualified separately by check-release-validation.sh.

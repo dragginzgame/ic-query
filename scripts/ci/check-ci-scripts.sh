@@ -381,7 +381,10 @@ cp "$version_case/Cargo.toml" "$version_case/original.toml"
 cat > "$version_case/bin/cargo" <<'EOF_CARGO'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$*" == 'metadata --locked --offline --format-version 1' ]] || { echo cargo-effect >> "$VERSION_EFFECTS"; exit 43; }
+case "$*" in
+  'metadata --locked --offline --format-version 1'|'metadata --locked --offline --no-deps --format-version 1') ;;
+  *) echo cargo-effect >> "$VERSION_EFFECTS"; exit 43 ;;
+esac
 [[ "$CARGO_NET_OFFLINE" == true && "$RUSTUP_AUTO_INSTALL" == 0 ]] || exit 53
 [[ "$FAIL_VERSION_CARGO" != yes ]] || { printf '{}\n'; exit 52; }
 exec "$VERSION_REAL_CARGO" "$@"
@@ -409,7 +412,8 @@ for failure in cargo parser malformed missing-group unknown-group; do
   [[ "$failure" != missing-group ]] || selected_group=''
   [[ "$failure" != unknown-group ]] || selected_group=unknown
   for boundary in make tag publish preflight; do
-    if (
+    version_status=0
+    (
       cd "$version_case"
       export VERSION_REAL_CARGO VERSION_EFFECTS FAIL_VERSION_CARGO YQ RELEASE_GROUP
       VERSION_REAL_CARGO="$(command -v cargo)"
@@ -425,9 +429,13 @@ for failure in cargo parser malformed missing-group unknown-group; do
         preflight) PATH="$version_fake_path" RELEASE_PREVIOUS=0.1.2 RELEASE_VERSION=0.1.3 RELEASE_DATE=2026-10-06 \
           perl "$repo_root/scripts/release/metadata.pl" preflight ;;
       esac
-    ) > "$version_case/stdout" 2> "$version_case/stderr"; then
-      fail "$boundary accepted failed $failure group admission"
+    ) > "$version_case/stdout" 2> "$version_case/stderr" || version_status=$?
+    if [[ "$boundary" == make && "$failure" == parser ]]; then
+      [[ "$version_status" == 0 && "$(cat "$version_case/stdout")" == 0.1.2 && ! -e "$version_case/effects" ]] \
+        || fail 'bootstrap version lookup required the full-admission parser or reached effects'
+      continue
     fi
+    [[ "$version_status" != 0 ]] || fail "$boundary accepted failed $failure group admission"
     [[ ! -s "$version_case/stdout" && ! -e "$version_case/effects" ]] \
       || fail "$boundary emitted an accepted version or reached effects after failed $failure admission"
   done
