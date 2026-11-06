@@ -2,7 +2,7 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
     NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION, NnsDataCenterInfoReport, NnsDataCenterListReport,
-    NnsInventoryError, NnsInventoryInfoRequest, NnsInventoryListRequest,
+    NnsDataCenterRow, NnsInventoryError, NnsInventoryInfoRequest, NnsInventoryListRequest,
 };
 use crate::nns::{
     LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
@@ -52,27 +52,25 @@ pub async fn build_nns_data_center_info_report_with_source_and_progress(
     source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsDataCenterInfoReport, NnsInventoryError> {
-    let list_request = request.to_list_request();
-    let mut report =
-        build_nns_data_center_list_report_with_source_and_progress(&list_request, source, progress)
-            .await?;
-    let (index, resolved_from) = resolve_data_center(&report, &request.input)?;
-    let data_center = report.data_centers.swap_remove(index);
+    let mut snapshot =
+        load_or_refresh_nns_inventory_report(&request.to_list_request(), source, progress).await?;
+    let (index, resolved_from) = resolve_data_center(&snapshot.data_centers, &request.input)?;
+    let data_center = snapshot.data_centers.swap_remove(index);
     Ok(NnsDataCenterInfoReport {
         schema_version: NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),
         resolved_from,
-        provenance: report.provenance,
+        provenance: snapshot.provenance,
         data_center,
     })
 }
 
 pub(super) fn resolve_data_center(
-    report: &NnsDataCenterListReport,
+    rows: &[NnsDataCenterRow],
     input: &str,
 ) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
-        &report.data_centers,
+        rows,
         |row| row.data_center_id.as_str(),
         input,
         NnsInventoryInputKind::Text,

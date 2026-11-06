@@ -12,4 +12,6 @@ pub(super) use options::NnsLeafInfoOptions;
 pub(super) use options::{
     NnsCommonOptions, NnsLeafListOptions, NnsLeafRefreshOptions, NnsPagedRefreshOptions,
 };
-pub(super) use run::{run_cached_leaf_info, run_cached_leaf_list, run_cached_leaf_refresh};
+pub(super) use run::{
+    run_cached_leaf, run_cached_leaf_info, run_cached_leaf_list, run_cached_leaf_refresh,
+};

@@ -5,7 +5,7 @@
 //! Boundary: exposes one bounded page and one exact release lookup to the IC CLI facade.
 
 use super::IcCommandError;
-use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::clap::{parsed_options, with_source_options};
 use crate::cli::common::OutputFormat;
 use crate::cli::common::{
     COLLECTION_MODE_LIVE, collection_help, current_unix_secs, write_text_or_json,
@@ -90,15 +90,13 @@ pub(super) struct ReplicaInfoOptions {
 }
 
 fn info_command() -> ClapCommand {
-    with_options::<ReplicaInfoOptions>(
+    with_source_options::<ReplicaInfoOptions>(
         ClapCommand::new("info")
             .about("Show one exact Dashboard replica release record")
             .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        "Official IC Dashboard API v3 base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v3 base endpoint")
-    })
 }
 
 ///
@@ -131,15 +129,13 @@ pub(super) struct ReplicaListOptions {
 }
 
 fn list_command() -> ClapCommand {
-    with_options::<ReplicaListOptions>(
+    with_source_options::<ReplicaListOptions>(
         ClapCommand::new("list")
             .about("Show one bounded Dashboard replica release page")
             .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER)),
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        "Official IC Dashboard API v3 base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v3 base endpoint")
-    })
 }
 
 fn info_request(

@@ -5,7 +5,7 @@
 //! Boundary: exposes one complete live state-tree collection to the IC CLI facade.
 
 use super::IcCommandError;
-use crate::cli::clap::with_options;
+use crate::cli::clap::with_source_options;
 use crate::cli::common::{
     COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
     write_text_or_json,
@@ -53,15 +53,13 @@ pub(super) fn command() -> ClapCommand {
 }
 
 fn list_command() -> ClapCommand {
-    with_options::<crate::cli::common::SourceOutputOptions>(
+    with_source_options::<crate::cli::common::SourceOutputOptions>(
         ClapCommand::new("list")
             .about("List the complete certified API boundary-node state tree")
             .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER)),
+        DEFAULT_IC_STATE_SOURCE_ENDPOINT,
+        "Mainnet IC API endpoint used for certified read_state",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_STATE_SOURCE_ENDPOINT)
-            .help("Mainnet IC API endpoint used for certified read_state")
-    })
 }
 
 #[cfg(test)]

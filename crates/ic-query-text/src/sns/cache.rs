@@ -27,11 +27,11 @@ pub fn sns_neurons_cache_status_report_text(report: &SnsCacheStatusReport) -> St
 }
 
 fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
-    let mut lines = vec![
-        field("network", &report.network),
-        field("cache_root", &report.cache_root),
-        field("cache_count", &report.caches.len()),
-    ];
+    let mut lines = Vec::from(crate::text_value::report_fields!(report;
+        network,
+        cache_root,
+        cache_count = report.caches.len(),
+    ));
     if !report.caches.is_empty() {
         lines.push(String::new());
         lines.push(table(

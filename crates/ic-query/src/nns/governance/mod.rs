@@ -2,7 +2,7 @@
 
 mod build;
 mod continuation;
-pub(in crate::nns) use continuation::GovernanceCollectionState;
+pub(in crate::nns) use continuation::{GovernanceCollectionState, governance_collection_accessors};
 #[cfg(feature = "nns-host")]
 pub(super) mod collection;
 mod error;
@@ -27,8 +27,9 @@ pub use build::{
 #[cfg(feature = "nns-host")]
 pub(super) use collection::{
     NnsGovernanceAttemptReadError, NnsGovernanceCacheMetadata,
-    build_governance_cache_status_report, run_governance_snapshot_refresh,
-    validate_governance_cache_metadata, write_running_governance_refresh_attempt,
+    build_governance_cache_status_report, governance_refresh_bookkeeping,
+    run_governance_snapshot_refresh, validate_governance_cache_metadata,
+    write_running_governance_refresh_attempt,
 };
 #[cfg(feature = "nns-host")]
 pub use collection::{

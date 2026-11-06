@@ -43,21 +43,7 @@ async fn fetch_topology_inventory_reports(
     let node_provider =
         crate::nns::node_provider::node_provider_report_from_snapshot(&snapshot, metadata);
     Ok(TopologyInventoryReports {
-        node: crate::nns::node::NnsNodeListReport {
-            schema_version: 1,
-            provenance: snapshot.provenance.clone(),
-            nodes: snapshot.nodes,
-        },
-        node_operator: crate::nns::node_operator::NnsNodeOperatorListReport {
-            schema_version: 1,
-            provenance: snapshot.provenance.clone(),
-            node_operators: snapshot.node_operators,
-        },
-        data_center: crate::nns::data_center::NnsDataCenterListReport {
-            schema_version: 1,
-            provenance: snapshot.provenance,
-            data_centers: snapshot.data_centers,
-        },
+        registry: snapshot,
         node_provider,
     })
 }

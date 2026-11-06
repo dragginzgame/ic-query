@@ -7,6 +7,21 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.93.2]
+
+### 🧹 Cleanup
+
+- Reuse scalar report rendering, JSON display conversion, inventory dispatch and
+  typed endpoint setup.
+  Keep commands, help, validation, text/JSON output and cache behavior unchanged.
+  [Details](0.93.md).
+- Share topology count-table construction while preserving headers, row order,
+  alignment and terminal escaping. [Details](0.93.md).
+- Limit selected CLI/Text lint and archives to their own packages against real
+  Query dependencies. Remove the duplicate native check after Clippy while
+  preserving feature/Wasm and archive checks. Full CI and unqualified release
+  hosts retain the complete gate. [Details](0.93.md).
+
 ## [0.93.1] - 2026-11-06
 
 ### 🧹 Cleanup

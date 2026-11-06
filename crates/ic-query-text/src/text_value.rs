@@ -24,6 +24,14 @@ pub const REPORT_TABLE_OPTIONS: Options = Options {
     header_separator: true,
 };
 
+pub fn json_scalar_text(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::Null => "-".to_string(),
+        serde_json::Value::String(value) => value.clone(),
+        _ => value.to_string(),
+    }
+}
+
 pub fn text_or_dash(value: &str) -> String {
     if value.is_empty() {
         "-".to_string()

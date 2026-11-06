@@ -14,6 +14,8 @@ mod canister;
 #[cfg(feature = "nns-host")]
 mod host;
 
+use crate::report::ReportProvenance;
+
 use super::{
     NNS_NEURON_INFO_REPORT_SCHEMA_VERSION, NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
     NNS_NEURON_MAX_PAGE_SIZE, NnsNeuronError,
@@ -99,10 +101,8 @@ pub async fn build_nns_neuron_list_report_with_source(
     )?;
     Ok(list_report_from_rows(
         request,
-        NnsNeuronReportProvenance::live(NnsGovernanceReportContext::from_source(
-            &request.governance,
-            data.provenance,
-        )),
+        NnsGovernanceReportContext::from_source(&request.governance, data.provenance),
+        ReportProvenance::live(),
         data.value.neurons,
         data.value.next_start_neuron_id,
         None,
@@ -129,10 +129,8 @@ pub async fn build_nns_neuron_info_report_with_source(
     }
     validate_neuron_rows(std::slice::from_ref(&data.value))?;
     Ok(info_report_from_row(
-        NnsNeuronReportProvenance::live(NnsGovernanceReportContext::from_source(
-            &request.governance,
-            data.provenance,
-        )),
+        NnsGovernanceReportContext::from_source(&request.governance, data.provenance),
+        ReportProvenance::live(),
         data.value,
     ))
 }
@@ -169,30 +167,10 @@ pub trait NnsNeuronSource: Send + Sync {
     ) -> NnsNeuronSourceFuture<'a, NnsNeuronRow>;
 }
 
-///
-/// NnsNeuronReportProvenance
-///
-/// Shared live or cached provenance used while assembling neuron reports.
-///
-
-#[derive(Clone)]
-pub(super) struct NnsNeuronReportProvenance {
-    pub(super) context: NnsGovernanceReportContext,
-    pub(super) cache_path: Option<String>,
-}
-
-impl NnsNeuronReportProvenance {
-    const fn live(context: NnsGovernanceReportContext) -> Self {
-        Self {
-            context,
-            cache_path: None,
-        }
-    }
-}
-
 pub(super) fn list_report_from_rows(
     request: &NnsNeuronListRequest,
-    provenance: NnsNeuronReportProvenance,
+    context: NnsGovernanceReportContext,
+    provenance: ReportProvenance,
     neurons: Vec<NnsNeuronRow>,
     next_start_neuron_id: Option<u64>,
     total_neuron_count: Option<usize>,
@@ -200,13 +178,9 @@ pub(super) fn list_report_from_rows(
     NnsNeuronListReport {
         context: NnsGovernanceReportContext {
             schema_version: NNS_NEURON_LIST_REPORT_SCHEMA_VERSION,
-            ..provenance.context
+            ..context
         },
-        provenance: provenance
-            .cache_path
-            .map_or(crate::report::ReportProvenance::Live, |cache_path| {
-                crate::report::ReportProvenance::Cache { cache_path }
-            }),
+        provenance,
         requested_limit: request.limit,
         exclusive_start_neuron_id: request.exclusive_start_neuron_id,
         next_start_neuron_id,
@@ -218,19 +192,16 @@ pub(super) fn list_report_from_rows(
 }
 
 pub(super) fn info_report_from_row(
-    provenance: NnsNeuronReportProvenance,
+    context: NnsGovernanceReportContext,
+    provenance: ReportProvenance,
     neuron: NnsNeuronRow,
 ) -> NnsNeuronInfoReport {
     NnsNeuronInfoReport {
         context: NnsGovernanceReportContext {
             schema_version: NNS_NEURON_INFO_REPORT_SCHEMA_VERSION,
-            ..provenance.context
+            ..context
         },
-        provenance: provenance
-            .cache_path
-            .map_or(crate::report::ReportProvenance::Live, |cache_path| {
-                crate::report::ReportProvenance::Cache { cache_path }
-            }),
+        provenance,
         neuron,
     }
 }

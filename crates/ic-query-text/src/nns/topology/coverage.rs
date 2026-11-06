@@ -4,10 +4,7 @@
 //! Does not own: coverage report construction, cache loading, or JSON output.
 //! Boundary: formats coverage count and join-coverage tables for humans.
 
-use crate::text_value::table;
-use ic_host_text::table::Alignment;
-
-use crate::nns::topology::common::render_join_coverage_table;
+use crate::nns::topology::common::{render_join_coverage_table, render_value_table};
 use ic_query::nns::topology::NnsTopologyCoverageReport;
 
 #[must_use]
@@ -22,23 +19,14 @@ pub fn nns_topology_coverage_report_text(report: &NnsTopologyCoverageReport) -> 
 }
 
 fn render_coverage_count_table(report: &NnsTopologyCoverageReport) -> String {
-    let headers = ["FIELD", "VALUE"];
-    let rows = [
-        ["network".to_string(), report.network.clone()],
-        ["nodes".to_string(), report.node_count.to_string()],
+    render_value_table(
+        ["FIELD", "VALUE"],
         [
-            "node_operators".to_string(),
-            report.node_operator_count.to_string(),
+            ("network", report.network.clone()),
+            ("nodes", report.node_count.to_string()),
+            ("node_operators", report.node_operator_count.to_string()),
+            ("node_providers", report.node_provider_count.to_string()),
+            ("data_centers", report.data_center_count.to_string()),
         ],
-        [
-            "node_providers".to_string(),
-            report.node_provider_count.to_string(),
-        ],
-        [
-            "data_centers".to_string(),
-            report.data_center_count.to_string(),
-        ],
-    ];
-    let alignments = [Alignment::Left, Alignment::Right];
-    table(&headers, &rows, &alignments)
+    )
 }

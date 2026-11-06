@@ -11,7 +11,8 @@
 	release-version release-preflight release-verify release-prepare-version \
 	release-prepared-check release-files release-commit-check release-committed-check \
 	release-tagged-check release-push-check release-tag-check \
-	schema-version-check tags test query-test cli-test type-docs-check version
+	schema-version-check tags test query-test cli-test type-docs-check version \
+	query-clippy cli-clippy query-package cli-package
 
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -95,11 +96,14 @@ help:
 	@echo "  schema-version-check  Keep every active pre-1.0 schema identifier at 1"
 	@echo "  check      Run cargo check with locked/offline dependencies"
 	@echo "  clippy     Run clippy with warnings denied"
+	@echo "  query-clippy  Lint Query and private Testkit only"
+	@echo "  cli-clippy    Lint CLI/Text against Query dependencies"
 	@echo "  test       Run all tests with locked dependencies"
 	@echo "  query-test Run Query and private Testkit tests (locked/offline)"
 	@echo "  cli-test   Run CLI/Text tests with real Query integration (locked/offline)"
 	@echo "  compiler-check  Admit and record the declared Cargo/rustc versions"
 	@echo "  package    Build a publishable crate tarball"
+	@echo "  query-package / cli-package  Verify only the selected group's archives"
 	@echo "  ci         Run the local push gate"
 	@echo "  install    Install the local icq binary"
 	@echo "  install-dependency-tools  Install pinned Cargo Audit and Cargo Machete"
@@ -225,6 +229,13 @@ clippy:
 	cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings
 	cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings
 
+query-clippy:
+	cargo clippy -p ic-query --all-targets --no-default-features --locked --offline -- -D warnings
+	cargo clippy -p ic-query -p ic-query-testkit --all-targets --all-features --locked --offline -- -D warnings
+
+cli-clippy:
+	cargo clippy -p ic-query-cli -p ic-query-text --all-targets --all-features --locked --offline -- -D warnings
+
 test:
 	cargo test --workspace --all-targets --all-features --locked --offline
 
@@ -242,6 +253,12 @@ candid-boundary-check:
 
 package: ensure-clean
 	bash scripts/ci/package-workspace.sh --offline
+
+query-package: ensure-clean
+	bash scripts/ci/package-workspace.sh --group query --offline
+
+cli-package: ensure-clean
+	bash scripts/ci/package-workspace.sh --group cli --offline
 
 ci:
 	+@bash "$(REPO_ROOT)scripts/ci/run-ci.sh" $(foreach input,$(CI_INPUTS),--input "$(input)")

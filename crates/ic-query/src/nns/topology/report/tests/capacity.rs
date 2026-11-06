@@ -3,10 +3,10 @@ use super::*;
 
 #[test]
 fn topology_capacity_report_summarizes_operator_allowance() {
-    let report = topology_capacity_report_from_report(
+    let report = topology_capacity_report_from_rows(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        node_operator_report_fixture(),
+        node_operator_report_fixture().node_operators,
     );
 
     assert_eq!(report.schema_version, 1);
@@ -46,10 +46,10 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
     })
     .collect();
 
-    let report = topology_capacity_report_from_report(
+    let report = topology_capacity_report_from_rows(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        operators,
+        operators.node_operators,
     );
 
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Attention);
@@ -77,10 +77,10 @@ fn topology_capacity_keeps_unknown_counts_and_operator_local_totals() {
     let mut empty = node_operator_report_fixture();
     empty.node_operators.clear();
 
-    let report = topology_capacity_report_from_report(
+    let report = topology_capacity_report_from_rows(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        empty,
+        empty.node_operators,
     );
     assert_eq!(report.status, NnsTopologyAssessmentStatus::Ok);
     assert_eq!(report.capacity, []);

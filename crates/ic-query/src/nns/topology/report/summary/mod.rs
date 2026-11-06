@@ -32,7 +32,7 @@ pub(super) fn topology_summary_report_from_reports(
         cloud_engine_node_count,
         system_node_count,
         unknown_node_count,
-    ] = count_subnet_kinds(reports.node.nodes.iter().map(|node| node.subnet_kind));
+    ] = count_subnet_kinds(reports.registry.nodes.iter().map(|node| node.subnet_kind));
     let routing_range_count = subnet_report
         .subnets
         .iter()
@@ -51,14 +51,14 @@ pub(super) fn topology_summary_report_from_reports(
         system_subnet_count,
         unknown_subnet_count,
         routing_range_count,
-        node_count: reports.node.nodes.len(),
+        node_count: reports.registry.nodes.len(),
         application_node_count,
         cloud_engine_node_count,
         system_node_count,
         unknown_node_count,
         node_provider_count: reports.node_provider.node_providers.len(),
-        node_operator_count: reports.node_operator.node_operators.len(),
-        data_center_count: reports.data_center.data_centers.len(),
+        node_operator_count: reports.registry.node_operators.len(),
+        data_center_count: reports.registry.data_centers.len(),
         join_coverage: coverage,
         subnet_catalog_stale: subnet_report.catalog_stale,
         subnet_catalog_stale_reason: subnet_report.stale_reason,

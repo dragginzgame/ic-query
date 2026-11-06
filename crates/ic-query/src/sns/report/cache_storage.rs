@@ -21,7 +21,7 @@ use crate::{
         enforce_mainnet_network,
     },
 };
-use serde::{Deserialize as SerdeDeserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize as SerdeDeserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 pub(in crate::sns::report) const SNS_CACHE_SCAN_MAXIMUM_BYTES: u64 = 1024 * 1024 * 1024;
@@ -37,41 +37,13 @@ pub(in crate::sns::report) const fn sns_cache_scan_limit_exceeded(error: &SnsHos
 }
 
 ///
-/// SnsCacheStorageFamily
-///
-/// Schema and missing-cache contract owned by one SNS snapshot collection.
-///
-
-pub(in crate::sns::report) trait SnsCacheStorageFamily {
-    const COLLECTION: &'static str;
-
-    type Data: DeserializeOwned + Serialize;
-
-    const CACHE_SCHEMA_VERSION: u32;
-
-    const CACHE_ITEM_NAME: &'static str;
-
-    fn missing_cache_error(path: PathBuf) -> SnsHostError;
-    fn row_count(data: &Self::Data) -> usize;
-    fn validate_rows(data: &Self::Data) -> Result<(), String>;
-}
-
-///
 /// SnsStoredCache
 ///
-/// Complete stored snapshot type associated with one SNS cache family.
+/// Complete stored SNS neuron snapshot.
 ///
 
-pub(in crate::sns::report) type SnsStoredCache<Family> =
-    SnapshotEnvelope<SnsCacheMetadata, <Family as SnsCacheStorageFamily>::Data>;
-
-///
-/// SnsStoredCacheWithPath
-///
-/// Loaded SNS snapshot paired with its concrete complete-cache path.
-///
-
-pub(in crate::sns::report) type SnsStoredCacheWithPath<Family> = (PathBuf, SnsStoredCache<Family>);
+pub(in crate::sns::report) type SnsStoredCache =
+    SnapshotEnvelope<SnsCacheMetadata, super::neurons_cache::model::SnsNeuronsCacheRows>;
 
 ///
 /// SnsCacheMetadata
@@ -86,34 +58,27 @@ pub(in crate::sns::report) struct SnsCacheMetadata {
 }
 
 /// Collect complete SNS snapshot paths for one cache collection.
-pub(in crate::sns::report) fn collect_sns_cache_paths<Family>(
+pub(in crate::sns::report) fn collect_sns_cache_paths(
     cache_root: &Path,
     network: &str,
-) -> Result<Vec<PathBuf>, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
+) -> Result<Vec<PathBuf>, SnsHostError> {
     let root = sns_snapshot_network_cache_dir(cache_root, network);
-    collect_full_collection_snapshot_paths(cache_root, &root, Family::COLLECTION).map_err(
-        |source| SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source)),
-    )
+    collect_full_collection_snapshot_paths(cache_root, &root, "neurons").map_err(|source| {
+        SnsHostError::from(HostCacheError::operation(SNS_CACHE_COMPONENT, source))
+    })
 }
 
 /// Load one complete SNS cache by root canister principal.
-pub(in crate::sns::report) fn load_sns_cache_for_governance<Family>(
+pub(in crate::sns::report) fn load_sns_cache_for_governance(
     cache_root: &Path,
     network: &str,
     governance_canister_id: &str,
-) -> Result<SnsStoredCacheWithPath<Family>, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
+) -> Result<(PathBuf, SnsStoredCache), SnsHostError> {
     enforce_mainnet_network(network)?;
     let governance_canister_id =
         super::target::parse_governance_canister_input(governance_canister_id)?;
-    let path = sns_snapshot_cache_paths::<Family>(cache_root, network, &governance_canister_id)
-        .snapshot_path;
-    let cache = load_sns_cache_at::<Family>(cache_root, path.clone(), network, None, None)?;
+    let path = sns_snapshot_cache_paths(cache_root, network, &governance_canister_id).snapshot_path;
+    let cache = load_sns_cache_at(cache_root, path.clone(), network, None, None)?;
     Ok((path, cache))
 }
 
@@ -122,61 +87,50 @@ where
     clippy::needless_pass_by_value,
     reason = "Consumes the selected path as part of snapshot admission and owned error projection."
 )]
-pub(in crate::sns::report) fn load_sns_cache_at<Family>(
+pub(in crate::sns::report) fn load_sns_cache_at(
     cache_root: &Path,
     path: PathBuf,
     network: &str,
     budget: Option<&mut ManagedReadBudget>,
     opened_file: Option<std::fs::File>,
-) -> Result<SnsStoredCache<Family>, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
-    let key = sns_snapshot_key_for_cache_path::<Family>(network, &path);
+) -> Result<SnsStoredCache, SnsHostError> {
+    let key = sns_snapshot_key_for_cache_path(network, &path);
     let cache = load_complete_snapshot_for_key(
         LoadJsonCacheRequest {
             component: SNS_CACHE_COMPONENT,
             cache_root,
             path: path.clone(),
             network,
-            expected_schema_version: Family::CACHE_SCHEMA_VERSION,
+            expected_schema_version: super::neurons_cache::SNS_NEURONS_CACHE_SCHEMA_VERSION,
             maximum_bytes: crate::cache_file::MAX_COLLECTION_SNAPSHOT_BYTES,
         },
         budget,
         &key,
-        Family::missing_cache_error,
+        |path| SnsHostError::MissingNeuronsCache { path },
         |completeness| SnsHostError::IncompleteRefresh {
             pages_fetched: completeness.page_count,
             rows_fetched: completeness.row_count,
-            reason: format!("cached SNS {} snapshot is not complete", Family::COLLECTION),
+            reason: "cached SNS neurons snapshot is not complete".to_string(),
         },
         |mismatch| sns_identity_mismatch_error(path.clone(), mismatch),
         opened_file,
     )?;
-    validate_sns_cache::<Family>(&path, &cache)?;
+    validate_sns_cache(&path, &cache)?;
     Ok(cache)
 }
 
-fn validate_sns_cache<Family>(
-    path: &Path,
-    cache: &SnsStoredCache<Family>,
-) -> Result<(), SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
-    validate_cache_collection_completeness(&cache.completeness, Family::row_count(&cache.data))
+fn validate_sns_cache(path: &Path, cache: &SnsStoredCache) -> Result<(), SnsHostError> {
+    validate_cache_collection_completeness(&cache.completeness, cache.data.neurons.len())
         .map_err(|reason| invalid_sns_cache_error(path, reason))?;
     if cache.completeness.point_in_time_guaranteed {
         return Err(invalid_sns_cache_error(
             path,
-            format!(
-                "SNS Governance {} pagination cannot claim a point-in-time guarantee",
-                Family::CACHE_ITEM_NAME
-            ),
+            "SNS Governance neuron pagination cannot claim a point-in-time guarantee".to_string(),
         ));
     }
     validate_sns_cache_metadata(path, &cache.metadata, &cache.entity)?;
-    Family::validate_rows(&cache.data).map_err(|reason| invalid_sns_cache_error(path, reason))
+    super::source::validate_sns_neuron_rows(&cache.data.neurons)
+        .map_err(|reason| invalid_sns_cache_error(path, reason))
 }
 
 fn validate_sns_cache_metadata(

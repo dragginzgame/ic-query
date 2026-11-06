@@ -32,18 +32,22 @@ pub(in crate::sns::report) fn resolve_neuron_target(
 pub(in crate::sns::report) fn parse_governance_canister_input(
     input: &str,
 ) -> Result<String, SnsHostError> {
+    validate_sns_principal("governance_canister_id", input)?;
+    Ok(input.to_string())
+}
+
+pub(in crate::sns::report) fn validate_sns_principal(
+    field: &'static str,
+    input: &str,
+) -> Result<(), SnsHostError> {
     crate::principal_text::validate_canonical(
         input,
-        |reason| SnsHostError::InvalidPrincipal {
-            field: "governance_canister_id",
-            reason,
-        },
+        |reason| SnsHostError::InvalidPrincipal { field, reason },
         |_| SnsHostError::InvalidPrincipal {
-            field: "governance_canister_id",
+            field,
             reason: "expected canonical principal text".to_string(),
         },
-    )?;
-    Ok(input.to_string())
+    )
 }
 pub(in crate::sns::report) const fn validate_sns_refresh_page_size(
     page_size: u32,

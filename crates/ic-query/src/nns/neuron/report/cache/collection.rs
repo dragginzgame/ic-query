@@ -9,7 +9,7 @@ use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::{NnsGovernanceRequest, write_running_governance_refresh_attempt},
+        governance::{NnsGovernanceRequest, governance_refresh_bookkeeping},
         neuron::report::{
             NNS_NEURON_FETCHED_BY, NnsNeuronHostError,
             collection::{NnsNeuronCollectionState, advance_nns_neuron_collection_with_source},
@@ -66,28 +66,12 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
     type Complete = (NnsNeuronCacheRows, SnapshotRefreshProgress);
     type Error = NnsNeuronHostError;
 
-    fn progress(&self) -> crate::PagedQueryProgress {
-        crate::PagedQueryProgress {
-            collection: crate::QueryProgressCollection::NnsNeurons,
-            target: None,
-            pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.neurons.len(),
-        }
-    }
-
-    fn max_pages_reached(&self) -> bool {
-        self.request
-            .max_pages
-            .is_some_and(|max_pages| self.collection_state.pages_fetched() >= max_pages)
-    }
-
-    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        NnsNeuronHostError::IncompleteRefresh {
-            pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.neurons.len(),
-            reason: reason.to_string(),
-        }
-    }
+    governance_refresh_bookkeeping!(
+        NnsNeurons,
+        NNS_NEURON_CACHE_COMPONENT,
+        neurons,
+        next_start_neuron_id
+    );
 
     fn fetch_next_page(
         &mut self,
@@ -107,22 +91,6 @@ impl PagedSnapshotRefresh for NeuronRefreshPages<'_> {
                 self.collection_state.is_complete(),
             ))
         })
-    }
-
-    fn write_running_attempt(&self) -> Result<(), Self::Error> {
-        write_running_governance_refresh_attempt(
-            self.attempt_path,
-            self.request,
-            NNS_NEURON_CACHE_COMPONENT,
-            SnapshotRefreshProgress::new(
-                self.collection_state.pages_fetched(),
-                self.neurons.len(),
-                self.collection_state
-                    .next_start_neuron_id()
-                    .map(|cursor| cursor.to_string()),
-            ),
-        )
-        .map_err(NnsNeuronHostError::from)
     }
 
     fn into_complete(self) -> Self::Complete {

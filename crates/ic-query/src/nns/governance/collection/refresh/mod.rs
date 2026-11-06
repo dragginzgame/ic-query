@@ -20,6 +20,52 @@ use ic_host_text::timestamp::format_utc_timestamp_secs;
 use serde::Serialize;
 use std::fmt::Display;
 
+// Both NNS collectors retain their own paging state and rows. Only their
+// progress, bounds and attempt-sidecar projections are mechanically identical.
+macro_rules! governance_refresh_bookkeeping {
+    ($collection:ident, $component:ident, $rows:ident, $cursor:ident) => {
+        fn progress(&self) -> $crate::PagedQueryProgress {
+            $crate::PagedQueryProgress {
+                collection: $crate::QueryProgressCollection::$collection,
+                target: None,
+                pages_fetched: self.collection_state.pages_fetched(),
+                rows_fetched: self.$rows.len(),
+            }
+        }
+
+        fn max_pages_reached(&self) -> bool {
+            self.request
+                .max_pages
+                .is_some_and(|maximum| self.collection_state.pages_fetched() >= maximum)
+        }
+
+        fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
+            Self::Error::IncompleteRefresh {
+                pages_fetched: self.collection_state.pages_fetched(),
+                rows_fetched: self.$rows.len(),
+                reason: reason.to_string(),
+            }
+        }
+
+        fn write_running_attempt(&self) -> Result<(), Self::Error> {
+            $crate::nns::governance::write_running_governance_refresh_attempt(
+                self.attempt_path,
+                self.request,
+                $component,
+                $crate::snapshot_cache::SnapshotRefreshProgress::new(
+                    self.collection_state.pages_fetched(),
+                    self.$rows.len(),
+                    self.collection_state
+                        .$cursor()
+                        .map(|cursor| cursor.to_string()),
+                ),
+            )
+            .map_err(Self::Error::from)
+        }
+    };
+}
+pub(in crate::nns) use governance_refresh_bookkeeping;
+
 ///
 /// GovernanceSnapshotRefreshContext
 ///

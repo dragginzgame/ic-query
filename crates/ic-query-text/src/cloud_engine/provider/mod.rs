@@ -4,7 +4,6 @@
 //! Does not own: JSON serialization, source validation, live calls, or process output.
 //! Boundary: separates Dashboard provenance from provider and location tables.
 
-use crate::text_value::field;
 use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
@@ -20,13 +19,10 @@ use ic_query::cloud_engine::CloudEngineProviderLocation;
 #[must_use]
 pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field(
-            "source_node_provider_count",
-            &(report.source_node_provider_count),
-        ),
-        field("cloud_engine_provider_count", &(report.providers.len())),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        source_node_provider_count,
+        cloud_engine_provider_count = report.providers.len(),
+    ));
     if !report.providers.is_empty() {
         let rows = report
             .providers
@@ -72,35 +68,23 @@ pub fn cloud_engine_provider_list_report_text(report: &CloudEngineProviderListRe
 pub fn cloud_engine_provider_info_report_text(report: &CloudEngineProviderInfoReport) -> String {
     let provider = &report.provider;
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field(
-            "cloud_engine_evidence_present",
-            &(yes_no(report.cloud_engine_evidence_present)),
-        ),
-        field("node_provider_id", &(provider.principal_id)),
-        field("display_name", &provider.display_name),
-        field("website", &(optional_text(provider.website.as_ref()))),
-        field("logo_url", &(optional_text(provider.logo_url.as_ref()))),
-        field("total_cloud_engines", &(provider.total_cloud_engines)),
-        field(
-            "total_cloud_engine_nodes",
-            &(provider.total_cloud_engine_nodes),
-        ),
-        field(
-            "total_cloud_engine_unassigned_nodes",
-            &(provider.total_cloud_engine_unassigned_nodes),
-        ),
-        field(
-            "cloud_engine_location_count",
-            &(provider.cloud_engine_location_count),
-        ),
-        field("total_nodes", &(provider.total_nodes)),
-        field("total_unassigned_nodes", &(provider.total_unassigned_nodes)),
-        field("total_rewardable_nodes", &(provider.total_rewardable_nodes)),
-        field("total_node_allowance", &(provider.total_node_allowance)),
-        field("total_subnets", &(provider.total_subnets)),
-        field("location_count", &(provider.location_count)),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        cloud_engine_evidence_present = yes_no(report.cloud_engine_evidence_present),
+        node_provider_id = provider.principal_id,
+        display_name = provider.display_name,
+        website = optional_text(provider.website.as_ref()),
+        logo_url = optional_text(provider.logo_url.as_ref()),
+        total_cloud_engines = provider.total_cloud_engines,
+        total_cloud_engine_nodes = provider.total_cloud_engine_nodes,
+        total_cloud_engine_unassigned_nodes = provider.total_cloud_engine_unassigned_nodes,
+        cloud_engine_location_count = provider.cloud_engine_location_count,
+        total_nodes = provider.total_nodes,
+        total_unassigned_nodes = provider.total_unassigned_nodes,
+        total_rewardable_nodes = provider.total_rewardable_nodes,
+        total_node_allowance = provider.total_node_allowance,
+        total_subnets = provider.total_subnets,
+        location_count = provider.location_count,
+    ));
     if !provider.cloud_engine_locations.is_empty() {
         lines.push(String::new());
         lines.push("CloudEngine locations".to_string());

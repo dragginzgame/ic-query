@@ -6,15 +6,15 @@
 
 use crate::{
     cache_file::ManagedReadBudget,
-    snapshot_cache::{SnapshotEnvelope, SnapshotJsonPaths},
+    snapshot_cache::SnapshotJsonPaths,
     sns::report::{
         SnsCacheAdmission, SnsCacheListReport, SnsCacheListRequest, SnsCacheSummary, SnsHostError,
         SnsValidCacheSummary,
         cache_attempt::read_sns_refresh_attempt_status_strict,
         cache_paths::sns_snapshot_network_cache_dir,
         cache_storage::{
-            SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsCacheMetadata, SnsCacheStorageFamily,
-            collect_sns_cache_paths, load_sns_cache_at, sns_cache_scan_limit_exceeded,
+            SNS_CACHE_SCAN_MAXIMUM_BYTES, SnsStoredCache, collect_sns_cache_paths,
+            load_sns_cache_at, sns_cache_scan_limit_exceeded,
         },
         enforce_mainnet_network,
     },
@@ -22,18 +22,14 @@ use crate::{
 use std::path::{Path, PathBuf};
 
 /// Load one SNS snapshot into a summary; the caller owns refresh-attempt evidence.
-pub(in crate::sns::report) fn load_sns_cache_summary_at<Family>(
+pub(in crate::sns::report) fn load_sns_cache_summary_at(
     cache_root: &Path,
     cache_path: PathBuf,
     network: &str,
     budget: Option<&mut ManagedReadBudget>,
     opened_file: Option<std::fs::File>,
-) -> Result<SnsCacheSummary, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
-    match load_sns_cache_at::<Family>(cache_root, cache_path.clone(), network, budget, opened_file)
-    {
+) -> Result<SnsCacheSummary, SnsHostError> {
+    match load_sns_cache_at(cache_root, cache_path.clone(), network, budget, opened_file) {
         Ok(cache) => Ok(valid_sns_cache_summary(cache_path, cache)),
         Err(error) if sns_cache_scan_limit_exceeded(&error) => Err(error),
         Err(error) => Ok(invalid_sns_cache_summary(cache_path, &error)),
@@ -41,21 +37,18 @@ where
 }
 
 /// Load summaries for a discovered set of SNS snapshot paths.
-fn load_sns_cache_summaries<Family>(
+fn load_sns_cache_summaries(
     cache_root: &Path,
     paths: impl IntoIterator<Item = PathBuf>,
     network: &str,
     budget: &mut ManagedReadBudget,
-) -> Result<Vec<SnsCacheSummary>, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
+) -> Result<Vec<SnsCacheSummary>, SnsHostError> {
     paths
         .into_iter()
         .map(|path| {
             let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&path);
             let mut summary =
-                load_sns_cache_summary_at::<Family>(cache_root, path, network, Some(budget), None)?;
+                load_sns_cache_summary_at(cache_root, path, network, Some(budget), None)?;
             summary.latest_attempt = read_sns_refresh_attempt_status_strict(
                 cache_root,
                 &attempt_path,
@@ -71,10 +64,7 @@ where
     clippy::needless_pass_by_value,
     reason = "Consumes a discovered cache path together with its snapshot while constructing one summary."
 )]
-fn valid_sns_cache_summary<Data>(
-    cache_path: PathBuf,
-    cache: SnapshotEnvelope<SnsCacheMetadata, Data>,
-) -> SnsCacheSummary {
+fn valid_sns_cache_summary(cache_path: PathBuf, cache: SnsStoredCache) -> SnsCacheSummary {
     let attempt_path = SnapshotJsonPaths::refresh_attempt_for_snapshot(&cache_path);
     SnsCacheSummary {
         cache_path: cache_path.display().to_string(),
@@ -109,25 +99,18 @@ fn invalid_sns_cache_summary(cache_path: PathBuf, error: &SnsHostError) -> SnsCa
     }
 }
 
-/// Build a deterministic cache-list report for one SNS cache family.
-pub(in crate::sns::report) fn build_sns_cache_list_report<Family>(
+/// Build a deterministic local SNS neuron cache list report.
+pub fn build_sns_neurons_cache_list_report(
     request: &SnsCacheListRequest,
-) -> Result<SnsCacheListReport, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
+) -> Result<SnsCacheListReport, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     let network_cache_root = sns_snapshot_network_cache_dir(&request.cache_root, &request.network)
         .display()
         .to_string();
-    let paths = collect_sns_cache_paths::<Family>(&request.cache_root, &request.network)?;
+    let paths = collect_sns_cache_paths(&request.cache_root, &request.network)?;
     let mut budget = ManagedReadBudget::new(SNS_CACHE_SCAN_MAXIMUM_BYTES);
-    let mut caches = load_sns_cache_summaries::<Family>(
-        &request.cache_root,
-        paths,
-        &request.network,
-        &mut budget,
-    )?;
+    let mut caches =
+        load_sns_cache_summaries(&request.cache_root, paths, &request.network, &mut budget)?;
     sort_sns_cache_summaries(&mut caches);
     Ok(SnsCacheListReport {
         schema_version: 1,

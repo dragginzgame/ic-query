@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
-# Shared companions: scripts/ci/prepare-script-fixture.sh scripts/release/validation.sh
+# Shared companions: scripts/ci/prepare-script-fixture.sh scripts/release/validation.sh scripts/ci/test-release-group-commands.sh
 set -euo pipefail
 case "${IC_QUERY_RELEASE_VALIDATION_CASE:-all}" in
-  all|utf8) ;;
+  all|utf8|commands) ;;
   *) echo 'unknown Query release-validation fixture case' >&2; exit 2 ;;
 esac
 unset MAKEFLAGS MFLAGS MAKEOVERRIDES GNUMAKEFLAGS
 unset IC_TOOL_PINS IC_TOOLS FORMAT_CARGO SHARED_TOOLING_ROOT
 repo_root="$(CDPATH='' cd -P -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+if [[ "${IC_QUERY_RELEASE_VALIDATION_CASE:-all}" != utf8 ]]; then
+  bash "$repo_root/scripts/ci/test-release-group-commands.sh"
+  if [[ "${IC_QUERY_RELEASE_VALIDATION_CASE:-all}" == commands ]]; then exit 0; fi
+fi
 mkdir -p "${TMPDIR:-$repo_root/target/tmp}"
 work_dir="$(mktemp -d "${TMPDIR:-$repo_root/target/tmp}/ic-query-group-validation.XXXXXX")"
 work_dir="$(CDPATH='' cd -P -- "$work_dir" && pwd -P)"
@@ -54,8 +58,8 @@ $(shell jq -r '.stages[]' ci/release-validation.json):
 	@printf '%s\n' '$@' >> target/trace
 	@test '$@' != '$(FAIL_TARGET)'
 	@if test '$@' = '$(INTERRUPT_TARGET)'; then kill -TERM $$$$; fi
-	@if test '$@' = clippy && test -n '$(DRIFT_INPUT)'; then printf '\ninput drift\n' >> '$(DRIFT_INPUT)'; fi
-	@if test '$@' = clippy; then bash scripts/ci/run-validation-targets.sh --fail-fast nested-check; fi
+	@if test '$@' = cli-clippy && test -n '$(DRIFT_INPUT)'; then printf '\ninput drift\n' >> '$(DRIFT_INPUT)'; fi
+	@if test '$@' = cli-clippy; then bash scripts/ci/run-validation-targets.sh --fail-fast nested-check; fi
 .PHONY: nested-check
 nested-check:
 	@printf 'retained nested output\n' > target/nested-output
@@ -111,15 +115,15 @@ for group in query cli; do
   RELEASE_SOURCE="$(git rev-parse HEAD)"
   run_gate "$group"
   gate="$(cat "target/$group/group-validation")"
-  jq -e --arg group "$group" '
+  jq -e --arg group "$group" --slurpfile scopes ci/release-validation-scopes.json '
     .scope == "group" and
-    ([.stages[]|select(.required|not)|.target] ==
-      (["ci-scripts-check","publish-guards-check","release-guards-check"] +
-        if $group == "cli" then ["query-test"] else [] end)) and
+    ([.stages[]|select(.required|not)|.target] | sort) ==
+      ($scopes[0].groups[$group].omit | keys) and
     any(.stages[]; .target == "cli-test" and .required) and
     any(.stages[]; .target == "candid-boundary-check" and .required) and
     any(.stages[]; .target == "feature-boundary-check" and .required) and
-    any(.stages[]; .target == "package" and .required)
+    all(.stages[] | select(.target == ($group + "-clippy") or
+      .target == ($group + "-package")); .required)
   ' "$gate/plan.json" > /dev/null
   jq -r '.stages[] | select(.required) | .target' "$gate/plan.json" > "$work_dir/expected"
   cmp "$work_dir/expected" target/trace
@@ -142,9 +146,14 @@ for group in query cli; do
   git checkout -- Cargo.toml "crates/$owner/src/lib.rs"
   # Unrelated automation failures cannot block this qualified owner-only gate.
   FAIL_TARGET=release-guards-check run_gate "$group-excluded"
-  FAIL_TARGET=clippy refuse run_gate "$group-required"
+  FAIL_TARGET="$group-clippy" refuse run_gate "$group-required"
   [[ ! -e "target/$group-required/group-validation" ]] || fail 'failed stage produced successful evidence'
   FAIL_TARGET=cli-test refuse run_gate "$group-consumer-required"
+  for stage in clippy package; do
+    if [[ "$group" == cli ]]; then other=query; else other=cli; fi
+    FAIL_TARGET="$other-$stage" run_gate "$group-$stage-excluded"
+    FAIL_TARGET="$group-$stage" refuse run_gate "$group-$stage-required"
+  done
   if [[ "$group" == cli ]]; then
     FAIL_TARGET=query-test run_gate cli-engine-excluded
   else

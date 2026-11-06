@@ -421,9 +421,14 @@ async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
             .expect("missing cache refreshes");
     assert_eq!(initial.nodes.len(), 1);
     assert_eq!((*source.calls.lock().unwrap()), 1);
+    assert!(initial.observation.cache.as_ref().unwrap().cache_fresh);
+    assert!(matches!(
+        load_cached_ic_node_status_snapshot(&request.cache, now - 1),
+        Err(IcNodeStatusHostError::InvalidCache { .. })
+    ));
 
     let fresh_request = refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS);
-    load_or_refresh_stale_ic_node_status_snapshot_with_source(
+    let fresh = load_or_refresh_stale_ic_node_status_snapshot_with_source(
         &fresh_request,
         &source,
         &mut progress,
@@ -431,6 +436,7 @@ async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
     .await
     .expect("cache at threshold remains fresh");
     assert_eq!((*source.calls.lock().unwrap()), 1);
+    assert!(fresh.observation.cache.unwrap().cache_fresh);
 
     let stale_request =
         refresh_request(&root, now + DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS + 1);
@@ -442,6 +448,7 @@ async fn stale_reads_reuse_fresh_cache_and_refresh_expired_cache() {
     .await
     .expect("missing-only policy retains an expired complete cache");
     assert_eq!((*source.calls.lock().unwrap()), 1);
+    assert!(!retained.observation.cache.as_ref().unwrap().cache_fresh);
     assert_eq!(
         retained
             .observation

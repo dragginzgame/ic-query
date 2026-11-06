@@ -5,7 +5,7 @@
 //! Boundary: exposes one bounded canister command family to the IC CLI facade.
 
 use super::IcCommandError;
-use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::clap::{parsed_options, with_options, with_source_options};
 use crate::cli::common::OutputFormat;
 use crate::cli::{
     clap::principal_text_value_parser,
@@ -207,18 +207,16 @@ pub(super) struct CanisterInfoOptions {
 }
 
 fn info_command() -> ClapCommand {
-    with_options::<CanisterInfoOptions>(
+    with_source_options::<CanisterInfoOptions>(
         ClapCommand::new("info")
             .about("Show one canister from the official Dashboard API")
             .after_help(collection_help(
                 COLLECTION_MODE_LIVE,
                 CANISTER_INFO_HELP_AFTER,
             )),
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        "Official IC Dashboard API base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API base endpoint")
-    })
 }
 
 fn canister_filters(matches: &ArgMatches) -> IcCanisterFilters {

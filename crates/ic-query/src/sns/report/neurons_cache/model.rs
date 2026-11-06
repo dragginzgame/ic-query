@@ -15,8 +15,8 @@ use serde::{Deserialize as SerdeDeserialize, Serialize};
 
 #[derive(Clone, Debug, Eq, PartialEq, SerdeDeserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct SnsNeuronsCacheRows {
-    pub(super) neurons: Vec<SnsNeuronRow>,
+pub(in crate::sns::report) struct SnsNeuronsCacheRows {
+    pub(in crate::sns::report) neurons: Vec<SnsNeuronRow>,
 }
 
 ///

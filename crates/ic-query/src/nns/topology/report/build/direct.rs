@@ -5,9 +5,9 @@ use crate::nns::{
     topology::report::{
         NnsTopologyCapacityReport, NnsTopologyGapsReport, NnsTopologyHostError,
         NnsTopologyProvidersReport, NnsTopologyRegionsReport, NnsTopologySource,
-        capacity::topology_capacity_report_from_report, enforce_mainnet_network,
+        capacity::topology_capacity_report_from_rows, enforce_mainnet_network,
         gaps::topology_gaps_report_from_reports, providers::topology_providers_report_from_reports,
-        regions::topology_regions_report_from_report,
+        regions::topology_regions_report_from_rows,
     },
 };
 
@@ -50,16 +50,11 @@ pub async fn build_nns_topology_capacity_report_with_source(
         &mut crate::progress::IgnoreQueryProgress,
     )
     .await?;
-    let node_operator_report = crate::nns::node_operator::NnsNodeOperatorListReport {
-        schema_version: 1,
-        provenance: snapshot.provenance,
-        node_operators: snapshot.node_operators,
-    };
 
-    Ok(topology_capacity_report_from_report(
+    Ok(topology_capacity_report_from_rows(
         request.cache.network.clone(),
         request.source_endpoint.clone(),
-        node_operator_report,
+        snapshot.node_operators,
     ))
 }
 
@@ -81,16 +76,11 @@ pub async fn build_nns_topology_regions_report_with_source(
         &mut crate::progress::IgnoreQueryProgress,
     )
     .await?;
-    let data_center_report = crate::nns::data_center::NnsDataCenterListReport {
-        schema_version: 1,
-        provenance: snapshot.provenance,
-        data_centers: snapshot.data_centers,
-    };
 
-    Ok(topology_regions_report_from_report(
+    Ok(topology_regions_report_from_rows(
         request.cache.network.clone(),
         request.source_endpoint.clone(),
-        data_center_report,
+        &snapshot.data_centers,
     ))
 }
 

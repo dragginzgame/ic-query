@@ -10,7 +10,7 @@ use crate::{
     QueryProgress,
     nns::{
         NnsGovernanceRefreshRequest,
-        governance::{NnsGovernanceRequest, write_running_governance_refresh_attempt},
+        governance::{NnsGovernanceRequest, governance_refresh_bookkeeping},
         proposals::report::{
             NNS_PROPOSAL_FETCHED_BY, NnsProposalHostError,
             collection::{NnsProposalCollectionState, advance_nns_proposal_collection_with_source},
@@ -73,28 +73,12 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
     type Complete = (NnsProposalCacheRows, SnapshotRefreshProgress);
     type Error = NnsProposalHostError;
 
-    fn progress(&self) -> crate::PagedQueryProgress {
-        crate::PagedQueryProgress {
-            collection: crate::QueryProgressCollection::NnsProposals,
-            target: None,
-            pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.proposals.len(),
-        }
-    }
-
-    fn max_pages_reached(&self) -> bool {
-        self.request
-            .max_pages
-            .is_some_and(|max_pages| self.collection_state.pages_fetched() >= max_pages)
-    }
-
-    fn incomplete_refresh_error(&self, reason: &'static str) -> Self::Error {
-        NnsProposalHostError::IncompleteRefresh {
-            pages_fetched: self.collection_state.pages_fetched(),
-            rows_fetched: self.proposals.len(),
-            reason: reason.to_string(),
-        }
-    }
+    governance_refresh_bookkeeping!(
+        NnsProposals,
+        NNS_PROPOSAL_CACHE_COMPONENT,
+        proposals,
+        next_before_proposal_id
+    );
 
     fn fetch_next_page(
         &mut self,
@@ -114,22 +98,6 @@ impl PagedSnapshotRefresh for NnsProposalRefreshPages<'_> {
                 self.collection_state.is_complete(),
             ))
         })
-    }
-
-    fn write_running_attempt(&self) -> Result<(), Self::Error> {
-        write_running_governance_refresh_attempt(
-            self.attempt_path,
-            self.request,
-            NNS_PROPOSAL_CACHE_COMPONENT,
-            SnapshotRefreshProgress::new(
-                self.collection_state.pages_fetched(),
-                self.proposals.len(),
-                self.collection_state
-                    .next_before_proposal_id()
-                    .map(|cursor| cursor.to_string()),
-            ),
-        )
-        .map_err(NnsProposalHostError::from)
     }
 
     fn into_complete(self) -> Self::Complete {

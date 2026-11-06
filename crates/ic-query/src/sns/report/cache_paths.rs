@@ -4,7 +4,6 @@
 //! Does not own: cache reads, writes, refresh locking, or report construction.
 //! Boundary: maps Governance principals and collection names to snapshot-cache paths.
 
-use super::cache_storage::SnsCacheStorageFamily;
 use crate::snapshot_cache::{SnapshotJsonPaths, SnapshotKey, snapshot_network_dir};
 use std::{
     ffi::OsStr,
@@ -12,20 +11,12 @@ use std::{
 };
 
 /// Build complete snapshot, lock, and refresh-attempt paths for one Governance target.
-pub(in crate::sns::report) fn sns_snapshot_cache_paths<Collection>(
+pub(in crate::sns::report) fn sns_snapshot_cache_paths(
     cache_root: &Path,
     network: &str,
     governance_canister_id: &str,
-) -> SnapshotJsonPaths
-where
-    Collection: SnsCacheStorageFamily,
-{
-    let snapshot_key = SnapshotKey::full(
-        "sns-neuron",
-        network,
-        governance_canister_id,
-        Collection::COLLECTION,
-    );
+) -> SnapshotJsonPaths {
+    let snapshot_key = SnapshotKey::full("sns-neuron", network, governance_canister_id, "neurons");
     SnapshotJsonPaths::for_key(cache_root, &snapshot_key)
 }
 
@@ -38,17 +29,14 @@ pub(in crate::sns::report) fn sns_snapshot_network_cache_dir(
 }
 
 /// Return the logical key expected for a complete SNS cache path.
-pub(in crate::sns::report) fn sns_snapshot_key_for_cache_path<Collection>(
+pub(in crate::sns::report) fn sns_snapshot_key_for_cache_path(
     network: &str,
     cache_path: &Path,
-) -> SnapshotKey
-where
-    Collection: SnsCacheStorageFamily,
-{
+) -> SnapshotKey {
     let entity = sns_governance_from_cache_path(cache_path)
         .and_then(|name| name.to_str())
         .unwrap_or_default();
-    SnapshotKey::full("sns-neuron", network, entity, Collection::COLLECTION)
+    SnapshotKey::full("sns-neuron", network, entity, "neurons")
 }
 
 /// Borrow the Governance directory identity shared by discovered snapshot readers.

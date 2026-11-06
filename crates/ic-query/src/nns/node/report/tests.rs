@@ -226,7 +226,7 @@ fn node_report_subnet_kind_keeps_the_existing_cache_label() {
 fn node_info_resolves_unique_prefix() {
     let report = node_report_fixture();
 
-    let (index, resolved_from) = resolve_node(&report, "ryjl").expect("prefix resolves");
+    let (index, resolved_from) = resolve_node(&report.nodes, "ryjl").expect("prefix resolves");
     let node = &report.nodes[index];
 
     assert_eq!(resolved_from, "node_principal_prefix");

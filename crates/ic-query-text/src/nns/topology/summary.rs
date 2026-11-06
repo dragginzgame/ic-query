@@ -8,8 +8,8 @@ use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
 
-use crate::nns::topology::common::render_join_coverage_table;
 use crate::nns::topology::common::render_registry_version_table;
+use crate::nns::topology::common::{render_join_coverage_table, render_value_table};
 use ic_query::nns::topology::NnsTopologySummaryReport;
 use ic_query::subnet_catalog::SubnetKind;
 
@@ -38,29 +38,17 @@ pub fn nns_topology_summary_report_text(report: &NnsTopologySummaryReport) -> St
 }
 
 fn render_count_table(report: &NnsTopologySummaryReport) -> String {
-    let headers = ["METRIC", "COUNT"];
-    let rows = [
-        ["subnets".to_string(), report.subnet_count.to_string()],
+    render_value_table(
+        ["METRIC", "COUNT"],
         [
-            "routing_ranges".to_string(),
-            report.routing_range_count.to_string(),
+            ("subnets", report.subnet_count.to_string()),
+            ("routing_ranges", report.routing_range_count.to_string()),
+            ("nodes", report.node_count.to_string()),
+            ("node_operators", report.node_operator_count.to_string()),
+            ("node_providers", report.node_provider_count.to_string()),
+            ("data_centers", report.data_center_count.to_string()),
         ],
-        ["nodes".to_string(), report.node_count.to_string()],
-        [
-            "node_operators".to_string(),
-            report.node_operator_count.to_string(),
-        ],
-        [
-            "node_providers".to_string(),
-            report.node_provider_count.to_string(),
-        ],
-        [
-            "data_centers".to_string(),
-            report.data_center_count.to_string(),
-        ],
-    ];
-    let alignments = [Alignment::Left, Alignment::Right];
-    table(&headers, &rows, &alignments)
+    )
 }
 
 fn render_kind_table(report: &NnsTopologySummaryReport) -> String {

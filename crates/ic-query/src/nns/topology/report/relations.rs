@@ -1,12 +1,9 @@
 use super::{
     NnsTopologyGapRelationKind,
     NnsTopologyGapRelationKind::{DataCenter, NodeOperator, NodeProvider},
+    TopologyInventoryReports,
 };
-use crate::nns::{
-    data_center::NnsDataCenterListReport, node::NnsNodeRow,
-    node_operator::NnsNodeOperatorListReport, node_operator::NnsNodeOperatorRow,
-    node_provider::NnsNodeProviderListReport,
-};
+use crate::nns::{node::NnsNodeRow, node_operator::NnsNodeOperatorRow};
 use std::collections::BTreeSet;
 
 ///
@@ -35,21 +32,22 @@ pub(in crate::nns::topology::report) struct TopologyRelationIndex<'a> {
 
 impl<'a> TopologyRelationIndex<'a> {
     pub(in crate::nns::topology::report) fn from_reports(
-        node_provider_report: &'a NnsNodeProviderListReport,
-        node_operator_report: &'a NnsNodeOperatorListReport,
-        data_center_report: &'a NnsDataCenterListReport,
+        reports: &'a TopologyInventoryReports,
     ) -> Self {
-        let node_provider_principals = node_provider_report
+        let node_provider_principals = reports
+            .node_provider
             .node_providers
             .iter()
             .map(|provider| provider.node_provider_principal.as_str())
             .collect::<BTreeSet<_>>();
-        let node_operator_principals = node_operator_report
+        let node_operator_principals = reports
+            .registry
             .node_operators
             .iter()
             .map(|operator| operator.node_operator_principal.as_str())
             .collect::<BTreeSet<_>>();
-        let data_center_ids = data_center_report
+        let data_center_ids = reports
+            .registry
             .data_centers
             .iter()
             .map(|data_center| data_center.data_center_id.as_str())

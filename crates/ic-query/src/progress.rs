@@ -117,6 +117,7 @@ where
 #[cfg(any(
     feature = "icrc-host",
     feature = "nns-host",
+    feature = "sns-host",
     feature = "subnet-catalog-host",
     test
 ))]
@@ -125,6 +126,7 @@ pub struct IgnoreQueryProgress;
 #[cfg(any(
     feature = "icrc-host",
     feature = "nns-host",
+    feature = "sns-host",
     feature = "subnet-catalog-host",
     test
 ))]

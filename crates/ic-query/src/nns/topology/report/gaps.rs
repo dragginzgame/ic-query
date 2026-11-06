@@ -20,13 +20,9 @@ pub(super) fn topology_gaps_report_from_reports(
     source_endpoint: String,
     reports: &TopologyInventoryReports,
 ) -> NnsTopologyGapsReport {
-    let index = TopologyRelationIndex::from_reports(
-        &reports.node_provider,
-        &reports.node_operator,
-        &reports.data_center,
-    );
+    let index = TopologyRelationIndex::from_reports(reports);
     let mut gaps = Vec::new();
-    for node in &reports.node.nodes {
+    for node in &reports.registry.nodes {
         append_missing_relations(
             &mut gaps,
             NnsTopologyGapSubjectKind::Node,
@@ -34,7 +30,7 @@ pub(super) fn topology_gaps_report_from_reports(
             index.node_relations(node),
         );
     }
-    for operator in &reports.node_operator.node_operators {
+    for operator in &reports.registry.node_operators {
         append_missing_relations(
             &mut gaps,
             NnsTopologyGapSubjectKind::NodeOperator,

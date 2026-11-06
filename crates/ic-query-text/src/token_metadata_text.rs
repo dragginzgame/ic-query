@@ -4,10 +4,10 @@
 //! Does not own: report DTOs, family-specific provenance, or JSON output.
 //! Boundary: formats raw metadata values for human text.
 
-use crate::text_value::field;
 use crate::text_value::optional_text;
 use crate::text_value::table;
 use crate::text_value::truncate_text;
+use crate::text_value::{json_scalar_text, report_fields};
 use crate::token_amount::base_units_decimal_text;
 use ic_host_text::table::Alignment;
 use ic_query::icrc::IcrcTokenData;
@@ -26,7 +26,7 @@ pub fn token_metadata_value_text(key: &str, value: &JsonValue, decimals: u8) -> 
             "-".to_string()
         };
     }
-    let value = metadata_value_text(value);
+    let value = json_scalar_text(value);
     if key == ICRC_FEE_METADATA_KEY {
         base_units_decimal_text(&value, decimals)
     } else {
@@ -45,40 +45,18 @@ fn metadata_value_is_present(value: &JsonValue) -> bool {
     }
 }
 
-fn metadata_value_text(value: &JsonValue) -> String {
-    match value {
-        JsonValue::String(value) => value.clone(),
-        JsonValue::Bool(value) => value.to_string(),
-        JsonValue::Number(value) => value.to_string(),
-        JsonValue::Null => "-".to_string(),
-        JsonValue::Array(_) | JsonValue::Object(_) => value.to_string(),
-    }
-}
-
 const ICRC_TOKEN_METADATA_TEXT_VALUE_LIMIT: usize = 160;
 
 pub fn token_summary_lines(token: &IcrcTokenData) -> Vec<String> {
-    vec![
-        field("token_name", &token.token_name),
-        field("token_symbol", &token.token_symbol),
-        field("decimals", &(token.decimals)),
-        field(
-            "transfer_fee",
-            &(base_units_decimal_text(&token.transfer_fee, token.decimals)),
-        ),
-        field(
-            "total_supply",
-            &(base_units_decimal_text(&token.total_supply, token.decimals)),
-        ),
-        field(
-            "minting_account_owner",
-            &(optional_text(token.minting_account_owner.as_ref())),
-        ),
-        field(
-            "minting_account_subaccount_hex",
-            &(optional_text(token.minting_account_subaccount_hex.as_ref())),
-        ),
-    ]
+    Vec::from(report_fields!(token;
+        token_name,
+        token_symbol,
+        decimals,
+        transfer_fee = base_units_decimal_text(&token.transfer_fee, token.decimals),
+        total_supply = base_units_decimal_text(&token.total_supply, token.decimals),
+        minting_account_owner = optional_text(token.minting_account_owner.as_ref()),
+        minting_account_subaccount_hex = optional_text(token.minting_account_subaccount_hex.as_ref()),
+    ))
 }
 
 pub fn append_token_metadata_tables(lines: &mut Vec<String>, token: &IcrcTokenData) {

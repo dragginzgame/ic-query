@@ -181,10 +181,10 @@ pub fn cloud_engine_operator_report_text(report: &CloudEngineOperatorReport) -> 
 #[must_use]
 pub fn cloud_engine_prices_report_text(report: &CloudEnginePricesReport) -> String {
     let mut lines = context_lines(&report.context);
-    lines.extend([
-        field("network_fee", &(report.network_fee)),
-        field("price_count", &(report.prices.len())),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        network_fee,
+        price_count = report.prices.len(),
+    ));
 
     if !report.prices.is_empty() {
         let headers = [
@@ -231,20 +231,17 @@ pub fn cloud_engine_prices_report_text(report: &CloudEnginePricesReport) -> Stri
 }
 
 fn context_lines(context: &CloudEngineReportContext) -> Vec<String> {
-    vec![
-        field("network", &context.network),
-        field("authority", &context.authority),
-        field("engine_canister_id", &(context.engine_canister_id)),
-        field("fetched_at", &context.fetched_at),
-        field("source_endpoint", &context.source_endpoint),
-        field("fetched_by", &context.fetched_by),
-        field("certified", &(yes_no(context.certified))),
-        field(
-            "point_in_time_guaranteed",
-            &(yes_no(context.point_in_time_guaranteed)),
-        ),
-        field("query_call_count", &(context.query_call_count)),
-    ]
+    Vec::from(crate::text_value::report_fields!(context;
+        network,
+        authority,
+        engine_canister_id,
+        fetched_at,
+        source_endpoint,
+        fetched_by,
+        certified = yes_no(context.certified),
+        point_in_time_guaranteed = yes_no(context.point_in_time_guaranteed),
+        query_call_count,
+    ))
 }
 
 mod provider;

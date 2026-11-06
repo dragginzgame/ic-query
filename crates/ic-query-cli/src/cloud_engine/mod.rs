@@ -4,7 +4,7 @@
 //! Does not own: native transport, report construction, or text rendering.
 //! Boundary: exposes mainnet-only CloudEngine inventory and bounded public reports at the CLI root.
 
-use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::clap::{parsed_options, with_options, with_source_options};
 use ic_query::report::CollectionSourceRequest;
 mod node;
 mod provider;
@@ -258,10 +258,7 @@ fn report_args(
     endpoint: &'static str,
     source_help: &'static str,
 ) -> ClapCommand {
-    with_options::<crate::cli::common::SourceOutputOptions>(command)
-        .mut_arg("source-endpoint", |arg| {
-            arg.default_value(endpoint).help(source_help)
-        })
+    with_source_options::<crate::cli::common::SourceOutputOptions>(command, endpoint, source_help)
 }
 
 const REGISTRY_SOURCE_ENDPOINT_ARG: &str = "registry-source-endpoint";

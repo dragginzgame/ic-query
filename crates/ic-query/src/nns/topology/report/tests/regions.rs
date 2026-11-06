@@ -3,10 +3,10 @@ use super::*;
 
 #[test]
 fn topology_regions_report_summarizes_data_center_regions() {
-    let report = topology_regions_report_from_report(
+    let report = topology_regions_report_from_rows(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        data_center_report_fixture(),
+        &data_center_report_fixture().data_centers,
     );
 
     assert_eq!(report.schema_version, 1);

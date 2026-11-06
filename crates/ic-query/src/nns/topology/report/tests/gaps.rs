@@ -6,12 +6,7 @@ fn topology_gaps_report_lists_unknown_join_subjects() {
     let report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
+        &topology_inventory_fixture(),
     );
 
     assert_eq!(report.schema_version, 1);
@@ -42,22 +37,19 @@ fn topology_gaps_text_renders_gap_or_ok_tables() {
     let _report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
+        &topology_inventory_fixture(),
     );
 
     let clean_report = topology_gaps_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         &TopologyInventoryReports {
-            node: node_report_fixture(),
+            registry: crate::nns::NnsRegistryInventorySnapshot {
+                node_operators: complete_node_operator_report_fixture().node_operators,
+                data_centers: complete_data_center_report_fixture().data_centers,
+                ..topology_inventory_fixture().registry
+            },
             node_provider: complete_node_provider_report_fixture(),
-            node_operator: complete_node_operator_report_fixture(),
-            data_center: complete_data_center_report_fixture(),
         },
     );
 

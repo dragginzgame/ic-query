@@ -28,6 +28,20 @@ pub(in crate::nns::topology::report::tests) use subnet::{
     dry_run_subnet_refresh_report_fixture, subnet_refresh_report_fixture, subnet_report_fixture,
 };
 
+pub(super) fn topology_inventory_fixture() -> super::TopologyInventoryReports {
+    let nodes = node_report_fixture();
+    super::TopologyInventoryReports {
+        registry: NnsRegistryInventorySnapshot {
+            schema_version: 1,
+            provenance: nodes.provenance,
+            nodes: nodes.nodes,
+            node_operators: node_operator_report_fixture().node_operators,
+            data_centers: data_center_report_fixture().data_centers,
+        },
+        node_provider: node_provider_report_fixture(),
+    }
+}
+
 pub(in crate::nns::topology::report::tests) fn topology_read_request_fixture()
 -> NnsInventoryListRequest {
     NnsInventoryListRequest::new(

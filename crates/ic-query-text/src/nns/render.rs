@@ -1,6 +1,6 @@
 //! Shared NNS text-rendering primitives for inventory and refresh reports.
 
-use crate::text_value::field;
+use crate::text_value::{field, report_fields};
 use ic_host_text::escape::terminal_text;
 
 #[cfg(feature = "nns-host")]
@@ -73,14 +73,14 @@ pub fn nns_inventory_refresh_report_text(
 pub(super) fn registry_provenance_lines(
     provenance: &ic_query::nns::registry::NnsRegistryInventoryProvenance,
 ) -> [String; 6] {
-    [
-        field("registry_canister_id", &(provenance.registry_canister_id)),
-        field("registry_version", &(provenance.registry_version)),
-        field("network", &provenance.network),
-        field("fetched_at", &provenance.fetched_at),
-        field("source_endpoint", &provenance.source_endpoint),
-        field("fetched_by", &provenance.fetched_by),
-    ]
+    report_fields!(provenance;
+        registry_canister_id,
+        registry_version,
+        network,
+        fetched_at,
+        source_endpoint,
+        fetched_by,
+    )
 }
 
 /// Select full identities for verbose reports and compact prefixes otherwise.
@@ -95,9 +95,9 @@ pub(super) fn identity(value: &str, verbose: bool) -> String {
 pub(super) fn governance_provenance_lines(
     source: &ic_query::report::CollectionSourceRequest,
 ) -> [String; 3] {
-    [
-        field("governance_fetched_at", &source.fetched_at),
-        field("governance_source_endpoint", &source.endpoint),
-        field("governance_fetched_by", &source.fetched_by),
-    ]
+    report_fields!(source;
+        governance_fetched_at = source.fetched_at,
+        governance_source_endpoint = source.endpoint,
+        governance_fetched_by = source.fetched_by,
+    )
 }

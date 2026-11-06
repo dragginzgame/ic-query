@@ -5,7 +5,7 @@
 //! Boundary: exposes the network command family to the IC CLI facade.
 
 use super::IcCommandError;
-use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::clap::{parsed_options, with_source_options};
 use crate::cli::common::OutputFormat;
 use crate::cli::common::{
     COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
@@ -77,18 +77,16 @@ pub(super) fn command() -> ClapCommand {
 }
 
 fn boundary_node_data_centers_command() -> ClapCommand {
-    with_options::<crate::cli::common::SourceOutputOptions>(
+    with_source_options::<crate::cli::common::SourceOutputOptions>(
         ClapCommand::new("boundary-node-data-centers")
             .about("List official Dashboard boundary-node data-center aggregates")
             .after_help(collection_help(
                 COLLECTION_MODE_LIVE,
                 BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER,
             )),
+        DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT,
+        "Official IC Dashboard API v4 base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v4 base endpoint")
-    })
 }
 
 ///
@@ -109,18 +107,16 @@ pub(super) struct DailyStatsOptions {
 }
 
 fn daily_stats_command() -> ClapCommand {
-    with_options::<DailyStatsOptions>(
+    with_source_options::<DailyStatsOptions>(
         ClapCommand::new("daily-stats")
             .about("Query bounded official Dashboard daily network activity")
             .after_help(collection_help(
                 COLLECTION_MODE_LIVE,
                 DAILY_STATS_HELP_AFTER,
             )),
+        DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT,
+        "Official IC Dashboard API v3 base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v3 base endpoint")
-    })
 }
 
 fn daily_stats_request(

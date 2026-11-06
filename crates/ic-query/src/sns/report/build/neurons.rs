@@ -12,7 +12,7 @@ use crate::sns::report::{
     live::LiveSnsSource,
     neurons_cache,
     source::{SnsNeuronsSource, validate_mainnet_sns_neurons},
-    target::resolve_neuron_target,
+    target::{resolve_neuron_target, validate_sns_principal},
 };
 
 pub async fn build_sns_neurons_report(
@@ -34,17 +34,7 @@ pub async fn build_sns_neurons_report_with_source(
 
     let lookup = resolve_neuron_target(&request.target)?;
     if let Some(owner) = owner_principal_id {
-        crate::principal_text::validate_canonical(
-            owner,
-            |reason| SnsHostError::InvalidPrincipal {
-                field: "owner_principal_id",
-                reason,
-            },
-            |_| SnsHostError::InvalidPrincipal {
-                field: "owner_principal_id",
-                reason: "expected canonical principal text".to_string(),
-            },
-        )?;
+        validate_sns_principal("owner_principal_id", owner)?;
     }
     let neurons = source
         .fetch_sns_neurons(

@@ -15,8 +15,7 @@ use super::{
 use crate::nns::LiveNnsSource;
 use crate::nns::governance::{
     GovernanceCollectionState, NnsGovernanceCollectionStatus, NnsGovernanceRequest,
-    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection, validate_governance_continuation,
-    validate_governance_request,
+    governance_collection_accessors, validate_governance_continuation, validate_governance_request,
 };
 use serde::{Deserialize, Serialize};
 
@@ -78,53 +77,7 @@ impl NnsNeuronCollectionState {
         )
     }
 
-    /// Return the state schema version.
-    #[must_use]
-    pub const fn schema_version(&self) -> u32 {
-        self.collection.schema_version
-    }
-
-    /// Return the fixed network identity.
-    #[must_use]
-    pub fn network(&self) -> &str {
-        &self.collection.network
-    }
-
-    /// Return the fixed Governance canister identity.
-    #[must_use]
-    pub fn governance_canister_id(&self) -> &str {
-        &self.collection.governance_canister_id
-    }
-
-    /// Return the source selection fixed when collection started.
-    #[must_use]
-    pub const fn requested_source(&self) -> &NnsGovernanceSourceSelection {
-        &self.collection.requested_source
-    }
-
-    /// Return the concrete source provenance after the first admitted page.
-    #[must_use]
-    pub const fn source(&self) -> Option<&NnsGovernanceSourceProvenance> {
-        self.collection.source.as_ref()
-    }
-
-    /// Return the maximum rows requested from each Governance call.
-    #[must_use]
-    pub const fn page_size(&self) -> u32 {
-        self.collection.page_size
-    }
-
-    /// Return the cumulative source-call ceiling.
-    #[must_use]
-    pub const fn max_pages(&self) -> u32 {
-        self.collection.max_pages
-    }
-
-    /// Return the number of successfully admitted pages.
-    #[must_use]
-    pub const fn pages_fetched(&self) -> u32 {
-        self.collection.pages_fetched
-    }
+    governance_collection_accessors!(next_start_neuron_id);
 
     /// Return the number of successfully admitted neuron rows.
     #[must_use]
@@ -136,30 +89,6 @@ impl NnsNeuronCollectionState {
     #[must_use]
     pub const fn next_start_neuron_id(&self) -> Option<u64> {
         self.next_start_neuron_id
-    }
-
-    /// Return the caller-supplied time at which the collection state was created.
-    #[must_use]
-    pub fn started_at(&self) -> &str {
-        &self.collection.started_at
-    }
-
-    /// Return the caller-supplied time attached to the latest admitted page.
-    #[must_use]
-    pub fn updated_at(&self) -> &str {
-        &self.collection.updated_at
-    }
-
-    /// Return the collection lifecycle status.
-    #[must_use]
-    pub const fn status(&self) -> NnsGovernanceCollectionStatus {
-        self.collection.status(self.next_start_neuron_id.is_some())
-    }
-
-    /// Return whether Governance API exhaustion was observed.
-    #[must_use]
-    pub const fn is_complete(&self) -> bool {
-        matches!(self.status(), NnsGovernanceCollectionStatus::Complete)
     }
 }
 

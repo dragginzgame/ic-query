@@ -47,7 +47,7 @@ pub(super) fn topology_providers_report_from_reports(
 
 fn provider_rows(reports: &TopologyInventoryReports) -> Vec<NnsTopologyProviderRow> {
     let regions = reports
-        .data_center
+        .registry
         .data_centers
         .iter()
         .map(|data_center| {
@@ -64,7 +64,7 @@ fn provider_rows(reports: &TopologyInventoryReports) -> Vec<NnsTopologyProviderR
             .or_default()
             .metadata = Some(provider);
     }
-    for node in &reports.node.nodes {
+    for node in &reports.registry.nodes {
         let provider = providers
             .entry(node.node_provider_principal.as_str())
             .or_default();
@@ -74,7 +74,7 @@ fn provider_rows(reports: &TopologyInventoryReports) -> Vec<NnsTopologyProviderR
             regions.get(node.data_center_id.as_str()).copied(),
         );
     }
-    for operator in &reports.node_operator.node_operators {
+    for operator in &reports.registry.node_operators {
         let provider = providers
             .entry(operator.node_provider_principal.as_str())
             .or_default();

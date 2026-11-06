@@ -6,12 +6,7 @@ fn topology_providers_report_summarizes_provider_distribution() {
     let report = topology_providers_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
+        &topology_inventory_fixture(),
     );
 
     assert_eq!(report.schema_version, 1);
@@ -40,8 +35,8 @@ fn topology_providers_report_summarizes_provider_distribution() {
         vec![
             ("nodes", 43),
             ("node_providers", 44),
-            ("node_operators", 45),
-            ("data_centers", 46),
+            ("node_operators", 43),
+            ("data_centers", 43),
         ]
     );
     assert!(report.providers.iter().any(|provider| {
@@ -82,10 +77,11 @@ fn topology_providers_keep_registration_and_operator_local_capacity_distinct() {
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         &TopologyInventoryReports {
-            node: node_report_fixture(),
+            registry: crate::nns::NnsRegistryInventorySnapshot {
+                node_operators: operators.node_operators,
+                ..topology_inventory_fixture().registry
+            },
             node_provider: providers,
-            node_operator: operators,
-            data_center: data_center_report_fixture(),
         },
     );
 

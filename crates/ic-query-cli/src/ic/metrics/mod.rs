@@ -5,7 +5,7 @@
 //! Boundary: exposes the metric command to the IC CLI facade.
 
 use super::IcCommandError;
-use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::clap::{parsed_options, with_source_options};
 use crate::cli::common::OutputFormat;
 use crate::cli::common::{
     COLLECTION_MODE_LIVE, collection_help, current_unix_secs, resolve_time_bounds,
@@ -66,15 +66,13 @@ pub(super) struct MetricOptions {
 }
 
 pub(super) fn command() -> ClapCommand {
-    with_options::<MetricOptions>(
+    with_source_options::<MetricOptions>(
         ClapCommand::new("metrics")
             .about("Query one bounded official Dashboard network metric time series")
             .after_help(collection_help(COLLECTION_MODE_LIVE, METRICS_HELP_AFTER)),
+        DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT,
+        "Official IC Dashboard Metrics API base endpoint",
     )
-    .mut_arg("source-endpoint", |arg| {
-        arg.default_value(DEFAULT_IC_DASHBOARD_METRICS_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard Metrics API base endpoint")
-    })
 }
 
 fn metric_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcMetricRequest) {

@@ -4,7 +4,6 @@
 //! Does not own: JSON serialization, source validation, live calls, or process output.
 //! Boundary: separates off-chain Dashboard provenance from node tables.
 
-use crate::text_value::field;
 use crate::text_value::table;
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
@@ -47,42 +46,27 @@ pub fn cloud_engine_node_list_report_text(report: &CloudEngineNodeListReport) ->
 pub fn cloud_engine_node_info_report_text(report: &CloudEngineNodeInfoReport) -> String {
     let node = &report.node;
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("node_id", &(node.node_id)),
-        field("status", &node.status),
-        field("node_type", &node.node_type),
-        field("node_reward_type", &node.node_reward_type),
-        field("node_provider_id", &(node.node_provider_id)),
-        field("node_provider_name", &node.node_provider_name),
-        field("node_operator_id", &(node.node_operator_id)),
-        field(
-            "cloud_engine_subnet_id",
-            &(optional_text(node.cloud_engine_subnet_id.as_ref())),
-        ),
-        field("subnet_id", &(optional_text(node.subnet_id.as_ref()))),
-        field("data_center_id", &node.data_center_id),
-        field("data_center_name", &node.data_center_name),
-        field("owner", &(node.owner.trim())),
-        field("region", &node.region),
-        field(
-            "guestos_version",
-            &(optional_text(node.guestos_version.as_ref())),
-        ),
-        field(
-            "guestos_tee_active",
-            &(optional_bool_text(node.guestos_tee_active)),
-        ),
-        field("ip_address", &(optional_text(node.ip_address.as_ref()))),
-        field(
-            "ipv4_connectivity_status",
-            &(optional_bool_text(node.ipv4_connectivity_status)),
-        ),
-        field(
-            "node_hardware_generation",
-            &(optional_text(node.node_hardware_generation.as_ref())),
-        ),
-        field("alert_name", &(optional_text(node.alert_name.as_ref()))),
-    ]);
+    lines.extend(crate::text_value::report_fields!(node;
+        node_id,
+        status,
+        node_type,
+        node_reward_type,
+        node_provider_id,
+        node_provider_name,
+        node_operator_id,
+        cloud_engine_subnet_id = optional_text(node.cloud_engine_subnet_id.as_ref()),
+        subnet_id = optional_text(node.subnet_id.as_ref()),
+        data_center_id,
+        data_center_name,
+        owner = node.owner.trim(),
+        region,
+        guestos_version = optional_text(node.guestos_version.as_ref()),
+        guestos_tee_active = optional_bool_text(node.guestos_tee_active),
+        ip_address = optional_text(node.ip_address.as_ref()),
+        ipv4_connectivity_status = optional_bool_text(node.ipv4_connectivity_status),
+        node_hardware_generation = optional_text(node.node_hardware_generation.as_ref()),
+        alert_name = optional_text(node.alert_name.as_ref()),
+    ));
     lines.join("\n")
 }
 

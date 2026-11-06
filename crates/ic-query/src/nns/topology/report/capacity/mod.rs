@@ -8,12 +8,12 @@ use super::{
     NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION, NnsTopologyAssessmentStatus,
     NnsTopologyCapacityReport, NnsTopologyCapacityRow, NnsTopologyCapacityStatus,
 };
-use crate::nns::node_operator::{NnsNodeOperatorListReport, NnsNodeOperatorRow};
+use crate::nns::node_operator::NnsNodeOperatorRow;
 
-pub(super) fn topology_capacity_report_from_report(
+pub(super) fn topology_capacity_report_from_rows(
     network: String,
     source_endpoint: String,
-    node_operator_report: NnsNodeOperatorListReport,
+    node_operators: Vec<NnsNodeOperatorRow>,
 ) -> NnsTopologyCapacityReport {
     let mut report = NnsTopologyCapacityReport {
         schema_version: NNS_TOPOLOGY_CAPACITY_REPORT_SCHEMA_VERSION,
@@ -26,9 +26,9 @@ pub(super) fn topology_capacity_report_from_report(
         available_node_slots: 0,
         over_assigned_operator_count: 0,
         over_assigned_node_count: 0,
-        capacity: Vec::with_capacity(node_operator_report.node_operators.len()),
+        capacity: Vec::with_capacity(node_operators.len()),
     };
-    for operator in node_operator_report.node_operators {
+    for operator in node_operators {
         let row = capacity_row_from_operator(operator);
         report.total_node_allowance += row.node_allowance;
         report.assigned_node_count += row.assigned_node_count.unwrap_or(0);

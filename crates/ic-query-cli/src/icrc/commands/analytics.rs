@@ -8,7 +8,7 @@ use super::{
     ACCOUNT_ID_ARG,
     options::{AccountListOptions, HolderListOptions, TokenValueOptions, TotalSupplyOptions},
 };
-use crate::cli::clap::with_options;
+use crate::cli::clap::{with_options, with_source_options};
 use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
 use clap::Command as ClapCommand;
 use ic_query::ic::{
@@ -79,14 +79,14 @@ fn with_common_analytics_options(command: ClapCommand) -> ClapCommand {
 }
 
 fn with_analytics_endpoint(command: ClapCommand, endpoint: &'static str) -> ClapCommand {
-    with_options::<super::options::IcrcLedgerOptions>(command)
-        .mut_arg("ledger-canister-id", |arg| arg.index(1))
-        .mut_arg("json", |arg| arg.display_order(21))
-        .mut_arg("source-endpoint", |arg| {
-            arg.display_order(20)
-                .default_value(endpoint)
-                .help("Official IC Dashboard ICRC analytics API base endpoint")
-        })
+    with_source_options::<super::options::IcrcLedgerOptions>(
+        command,
+        endpoint,
+        "Official IC Dashboard ICRC analytics API base endpoint",
+    )
+    .mut_arg("ledger-canister-id", |arg| arg.index(1))
+    .mut_arg("json", |arg| arg.display_order(21))
+    .mut_arg("source-endpoint", |arg| arg.display_order(20))
 }
 
 fn indexed_count_namespace(entity: &'static str, plural: &'static str) -> ClapCommand {

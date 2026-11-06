@@ -5,6 +5,33 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.93.2]
+
+### 🧹 Cleanup
+
+- Make the retained SNS neuron cache and refresh flow concrete, share SNS
+  principal validation and NNS refresh bookkeeping,
+  preserving public APIs, schema-1 snapshots, paging, progress and failure evidence.
+  [Details](0.93.md).
+- Build topology and exact inventory lookups directly from the validated Registry
+  snapshot. Retain provenance, source order and joins while removing intermediate
+  reports and redundant cache forwarding. [Details](0.93.md).
+- Reuse report provenance and common collection accessors, and carry admitted
+  node-status freshness through refresh selection. Keep public methods, report
+  shapes and cache age policy unchanged. [Details](0.93.md).
+- Carry release-group selection into lint and archive commands, removing native
+  Cargo checks already covered by the same Clippy selections. Keep CLI/Text
+  reverse-consumer tests, feature/Wasm checks and archive verification.
+  Changed mappings retain full release validation until native qualification.
+  [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Adopt Testkit 0.89.1 for native Governance fixtures. Keep explicit instance
+  teardown and PocketIC 16.1.0; remove unused automatic client logging
+  dependencies. Retain compatible Platform, Runtime and Wire patch selections.
+  Public Query APIs and reports are unchanged. [Details](0.93.md).
+
 ## [0.93.1] - 2026-11-06
 
 ### 🧹 Cleanup

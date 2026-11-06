@@ -78,7 +78,8 @@ async fn node_operator_report_uses_live_registry_source() {
 fn node_operator_info_resolves_unique_prefix() {
     let report = node_operator_report_fixture();
 
-    let (index, resolved_from) = resolve_node_operator(&report, "ryjl").expect("prefix resolves");
+    let (index, resolved_from) =
+        resolve_node_operator(&report.node_operators, "ryjl").expect("prefix resolves");
     let operator = &report.node_operators[index];
 
     assert_eq!(resolved_from, "node_operator_principal_prefix");

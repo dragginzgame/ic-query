@@ -8,8 +8,7 @@ use crate::report::ReportProvenance;
 use crate::sns::report::SnsReportContext;
 use crate::sns::report::{
     SnsHostError, SnsNeuronsReport, SnsNeuronsRequest, assemble::sns_neurons_report_from_rows,
-    cache_storage::load_sns_cache_for_governance, neurons_cache::paths::SnsNeuronsCacheCollection,
-    view::sort_sns_neurons,
+    cache_storage::load_sns_cache_for_governance, view::sort_sns_neurons,
 };
 
 pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
@@ -17,7 +16,7 @@ pub(in crate::sns::report) fn build_sns_neurons_report_from_cache(
     cache_root: &std::path::Path,
     sort: crate::sns::SnsNeuronsCacheSort,
 ) -> Result<SnsNeuronsReport, SnsHostError> {
-    let (cache_path, mut cache) = load_sns_cache_for_governance::<SnsNeuronsCacheCollection>(
+    let (cache_path, mut cache) = load_sns_cache_for_governance(
         cache_root,
         &request.target.network,
         &request.target.governance_canister_id,

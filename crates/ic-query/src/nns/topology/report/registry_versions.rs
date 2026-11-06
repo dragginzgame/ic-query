@@ -26,36 +26,23 @@ pub(super) fn topology_registry_versions(
 pub(super) fn topology_component_registry_versions(
     reports: &TopologyInventoryReports,
 ) -> Vec<NnsTopologyRegistryVersionRow> {
-    vec![
-        registry_version_row(
-            "nodes",
-            reports.node.provenance.registry_version,
-            &reports.node.provenance.fetched_at,
-            &reports.node.provenance.source_endpoint,
-            None,
-        ),
-        registry_version_row(
-            "node_providers",
-            reports.node_provider.provenance.registry_version,
-            &reports.node_provider.provenance.fetched_at,
-            &reports.node_provider.provenance.source_endpoint,
-            None,
-        ),
-        registry_version_row(
-            "node_operators",
-            reports.node_operator.provenance.registry_version,
-            &reports.node_operator.provenance.fetched_at,
-            &reports.node_operator.provenance.source_endpoint,
-            None,
-        ),
-        registry_version_row(
-            "data_centers",
-            reports.data_center.provenance.registry_version,
-            &reports.data_center.provenance.fetched_at,
-            &reports.data_center.provenance.source_endpoint,
-            None,
-        ),
+    [
+        ("nodes", &reports.registry.provenance),
+        ("node_providers", &reports.node_provider.provenance),
+        ("node_operators", &reports.registry.provenance),
+        ("data_centers", &reports.registry.provenance),
     ]
+    .into_iter()
+    .map(|(source, provenance)| {
+        registry_version_row(
+            source,
+            provenance.registry_version,
+            &provenance.fetched_at,
+            &provenance.source_endpoint,
+            None,
+        )
+    })
+    .collect()
 }
 
 pub(super) fn registry_version_row(

@@ -65,7 +65,8 @@ async fn data_center_report_uses_live_registry_source() {
 fn data_center_info_resolves_unique_prefix() {
     let report = data_center_report_fixture();
 
-    let (index, resolved_from) = resolve_data_center(&report, "dc").expect("prefix resolves");
+    let (index, resolved_from) =
+        resolve_data_center(&report.data_centers, "dc").expect("prefix resolves");
     let data_center = &report.data_centers[index];
 
     assert_eq!(resolved_from, "data_center_id_prefix");

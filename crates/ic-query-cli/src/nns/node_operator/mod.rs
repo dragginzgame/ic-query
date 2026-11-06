@@ -8,7 +8,6 @@ use crate::nns::{NnsCommandError, leaf};
 use clap::ArgMatches;
 use ic_query::nns::node_operator::build_nns_node_operator_info_report_with_source_and_progress;
 use ic_query::nns::node_operator::build_nns_node_operator_list_report_with_source_and_progress;
-use ic_query::nns::refresh_nns_registry_inventory;
 use ic_query_text::nns::node_operator::nns_node_operator_info_report_text;
 use ic_query_text::nns::node_operator::nns_node_operator_list_report_text;
 
@@ -25,50 +24,29 @@ pub(in crate::nns) async fn run(
     matches: &ArgMatches,
     network: &str,
 ) -> Result<(), NnsCommandError> {
-    match matches.subcommand() {
-        Some(("list", matches)) => {
-            leaf::run_cached_leaf_list(
-                matches,
-                network,
-                async |request, progress| {
-                    build_nns_node_operator_list_report_with_source_and_progress(
-                        request,
-                        &ic_query::nns::LiveNnsSource::default(),
-                        progress,
-                    )
-                    .await
-                },
-                &nns_node_operator_list_report_text,
+    leaf::run_cached_leaf(
+        matches,
+        network,
+        async |request, progress| {
+            build_nns_node_operator_list_report_with_source_and_progress(
+                request,
+                &ic_query::nns::LiveNnsSource::default(),
+                progress,
             )
             .await
-        }
-        Some(("info", matches)) => {
-            leaf::run_cached_leaf_info(
-                matches,
-                network,
-                async |request, progress| {
-                    build_nns_node_operator_info_report_with_source_and_progress(
-                        request,
-                        &ic_query::nns::LiveNnsSource::default(),
-                        progress,
-                    )
-                    .await
-                },
-                &nns_node_operator_info_report_text,
+        },
+        async |request, progress| {
+            build_nns_node_operator_info_report_with_source_and_progress(
+                request,
+                &ic_query::nns::LiveNnsSource::default(),
+                progress,
             )
             .await
-        }
-        Some(("refresh", matches)) => {
-            leaf::run_cached_leaf_refresh(
-                matches,
-                network,
-                refresh_nns_registry_inventory,
-                ic_query_text::nns::nns_inventory_refresh_report_text,
-            )
-            .await
-        }
-        _ => unreachable!("clap requires a known NNS leaf subcommand"),
-    }
+        },
+        nns_node_operator_list_report_text,
+        nns_node_operator_info_report_text,
+    )
+    .await
 }
 
 #[cfg(test)]

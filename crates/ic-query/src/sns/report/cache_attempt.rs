@@ -5,18 +5,17 @@
 //! Boundary: one resolved context and attempt contract serves neuron refreshes.
 
 use crate::cache_file::{ManagedReadBudget, write_managed_json_pretty_atomically};
-use crate::report::CollectionSourceRequest;
 use crate::{
     HostCacheError,
     cache::CacheRefreshAttemptStatus,
     snapshot_cache::{
-        PagedCollectionPage, PagedCollectionState, SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION,
-        SnapshotRefreshAttempt, SnapshotRefreshProgress, current_attempt_timestamp,
-        read_snapshot_refresh_attempt_strict, validate_snapshot_refresh_attempt,
+        SNAPSHOT_REFRESH_ATTEMPT_SCHEMA_VERSION, SnapshotRefreshAttempt, SnapshotRefreshProgress,
+        current_attempt_timestamp, read_snapshot_refresh_attempt_strict,
+        validate_snapshot_refresh_attempt,
     },
     sns::report::{
-        SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus, SnsSnapshotRefreshRequest,
-        cache_paths::sns_governance_from_cache_path,
+        SNS_CACHE_COMPONENT, SnsHostError, SnsRefreshAttemptStatus,
+        cache_paths::sns_governance_from_cache_path, neurons_cache::SnsRefreshContext,
     },
 };
 use serde::{Deserialize as SerdeDeserialize, Serialize};
@@ -37,56 +36,6 @@ pub(in crate::sns::report) struct SnsRefreshAttemptMetadata {
 
 pub(in crate::sns::report) type SnsRefreshAttempt =
     SnapshotRefreshAttempt<SnsRefreshAttemptMetadata>;
-
-///
-/// SnsRefreshContext
-///
-/// Resolved inputs and paging policy shared by one SNS collection refresh.
-///
-
-#[derive(Clone, Copy)]
-pub(in crate::sns::report) struct SnsRefreshContext<'a> {
-    pub(in crate::sns::report) path: &'a Path,
-    pub(in crate::sns::report) request: &'a SnsSnapshotRefreshRequest,
-    pub(in crate::sns::report) fetch_request: &'a CollectionSourceRequest,
-    pub(in crate::sns::report) governance_canister_id: &'a str,
-}
-
-impl SnsRefreshContext<'_> {
-    pub(in crate::sns::report) fn max_pages_reached(self, page_count: u32) -> bool {
-        self.request
-            .max_pages
-            .is_some_and(|max_pages| page_count >= max_pages)
-    }
-
-    pub(in crate::sns::report) fn incomplete_refresh_error(
-        page_count: u32,
-        row_count: usize,
-        reason: &'static str,
-    ) -> SnsHostError {
-        SnsHostError::IncompleteRefresh {
-            pages_fetched: page_count,
-            rows_fetched: row_count,
-            reason: reason.to_string(),
-        }
-    }
-
-    pub(in crate::sns::report) fn ingest_page<Row, Cursor>(
-        self,
-        pages: &mut PagedCollectionState<Row, Cursor>,
-        rows: Vec<Row>,
-        raw_page_len: usize,
-        next_cursor: Option<Cursor>,
-    ) -> PagedCollectionPage {
-        // The API page length precedes removal of a repeated neuron boundary row.
-        let exhausted = raw_page_len
-            < usize::try_from(self.request.page_size).unwrap_or(usize::MAX)
-            || next_cursor.is_none();
-        let page = PagedCollectionPage::new(rows.len(), exhausted);
-        pages.ingest(rows, next_cursor);
-        page
-    }
-}
 
 pub(in crate::sns::report) fn write_starting_sns_refresh_attempt(
     context: SnsRefreshContext<'_>,
@@ -127,7 +76,7 @@ pub(in crate::sns::report) fn write_failed_sns_refresh_attempt(
 ) {
     let latest = read_sns_refresh_attempt(
         &context.request.cache_root,
-        context.path,
+        &context.paths.refresh_attempt_path,
         &context.request.target.network,
         None,
     )
@@ -169,7 +118,7 @@ fn write_sns_refresh_attempt_status(
     };
     write_managed_json_pretty_atomically(
         &context.request.cache_root,
-        context.path,
+        &context.paths.refresh_attempt_path,
         &attempt,
         crate::cache_file::MAX_REFRESH_ATTEMPT_BYTES,
         |path, source| {

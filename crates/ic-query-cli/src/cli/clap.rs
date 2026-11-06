@@ -62,6 +62,17 @@ pub fn with_options<T: Args>(command: Command) -> Command {
     T::augment_args(command).about(about).long_about(long_about)
 }
 
+/// Attach typed report arguments with the command's explicit endpoint policy.
+pub fn with_source_options<T: Args>(
+    command: Command,
+    endpoint: &'static str,
+    help: &'static str,
+) -> Command {
+    with_options::<T>(command).mut_arg("source-endpoint", |arg| {
+        arg.default_value(endpoint).help(help)
+    })
+}
+
 pub fn flag_arg(id: &'static str) -> Arg {
     Arg::new(id).action(ArgAction::SetTrue)
 }

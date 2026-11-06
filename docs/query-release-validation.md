@@ -24,8 +24,8 @@ redirected configuration refuses rather than escaping source custody.
 
 | Gate | Required checks |
 | --- | --- |
-| Query owner-only release | Query and private Testkit tests, CLI/Text reverse consumers, complete feature/runtime boundaries and every archive; omit only unchanged automation regressions. |
-| CLI/Text owner-only release | CLI processes and Text tests against actual Query reports, public API/schema integration, complete feature/runtime boundaries and every archive; omit unchanged Query/Testkit engine tests and automation regressions. |
+| Query owner-only release | Query and private Testkit Clippy and tests; Query archive; CLI/Text reverse-consumer tests and complete feature/runtime boundaries. |
+| CLI/Text owner-only release | CLI/Text Clippy, tests and archives against actual Query dependencies; public API/schema integration and complete feature/runtime boundaries. |
 | Shared, unknown or unqualified scope | Every stage in the full roster. |
 
 [Scope data](../ci/release-validation-scopes.json) declares the only permitted
@@ -39,15 +39,29 @@ the full gate.
 
 The complete feature-boundary stage remains required in both groups: portable,
 host, focused adapters, generated Governance Wasm, canister public API and Text
-Wasm graphs, together with public report/schema consumers. Full workspace Clippy
-and compilation, schema admission, dependency checks and public documentation
-remain required too. Every selected plan packages all three published crates
-against the real workspace versions; no package-version projection is used.
+Wasm graphs, together with public report/schema consumers. Schema admission,
+dependency checks and public documentation remain required too. The roster splits
+Clippy and archives into `query-*` and `cli-*` stages. Clippy uses explicit package
+selections, all targets and all features; Query also retains its no-default-feature
+lint. Query plans omit unchanged CLI/Text lint and archives while retaining
+`cli-test` as an explicit reverse consumer. CLI/Text plans omit unchanged
+Query/Testkit lint, tests and archives; Cargo still builds their Query
+dependencies. CLI/Text archives use the
+actual local Query and Text peers, with no package-version projection.
+Full CI and every full fallback execute both groups' stages, covering all four
+workspace members and all three published archives. Standalone `make clippy`,
+`make check` and `make package` retain their complete workspace behavior.
+Clippy already performs native compiler checks for the exact package, target,
+feature and profile selections previously repeated by the standalone check
+stages, with warnings denied. Query has no Clippy-specific compilation branches
+or workspace build scripts. The roster therefore omits a second native
+`cargo check` pass. Feature-isolated checks, Wasm checks, tests and archive
+verification retain their distinct selections and remain required.
 Installed Testkit/Governance and local NNS smoke checks remain in all three
 native canister lanes. Source/index, publication and recovery admission remain
 owned by their existing adapters.
 
-Both groups may omit only the unchanged `ci-scripts-check`,
+Both groups also omit the unchanged `ci-scripts-check`,
 `publish-guards-check` and `release-guards-check` automation regressions.
 Repository-wide CI retains every stage. New stages default to required; unknown
 exclusion targets or groups refuse rather than silently dropping an obligation.
@@ -103,15 +117,31 @@ and receipt wiring with simulated product stages. It covers both group mappings,
 full expansion, required/excluded product failures, interrupted stages, source/roster/
 scope-input drift, unknown groups and evidence tampering. It also executes the
 actual full/selected qualification wiring with simulated stages.
+The command fixtures execute the real Make recipes with a recording Cargo
+substitute. They assert exact package/feature/target selections, local archive
+peers, locked/offline execution, source admission and failure propagation. Run
+only those fixtures with `IC_QUERY_RELEASE_VALIDATION_CASE=commands`; they do not
+compile products. The mapping fixtures separately require selected lint
+and archive failures to block, and unrelated group stages to stay
+excluded. Full-fallback fixtures retain every stage.
+
 The focused UTF-8 case selects a non-ASCII omission reason through Query’s actual
 selector, shared runner and retained-receipt check. Select it with
 `IC_QUERY_RELEASE_VALIDATION_CASE=utf8`; the default fixture selection is unchanged.
 Generic schema/path/event tests remain upstream. These fixtures establish dispatch
 and custody, not product execution, native macOS support or a measured speedup.
 
-## Native mapping admission, 2026-11-04
+## Current qualification status
 
-The current mapping `ae59229f106af387c90a41cadfeeb2832e0f21e6e10d3bff8fca8bca292447b3`
+Splitting Cargo and archive stages changes the mapping fingerprint. The new
+mapping requires matched full/selected native comparisons before host admission;
+all release hosts keep the full fallback until that evidence is admitted. Focused
+command and mapping fixtures establish dispatch and refusal behavior, not native
+qualification or a measured speedup. CI selects comparisons for this change.
+
+## Previous native mapping admission, 2026-11-04
+
+The earlier mapping `ae59229f106af387c90a41cadfeeb2832e0f21e6e10d3bff8fca8bca292447b3`
 passed full, Query and CLI/Text comparisons on Linux x86_64 with Rust 1.99.1:
 24, 21 and 20 required stages respectively. The
 [hosted Linux evidence](https://github.com/dragginzgame/ic-query/actions/runs/41843201059/job/126619913207)

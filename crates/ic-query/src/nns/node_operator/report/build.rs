@@ -3,6 +3,7 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 use super::{
     NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
     NnsInventoryListRequest, NnsNodeOperatorInfoReport, NnsNodeOperatorListReport,
+    NnsNodeOperatorRow,
 };
 use crate::nns::{
     LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
@@ -52,30 +53,25 @@ pub async fn build_nns_node_operator_info_report_with_source_and_progress(
     source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeOperatorInfoReport, NnsInventoryError> {
-    let list_request = request.to_list_request();
-    let mut report = build_nns_node_operator_list_report_with_source_and_progress(
-        &list_request,
-        source,
-        progress,
-    )
-    .await?;
-    let (index, resolved_from) = resolve_node_operator(&report, &request.input)?;
-    let operator = report.node_operators.swap_remove(index);
+    let mut snapshot =
+        load_or_refresh_nns_inventory_report(&request.to_list_request(), source, progress).await?;
+    let (index, resolved_from) = resolve_node_operator(&snapshot.node_operators, &request.input)?;
+    let operator = snapshot.node_operators.swap_remove(index);
     Ok(NnsNodeOperatorInfoReport {
         schema_version: NNS_NODE_OPERATOR_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),
         resolved_from,
-        provenance: report.provenance,
+        provenance: snapshot.provenance,
         node_operator: operator,
     })
 }
 
 pub(super) fn resolve_node_operator(
-    report: &NnsNodeOperatorListReport,
+    rows: &[NnsNodeOperatorRow],
     input: &str,
 ) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
-        &report.node_operators,
+        rows,
         |row| row.node_operator_principal.as_str(),
         input,
         NnsInventoryInputKind::Principal,

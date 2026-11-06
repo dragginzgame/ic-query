@@ -244,11 +244,10 @@ pub(in crate::nns) async fn collect_registry_inventory(
         })?;
     let write =
         super::leaf::write_nns_leaf_json_refresh_cache(request, COMPONENT, CACHE_FILE, &snapshot)
-            .await
             .map_err(|source| NnsInventoryError::Cache {
-                collection: COLLECTION,
-                source,
-            })?;
+            collection: COLLECTION,
+            source,
+        })?;
     let report = inventory_refresh_outcome(
         request,
         COMPONENT,

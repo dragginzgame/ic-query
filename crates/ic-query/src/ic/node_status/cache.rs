@@ -21,7 +21,6 @@ use crate::{
         CacheRefreshReason, HostCacheError, LoadJsonCacheRequest, host_cache_refresh_reason,
         load_or_refresh_cache,
     },
-    freshness::freshness_facts,
     ic::{
         IcDashboardReportProvenance, IcNodeStatusReport, IcNodeStatusSource, LiveIcSource,
         build_ic_node_status_snapshot_with_source,
@@ -61,12 +60,12 @@ type NodeStatusCache = SnapshotEnvelope<NodeStatusCacheMetadata, NodeStatusCache
 ///
 /// LoadedNodeStatusSnapshot
 ///
-/// Cache-admitted immutable rows, computed counts and parsed collection time.
+/// Cache-admitted immutable rows and the freshness decision for the requested clock.
 ///
 
 pub(super) struct LoadedNodeStatusSnapshot {
     snapshot: IcNodeStatusSnapshot,
-    fetched_at_unix_secs: u64,
+    cache_fresh: bool,
 }
 
 impl LoadedNodeStatusSnapshot {
@@ -139,7 +138,7 @@ pub async fn load_or_refresh_stale_ic_node_status_snapshot_with_source(
     progress: &mut dyn QueryProgress,
 ) -> Result<IcNodeStatusSnapshot, IcNodeStatusHostError> {
     load_or_refresh_node_status_snapshot_with_source(request, source, progress, |cached| {
-        node_status_cache_is_stale(cached, request.now_unix_secs)
+        !cached.cache_fresh
     })
     .await
     .map(|cached| cached.snapshot)
@@ -304,7 +303,7 @@ async fn read_snapshot(
         return load_node_status_cache(&request.refresh.cache, request.refresh.now_unix_secs);
     }
     load_or_refresh_node_status_snapshot_with_source(&request.refresh, source, progress, |cached| {
-        node_status_cache_is_stale(cached, request.refresh.now_unix_secs)
+        !cached.cache_fresh
     })
     .await
 }
@@ -404,7 +403,7 @@ fn snapshot_from_cache(
     let nodes = cache.data.nodes;
     Ok(LoadedNodeStatusSnapshot {
         snapshot: IcNodeStatusSnapshot { observation, nodes },
-        fetched_at_unix_secs,
+        cache_fresh,
     })
 }
 
@@ -438,15 +437,6 @@ fn cache_from_observation(
         ),
         data: NodeStatusCacheData { nodes },
     }
-}
-
-const fn node_status_cache_is_stale(cache: &LoadedNodeStatusSnapshot, now_unix_secs: u64) -> bool {
-    freshness_facts(
-        Some(cache.fetched_at_unix_secs),
-        now_unix_secs,
-        DEFAULT_IC_NODE_STATUS_STALE_AFTER_SECONDS,
-    )
-    .stale
 }
 
 fn cache_refresh_reason(

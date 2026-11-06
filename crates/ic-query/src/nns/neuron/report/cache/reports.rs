@@ -35,11 +35,12 @@ use crate::{
                 NnsNeuronListRequest,
             },
             source::{
-                NnsNeuronReportProvenance, info_report_from_row, list_report_from_rows,
-                validate_neuron_rows, validate_page_size,
+                info_report_from_row, list_report_from_rows, validate_neuron_rows,
+                validate_page_size,
             },
         },
     },
+    report::ReportProvenance,
     snapshot_cache::{SnapshotIdentityMismatch, SnapshotKey, load_complete_snapshot_for_key},
 };
 use std::path::{Path, PathBuf};
@@ -122,7 +123,8 @@ pub fn build_nns_neuron_list_report_from_cache(
     });
     let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
     let end_index = start_index.saturating_add(limit).min(total_neuron_count);
-    let provenance = cache_provenance(&path, &cache);
+    let context = NnsGovernanceReportContext::from_snapshot(&cache);
+    let provenance = ReportProvenance::cache(&path);
     let neurons = cache
         .data
         .neurons
@@ -135,6 +137,7 @@ pub fn build_nns_neuron_list_report_from_cache(
         .flatten();
     Ok(Some(list_report_from_rows(
         request,
+        context,
         provenance,
         neurons,
         next_start_neuron_id,
@@ -159,9 +162,10 @@ pub fn build_nns_neuron_info_report_from_cache(
     else {
         return Ok(None);
     };
-    let provenance = cache_provenance(&path, &cache);
+    let context = NnsGovernanceReportContext::from_snapshot(&cache);
+    let provenance = ReportProvenance::cache(&path);
     let neuron = cache.data.neurons.swap_remove(index);
-    Ok(Some(info_report_from_row(provenance, neuron)))
+    Ok(Some(info_report_from_row(context, provenance, neuron)))
 }
 
 /// Inspect the expected complete neuron snapshot without making a live call.
@@ -248,13 +252,6 @@ fn validate_cache(
     validate_collection_state(&state).map_err(|error| invalid(error.to_string()))?;
     validate_neuron_rows(&cache.data.neurons).map_err(|error| invalid(error.to_string()))?;
     Ok(state)
-}
-
-fn cache_provenance(path: &Path, cache: &NnsNeuronCache) -> NnsNeuronReportProvenance {
-    NnsNeuronReportProvenance {
-        context: NnsGovernanceReportContext::from_snapshot(cache),
-        cache_path: Some(path.display().to_string()),
-    }
 }
 
 fn incomplete_snapshot_error(completeness: &CacheCollectionCompleteness) -> NnsNeuronHostError {

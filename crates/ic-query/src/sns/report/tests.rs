@@ -31,6 +31,7 @@ struct Source {
     calls: Mutex<Vec<String>>,
     fail: bool,
     wrong_owner: bool,
+    cache_root: Option<std::path::PathBuf>,
 }
 impl SnsNeuronsSource for Source {
     fn fetch_sns_neurons<'a>(
@@ -55,7 +56,7 @@ impl SnsNeuronsSource for Source {
     }
     fn fetch_sns_neuron_page<'a>(
         &'a self,
-        _: &'a CollectionSourceRequest,
+        request: &'a CollectionSourceRequest,
         governance: &'a str,
         limit: u32,
         start: Option<&'a SnsNeuronId>,
@@ -65,6 +66,26 @@ impl SnsNeuronsSource for Source {
             assert_eq!(governance, GOV);
             assert_eq!(limit, 2);
             assert!(owner.is_none());
+            if let Some(root) = &self.cache_root {
+                let path = sns_neurons_refresh_lock_path(root, &request.network, governance);
+                assert!(crate::cache_file::inspect_refresh_lock(root, &path).unwrap());
+                let attempt = cache_attempt::read_sns_refresh_attempt_status_strict(
+                    root,
+                    &sns_neurons_refresh_attempt_path(root, &request.network, governance),
+                    &request.network,
+                    None,
+                )
+                .unwrap()
+                .unwrap();
+                assert_eq!(
+                    attempt.lifecycle.status,
+                    crate::cache::CacheRefreshAttemptStatus::Running
+                );
+                assert_eq!(
+                    attempt.lifecycle.pages_fetched as usize,
+                    self.calls.lock().unwrap().len()
+                );
+            }
             self.calls.lock().unwrap().push(governance.to_string());
             if self.fail && start.is_some() {
                 return Err(SnsHostError::AgentCall {
@@ -108,6 +129,29 @@ fn explicit_targets_reject_numeric_ids_and_path_inputs() {
         assert!(SnsNeuronTargetRequest::new("ic", "https://icp-api.io", 0, bad).is_err());
     }
 }
+
+#[tokio::test(flavor = "current_thread")]
+async fn invalid_principals_preserve_validation_order_without_source_calls() {
+    let source = Source::default();
+    for (governance, owner, expected_field) in [
+        (
+            GOV.to_uppercase(),
+            OWNER.to_uppercase(),
+            "governance_canister_id",
+        ),
+        (GOV.to_string(), "invalid".to_string(), "owner_principal_id"),
+        (GOV.to_string(), OWNER.to_uppercase(), "owner_principal_id"),
+    ] {
+        let mut target = target();
+        target.governance_canister_id = governance;
+        let request = SnsNeuronsRequest::live(target, 2, Some(owner));
+        let result = build_sns_neurons_report_with_source(&request, &source).await;
+        assert!(
+            matches!(result, Err(SnsHostError::InvalidPrincipal { field, .. }) if field == expected_field)
+        );
+    }
+    assert!(source.calls.lock().unwrap().is_empty());
+}
 #[tokio::test(flavor = "current_thread")]
 async fn direct_reads_preserve_stake_permission_codes_and_target() {
     let source = Source::default();
@@ -140,7 +184,10 @@ async fn direct_reads_preserve_stake_permission_codes_and_target() {
 #[tokio::test(flavor = "current_thread")]
 async fn complete_snapshots_keep_permissions_and_repeated_boundaries_once() {
     let root = crate::tests::temp_dir("explicit-governance-neuron-snapshot");
-    let source = Source::default();
+    let source = Source {
+        cache_root: Some(root.clone()),
+        ..Default::default()
+    };
     let request = SnsSnapshotRefreshRequest::new(&root, target(), 2);
     let refresh =
         refresh_sns_neurons_cache_with_source_and_progress(&request, &source, &mut |_| {})
@@ -149,6 +196,13 @@ async fn complete_snapshots_keep_permissions_and_repeated_boundaries_once() {
     assert_eq!(refresh.row_count, 3);
     assert_eq!(refresh.page_count, 3);
     assert!(refresh.cache_path.contains("sns-neuron/ic/"));
+    assert!(
+        !crate::cache_file::inspect_refresh_lock(
+            &root,
+            std::path::Path::new(&refresh.refresh_lock_path)
+        )
+        .unwrap()
+    );
     let before = std::fs::read(&refresh.cache_path).unwrap();
     let read = SnsNeuronsRequest::cached(target(), 10, &root, SnsNeuronsCacheSort::Stake);
     let report = build_sns_neurons_report_with_source(
@@ -178,6 +232,7 @@ async fn complete_snapshots_keep_permissions_and_repeated_boundaries_once() {
             &request,
             &Source {
                 fail: true,
+                cache_root: Some(root.clone()),
                 ..Default::default()
             },
             &mut |_| {}

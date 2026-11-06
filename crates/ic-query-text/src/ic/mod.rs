@@ -4,8 +4,8 @@
 //! Does not own: REST calls, report construction, JSON serialization, or command output.
 //! Boundary: keeps raw values intact in JSON while making nullable text fields readable.
 
-use crate::text_value::field;
 use crate::text_value::table;
+use crate::text_value::{field, json_scalar_text};
 use ic_host_text::escape::terminal_text;
 use ic_host_text::table::Alignment;
 
@@ -687,14 +687,6 @@ fn append_filters(lines: &mut Vec<String>, filters: &IcCanisterFilters) {
     }
     if let Some(query) = filters.query.as_deref() {
         lines.push(field("filter.query", &(query)));
-    }
-}
-
-fn json_scalar_text(value: &serde_json::Value) -> String {
-    match value {
-        serde_json::Value::Null => "-".to_string(),
-        serde_json::Value::String(value) => value.clone(),
-        _ => value.to_string(),
     }
 }
 

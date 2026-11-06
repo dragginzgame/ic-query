@@ -90,3 +90,14 @@ const fn relationships(
         ),
     ]
 }
+
+pub(super) fn render_value_table<const N: usize>(
+    headers: [&str; 2],
+    rows: [(&str, String); N],
+) -> String {
+    table(
+        &headers,
+        &rows.map(|(label, value)| [label.to_string(), value]),
+        &[Alignment::Left, Alignment::Right],
+    )
+}

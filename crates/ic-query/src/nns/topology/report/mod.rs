@@ -36,7 +36,7 @@ mod summary;
 mod tests;
 
 #[cfg(all(test, feature = "nns-host"))]
-use capacity::topology_capacity_report_from_report;
+use capacity::topology_capacity_report_from_rows;
 #[cfg(all(test, feature = "nns-host"))]
 use check::topology_check_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]
@@ -46,15 +46,12 @@ use gaps::topology_gaps_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]
 use providers::topology_providers_report_from_reports;
 #[cfg(all(test, feature = "nns-host"))]
-use regions::topology_regions_report_from_report;
+use regions::topology_regions_report_from_rows;
 #[cfg(all(test, feature = "nns-host"))]
 use summary::topology_summary_report_from_reports;
 
 #[cfg(feature = "nns-host")]
-use crate::nns::{
-    data_center::NnsDataCenterListReport, node::NnsNodeListReport,
-    node_operator::NnsNodeOperatorListReport, node_provider::NnsNodeProviderListReport,
-};
+use crate::nns::{NnsRegistryInventorySnapshot, node_provider::NnsNodeProviderListReport};
 
 ///
 /// TopologyInventoryReports
@@ -64,10 +61,8 @@ use crate::nns::{
 
 #[cfg(feature = "nns-host")]
 struct TopologyInventoryReports {
-    node: NnsNodeListReport,
+    registry: NnsRegistryInventorySnapshot,
     node_provider: NnsNodeProviderListReport,
-    node_operator: NnsNodeOperatorListReport,
-    data_center: NnsDataCenterListReport,
 }
 
 #[cfg(feature = "nns-host")]

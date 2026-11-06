@@ -1,20 +1,16 @@
 use super::{
     NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION, NnsTopologyRegionRow, NnsTopologyRegionsReport,
 };
-use crate::nns::data_center::NnsDataCenterListReport;
+use crate::nns::data_center::NnsDataCenterRow;
 use std::collections::BTreeMap;
 
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "Consumes one complete inventory acquisition when projecting the regions report."
-)]
-pub(super) fn topology_regions_report_from_report(
+pub(super) fn topology_regions_report_from_rows(
     network: String,
     source_endpoint: String,
-    data_center_report: NnsDataCenterListReport,
+    data_centers: &[NnsDataCenterRow],
 ) -> NnsTopologyRegionsReport {
     let mut region_map = BTreeMap::<String, NnsTopologyRegionRow>::new();
-    for data_center in &data_center_report.data_centers {
+    for data_center in data_centers {
         let row = region_map
             .entry(data_center.region.clone())
             .or_insert_with(|| NnsTopologyRegionRow {
@@ -64,7 +60,7 @@ pub(super) fn topology_regions_report_from_report(
         schema_version: NNS_TOPOLOGY_REGIONS_REPORT_SCHEMA_VERSION,
         network,
         source_endpoint,
-        data_center_count: data_center_report.data_centers.len(),
+        data_center_count: data_centers.len(),
         node_operator_count,
         node_provider_count,
         node_count,

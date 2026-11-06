@@ -8,11 +8,7 @@ mod build;
 #[cfg(feature = "sns-host")]
 mod cache_attempt;
 #[cfg(feature = "sns-host")]
-mod cache_collection;
-#[cfg(feature = "sns-host")]
 mod cache_paths;
-#[cfg(feature = "sns-host")]
-mod cache_refresh;
 #[cfg(feature = "sns-host")]
 mod cache_status;
 #[cfg(feature = "sns-host")]
@@ -34,7 +30,7 @@ use crate::hex::hex_bytes;
 #[cfg(feature = "sns-host")]
 pub use build::*;
 #[cfg(feature = "sns-host")]
-use cache_summary::{build_sns_cache_list_report, load_sns_cache_summary_at};
+use cache_summary::load_sns_cache_summary_at;
 #[cfg(feature = "sns-host")]
 pub use live::LiveSnsSource;
 #[cfg(feature = "sns-host")]

@@ -13,6 +13,37 @@ use ic_query::nns::NnsInventoryListRequest;
 use ic_query::nns::NnsInventoryRefreshRequest;
 use serde::Serialize;
 
+/// Dispatch the common inventory operations while retaining each family's typed reports.
+pub(in crate::nns) async fn run_cached_leaf<List: Serialize, Info: Serialize>(
+    matches: &ArgMatches,
+    network: &str,
+    list: impl AsyncFn(
+        &NnsInventoryListRequest,
+        &mut dyn QueryProgress,
+    ) -> Result<List, ic_query::nns::NnsInventoryError>,
+    info: impl AsyncFn(
+        &NnsInventoryInfoRequest,
+        &mut dyn QueryProgress,
+    ) -> Result<Info, ic_query::nns::NnsInventoryError>,
+    render_list: fn(&List, ic_query_text::TextOptions) -> String,
+    render_info: fn(&Info) -> String,
+) -> Result<(), NnsCommandError> {
+    match matches.subcommand() {
+        Some(("list", matches)) => run_cached_leaf_list(matches, network, list, &render_list).await,
+        Some(("info", matches)) => run_cached_leaf_info(matches, network, info, &render_info).await,
+        Some(("refresh", matches)) => {
+            run_cached_leaf_refresh(
+                matches,
+                network,
+                ic_query::nns::refresh_nns_registry_inventory,
+                ic_query_text::nns::nns_inventory_refresh_report_text,
+            )
+            .await
+        }
+        _ => unreachable!("clap requires a known NNS leaf subcommand"),
+    }
+}
+
 pub(in crate::nns) async fn run_cached_leaf_list<Report, Error>(
     matches: &ArgMatches,
     network: &str,

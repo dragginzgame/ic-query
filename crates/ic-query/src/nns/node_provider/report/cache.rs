@@ -150,7 +150,6 @@ pub(super) async fn collect_metadata(
     let write = crate::nns::leaf::write_nns_leaf_json_refresh_cache(
         request, COMPONENT, CACHE_FILE, &metadata,
     )
-    .await
     .map_err(|source| NnsInventoryError::Cache {
         collection: super::COLLECTION,
         source,

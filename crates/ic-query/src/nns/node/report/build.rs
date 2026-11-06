@@ -2,7 +2,8 @@ use crate::nns::inventory::{NnsInventoryInputKind, resolve_nns_inventory_row};
 
 use super::{
     NNS_NODE_INFO_REPORT_SCHEMA_VERSION, NnsInventoryError, NnsInventoryInfoRequest,
-    NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest, filters::filter_node_list_report,
+    NnsNodeInfoReport, NnsNodeListReport, NnsNodeListRequest, NnsNodeRow,
+    filters::filter_node_list_report,
 };
 use crate::nns::{
     LiveNnsSource, NnsRegistryInventorySource, inventory::load_or_refresh_nns_inventory_report,
@@ -53,31 +54,25 @@ pub async fn build_nns_node_info_report_with_source_and_progress(
     source: &dyn NnsRegistryInventorySource,
     progress: &mut dyn QueryProgress,
 ) -> Result<NnsNodeInfoReport, NnsInventoryError> {
-    let list_request = NnsNodeListRequest::new(
-        request.cache.clone(),
-        request.source_endpoint.clone(),
-        request.now_unix_secs,
-    );
-    let mut report =
-        build_nns_node_list_report_with_source_and_progress(&list_request, source, progress)
-            .await?;
-    let (index, resolved_from) = resolve_node(&report, &request.input)?;
-    let node = report.nodes.swap_remove(index);
+    let mut snapshot =
+        load_or_refresh_nns_inventory_report(&request.to_list_request(), source, progress).await?;
+    let (index, resolved_from) = resolve_node(&snapshot.nodes, &request.input)?;
+    let node = snapshot.nodes.swap_remove(index);
     Ok(NnsNodeInfoReport {
         schema_version: NNS_NODE_INFO_REPORT_SCHEMA_VERSION,
         input: request.input.clone(),
         resolved_from,
-        provenance: report.provenance,
+        provenance: snapshot.provenance,
         node,
     })
 }
 
 pub(super) fn resolve_node(
-    report: &NnsNodeListReport,
+    rows: &[NnsNodeRow],
     input: &str,
 ) -> Result<(usize, String), NnsInventoryError> {
     resolve_nns_inventory_row(
-        &report.nodes,
+        rows,
         |row| row.node_principal.as_str(),
         input,
         NnsInventoryInputKind::Principal,

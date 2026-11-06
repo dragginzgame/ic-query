@@ -15,7 +15,7 @@ pub(in crate::nns) use cache::{
 };
 
 mod refresh;
-pub(in crate::nns) use refresh::run_governance_snapshot_refresh;
+pub(in crate::nns) use refresh::{governance_refresh_bookkeeping, run_governance_snapshot_refresh};
 
 use crate::cache_file::write_managed_json_pretty_atomically;
 use crate::{

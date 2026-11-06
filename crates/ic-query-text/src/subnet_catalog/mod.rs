@@ -1,4 +1,3 @@
-use crate::text_value::field;
 mod info;
 mod list;
 mod refresh;
@@ -16,52 +15,34 @@ pub(super) fn append_catalog_authority(
     metadata: &SubnetCatalogReportMetadata,
     disposition: CacheDisposition,
 ) {
-    lines.extend([
-        field("assurance", &(metadata.assurance.as_str())),
-        field("cache_disposition", &(disposition.as_str())),
-        field("catalog_digest", &metadata.catalog_digest),
-        field(
-            "source_endpoints",
-            &(metadata
+    lines.extend(crate::text_value::report_fields!(metadata;
+        assurance = metadata.assurance.as_str(),
+        cache_disposition = disposition.as_str(),
+        catalog_digest,
+        source_endpoints = metadata
                 .source_endpoints
                 .iter()
                 .map(|endpoint| terminal_text(endpoint))
                 .collect::<Vec<_>>()
-                .join(",")),
-        ),
-        field(
-            "agreement_digest",
-            &(metadata.agreement_digest.as_deref().unwrap_or("-")),
-        ),
-        field(
-            "registry_query_call_count",
-            &(metadata.registry_query_call_count),
-        ),
-        field("routing_source", &(metadata.routing_source.as_str())),
-        field("registry_record_count", &(metadata.registry_records.len())),
-    ]);
+                .join(","),
+        agreement_digest = metadata.agreement_digest.as_deref().unwrap_or("-"),
+        registry_query_call_count,
+        routing_source = metadata.routing_source.as_str(),
+        registry_record_count = metadata.registry_records.len(),
+    ));
 }
 
 pub(super) fn append_catalog_policy(
     lines: &mut Vec<String>,
     metadata: &SubnetCatalogReportMetadata,
 ) {
-    lines.extend([
-        field("collector_version", &metadata.collector_version),
-        field(
-            "classification_schema_version",
-            &(metadata.classification_schema_version),
-        ),
-        field(
-            "classification_policy_digest",
-            &metadata.classification_policy_digest,
-        ),
-        field(
-            "resolver_schema_version",
-            &(metadata.resolver_schema_version),
-        ),
-        field("resolver_backend", &metadata.resolver_backend),
-    ]);
+    lines.extend(crate::text_value::report_fields!(metadata;
+        collector_version,
+        classification_schema_version,
+        classification_policy_digest,
+        resolver_schema_version,
+        resolver_backend,
+    ));
 }
 
 fn compact_principal(value: &str) -> String {

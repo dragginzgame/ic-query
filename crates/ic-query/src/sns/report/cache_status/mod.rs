@@ -7,22 +7,18 @@ use crate::{
         SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status_strict,
         cache_paths::{sns_snapshot_cache_paths, sns_snapshot_network_cache_dir},
-        cache_storage::SnsCacheStorageFamily,
         enforce_mainnet_network, load_sns_cache_summary_at,
         target::parse_governance_canister_input,
     },
 };
 
 /// Inspect one SNS cache family by Governance principal without discovery or live calls.
-pub(in crate::sns::report) fn build_sns_cache_status_report<Family>(
+pub fn build_sns_neurons_cache_status_report(
     request: &SnsCacheStatusRequest,
-) -> Result<SnsCacheStatusReport, SnsHostError>
-where
-    Family: SnsCacheStorageFamily,
-{
+) -> Result<SnsCacheStatusReport, SnsHostError> {
     enforce_mainnet_network(&request.network)?;
     let governance_canister_id = parse_governance_canister_input(&request.input)?;
-    let paths = sns_snapshot_cache_paths::<Family>(
+    let paths = sns_snapshot_cache_paths(
         &request.cache_root,
         &request.network,
         &governance_canister_id,
@@ -30,7 +26,7 @@ where
     let mut cache = if let Some(file) = open_managed_file(&request.cache_root, &paths.snapshot_path)
         .map_err(|source| HostCacheError::operation(SNS_CACHE_COMPONENT, source))?
     {
-        Some(load_sns_cache_summary_at::<Family>(
+        Some(load_sns_cache_summary_at(
             &request.cache_root,
             paths.snapshot_path.clone(),
             &request.network,

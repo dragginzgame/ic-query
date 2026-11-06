@@ -230,7 +230,7 @@ done > "${ci_gate_case}/expected-trace"
 cmp -s "${ci_gate_case}/expected-trace" "${ci_gate_case}/trace" \
   || fail "make ci ran an unexpected target sequence"
 
-for failed_target in tools-check clippy changelog-check dependency-pins-check dependency-boundary-check candid-boundary-check doc-links-check query-test cli-test; do
+for failed_target in tools-check query-clippy cli-clippy changelog-check dependency-pins-check dependency-boundary-check candid-boundary-check doc-links-check query-test cli-test; do
   : > "${ci_gate_case}/trace"
   if (
     unset VALIDATION_INPUT_ROOT VALIDATION_INPUT_BASELINE

@@ -17,31 +17,16 @@ use ic_query::nns::governance::NnsGovernancePercentage;
 pub fn nns_governance_economics_report_text(report: &NnsGovernanceEconomicsReport) -> String {
     let economics = &report.economics;
     let mut lines = context_lines(&report.context);
-    lines.extend([
-        field(
-            "neuron_minimum_stake_e8s",
-            &(economics.neuron_minimum_stake_e8s),
-        ),
-        field(
-            "max_proposals_to_keep_per_topic",
-            &(economics.max_proposals_to_keep_per_topic),
-        ),
-        field(
-            "neuron_management_fee_per_proposal_e8s",
-            &(economics.neuron_management_fee_per_proposal_e8s),
-        ),
-        field("reject_cost_e8s", &(economics.reject_cost_e8s)),
-        field("transaction_fee_e8s", &(economics.transaction_fee_e8s)),
-        field(
-            "neuron_spawn_dissolve_delay_seconds",
-            &(economics.neuron_spawn_dissolve_delay_seconds),
-        ),
-        field("minimum_icp_xdr_rate", &(economics.minimum_icp_xdr_rate)),
-        field(
-            "maximum_node_provider_rewards_e8s",
-            &(economics.maximum_node_provider_rewards_e8s),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(economics;
+        neuron_minimum_stake_e8s,
+        max_proposals_to_keep_per_topic,
+        neuron_management_fee_per_proposal_e8s,
+        reject_cost_e8s,
+        transaction_fee_e8s,
+        neuron_spawn_dissolve_delay_seconds,
+        minimum_icp_xdr_rate,
+        maximum_node_provider_rewards_e8s,
+    ));
     if let Some(fund) = economics.neurons_fund_economics.as_ref() {
         lines.extend([
             field(

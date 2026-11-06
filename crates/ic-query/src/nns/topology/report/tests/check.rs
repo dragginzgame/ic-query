@@ -3,16 +3,13 @@ use super::*;
 
 #[test]
 fn topology_check_report_flags_mixed_versions_and_unknown_joins() {
+    let mut inventory = topology_inventory_fixture();
+    inventory.registry.provenance.registry_version = 46;
     let report = topology_check_report_from_reports(
         MAINNET_NETWORK.to_string(),
         "https://icp-api.io".to_string(),
         subnet_report_fixture(),
-        &TopologyInventoryReports {
-            node: node_report_fixture(),
-            node_provider: node_provider_report_fixture(),
-            node_operator: node_operator_report_fixture(),
-            data_center: data_center_report_fixture(),
-        },
+        &inventory,
     );
 
     assert_eq!(report.schema_version, 1);
