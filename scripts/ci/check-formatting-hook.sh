@@ -48,13 +48,15 @@ while IFS=$'\t' read -r kind _digest _mode path; do
 done < "$work_dir/shared-records"
 git -C "$fixture" add -- Makefile .shared-tooling.snapshot
 
-# Explicit fixture preparation must reuse the checkout's verified payloads.
+# Store namespaces may differ; fixture preparation must retain the verified payloads.
 bash "$fixture/scripts/dev/install-rust-tools.sh" --consumer "$fixture" \
   --versions "$fixture/ci/tool-versions.env" > "$work_dir/preparation.log" 2>&1
+bash "$fixture/scripts/dev/install-rust-tools.sh" --consumer "$fixture" \
+  --versions "$fixture/ci/tool-versions.env" --check > "$work_dir/admission.log" 2>&1
 for tool in cargo-sort cargo-sort-derives; do
   original="$(perl -MCwd=abs_path -e 'print abs_path(shift) // die "missing prepared tool\n"' "$repo_root/.tools/rust/common/bin/$tool")"
   reused="$(perl -MCwd=abs_path -e 'print abs_path(shift) // die "missing fixture tool\n"' "$fixture/.tools/rust/common/bin/$tool")"
-  [[ "$original" == "$reused" ]] || { echo "fixture did not reuse prepared $tool" >&2; exit 1; }
+  cmp -s "$original" "$reused" || { echo "fixture changed the prepared $tool payload" >&2; exit 1; }
 done
 cd "$fixture"
 make --no-print-directory fmt-check > "$work_dir/baseline.log" 2>&1
