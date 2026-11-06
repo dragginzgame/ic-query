@@ -4,6 +4,7 @@
 //! Does not own: report construction, JSON output, live calls, or process output.
 //! Boundary: formats cycle amounts only for text while JSON retains raw decimal fields.
 
+#[cfg(all(feature = "cloud-engine-host", feature = "subnet-catalog-host"))]
 use crate::text_value::field;
 use crate::text_value::table;
 use ic_host_text::escape::terminal_text;

@@ -1,10 +1,10 @@
 //! Shared NNS text-rendering primitives for inventory and refresh reports.
 
-use crate::text_value::{field, report_fields};
+use crate::text_value::report_fields;
 use ic_host_text::escape::terminal_text;
 
 #[cfg(feature = "nns-host")]
-use crate::text_value::yes_no;
+use crate::text_value::{field, yes_no};
 
 #[must_use]
 pub fn compact_text(value: &str, chars: usize) -> String {
