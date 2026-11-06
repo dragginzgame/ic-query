@@ -46,6 +46,7 @@ CARGO_PUBLISH_INDEX_ATTEMPTS ?= 12
 CARGO_PUBLISH_INDEX_DELAY_SECONDS ?= 10
 CHANGELOG_VERSION ?=
 YQ ?= $(REPO_ROOT).tools/host/bin/yq
+IC_TOOL_PINS ?= ci/ic-tools.tsv
 IC_TOOLS := didc ic-wasm icp quill wasm-opt
 RELEASE_PUBLISH_TARGET ?= publish
 RELEASE_SETUP_TARGET := release-candidate-setup
@@ -192,8 +193,8 @@ release-batch-check:
 .PHONY: release-candidate-setup
 release-candidate-setup:
 	+@case "$(RELEASE_SETUP_MODE)" in \
-		prepare) $(MAKE) --no-print-directory install-host-tools ;; \
-		check) $(MAKE) --no-print-directory host-tools-check ;; \
+		prepare) $(MAKE) --no-print-directory install-host-tools install-ic-tools ;; \
+		check) $(MAKE) --no-print-directory host-tools-check ic-tools-check ;; \
 		*) echo 'Select frozen candidate setup mode prepare or check' >&2; exit 2 ;; \
 	esac
 

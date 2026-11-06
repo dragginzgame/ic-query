@@ -19,10 +19,13 @@ Baseline version: `0.85.0`.
 - Use the current `RELEASE_GROUPS` configuration and shared batch runner. Adopt
   the supplying contributor recovery-journal format and checksum verification
   fixes while keeping Query's public schemas at 1. [Details](0.93.md).
+- Bind IC pins to the delivery checkout and prepare its selected IC tools before
+  validation, retaining offline recovery admission. [Details](0.93.md).
 
 ```bash
 make release-patch RELEASE_GROUPS=query,cli
 make release-batch-status BATCH=batch-XXXXXXXX
+IC_QUERY_RELEASE_BATCH_CASE=admission make release-batch-check
 ```
 
 ### ⬆️ Dependencies

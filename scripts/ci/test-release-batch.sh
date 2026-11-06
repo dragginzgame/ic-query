@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Shared companions: Makefile scripts/release/adapter.sh scripts/release/publish-workspace.sh scripts/ci/prepare-script-fixture.sh scripts/ci/fixture-lifecycle.sh
 set -euo pipefail
+case "${IC_QUERY_RELEASE_BATCH_CASE:-all}" in
+  all|admission) ;;
+  *) echo 'unknown Query release-batch fixture case' >&2; exit 2 ;;
+esac
 
 # Actual consumer metadata, Git, setup and publication receipts; product gates
 # and registry effects are substitutes. Archives use real offline Cargo.
@@ -54,6 +58,12 @@ case "$1" in
   run)
     platform=$("$YQ" -p toml -o json -r '.package[] | select(.name == "ic-platform") | .version' Cargo.lock)
     [[ "$platform" == "$FROZEN_PLATFORM" ]]
+    plan_directory="target/batch-hook-plan/$RELEASE_GROUP"
+    mkdir -p "$plan_directory"
+    perl scripts/ci/validation-evidence.pl baseline "$PWD" "$RELEASE_SOURCE" "refs/tags/$RELEASE_GROUP-v$RELEASE_PREVIOUS" > "$plan_directory/baseline.json"
+    perl scripts/release/select-validation.pl context "$PWD" release > "$plan_directory/context.json"
+    perl scripts/release/select-validation.pl plan "$PWD" "$plan_directory" release > "$plan_directory/plan.json"
+    for tool in didc ic-wasm icp quill wasm-opt; do [[ -x ".tools/ic/bin/$tool" ]]; done
     printf '%s %s %s\n' "$RELEASE_GROUP" "$PWD" "$platform" >> "$FROZEN_RECORD/gates"
     if [[ -f "$FROZEN_RECORD/stop-gate" ]]; then
       cp "$FROZEN_RECORD/deferred.lock" "$FROZEN_NORMAL/Cargo.lock"
@@ -146,6 +156,11 @@ intents=("$FROZEN_NORMAL"/.git/release-state/frozen/batch-*/intent.json)
 [[ ${#intents[@]} == 1 && -f "${intents[0]}" ]]
 jq -e '.schema == 2 and .phase == "releasing" and .index == 0 and .setup == "release-candidate-setup"' "${intents[0]}" > /dev/null
 [[ ! -e "$FROZEN_RECORD/stop-gate" ]]
+if [[ "${IC_QUERY_RELEASE_BATCH_CASE:-all}" == admission ]]; then
+  fixture_complete=true
+  echo 'Captured Query plan and IC tool admission passed; controlled interruption retained'
+  exit 0
+fi
 batch="${intents[0]%/*}" batch="${batch##*/}"
 cp "$FROZEN_NORMAL/Cargo.lock" "$FROZEN_RECORD/expected-deferred.lock"
 cp "${intents[0]}" "$FROZEN_RECORD/expected-intent.json"

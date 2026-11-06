@@ -116,7 +116,9 @@ if ($operation eq 'context') {
         my %defaults = (IC_TOOL_PINS=>"$root/ci/ic-tools.tsv",
             IC_TOOLS=>'didc ic-wasm icp quill wasm-opt', FORMAT_CARGO=>'cargo', SHARED_TOOLING_ROOT=>$root);
         for my $name (sort keys %defaults) {
-            if (defined($configuration->{$name}) && $configuration->{$name} ne $defaults{$name}) {
+            my $selected = $configuration->{$name};
+            $selected = "$root/$selected" if defined($selected) && $name eq 'IC_TOOL_PINS' && $selected !~ m{\A/};
+            if (defined($selected) && $selected ne $defaults{$name}) {
                 $narrow = 0;
                 $reason = "Full gate: nondefault tool selection ($name)";
             }

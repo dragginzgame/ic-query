@@ -46,13 +46,16 @@ release journals live under `.git/release-state/frozen/batch-XXXXXXXX`, with the
 base pinned by a Git ref. Tools are prepared for that checkout through the same
 selected installers; no live lockfile or `.tools` directory is copied from the
 normal checkout. The shared runner invokes `release-candidate-setup` before
-version lookup and release/publication recovery. It prepares the selected host
+version lookup and release/publication recovery. It prepares the selected host and IC
 tools for a fresh group and admits them offline in recovery; it does not install
 from partially prepared Cargo metadata. Saved group, source, kind, remote and
 branch selections reach every hook, with the delivered commit added for
 publication. Version bootstrap uses locked, offline Cargo metadata without
 requiring an installed checkout-local TOML parser. Complete group, catalog and
 lock admission still runs during preflight and metadata preparation.
+The default IC pin path is checkout-relative, so exported configuration resolves
+against the delivery checkout. Release planning admits the captured pin file;
+it never reads the normal checkout's live copy.
 
 Later normal-checkout source or lock edits belong to the next batch. The current
 batch continues from its captured graph, and the runner never resets, stashes,
@@ -640,6 +643,8 @@ reconciliation, retired-setting/old-journal refusal, required publication identi
 scoped fixture retirement and remote advancement. It preserves its
 fixture and evidence under `target/tmp/` for inspection. This is consumer hook
 qualification, not a claim of product builds or installed/native acceptance.
+`IC_QUERY_RELEASE_BATCH_CASE=admission make release-batch-check` selects captured
+tool preparation and real plan admission through the first controlled interruption.
 The full CI roster runs it on all supported hosts. Linux execution alone does
 not qualify either macOS host; group mapping admission still requires matching
 native proofs.
