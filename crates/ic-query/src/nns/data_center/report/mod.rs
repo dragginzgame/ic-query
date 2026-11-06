@@ -19,7 +19,6 @@ pub use model::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterR
 
 pub const DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "nns-host")]
-#[cfg(feature = "nns-host")]
 pub const NNS_DATA_CENTER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_DATA_CENTER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;

@@ -1,11 +1,6 @@
-use super::commands::{
-    DATA_CENTER_FILTER_ARG, NODE_OPERATOR_FILTER_ARG, NODE_PROVIDER_FILTER_ARG, SUBNET_FILTER_ARG,
-    SUBNET_KIND_FILTER_ARG,
-};
-use crate::cli::{
-    clap::typed_option,
-    common::{OutputFormat, SourceOutputOptions},
-};
+use super::commands::NodeFilters;
+use crate::cli::{clap::parsed_options, common::OutputFormat};
+use crate::nns::leaf::NnsLeafListOptions;
 use clap::ArgMatches;
 use ic_query::nns::NnsInventoryCacheRequest;
 use ic_query::nns::node::NnsNodeListFilters;
@@ -16,15 +11,18 @@ pub(in crate::nns) fn node_list_request(
     cache: NnsInventoryCacheRequest,
     now_unix_secs: u64,
 ) -> (OutputFormat, bool, NnsNodeListRequest) {
-    let source = SourceOutputOptions::from_matches(matches);
+    let options: NnsLeafListOptions = parsed_options(matches);
+    let source = options.common.source;
+    let filters: NodeFilters = parsed_options(matches);
+    let format = source.format();
     let mut request = NnsNodeListRequest::new(cache, source.source_endpoint, now_unix_secs);
     request.filters = NnsNodeListFilters {
-        subnet: typed_option(matches, SUBNET_FILTER_ARG),
-        subnet_kind: typed_option(matches, SUBNET_KIND_FILTER_ARG),
-        data_center: typed_option(matches, DATA_CENTER_FILTER_ARG),
-        node_provider: typed_option(matches, NODE_PROVIDER_FILTER_ARG),
-        node_operator: typed_option(matches, NODE_OPERATOR_FILTER_ARG),
+        subnet: filters.subnet,
+        subnet_kind: filters.subnet_kind,
+        data_center: filters.data_center,
+        node_provider: filters.node_provider,
+        node_operator: filters.node_operator,
     };
 
-    (source.format, matches.get_flag("verbose"), request)
+    (format, options.verbose, request)
 }

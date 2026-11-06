@@ -27,13 +27,17 @@ where
     Error: Into<NnsCommandError>,
 {
     let options = NnsLeafListOptions::from_matches(matches, network);
+    let format = options.common.format();
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
-    let request =
-        NnsInventoryListRequest::new(cache, options.common.source_endpoint, current_unix_secs()?);
+    let request = NnsInventoryListRequest::new(
+        cache,
+        options.common.source.source_endpoint,
+        current_unix_secs()?,
+    );
     let report = build_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
-    write_text_or_json_verbose(options.common.format, &report, options.verbose, render)
+    write_text_or_json_verbose(format, &report, options.verbose, render)
 }
 
 pub(in crate::nns) async fn run_cached_leaf_info<Report, Error>(
@@ -50,17 +54,18 @@ where
     Error: Into<NnsCommandError>,
 {
     let options = NnsLeafInfoOptions::from_matches(matches, network);
+    let format = options.common.format();
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
     let request = NnsInventoryInfoRequest::new(
         cache,
-        options.common.source_endpoint,
+        options.common.source.source_endpoint,
         options.input,
         current_unix_secs()?,
     );
     let report = build_report(&request, &mut StderrQueryProgress::new())
         .await
         .map_err(Into::into)?;
-    write_text_or_json(options.common.format, &report, render)
+    write_text_or_json(format, &report, render)
 }
 
 pub(in crate::nns) async fn run_cached_leaf_refresh<Report, Error>(
@@ -74,11 +79,11 @@ where
     Report: Serialize,
 {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
-    let format = options.common.format;
+    let format = options.common.format();
     let cache = NnsInventoryCacheRequest::new(cache_root()?, options.common.network);
     let mut request = NnsInventoryRefreshRequest::new(
         cache,
-        options.common.source_endpoint,
+        options.common.source.source_endpoint,
         current_unix_secs()?,
     );
     request.dry_run = options.dry_run;

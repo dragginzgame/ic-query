@@ -48,40 +48,7 @@ pub use build::{
 pub use build::{build_ic_canister_report, build_ic_canister_report_with_source};
 #[cfg(feature = "dashboard-host")]
 pub use live::LiveIcSource;
-pub use model::{
-    IcBoundaryNodeDataCenterRow, IcBoundaryNodeDataCentersReport, IcCanisterCountReport,
-    IcCanisterCountRequest, IcCanisterData, IcCanisterFilters, IcCanisterPageController,
-    IcCanisterPageReport, IcCanisterPageRequest, IcCanisterPageRow, IcCanisterReport,
-    IcCanisterRequest, IcCanisterUpgrade, IcDailyStatsQuery, IcDailyStatsReport,
-    IcDailyStatsRequest, IcDailyStatsRow, IcDashboardReportProvenance, IcDashboardRequest,
-    IcIcrcAccountInfoReport, IcIcrcAccountInfoRequest, IcIcrcAccountListQuery,
-    IcIcrcAccountListReport, IcIcrcAccountListRequest, IcIcrcAccountRow, IcIcrcAccountSort,
-    IcIcrcAnalyticsRequest, IcIcrcHolderListQuery, IcIcrcHolderListReport, IcIcrcHolderListRequest,
-    IcIcrcHolderRow, IcIcrcHolderSort, IcIcrcIndexedCountKind, IcIcrcIndexedCountReport,
-    IcIcrcIndexedCountRequest, IcIcrcTokenValueQuery, IcIcrcTokenValueReport,
-    IcIcrcTokenValueRequest, IcIcrcTokenValueRow, IcIcrcTotalSupplyObservation,
-    IcIcrcTotalSupplyQuery, IcIcrcTotalSupplyReport, IcIcrcTotalSupplyRequest, IcMetricKind,
-    IcMetricObservation, IcMetricQuery, IcMetricReport, IcMetricRequest, IcMetricSeries,
-    IcNodeProviderRewardHistoryObservation, IcNodeProviderRewardHistoryQuery,
-    IcNodeProviderRewardHistoryReport, IcNodeProviderRewardHistoryRequest,
-    IcNodeProviderRewardInfoReport, IcNodeProviderRewardInfoRequest, IcNodeProviderRewardListQuery,
-    IcNodeProviderRewardListReport, IcNodeProviderRewardListRequest, IcNodeProviderRewardRow,
-    IcNodeProviderRewardXdrConversionRate, IcReplicaVersionDetails, IcReplicaVersionInfoReport,
-    IcReplicaVersionInfoRequest, IcReplicaVersionListQuery, IcReplicaVersionListReport,
-    IcReplicaVersionListRequest, IcReplicaVersionListRow, IcReplicaVersionStatus,
-    IcReplicaVersionSubnetRollout,
-};
-#[cfg(feature = "dashboard-host")]
-pub use model::{
-    IcBoundaryNodeDataCentersSourceData, IcCanisterCountSourceData, IcCanisterPageSourceData,
-    IcCanisterSourceData, IcDailyStatsSourceData, IcHostError, IcIcrcAccountInfoSourceData,
-    IcIcrcAccountListSourceData, IcIcrcAccountSourceRow, IcIcrcHolderListSourceData,
-    IcIcrcHolderSourceRow, IcIcrcIndexedCountSourceData, IcIcrcTokenValueSourceData,
-    IcIcrcTokenValueSourceRow, IcIcrcTotalSupplySourceData, IcMetricSourceData,
-    IcNodeProviderRewardHistorySourceData, IcNodeProviderRewardInfoSourceData,
-    IcNodeProviderRewardListSourceData, IcReplicaVersionInfoSourceData,
-    IcReplicaVersionListSourceData, IcSourceRequest,
-};
+pub use model::*;
 #[cfg(feature = "dashboard-host")]
 pub(crate) use node_status::canonicalize_node_status_rows_with_policy;
 #[cfg(feature = "dashboard-host")]

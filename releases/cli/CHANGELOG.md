@@ -7,6 +7,21 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.93.1]
+
+### 🧹 Cleanup
+
+- Define report arguments through typed Clap options instead of paired builders
+  and string-keyed extraction. Retain commands, validation and report behavior;
+  keep Rust option documentation out of user-facing help. [Details](0.93.md).
+- Reuse field rendering and typed collection contexts across Dashboard and NNS
+  reports, preserving field names, order, formatting and escaping. [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Adopt Build 0.75.0 for probe input resolution and release metadata tooling,
+  preserving source fingerprints, input limits and metadata contracts. [Details](0.93.md).
+
 ## [0.93.0] - 2026-11-05
 
 ### 🧹 Tooling

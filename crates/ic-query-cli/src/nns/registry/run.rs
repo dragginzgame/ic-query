@@ -12,13 +12,14 @@ pub(in crate::nns) async fn run(
     match matches.subcommand() {
         Some(("version", matches)) => {
             let options = NnsCommonOptions::from_matches(matches, network);
+            let format = options.format();
             let request = NnsRegistryVersionRequest::new(
                 options.network,
-                options.source_endpoint,
+                options.source.source_endpoint,
                 current_unix_secs()?,
             );
             let report = build_nns_registry_version_report(&request).await?;
-            write_text_or_json(options.format, &report, nns_registry_version_report_text)
+            write_text_or_json(format, &report, nns_registry_version_report_text)
         }
         _ => unreachable!("clap requires a known NNS registry subcommand"),
     }

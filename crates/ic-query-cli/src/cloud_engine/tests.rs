@@ -1,4 +1,5 @@
 use super::*;
+use crate::cli::common::SOURCE_ENDPOINT_ARG;
 use crate::cli::{
     clap::{parse_matches, render_help},
     common::OutputFormat,
@@ -57,7 +58,9 @@ fn report_options_default_to_native_endpoint_and_text() {
         .expect("parse default CloudEngine options");
 
     assert_eq!(
-        required_string(&matches, SOURCE_ENDPOINT_ARG),
+        matches
+            .get_one::<String>(SOURCE_ENDPOINT_ARG)
+            .expect("validated source endpoint"),
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT
     );
     assert_eq!(output_format(&matches), OutputFormat::Text);
@@ -69,11 +72,15 @@ fn list_options_keep_registry_and_control_plane_endpoints_explicit() {
         .expect("parse default CloudEngine list options");
 
     assert_eq!(
-        required_string(&matches, REGISTRY_SOURCE_ENDPOINT_ARG),
+        matches
+            .get_one::<String>(REGISTRY_SOURCE_ENDPOINT_ARG)
+            .expect("validated source endpoint"),
         DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT
     );
     assert_eq!(
-        required_string(&matches, SOURCE_ENDPOINT_ARG),
+        matches
+            .get_one::<String>(SOURCE_ENDPOINT_ARG)
+            .expect("validated source endpoint"),
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT
     );
     assert_eq!(output_format(&matches), OutputFormat::Text);

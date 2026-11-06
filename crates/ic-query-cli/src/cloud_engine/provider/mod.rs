@@ -5,12 +5,10 @@
 //! Boundary: provider identity means an NNS node-provider principal, not an engine canister.
 
 use super::{CloudEngineCommandError, report_args};
-use crate::cli::{
-    clap::{required_string, value_arg},
-    common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-        write_text_or_json,
-    },
+use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+    write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::CloudEngineProviderInfoRequest;
@@ -54,13 +52,10 @@ pub(super) async fn run_matches(
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let options: ProviderInfoOptions = parsed_options(matches);
     let (format, dashboard) =
         SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
-    let request = CloudEngineProviderInfoRequest::new(
-        network,
-        dashboard,
-        required_string(matches, "node-provider-id"),
-    );
+    let request = CloudEngineProviderInfoRequest::new(network, dashboard, options.node_provider_id);
     let report = build_cloud_engine_provider_info_report(&request).await?;
     write_text_or_json(format, &report, cloud_engine_provider_info_report_text)
 }
@@ -84,20 +79,33 @@ pub(super) fn command() -> ClapCommand {
         )
 }
 
+///
+/// ProviderInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ProviderInfoOptions {
+    #[arg(
+        id = "node-provider-id",
+        value_name = "node-provider-id",
+        help = "Exact NNS node-provider principal; not an engine canister principal"
+    )]
+    pub(super) node_provider_id: String,
+}
+
 fn info_command() -> ClapCommand {
-    report_args(
-        ClapCommand::new("info")
-            .about("Show one exact node provider and its CloudEngine evidence")
-            .arg(
-                value_arg("node-provider-id")
-                    .required(true)
-                    .value_name("node-provider-id")
-                    .help("Exact NNS node-provider principal; not an engine canister principal"),
-            ),
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        SOURCE_ENDPOINT_HELP,
+    with_options::<ProviderInfoOptions>(
+        report_args(
+            ClapCommand::new("info")
+                .about("Show one exact node provider and its CloudEngine evidence"),
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            SOURCE_ENDPOINT_HELP,
+        )
+        .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
     )
-    .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
 }
 
 fn list_command() -> ClapCommand {

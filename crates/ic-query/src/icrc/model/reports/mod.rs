@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::reports
+//! Module: icrc::model::reports
 //!
 //! Responsibility: expose public serializable ICRC report and row contracts.
 //! Does not own: requests, source data, errors, live transport, caching, or rendering.

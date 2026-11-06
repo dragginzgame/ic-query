@@ -5,6 +5,18 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.93.1]
+
+### 🧹 Cleanup
+
+- Simplify internal contract forwarding and duplicated model/topology export
+  lists while preserving published names and host feature gates. [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Adopt Testkit 0.88.0 for native Governance fixtures and Build 0.75.0 for release
+  tooling. Keep the existing simulator, async lifecycle and report contracts. [Details](0.93.md).
+
 ## [0.93.0] - 2026-11-05
 
 ### 🧹 Tooling

@@ -4,15 +4,12 @@
 //! Does not own: Dashboard collection, cache policy, report projection, or rendering.
 //! Boundary: adds the same status operation beneath node, Subnet, and provider nouns.
 
+use crate::cli::clap::{parsed_options, with_options};
 use crate::cli::common::OutputFormat;
 use crate::storage::cache_root;
 use crate::{
-    cli::{
-        clap::{flag_arg, string_option},
-        common::{
-            COLLECTION_MODE_CACHE_REFRESH_STALE, SourceOutputOptions, collection_help,
-            current_unix_secs, json_arg, source_endpoint_arg, write_text_or_json,
-        },
+    cli::common::{
+        COLLECTION_MODE_CACHE_REFRESH_STALE, collection_help, current_unix_secs, write_text_or_json,
     },
     nns::NnsCommandError,
     progress::StderrQueryProgress,
@@ -84,37 +81,45 @@ impl OperationalStatusSubject {
 }
 
 /// Build the shared `status` operation beneath one NNS command noun.
+///
+/// StatusOptions
+///
+/// Typed arguments for the command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct StatusOptions {
+    #[arg(id = TARGET_ARG, id = TARGET_ARG, )]
+    pub(super) target: Option<String>,
+    #[arg(id = ALL_ARG, long = ALL_ARG, help = "Include fully-up rows or groups instead of attention rows only")]
+    pub(super) all: bool,
+    #[arg(id = REFRESH_ARG, long = REFRESH_ARG, help = "Force a live snapshot refresh before rendering this view")]
+    pub(super) refresh: bool,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+}
+
 pub(in crate::nns) fn command(subject: OperationalStatusSubject) -> ClapCommand {
     let command_name = subject.command_name();
-    ClapCommand::new("status")
+
+    with_options::<StatusOptions>(ClapCommand::new("status")
 
         .about(subject.about())
-        .arg(
-            crate::cli::clap::value_arg(TARGET_ARG)
-                .value_name(subject.value_name())
-                .help(subject.target_help()),
-        )
-        .arg(
-            flag_arg(ALL_ARG)
-                .long(ALL_ARG)
-                .help("Include fully-up rows or groups instead of attention rows only"),
-        )
-        .arg(
-            flag_arg(REFRESH_ARG)
-                .long(REFRESH_ARG)
-                .help("Force a live snapshot refresh before rendering this view"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API endpoint used for snapshot refreshes"),
-        )
+
+
+
+
+
         .after_help(collection_help(
             COLLECTION_MODE_CACHE_REFRESH_STALE,
             &format!(
                 "Examples:\n  icq nns {command_name} status\n  icq nns {command_name} status <target-or-prefix> --json\n  icq nns {command_name} status --all --refresh"
             ),
-        ))
+        )))
+        .mut_arg(TARGET_ARG, |arg| arg.value_name(subject.value_name()).help(subject.target_help()))
+        .mut_arg("source-endpoint", |arg| arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+                .help("Official IC Dashboard API endpoint used for snapshot refreshes"))
 }
 
 /// Run one observed status projection over the shared cache identity.
@@ -148,16 +153,18 @@ fn status_request(
     cache_root: PathBuf,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcNodeStatusReadRequest) {
-    let source = SourceOutputOptions::from_matches(matches);
+    let options: StatusOptions = parsed_options(matches);
+    let source = options.source;
+    let format = source.format();
     let mut request =
         IcNodeStatusReadRequest::new(cache_root, network, source.source_endpoint, now_unix_secs);
     request.view = IcNodeStatusView {
-        target: string_option(matches, TARGET_ARG),
-        include_all: matches.get_flag(ALL_ARG),
+        target: options.target,
+        include_all: options.all,
     };
-    request.force_refresh = matches.get_flag(REFRESH_ARG);
+    request.force_refresh = options.refresh;
 
-    (source.format, request)
+    (format, request)
 }
 
 #[cfg(test)]

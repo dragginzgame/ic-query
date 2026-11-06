@@ -5,9 +5,10 @@
 //! Boundary: exposes one complete live state-tree collection to the IC CLI facade.
 
 use super::IcCommandError;
+use crate::cli::clap::with_options;
 use crate::cli::common::{
-    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-    source_endpoint_arg, write_text_or_json,
+    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+    write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::ic::DEFAULT_IC_STATE_SOURCE_ENDPOINT;
@@ -39,9 +40,10 @@ pub(super) async fn run_matches(matches: &ArgMatches) -> Result<(), IcCommandErr
 
 async fn run_list(matches: &ArgMatches) -> Result<(), IcCommandError> {
     let options = SourceOutputOptions::from_matches(matches);
+    let format = options.format();
     let request = IcApiBoundaryNodeRequest::new(options.source_endpoint, current_unix_secs()?);
     let report = build_ic_api_boundary_node_report(&request).await?;
-    write_text_or_json(options.format, &report, ic_api_boundary_node_report_text)
+    write_text_or_json(format, &report, ic_api_boundary_node_report_text)
 }
 
 pub(super) fn command() -> ClapCommand {
@@ -51,14 +53,15 @@ pub(super) fn command() -> ClapCommand {
 }
 
 fn list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .about("List the complete certified API boundary-node state tree")
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_STATE_SOURCE_ENDPOINT)
-                .help("Mainnet IC API endpoint used for certified read_state"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        ClapCommand::new("list")
+            .about("List the complete certified API boundary-node state tree")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_STATE_SOURCE_ENDPOINT)
+            .help("Mainnet IC API endpoint used for certified read_state")
+    })
 }
 
 #[cfg(test)]

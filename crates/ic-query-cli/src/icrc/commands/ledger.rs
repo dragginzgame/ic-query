@@ -4,16 +4,9 @@
 //! Does not own: typed option extraction, command dispatch, report construction, or output.
 //! Boundary: keeps metadata, capability, transaction, archive, and certificate commands together.
 
-use super::{
-    DEFAULT_ICRC_TRANSACTIONS_LIMIT, FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, LIMIT_ARG,
-    MAX_ICRC_TRANSACTIONS_LIMIT, START_ARG, ledger_canister_id_arg, principal_text_value_parser,
-    with_common_icrc_options, with_icrc_json_option, with_icrc_source_endpoint_option,
-};
-use crate::cli::{
-    clap::{flag_arg, value_arg},
-    common::{COLLECTION_MODE_LIVE, collection_help},
-};
-use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
+use clap::Command as ClapCommand;
 
 pub(in crate::icrc) fn command() -> ClapCommand {
     ClapCommand::new("ledger")
@@ -52,38 +45,16 @@ pub(in crate::icrc) fn icrc_index_command() -> ClapCommand {
 }
 
 pub(in crate::icrc) fn icrc_transactions_command() -> ClapCommand {
-    let command = ClapCommand::new("transactions")
+    with_options::<super::options::IcrcTransactionsOptions>(ClapCommand::new("transactions")
 
         .about("Show a generic ICRC ledger transaction history page")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc ledger transactions ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger transactions mxzaz-hqaaa-aaaar-qaada-cai --start 0 --limit 1 --follow-archives --json",
         ))
-        .arg(ledger_canister_id_arg())
-        .arg(
-            value_arg(START_ARG)
-                .long(START_ARG)
-                .value_name("index")
-                .default_value("0")
-                .value_parser(clap::value_parser!(u64))
-                .help("First ICRC-3 block index to request from the ledger"),
-        )
-        .arg(
-            value_arg(LIMIT_ARG)
-                .long(LIMIT_ARG)
-                .value_name("count")
-                .default_value(DEFAULT_ICRC_TRANSACTIONS_LIMIT)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new().range(1..=MAX_ICRC_TRANSACTIONS_LIMIT),
-                )
-                .help("Maximum ICRC-3 blocks to request from the ledger"),
-        );
-    let command = with_icrc_source_endpoint_option(command).arg(
-        flag_arg(FOLLOW_ARCHIVES_ARG)
-            .long(FOLLOW_ARCHIVES_ARG)
-            .help("Follow returned ICRC-3 archive callbacks for the requested block page"),
-    );
-    with_icrc_json_option(command)
+
+
+        ).mut_arg("source-endpoint", |arg| arg.display_order(20)).mut_arg("follow-archives", |arg| arg.display_order(21)).mut_arg("json", |arg| arg.display_order(22))
 }
 
 pub(in crate::icrc) fn icrc_block_types_command() -> ClapCommand {
@@ -95,22 +66,15 @@ pub(in crate::icrc) fn icrc_block_types_command() -> ClapCommand {
 }
 
 pub(in crate::icrc) fn icrc_archives_command() -> ClapCommand {
-    let command = ClapCommand::new("archives")
+    with_options::<super::options::IcrcArchivesOptions>(ClapCommand::new("archives")
 
         .about("Show generic ICRC-3 ledger archive ranges")
         .after_help(collection_help(
             COLLECTION_MODE_LIVE,
             "Examples:\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai\n  icq icrc ledger archives ryjl3-tyaaa-aaaaa-aaaba-cai --from qaa6y-5yaaa-aaaaa-aaafa-cai --json",
         ))
-        .arg(ledger_canister_id_arg())
-        .arg(
-            value_arg(FROM_CANISTER_ID_ARG)
-                .long(FROM_CANISTER_ID_ARG)
-                .value_name("canister-id")
-                .value_parser(principal_text_value_parser())
-                .help("Last archive canister already seen; returns later archives"),
-        );
-    with_common_icrc_options(command)
+
+        ).mut_arg("source-endpoint", |arg| arg.display_order(20)).mut_arg("json", |arg| arg.display_order(22))
 }
 
 pub(in crate::icrc) fn icrc_tip_certificate_command() -> ClapCommand {
@@ -126,9 +90,11 @@ fn simple_icrc_ledger_command(
     about: &'static str,
     examples: &'static str,
 ) -> ClapCommand {
-    let command = ClapCommand::new(name)
-        .about(about)
-        .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
-        .arg(ledger_canister_id_arg());
-    with_common_icrc_options(command)
+    with_options::<super::options::IcrcLedgerOptions>(
+        ClapCommand::new(name)
+            .about(about)
+            .after_help(collection_help(COLLECTION_MODE_LIVE, examples)),
+    )
+    .mut_arg("source-endpoint", |arg| arg.display_order(20))
+    .mut_arg("json", |arg| arg.display_order(22))
 }

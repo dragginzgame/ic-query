@@ -4,6 +4,8 @@ mod list;
 mod refresh;
 mod root;
 
+pub(in crate::nns) use args::SubnetListOptions;
+pub(in crate::nns) use info::SubnetInfoOptions;
 #[cfg(test)]
 pub(in crate::nns) use info::info_command;
 #[cfg(test)]

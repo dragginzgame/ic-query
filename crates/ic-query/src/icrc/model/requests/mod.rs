@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::requests
+//! Module: icrc::model::requests
 //!
 //! Responsibility: expose public ICRC request contracts and their constructors.
 //! Does not own: reports, source data, errors, live transport, or rendering.

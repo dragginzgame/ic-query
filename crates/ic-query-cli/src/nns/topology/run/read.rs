@@ -19,11 +19,11 @@ where
     Report: Serialize,
 {
     let options = NnsCommonOptions::from_matches(matches, network);
-    let format = options.format;
+    let format = options.format();
     let cache_root = cache_root()?;
     let request = NnsInventoryListRequest::new(
         ic_query::nns::NnsInventoryCacheRequest::new(cache_root, options.network),
-        options.source_endpoint,
+        options.source.source_endpoint,
         current_unix_secs()?,
     );
     let report = build_report(&request).await?;

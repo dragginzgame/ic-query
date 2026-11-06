@@ -4,34 +4,28 @@
 //! Does not own: clap command construction, live queries, or output.
 //! Boundary: constructs public requests from clap matches.
 
+use super::commands::{ProposalActivityOptions, ProposalInfoOptions, ProposalListOptions};
+use crate::cli::clap::parsed_options;
+
 use crate::{
-    cli::{
-        clap::{required_typed, string_option, typed_option},
-        common::{output_format, resolve_proposal_sort_direction},
-    },
-    nns::{
-        NnsCommandError, OutputFormat,
-        leaf::NnsCommonOptions,
-        proposals::values::{NNS_PROPOSAL_ID_ARG, NNS_PROPOSAL_LIST_REWARD_STATUS_ARG},
-    },
+    cli::common::resolve_proposal_sort_direction,
+    nns::{NnsCommandError, OutputFormat, leaf::NnsCommonOptions},
 };
 use clap::ArgMatches;
 use ic_query::nns::proposals::NnsProposalActivityRequest;
 use ic_query::nns::proposals::NnsProposalListRequest;
 use ic_query::nns::proposals::NnsProposalListSort;
 use ic_query::nns::proposals::NnsProposalRequest;
-use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
-use ic_query::nns::proposals::NnsProposalStatusFilter;
-use ic_query::nns::proposals::NnsProposalTopicFilter;
 
 pub(in crate::nns) fn proposal_activity_request(
     matches: &ArgMatches,
 ) -> (OutputFormat, NnsProposalActivityRequest) {
+    let options: ProposalActivityOptions = parsed_options(matches);
     (
-        output_format(matches),
+        OutputFormat::from_json(options.json),
         NnsProposalActivityRequest {
-            from_proposal_timestamp_seconds: typed_option(matches, "from"),
-            until_proposal_timestamp_seconds: typed_option(matches, "until"),
+            from_proposal_timestamp_seconds: options.from,
+            until_proposal_timestamp_seconds: options.until,
         },
     )
 }
@@ -41,10 +35,12 @@ pub(in crate::nns) fn proposal_list_request(
     network: &str,
     now_unix_secs: u64,
 ) -> Result<(OutputFormat, NnsProposalListRequest), NnsCommandError> {
-    let common = NnsCommonOptions::from_matches(matches, network);
-    let sort = required_typed::<NnsProposalListSort>(matches, "sort");
+    let options: ProposalListOptions = parsed_options(matches);
+    let common = NnsCommonOptions::from_source(options.source, network);
+    let sort = options.sort;
     let sort_direction = resolve_proposal_sort_direction(
-        matches,
+        options.asc,
+        options.desc,
         sort.uses_local_direction(),
         sort.default_direction(),
         || {
@@ -63,16 +59,13 @@ pub(in crate::nns) fn proposal_list_request(
         format,
         NnsProposalListRequest {
             governance,
-            limit: required_typed(matches, "limit"),
-            before_proposal_id: typed_option(matches, "before"),
-            status: required_typed::<NnsProposalStatusFilter>(matches, "status"),
-            reward_status: required_typed::<NnsProposalRewardStatusFilter>(
-                matches,
-                NNS_PROPOSAL_LIST_REWARD_STATUS_ARG,
-            ),
-            topic: required_typed::<NnsProposalTopicFilter>(matches, "topic"),
-            proposer_neuron_id: typed_option(matches, "proposer"),
-            query: string_option(matches, "query"),
+            limit: options.limit,
+            before_proposal_id: options.before,
+            status: options.status,
+            reward_status: options.reward_status,
+            topic: options.topic,
+            proposer_neuron_id: options.proposer,
+            query: options.query,
             sort,
             sort_direction,
         },
@@ -84,13 +77,14 @@ pub(in crate::nns) fn proposal_info_request(
     network: &str,
     now_unix_secs: u64,
 ) -> (OutputFormat, NnsProposalRequest) {
-    let (format, governance) =
-        NnsCommonOptions::from_matches(matches, network).into_governance_request(now_unix_secs);
+    let options: ProposalInfoOptions = parsed_options(matches);
+    let (format, governance) = NnsCommonOptions::from_source(options.source, network)
+        .into_governance_request(now_unix_secs);
     (
         format,
         NnsProposalRequest {
             governance,
-            proposal_id: required_typed(matches, NNS_PROPOSAL_ID_ARG),
+            proposal_id: options.proposal_id,
         },
     )
 }

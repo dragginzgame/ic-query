@@ -5,14 +5,10 @@
 //! Boundary: exposes one bounded page and one exact release lookup to the IC CLI facade.
 
 use super::IcCommandError;
+use crate::cli::clap::{parsed_options, with_options};
 use crate::cli::common::OutputFormat;
-use crate::cli::{
-    clap::{required_string, required_typed, typed_option, value_arg},
-    common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-        index_ceiling_arg, json_arg, page_limit_arg, page_offset_arg, source_endpoint_arg,
-        write_text_or_json,
-    },
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, collection_help, current_unix_secs, write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::ic::DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT;
@@ -74,51 +70,85 @@ pub(super) fn command() -> ClapCommand {
         .subcommand(list_command())
 }
 
+///
+/// ReplicaInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ReplicaInfoOptions {
+    #[arg(
+        id = "replica-version-id",
+        value_name = "replica-version-id",
+        help = "Exact 40-character lowercase hexadecimal version id"
+    )]
+    pub(super) replica_version_id: String,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+}
+
 fn info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one exact Dashboard replica release record")
-        .arg(
-            value_arg("replica-version-id")
-                .required(true)
-                .value_name("replica-version-id")
-                .help("Exact 40-character lowercase hexadecimal version id"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
+    with_options::<ReplicaInfoOptions>(
+        ClapCommand::new("info")
+            .about("Show one exact Dashboard replica release record")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
+}
+
+///
+/// ReplicaListOptions
+///
+/// Typed arguments for the list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ReplicaListOptions {
+    #[arg(long, value_name = "rows", default_value = DEFAULT_LIMIT_ARG, value_parser = clap::builder::RangedU64ValueParser::<u16>::new().range(1..=u64::from(MAX_IC_REPLICA_VERSION_PAGE_LIMIT)), help = "Maximum release rows; one through 100")]
+    pub(super) limit: u16,
+    #[arg(
+        long,
+        value_name = "rows",
+        default_value = "0",
+        help = "Zero-based release-row offset"
+    )]
+    pub(super) offset: u64,
+    #[arg(
+        id = "max-proposal-index",
+        long,
+        value_name = "index",
+        help = "Optional proposal-index ceiling returned by an earlier page"
+    )]
+    pub(super) max_proposal_index: Option<u64>,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
 }
 
 fn list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .about("Show one bounded Dashboard replica release page")
-        .arg(
-            page_limit_arg(DEFAULT_LIMIT_ARG, MAX_IC_REPLICA_VERSION_PAGE_LIMIT)
-                .help("Maximum release rows; one through 100"),
-        )
-        .arg(page_offset_arg().help("Zero-based release-row offset"))
-        .arg(
-            index_ceiling_arg("max-proposal-index")
-                .help("Optional proposal-index ceiling returned by an earlier page"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
+    with_options::<ReplicaListOptions>(
+        ClapCommand::new("list")
+            .about("Show one bounded Dashboard replica release page")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
 }
 
 fn info_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcReplicaVersionInfoRequest) {
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let request =
-        IcReplicaVersionInfoRequest::new(dashboard, required_string(matches, "replica-version-id"));
+    let options: ReplicaInfoOptions = parsed_options(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
+    let request = IcReplicaVersionInfoRequest::new(dashboard, options.replica_version_id);
     (format, request)
 }
 
@@ -126,15 +156,11 @@ fn list_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcReplicaVersionListRequest) {
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let options: ReplicaListOptions = parsed_options(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcReplicaVersionListRequest::new(
         dashboard,
-        IcReplicaVersionListQuery::new(
-            required_typed(matches, "limit"),
-            required_typed(matches, "offset"),
-            typed_option(matches, "max-proposal-index"),
-        ),
+        IcReplicaVersionListQuery::new(options.limit, options.offset, options.max_proposal_index),
     );
     (format, request)
 }

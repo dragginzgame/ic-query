@@ -40,9 +40,11 @@ fn list_options_preserve_provider_endpoint_and_format() {
     .expect("parse Type4 node list options");
 
     assert_eq!(
-        required_string(&matches, SOURCE_ENDPOINT_ARG),
+        matches
+            .get_one::<String>(SOURCE_ENDPOINT_ARG)
+            .expect("validated source endpoint"),
         DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT
     );
-    assert!(string_option(&matches, "node-provider-id").is_some());
+    assert!(matches.get_one::<String>("node-provider-id").is_some());
     assert_eq!(output_format(&matches), OutputFormat::Json);
 }

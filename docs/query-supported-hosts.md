@@ -53,7 +53,7 @@ retain their separate acceptance gates.
   There is no second version list in this guide. dfx is not selected.
 - Build and Testkit executable setup and offline admission select the same
   explicit `cli` feature set. Library-only dependencies omit that feature.
-  Native fixtures import Testkit 0.87's async `ic_testkit::pocket_ic` client,
+  Native fixtures import Testkit 0.88's async `ic_testkit::pocket_ic` client,
   retaining management DTO 0.11. Query's external Candid fixture imports and
   Testkit's internal adapters share Platform 0.23. The fixture owns its runtime
   and awaits instance deletion before releasing server custody.

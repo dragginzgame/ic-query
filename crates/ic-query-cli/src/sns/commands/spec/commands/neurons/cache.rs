@@ -4,10 +4,8 @@
 //! Does not own: cache discovery, cache status reports, or command execution.
 //! Boundary: defines local-only cache command shape and examples.
 
-use crate::{
-    cli::common::{COLLECTION_MODE_CACHE_ONLY, collection_help, json_arg},
-    sns::commands::spec::commands::args::governance_input_arg,
-};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_CACHE_ONLY, collection_help, json_arg};
 use clap::Command as ClapCommand;
 
 const SNS_NEURONS_CACHE_HELP_AFTER: &str = "\
@@ -50,12 +48,12 @@ pub(in crate::sns::commands) fn sns_neuron_cache_list_command() -> ClapCommand {
 }
 
 pub(in crate::sns::commands) fn sns_neuron_cache_status_command() -> ClapCommand {
-    ClapCommand::new("status")
-        .about("Show local SNS neuron snapshot and refresh-attempt status")
-        .arg(governance_input_arg())
-        .arg(json_arg())
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_ONLY,
-            SNS_NEURONS_CACHE_STATUS_HELP_AFTER,
-        ))
+    with_options::<crate::sns::commands::options::SnsCacheStatusOptions>(
+        ClapCommand::new("status")
+            .about("Show local SNS neuron snapshot and refresh-attempt status"),
+    )
+    .after_help(collection_help(
+        COLLECTION_MODE_CACHE_ONLY,
+        SNS_NEURONS_CACHE_STATUS_HELP_AFTER,
+    ))
 }

@@ -4,13 +4,11 @@
 //! Does not own: option validation, live governance calls, or report rendering.
 //! Boundary: defines the public `icq nns proposal` command shape.
 
+use crate::cli::clap::with_options;
 use crate::{
-    cli::{
-        clap::{flag_arg, value_arg},
-        common::{
-            COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            COLLECTION_MODE_FORCE_REFRESH, collection_help, max_pages_arg, page_size_arg,
-        },
+    cli::common::{
+        COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+        COLLECTION_MODE_FORCE_REFRESH, collection_help,
     },
     nns::{
         leaf,
@@ -90,149 +88,114 @@ Examples:
   icq nns proposal cache status
   icq nns proposal cache status --json";
 
+///
+/// ProposalActivityOptions
+///
+/// Typed arguments for the nns_proposal_activity_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ProposalActivityOptions {
+    #[arg(long, help = "Print raw JSON instead of human-readable text")]
+    pub(super) json: bool,
+    #[arg(long, value_name = "unix-seconds", value_parser = RangedU64ValueParser::<u64>::new(), help = "Inclusive lower bound on proposal creation time")]
+    pub(super) from: Option<u64>,
+    #[arg(long, value_name = "unix-seconds", value_parser = RangedU64ValueParser::<u64>::new(), help = "Exclusive upper bound on proposal creation time")]
+    pub(super) until: Option<u64>,
+}
+
 pub(in crate::nns) fn nns_proposal_activity_command() -> ClapCommand {
-    ClapCommand::new("activity")
-        .about("Summarize proposal activity from the complete local snapshot")
-        .arg(leaf::json_arg())
-        .arg(
-            value_arg("from")
-                .long("from")
-                .value_name("unix-seconds")
-                .value_parser(RangedU64ValueParser::<u64>::new())
-                .help("Inclusive lower bound on proposal creation time"),
-        )
-        .arg(
-            value_arg("until")
-                .long("until")
-                .value_name("unix-seconds")
-                .value_parser(RangedU64ValueParser::<u64>::new())
-                .help("Exclusive upper bound on proposal creation time"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_ONLY,
-            NNS_PROPOSAL_ACTIVITY_HELP_AFTER,
-        ))
+    with_options::<ProposalActivityOptions>(
+        ClapCommand::new("activity")
+            .about("Summarize proposal activity from the complete local snapshot")
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_ONLY,
+                NNS_PROPOSAL_ACTIVITY_HELP_AFTER,
+            )),
+    )
+}
+
+///
+/// ProposalListOptions
+///
+/// Typed arguments for the nns_proposal_list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ProposalListOptions {
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+    #[arg(long, value_name = "count", default_value = NNS_PROPOSAL_LIST_DEFAULT_LIMIT, value_parser = RangedU64ValueParser::<u32>::new() .range(1..=u64::from(NNS_PROPOSAL_MAX_PAGE_SIZE)), help = "Maximum NNS proposals to request from governance")]
+    pub(super) limit: u32,
+    #[arg(long, value_name = "proposal-id", value_parser = RangedU64ValueParser::<u64>::new().range(1..), help = "Return proposals with ids lower than this proposal id")]
+    pub(super) before: Option<u64>,
+    #[arg(long, value_name = "status", default_value = NNS_PROPOSAL_STATUS_ANY_LABEL, value_parser = crate::cli::clap::choice_parser(NnsProposalStatusFilter::ALL, NnsProposalStatusFilter::as_str), help = "NNS governance decision status filter")]
+    pub(super) status: NnsProposalStatusFilter,
+    #[arg(id = NNS_PROPOSAL_LIST_REWARD_STATUS_ARG, long = NNS_PROPOSAL_LIST_REWARD_STATUS_ARG, value_name = "reward-status", default_value = NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL, value_parser = crate::cli::clap::choice_parser(NnsProposalRewardStatusFilter::ALL, NnsProposalRewardStatusFilter::as_str), help = "NNS governance voting reward status filter")]
+    pub(super) reward_status: NnsProposalRewardStatusFilter,
+    #[arg(long, value_name = "topic", default_value = NNS_PROPOSAL_TOPIC_ANY_LABEL, value_parser = crate::cli::clap::choice_parser(NnsProposalTopicFilter::ALL, NnsProposalTopicFilter::as_str), help = "NNS governance topic filter applied to returned rows")]
+    pub(super) topic: NnsProposalTopicFilter,
+    #[arg(long, value_name = "neuron-id", value_parser = RangedU64ValueParser::<u64>::new().range(1..), help = "Filter proposals by exact proposer neuron id")]
+    pub(super) proposer: Option<u64>,
+    #[arg(long, value_name = "text", value_parser = NonEmptyStringValueParser::new(), help = "Case-insensitive title, action, summary, or URL text filter applied to view rows")]
+    pub(super) query: Option<String>,
+    #[arg(long, value_name = "sort", default_value = NNS_PROPOSAL_SORT_API_LABEL, value_parser = crate::cli::clap::choice_parser(NnsProposalListSort::ALL, NnsProposalListSort::as_str), help = "Sort proposals locally; status/reward-status/text sorts default ascending, numeric and timestamp sorts default descending")]
+    pub(super) sort: NnsProposalListSort,
+    #[arg(id = NNS_PROPOSAL_SORT_ASC_LABEL, long = NNS_PROPOSAL_SORT_ASC_LABEL, conflicts_with = NNS_PROPOSAL_SORT_DESC_LABEL, help = "Sort ascending for local sort modes; this is the default for status/reward-status/topic/proposer/title/action")]
+    pub(super) asc: bool,
+    #[arg(id = NNS_PROPOSAL_SORT_DESC_LABEL, long = NNS_PROPOSAL_SORT_DESC_LABEL, help = "Sort descending for local sort modes; this is the default for id/tally/tally-time/voting-power/ballots/reject-cost/reward-round/timestamps")]
+    pub(super) desc: bool,
+    #[arg(id = NNS_PROPOSAL_VERBOSE_FLAG, long = NNS_PROPOSAL_VERBOSE_FLAG, help = "Show per-proposal detail lines in text output")]
+    pub(super) verbose: bool,
 }
 
 pub(in crate::nns) fn nns_proposal_list_command() -> ClapCommand {
-    ClapCommand::new("list")
+    with_options::<ProposalListOptions>(
+        ClapCommand::new("list")
+            .about("List NNS governance proposals")
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+                NNS_PROPOSAL_LIST_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS governance query")
+    })
+}
 
-        .about("List NNS governance proposals")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS governance query"),
-        )
-        .arg(
-            value_arg("limit")
-                .long("limit")
-                .value_name("count")
-                .default_value(NNS_PROPOSAL_LIST_DEFAULT_LIMIT)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(NNS_PROPOSAL_MAX_PAGE_SIZE)),
-                )
-                .help("Maximum NNS proposals to request from governance"),
-        )
-        .arg(
-            value_arg("before")
-                .long("before")
-                .value_name("proposal-id")
-                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
-                .help("Return proposals with ids lower than this proposal id"),
-        )
-        .arg(
-            value_arg("status")
-                .long("status")
-                .value_name("status")
-                .default_value(NNS_PROPOSAL_STATUS_ANY_LABEL)
-                .value_parser(crate::cli::clap::choice_parser(NnsProposalStatusFilter::ALL, NnsProposalStatusFilter::as_str))
-                .help("NNS governance decision status filter"),
-        )
-        .arg(
-            value_arg(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
-                .long(NNS_PROPOSAL_LIST_REWARD_STATUS_ARG)
-                .value_name("reward-status")
-                .default_value(NNS_PROPOSAL_REWARD_STATUS_ANY_LABEL)
-                .value_parser(crate::cli::clap::choice_parser(NnsProposalRewardStatusFilter::ALL, NnsProposalRewardStatusFilter::as_str))
-                .help("NNS governance voting reward status filter"),
-        )
-        .arg(
-            value_arg("topic")
-                .long("topic")
-                .value_name("topic")
-                .default_value(NNS_PROPOSAL_TOPIC_ANY_LABEL)
-                .value_parser(crate::cli::clap::choice_parser(NnsProposalTopicFilter::ALL, NnsProposalTopicFilter::as_str))
-                .help("NNS governance topic filter applied to returned rows"),
-        )
-        .arg(
-            value_arg("proposer")
-                .long("proposer")
-                .value_name("neuron-id")
-                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
-                .help("Filter proposals by exact proposer neuron id"),
-        )
-        .arg(
-            value_arg("query")
-                .long("query")
-                .value_name("text")
-                .value_parser(NonEmptyStringValueParser::new())
-                .help("Case-insensitive title, action, summary, or URL text filter applied to view rows"),
-        )
-        .arg(
-            value_arg("sort")
-                .long("sort")
-                .value_name("sort")
-                .default_value(NNS_PROPOSAL_SORT_API_LABEL)
-                .value_parser(crate::cli::clap::choice_parser(NnsProposalListSort::ALL, NnsProposalListSort::as_str))
-                .help("Sort proposals locally; status/reward-status/text sorts default ascending, numeric and timestamp sorts default descending"),
-        )
-        .arg(
-            flag_arg(NNS_PROPOSAL_SORT_ASC_LABEL)
-                .long(NNS_PROPOSAL_SORT_ASC_LABEL)
-                .conflicts_with(NNS_PROPOSAL_SORT_DESC_LABEL)
-                .help("Sort ascending for local sort modes; this is the default for status/reward-status/topic/proposer/title/action"),
-        )
-        .arg(
-            flag_arg(NNS_PROPOSAL_SORT_DESC_LABEL)
-                .long(NNS_PROPOSAL_SORT_DESC_LABEL)
-                .help("Sort descending for local sort modes; this is the default for id/tally/tally-time/voting-power/ballots/reject-cost/reward-round/timestamps"),
-        )
-        .arg(
-            flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)
-                .long(NNS_PROPOSAL_VERBOSE_FLAG)
-                .help("Show per-proposal detail lines in text output"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            NNS_PROPOSAL_LIST_HELP_AFTER,
-        ))
+///
+/// ProposalInfoOptions
+///
+/// Typed arguments for the nns_proposal_info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct ProposalInfoOptions {
+    #[arg(id = NNS_PROPOSAL_ID_ARG, value_name = NNS_PROPOSAL_ID_ARG, value_parser = RangedU64ValueParser::<u64>::new().range(1..), help = "NNS governance proposal id")]
+    pub(super) proposal_id: u64,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+    #[arg(id = NNS_PROPOSAL_VERBOSE_FLAG, long = NNS_PROPOSAL_VERBOSE_FLAG, help = "Show full NNS proposal detail text")]
+    pub(super) verbose: bool,
 }
 
 pub(in crate::nns) fn nns_proposal_info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one NNS governance proposal")
-        .arg(
-            value_arg(NNS_PROPOSAL_ID_ARG)
-                .value_name(NNS_PROPOSAL_ID_ARG)
-                .required(true)
-                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
-                .help("NNS governance proposal id"),
-        )
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS governance query"),
-        )
-        .arg(
-            flag_arg(NNS_PROPOSAL_VERBOSE_FLAG)
-                .long(NNS_PROPOSAL_VERBOSE_FLAG)
-                .help("Show full NNS proposal detail text"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            NNS_PROPOSAL_INFO_HELP_AFTER,
-        ))
+    with_options::<ProposalInfoOptions>(
+        ClapCommand::new("info")
+            .about("Show one NNS governance proposal")
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+                NNS_PROPOSAL_INFO_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS governance query")
+    })
 }
 
 pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
@@ -247,28 +210,30 @@ pub(in crate::nns) fn nns_proposal_command() -> ClapCommand {
 }
 
 pub(in crate::nns) fn nns_proposal_refresh_command() -> ClapCommand {
-    ClapCommand::new("refresh")
-        .about("Force-refresh and cache a complete NNS governance proposal snapshot")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS governance query"),
-        )
-        .arg(
-            page_size_arg(
-                NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE,
-                NNS_PROPOSAL_MAX_PAGE_SIZE,
+    with_options::<crate::nns::leaf::NnsPagedRefreshOptions>(
+        ClapCommand::new("refresh")
+            .about("Force-refresh and cache a complete NNS governance proposal snapshot")
+            .after_help(collection_help(
+                COLLECTION_MODE_FORCE_REFRESH,
+                NNS_PROPOSAL_REFRESH_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS governance query")
+    })
+    .mut_arg("page-size", |arg| {
+        arg.default_value(NNS_PROPOSAL_REFRESH_DEFAULT_PAGE_SIZE)
+            .value_parser(
+                clap::builder::RangedU64ValueParser::<u32>::new()
+                    .range(1..=u64::from(NNS_PROPOSAL_MAX_PAGE_SIZE)),
             )
-            .help("Maximum NNS proposals to request per governance page"),
-        )
-        .arg(
-            max_pages_arg()
-                .help("Stop before publishing if this page count is reached before API exhaustion"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_FORCE_REFRESH,
-            NNS_PROPOSAL_REFRESH_HELP_AFTER,
-        ))
+            .help("Maximum NNS proposals to request per governance page")
+    })
+    .mut_arg("max-pages", |arg| {
+        arg.value_parser(clap::builder::RangedU64ValueParser::<u32>::new().range(1..))
+            .help("Stop before publishing if this page count is reached before API exhaustion")
+    })
 }
 
 pub(in crate::nns) fn nns_proposal_cache_command() -> ClapCommand {

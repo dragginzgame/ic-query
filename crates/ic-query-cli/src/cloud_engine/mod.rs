@@ -4,17 +4,15 @@
 //! Does not own: native transport, report construction, or text rendering.
 //! Boundary: exposes mainnet-only CloudEngine inventory and bounded public reports at the CLI root.
 
+use crate::cli::clap::{parsed_options, with_options};
 use ic_query::report::CollectionSourceRequest;
 mod node;
 mod provider;
 
 use crate::{
-    cli::{
-        clap::{required_string, value_arg},
-        common::{
-            COLLECTION_MODE_LIVE, CurrentUnixSecsError, SOURCE_ENDPOINT_ARG, collection_help,
-            current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
-        },
+    cli::common::{
+        COLLECTION_MODE_LIVE, CurrentUnixSecsError, collection_help, current_unix_secs,
+        output_format, write_text_or_json,
     },
     progress::StderrQueryProgress,
     storage::{CacheRootError, cache_root},
@@ -109,8 +107,9 @@ pub async fn run_matches(
 }
 
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let options: OperatorListOptions = parsed_options(matches);
     let now_unix_secs = current_unix_secs()?;
-    let registry_source_endpoint = required_string(matches, REGISTRY_SOURCE_ENDPOINT_ARG);
+    let registry_source_endpoint = options.registry_source_endpoint;
     let cache = SubnetCatalogCacheRequest::new(cache_root()?, network);
     let catalog_request = SubnetCatalogListRequest::new(
         cache,
@@ -135,10 +134,9 @@ async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngine
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let options: OperatorInfoOptions = parsed_options(matches);
     let request = source_request(matches, network)?;
-    let report =
-        build_cloud_engine_operator_report(&request, &required_string(matches, "subnet-id"))
-            .await?;
+    let report = build_cloud_engine_operator_report(&request, &options.subnet_id).await?;
     write_text_or_json(
         output_format(matches),
         &report,
@@ -168,9 +166,10 @@ fn source_request_at(
     network: &str,
     fetched_at_unix_secs: u64,
 ) -> CollectionSourceRequest {
+    let source = crate::cli::common::SourceOutputOptions::from_matches(matches);
     CollectionSourceRequest::from_unix_secs(
         network,
-        required_string(matches, SOURCE_ENDPOINT_ARG),
+        source.source_endpoint,
         fetched_at_unix_secs,
         "ic-query",
     )
@@ -190,37 +189,58 @@ pub fn command() -> ClapCommand {
         )
 }
 
+///
+/// OperatorListOptions
+///
+/// Typed arguments for the list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+struct OperatorListOptions {
+    #[arg(id = REGISTRY_SOURCE_ENDPOINT_ARG, long = REGISTRY_SOURCE_ENDPOINT_ARG, value_name = "url", default_value = DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT, help = "IC API endpoint used to refresh the Registry Subnet Catalog")]
+    registry_source_endpoint: String,
+}
+
 fn list_command() -> ClapCommand {
     report_args(
-        ClapCommand::new("list")
-            .about("List Registry CloudEngine Subnets and public operator bindings")
-            .arg(
-                value_arg(REGISTRY_SOURCE_ENDPOINT_ARG)
-                    .long(REGISTRY_SOURCE_ENDPOINT_ARG)
-                    .value_name("url")
-                    .default_value(DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT)
-                    .help("IC API endpoint used to refresh the Registry Subnet Catalog"),
-            ),
+        with_options::<OperatorListOptions>(
+            ClapCommand::new("list")
+                .about("List Registry CloudEngine Subnets and public operator bindings"),
+        ),
         DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
         SOURCE_ENDPOINT_HELP,
     )
     .after_help(collection_help(LIST_COLLECTION_MODE, LIST_HELP_AFTER))
 }
 
+///
+/// OperatorInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+struct OperatorInfoOptions {
+    #[arg(
+        id = "subnet-id",
+        value_name = "subnet-id",
+        help = "CloudEngine Subnet principal to resolve"
+    )]
+    subnet_id: String,
+}
+
 fn info_command() -> ClapCommand {
-    report_args(
-        ClapCommand::new("info")
-            .about("Show the operator binding and public settings for one CloudEngine Subnet")
-            .arg(
-                value_arg("subnet-id")
-                    .required(true)
-                    .value_name("subnet-id")
-                    .help("CloudEngine Subnet principal to resolve"),
-            ),
-        DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
-        SOURCE_ENDPOINT_HELP,
+    with_options::<OperatorInfoOptions>(
+        report_args(
+            ClapCommand::new("info")
+                .about("Show the operator binding and public settings for one CloudEngine Subnet"),
+            DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+            SOURCE_ENDPOINT_HELP,
+        )
+        .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
     )
-    .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
 }
 
 fn prices_command() -> ClapCommand {
@@ -238,9 +258,10 @@ fn report_args(
     endpoint: &'static str,
     source_help: &'static str,
 ) -> ClapCommand {
-    command
-        .arg(json_arg())
-        .arg(source_endpoint_arg(endpoint).help(source_help))
+    with_options::<crate::cli::common::SourceOutputOptions>(command)
+        .mut_arg("source-endpoint", |arg| {
+            arg.default_value(endpoint).help(source_help)
+        })
 }
 
 const REGISTRY_SOURCE_ENDPOINT_ARG: &str = "registry-source-endpoint";

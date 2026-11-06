@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::requests::account
+//! Module: icrc::model::requests::account
 //!
 //! Responsibility: ICRC balance and allowance request contracts.
 //! Does not own: account-history pagination, ledger history, live transport, or reports.

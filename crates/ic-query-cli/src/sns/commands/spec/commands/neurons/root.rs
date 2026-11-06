@@ -4,23 +4,12 @@
 //! Does not own: neuron list execution, cache selection, or report output.
 //! Boundary: defines list options, owner filtering input, and examples.
 
-use crate::{
-    cli::{
-        clap::{flag_arg, value_arg},
-        common::{
-            COLLECTION_MODE_LIVE, COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help, json_arg,
-            source_endpoint_arg,
-        },
-    },
-    sns::commands::spec::commands::{
-        args::{governance_input_arg, sns_neuron_id_value_parser},
-        neurons::sort::neurons_sort_arg,
-    },
+use crate::cli::clap::with_options;
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW, collection_help,
 };
-use clap::{Command as ClapCommand, builder::RangedU64ValueParser};
+use clap::Command as ClapCommand;
 use ic_query::sns::DEFAULT_SNS_SOURCE_ENDPOINT;
-
-const SNS_NEURONS_DEFAULT_LIMIT: &str = "25";
 
 const SNS_NEURONS_HELP_AFTER: &str = "\
 Examples:
@@ -49,61 +38,30 @@ pub(in crate::sns::commands) fn sns_neuron_command() -> ClapCommand {
 }
 
 pub(in crate::sns::commands) fn sns_neuron_info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one neuron stake and permissions by exact 32-byte id")
-        .arg(governance_input_arg())
-        .arg(
-            value_arg("neuron-id")
-                .value_name("neuron-id")
-                .required(true)
-                .value_parser(sns_neuron_id_value_parser())
-                .help("Exact 32-byte SNS neuron id as lowercase hexadecimal"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for Governance queries"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE,
-            SNS_NEURON_INFO_HELP_AFTER,
-        ))
+    with_options::<crate::sns::commands::options::SnsNeuronOptions>(
+        ClapCommand::new("info").about("Show one neuron stake and permissions by exact 32-byte id"),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_SNS_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for Governance queries")
+    })
+    .after_help(collection_help(
+        COLLECTION_MODE_LIVE,
+        SNS_NEURON_INFO_HELP_AFTER,
+    ))
 }
 
 pub(in crate::sns::commands) fn sns_neuron_list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .about("List SNS governance neurons by Governance canister principal")
-        .arg(governance_input_arg())
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_SNS_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for Governance neuron queries"),
-        )
-        .arg(
-            value_arg("limit")
-                .long("limit")
-                .value_name("count")
-                .default_value(SNS_NEURONS_DEFAULT_LIMIT)
-                .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
-                .help("Maximum rows to show; --sort api can request at most 100 live neurons"),
-        )
-        .arg(
-            value_arg("owner")
-                .long("owner")
-                .value_name("principal")
-                .value_parser(clap::value_parser!(
-                    ic_platform::candid::contract::Principal
-                ))
-                .help("Filter neurons having permissions for this principal"),
-        )
-        .arg(
-            flag_arg("verbose")
-                .long("verbose")
-                .help("Show full neuron IDs in text output"),
-        )
-        .arg(neurons_sort_arg())
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW,
-            SNS_NEURONS_HELP_AFTER,
-        ))
+    with_options::<crate::sns::commands::options::SnsListOptions>(
+        ClapCommand::new("list")
+            .about("List SNS governance neurons by Governance canister principal"),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_SNS_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for Governance neuron queries")
+    })
+    .after_help(collection_help(
+        COLLECTION_MODE_LIVE_OR_CACHE_BY_VIEW,
+        SNS_NEURONS_HELP_AFTER,
+    ))
 }

@@ -34,7 +34,9 @@ fn report_options_default_to_dashboard_and_text() {
         let matches =
             parse_matches(command, Vec::<OsString>::new()).expect("parse default provider options");
         assert_eq!(
-            required_string(&matches, SOURCE_ENDPOINT_ARG),
+            matches
+                .get_one::<String>(SOURCE_ENDPOINT_ARG)
+                .expect("validated source endpoint"),
             DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT
         );
         assert_eq!(output_format(&matches), OutputFormat::Text);

@@ -4,7 +4,10 @@
 //! Does not own: command-family specs, report requests, or runtime dispatch.
 //! Boundary: normalizes typed values, parse errors, and help rendering.
 
-use clap::{Arg, ArgAction, ArgMatches, Command, builder::TypedValueParser};
+use clap::{
+    Arg, ArgAction, ArgMatches, Args, Command, FromArgMatches,
+    builder::{Resettable, TypedValueParser},
+};
 use std::ffi::OsString;
 
 /// Prepare the complete Clap tree with shared namespace-help and alphabetical
@@ -42,46 +45,25 @@ where
     command.try_get_matches_from(std::iter::once(OsString::from(name)).chain(args))
 }
 
-pub fn value_arg(id: &'static str) -> Arg {
-    Arg::new(id).num_args(1)
+pub fn parsed_options<T: FromArgMatches>(matches: &ArgMatches) -> T {
+    T::from_arg_matches(matches).expect("Clap admitted the command's typed argument schema")
+}
+
+/// Attach typed arguments without replacing command help with Rust type documentation.
+pub fn with_options<T: Args>(command: Command) -> Command {
+    let about = command
+        .get_about()
+        .cloned()
+        .map_or(Resettable::Reset, Resettable::Value);
+    let long_about = command
+        .get_long_about()
+        .cloned()
+        .map_or(Resettable::Reset, Resettable::Value);
+    T::augment_args(command).about(about).long_about(long_about)
 }
 
 pub fn flag_arg(id: &'static str) -> Arg {
     Arg::new(id).action(ArgAction::SetTrue)
-}
-
-pub fn string_option(matches: &ArgMatches, id: &str) -> Option<String> {
-    matches.get_one::<String>(id).cloned()
-}
-
-/// Returns a required string argument that clap has already validated.
-///
-/// # Panics
-///
-/// Panics when `id` is not present in `matches`. Callers should only use this
-/// for arguments declared as required in the same clap command definition.
-pub fn required_string(matches: &ArgMatches, id: &str) -> String {
-    string_option(matches, id).unwrap_or_else(|| panic!("clap requires {id}"))
-}
-
-pub fn typed_option<T>(matches: &ArgMatches, id: &str) -> Option<T>
-where
-    T: Clone + Send + Sync + 'static,
-{
-    matches.get_one::<T>(id).cloned()
-}
-
-/// Returns a required typed argument that clap has already validated.
-///
-/// # Panics
-///
-/// Panics when `id` is not present in `matches`. Callers should only use this
-/// for arguments declared as required in the same clap command definition.
-pub fn required_typed<T>(matches: &ArgMatches, id: &str) -> T
-where
-    T: Clone + Send + Sync + 'static,
-{
-    typed_option(matches, id).unwrap_or_else(|| panic!("clap requires {id}"))
 }
 
 #[cfg(test)]

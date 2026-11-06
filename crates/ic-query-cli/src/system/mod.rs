@@ -1,11 +1,9 @@
 //! System-canister command-line parsing and dispatch.
 
-use crate::cli::{
-    clap::required_string,
-    common::{
-        COLLECTION_MODE_LIVE, CurrentUnixSecsError, SOURCE_ENDPOINT_ARG, collection_help,
-        current_unix_secs, json_arg, output_format, source_endpoint_arg, write_text_or_json,
-    },
+use crate::cli::clap::with_options;
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, CurrentUnixSecsError, collection_help, current_unix_secs, output_format,
+    write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::report::CollectionSourceRequest;
@@ -84,9 +82,10 @@ async fn run_report<Report>(
 where
     Report: Serialize,
 {
+    let options = crate::cli::common::SourceOutputOptions::from_matches(matches);
     let request = CollectionSourceRequest::from_unix_secs(
         network,
-        required_string(matches, SOURCE_ENDPOINT_ARG),
+        options.source_endpoint,
         current_unix_secs()?,
         "ic-query",
     );
@@ -112,14 +111,15 @@ pub fn command() -> ClapCommand {
 }
 
 fn report_command(name: &'static str, about: &'static str, examples: &'static str) -> ClapCommand {
-    ClapCommand::new(name)
-        .about(about)
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_CMC_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native CMC query"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        ClapCommand::new(name)
+            .about(about)
+            .after_help(collection_help(COLLECTION_MODE_LIVE, examples)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_CMC_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native CMC query")
+    })
 }
 
 #[cfg(test)]

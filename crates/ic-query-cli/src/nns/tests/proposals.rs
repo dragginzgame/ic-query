@@ -200,9 +200,9 @@ fn nns_proposal_refresh_parses_cache_options() {
     .expect("parse refresh defaults");
 
     assert_eq!(defaults.common.network, MAINNET_NETWORK);
-    assert_eq!(defaults.common.format, OutputFormat::Text);
+    assert_eq!(defaults.common.format(), OutputFormat::Text);
     assert_eq!(
-        defaults.common.source_endpoint,
+        defaults.common.source.source_endpoint,
         DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT
     );
     assert_eq!(defaults.page_size, 100);
@@ -223,8 +223,8 @@ fn nns_proposal_refresh_parses_cache_options() {
     )
     .expect("parse refresh options");
 
-    assert_eq!(options.common.format, OutputFormat::Json);
-    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format(), OutputFormat::Json);
+    assert_eq!(options.common.source.source_endpoint, "https://icp-api.io");
     assert_eq!(options.page_size, 25);
     assert_eq!(options.max_pages, Some(2));
 }

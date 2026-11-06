@@ -40,19 +40,17 @@ const IC_REPLICA_VERSION_TITLE_TEXT_LIMIT: usize = 80;
 const IC_REPLICA_VERSION_SUMMARY_TEXT_LIMIT: usize = 240;
 
 pub(crate) fn dashboard_provenance_lines(provenance: &IcDashboardReportProvenance) -> Vec<String> {
-    vec![
-        field("schema_version", &(provenance.schema_version)),
-        field("network", &provenance.network),
-        field("authority", &provenance.authority),
-        field("source_endpoint", &provenance.source_endpoint),
-        field("fetched_at", &provenance.fetched_at),
-        field("fetched_by", &provenance.fetched_by),
-        field("certified", &(yes_no(provenance.certified))),
-        field(
-            "point_in_time_guaranteed",
-            &(yes_no(provenance.point_in_time_guaranteed)),
-        ),
-    ]
+    crate::text_value::report_fields!(provenance;
+        schema_version,
+        network,
+        authority,
+        source_endpoint,
+        fetched_at,
+        fetched_by,
+        certified = yes_no(provenance.certified),
+        point_in_time_guaranteed = yes_no(provenance.point_in_time_guaranteed),
+    )
+    .into()
 }
 
 fn query_window_lines(start_unix_secs: u64, end_unix_secs: u64) -> [String; 2] {
@@ -73,10 +71,10 @@ pub fn ic_boundary_node_data_centers_report_text(
     report: &IcBoundaryNodeDataCentersReport,
 ) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("data_center_count", &(report.rows.len())),
-        field("total_node_count", &(report.total_node_count)),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        data_center_count = report.rows.len(),
+        total_node_count,
+    ));
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -187,39 +185,21 @@ pub fn ic_node_provider_reward_info_report_text(report: &IcNodeProviderRewardInf
     let reward = &report.reward;
     let details = serde_json::to_string(&reward.details).unwrap_or_else(|_| "{}".to_string());
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("reward_id", &(reward.reward_id)),
-        field("node_provider_id", &(reward.node_provider_id)),
-        field("amount_e8s", &(reward.amount_e8s)),
-        field("reward_mode", &reward.reward_mode),
-        field(
-            "reward_timestamp_unix_secs",
-            &(reward.reward_timestamp_unix_secs),
-        ),
-        field("dashboard_updated_at", &reward.dashboard_updated_at),
-        field("proposal_id", &(optional_u64_text(reward.proposal_id))),
-        field(
-            "registry_version",
-            &(optional_u64_text(reward.registry_version)),
-        ),
-        field(
-            "maximum_node_provider_rewards_e8s",
-            &(optional_u64_text(reward.maximum_node_provider_rewards_e8s)),
-        ),
-        field(
-            "minimum_xdr_permyriad_per_icp",
-            &(optional_u64_text(reward.minimum_xdr_permyriad_per_icp)),
-        ),
-        field(
-            "xdr_timestamp_unix_secs",
-            &(optional_u64_text(reward.xdr_conversion_rate.timestamp_unix_secs)),
-        ),
-        field(
-            "xdr_permyriad_per_icp",
-            &(optional_u64_text(reward.xdr_conversion_rate.xdr_permyriad_per_icp)),
-        ),
-        field("details", &details),
-    ]);
+    lines.extend(crate::text_value::report_fields!(reward;
+        reward_id,
+        node_provider_id,
+        amount_e8s,
+        reward_mode,
+        reward_timestamp_unix_secs,
+        dashboard_updated_at,
+        proposal_id = optional_u64_text(reward.proposal_id),
+        registry_version = optional_u64_text(reward.registry_version),
+        maximum_node_provider_rewards_e8s = optional_u64_text(reward.maximum_node_provider_rewards_e8s),
+        minimum_xdr_permyriad_per_icp = optional_u64_text(reward.minimum_xdr_permyriad_per_icp),
+        xdr_timestamp_unix_secs = optional_u64_text(reward.xdr_conversion_rate.timestamp_unix_secs),
+        xdr_permyriad_per_icp = optional_u64_text(reward.xdr_conversion_rate.xdr_permyriad_per_icp),
+        details = details,
+    ));
     lines.join("\n")
 }
 
@@ -234,13 +214,10 @@ pub fn ic_node_provider_reward_history_report_text(
         report.query.end_unix_secs,
         report.query.step_secs,
     ));
-    lines.extend([
-        field(
-            "requested_observation_limit",
-            &(report.requested_observation_limit),
-        ),
-        field("returned_observation_count", &(report.observations.len())),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        requested_observation_limit,
+        returned_observation_count = report.observations.len(),
+    ));
 
     if !report.observations.is_empty() {
         lines.push(String::new());
@@ -354,17 +331,10 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
         report.query.end_unix_secs,
         report.query.step_secs,
     ));
-    lines.extend([
-        field("returned_series_count", &(report.series.len())),
-        field(
-            "returned_observation_count",
-            &(report
-                .series
-                .iter()
-                .map(|series| series.observations.len())
-                .sum::<usize>()),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        returned_series_count = report.series.len(),
+        returned_observation_count = report.series.iter().map(|series| series.observations.len()).sum::<usize>(),
+    ));
 
     for series in &report.series {
         lines.push(String::new());
@@ -384,11 +354,11 @@ pub fn ic_metric_report_text(report: &IcMetricReport) -> String {
 #[must_use]
 pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("ledger_canister_id", &report.ledger_canister_id),
-        field("kind", &(report.kind)),
-        field("total", &(report.total)),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        ledger_canister_id,
+        kind,
+        total,
+    ));
     lines.join("\n")
 }
 
@@ -396,10 +366,10 @@ pub fn icrc_indexed_count_report_text(report: &IcIcrcIndexedCountReport) -> Stri
 #[must_use]
 pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String {
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("ledger_canister_id", &report.ledger_canister_id),
-        field("owner", &(optional_text(report.query.owner.as_ref()))),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        ledger_canister_id,
+        owner = optional_text(report.query.owner.as_ref()),
+    ));
     append_cursor_page_lines(
         &mut lines,
         report.query.sort_by.as_api_value(),
@@ -454,32 +424,20 @@ pub fn icrc_account_list_report_text(report: &IcIcrcAccountListReport) -> String
 pub fn icrc_account_info_report_text(report: &IcIcrcAccountInfoReport) -> String {
     let account = &report.account;
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("account_id", &account.account_id),
-        field("owner", &account.owner),
-        field("subaccount", &account.subaccount),
-        field("balance_base_units", &account.balance_base_units),
-        field("total_transactions", &(account.total_transactions)),
-        field("created_at_unix_secs", &(account.created_at_unix_secs)),
-        field(
-            "created_at_subsec_nanos",
-            &(account.created_at_subsec_nanos),
-        ),
-        field("ledger_canister_id", &account.ledger_canister_id),
-        field(
-            "latest_transaction_index",
-            &(account.latest_transaction_index),
-        ),
-        field("dashboard_updated_at", &account.dashboard_updated_at),
-        field(
-            "active_fee_collector",
-            &(yes_no(account.active_fee_collector)),
-        ),
-        field(
-            "fee_collector_block_range_count",
-            &(account.fee_collector_block_ranges.len()),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(account;
+        account_id,
+        owner,
+        subaccount,
+        balance_base_units,
+        total_transactions,
+        created_at_unix_secs,
+        created_at_subsec_nanos,
+        ledger_canister_id,
+        latest_transaction_index,
+        dashboard_updated_at,
+        active_fee_collector = yes_no(account.active_fee_collector),
+        fee_collector_block_range_count = account.fee_collector_block_ranges.len(),
+    ));
     lines.join("\n")
 }
 
@@ -546,11 +504,11 @@ pub fn icrc_token_value_report_text(report: &IcIcrcTokenValueReport) -> String {
         report.query.start_unix_secs,
         report.query.end_unix_secs,
     ));
-    lines.extend([
-        field("limit", &(report.query.limit)),
-        field("returned_row_count", &(report.rows.len())),
-        field("limit_reached", &(yes_no(report.limit_reached))),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        limit = report.query.limit,
+        returned_row_count = report.rows.len(),
+        limit_reached = yes_no(report.limit_reached),
+    ));
 
     if !report.rows.is_empty() {
         lines.push(String::new());
@@ -581,13 +539,10 @@ pub fn icrc_total_supply_report_text(report: &IcIcrcTotalSupplyReport) -> String
         report.query.end_unix_secs,
         report.query.step_secs,
     ));
-    lines.extend([
-        field(
-            "requested_observation_limit",
-            &(report.requested_observation_limit),
-        ),
-        field("returned_observation_count", &(report.observations.len())),
-    ]);
+    lines.extend(crate::text_value::report_fields!(report;
+        requested_observation_limit,
+        returned_observation_count = report.observations.len(),
+    ));
 
     if !report.observations.is_empty() {
         lines.push(String::new());
@@ -616,35 +571,19 @@ fn metric_observation_text(metric: IcMetricKind, value: &str) -> String {
 pub fn ic_canister_report_text(report: &IcCanisterReport) -> String {
     let data = &report.data;
     let mut lines = dashboard_provenance_lines(&report.provenance);
-    lines.extend([
-        field("canister_id", &(data.canister_id)),
-        field("dashboard_id", &(data.dashboard_id)),
-        field("name", &(text_or_dash(&data.name))),
-        field(
-            "canister_type",
-            &(data
-                .canister_type
-                .as_deref()
-                .map_or_else(|| "-".to_string(), text_or_dash)),
-        ),
-        field("subnet_id", &(data.subnet_id)),
-        field("controller_count", &(data.controllers.len())),
-        field("language", &(text_or_dash(&data.language))),
-        field("module_hash", &(text_or_dash(&data.module_hash))),
-        field("dashboard_updated_at", &data.dashboard_updated_at),
-        field(
-            "upgrade_history_available",
-            &(yes_no(data.upgrades.is_some())),
-        ),
-        field(
-            "upgrade_count",
-            &(data
-                .upgrades
-                .as_ref()
-                .map(Vec::len)
-                .map_or_else(|| "-".to_string(), |count| count.to_string())),
-        ),
-    ]);
+    lines.extend(crate::text_value::report_fields!(data;
+        canister_id,
+        dashboard_id,
+        name = text_or_dash(&data.name),
+        canister_type = data.canister_type.as_deref().map_or_else(|| "-".to_string(), text_or_dash),
+        subnet_id,
+        controller_count = data.controllers.len(),
+        language = text_or_dash(&data.language),
+        module_hash = text_or_dash(&data.module_hash),
+        dashboard_updated_at,
+        upgrade_history_available = yes_no(data.upgrades.is_some()),
+        upgrade_count = data.upgrades.as_ref().map(Vec::len).map_or_else(|| "-".to_string(), |count| count.to_string()),
+    ));
 
     if !data.controllers.is_empty() {
         lines.push(String::new());

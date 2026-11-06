@@ -4,15 +4,12 @@
 //! Does not own: Dashboard transport, source validation, report construction, or rendering.
 //! Boundary: exposes one page, one exact reward record, or one bounded aggregate history window.
 
+use crate::cli::clap::{parsed_options, with_options};
 use crate::cli::common::OutputFormat;
 use crate::{
-    cli::{
-        clap::{required_typed, typed_option, value_arg},
-        common::{
-            COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-            index_ceiling_arg, json_arg, page_limit_arg, page_offset_arg, resolve_time_bounds,
-            source_endpoint_arg, write_text_or_json,
-        },
+    cli::common::{
+        COLLECTION_MODE_LIVE, collection_help, current_unix_secs, resolve_time_bounds,
+        write_text_or_json,
     },
     nns::NnsCommandError,
 };
@@ -103,89 +100,112 @@ async fn run_history(matches: &ArgMatches) -> Result<(), NnsCommandError> {
     write_text_or_json(format, &report, ic_node_provider_reward_history_report_text)
 }
 
+///
+/// RewardInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct RewardInfoOptions {
+    #[arg(id = "reward-id", value_name = "reward-id", value_parser = clap::value_parser!(u64), help = "Exact numeric Dashboard reward record id")]
+    pub(super) reward_id: u64,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+}
+
 fn info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one exact Dashboard node-provider reward record")
-        .arg(
-            value_arg("reward-id")
-                .required(true)
-                .value_name("reward-id")
-                .value_parser(clap::value_parser!(u64))
-                .help("Exact numeric Dashboard reward record id"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
+    with_options::<RewardInfoOptions>(
+        ClapCommand::new("info")
+            .about("Show one exact Dashboard node-provider reward record")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
+}
+
+///
+/// RewardListOptions
+///
+/// Typed arguments for the list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct RewardListOptions {
+    #[arg(long, value_name = "rows", default_value = DEFAULT_LIMIT_ARG, value_parser = clap::builder::RangedU64ValueParser::<u16>::new().range(1..=u64::from(MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT)), help = "Maximum reward records; one through 100")]
+    pub(super) limit: u16,
+    #[arg(
+        long,
+        value_name = "rows",
+        default_value = "0",
+        help = "Zero-based reward-record offset"
+    )]
+    pub(super) offset: u64,
+    #[arg(
+        id = "max-reward-index",
+        long,
+        value_name = "index",
+        help = "Optional reward-index ceiling returned by an earlier page"
+    )]
+    pub(super) max_reward_index: Option<u64>,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
 }
 
 fn list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .about("Show one bounded Dashboard node-provider reward page")
-        .arg(
-            page_limit_arg(DEFAULT_LIMIT_ARG, MAX_IC_NODE_PROVIDER_REWARD_PAGE_LIMIT)
-                .help("Maximum reward records; one through 100"),
-        )
-        .arg(page_offset_arg().help("Zero-based reward-record offset"))
-        .arg(
-            index_ceiling_arg("max-reward-index")
-                .help("Optional reward-index ceiling returned by an earlier page"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER))
+    with_options::<RewardListOptions>(
+        ClapCommand::new("list")
+            .about("Show one bounded Dashboard node-provider reward page")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, LIST_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
+}
+
+///
+/// RewardHistoryOptions
+///
+/// Typed arguments for the history_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct RewardHistoryOptions {
+    #[arg(long, value_name = "unix-seconds", value_parser = clap::value_parser!(u64), help = "Inclusive start; defaults to 365 days before end")]
+    pub(super) start: Option<u64>,
+    #[arg(long, value_name = "unix-seconds", value_parser = clap::value_parser!(u64), help = "Inclusive end; defaults to the current time")]
+    pub(super) end: Option<u64>,
+    #[arg(long, value_name = "seconds", default_value = DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS.to_string(), hide_default_value = true, value_parser = RangedU64ValueParser::<u32>::new().range( u64::from(MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS) ..=u64::from(MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS), ), help = "Observation step in seconds; defaults to 86400")]
+    pub(super) step: u32,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
 }
 
 fn history_command() -> ClapCommand {
-    ClapCommand::new("history")
-        .about("Show bounded aggregate Dashboard node-provider reward history")
-        .arg(
-            value_arg("start")
-                .long("start")
-                .value_name("unix-seconds")
-                .value_parser(clap::value_parser!(u64))
-                .help("Inclusive start; defaults to 365 days before end"),
-        )
-        .arg(
-            value_arg("end")
-                .long("end")
-                .value_name("unix-seconds")
-                .value_parser(clap::value_parser!(u64))
-                .help("Inclusive end; defaults to the current time"),
-        )
-        .arg(
-            value_arg("step")
-                .long("step")
-                .value_name("seconds")
-                .default_value(DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS.to_string())
-                .hide_default_value(true)
-                .value_parser(RangedU64ValueParser::<u32>::new().range(
-                    u64::from(MIN_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS)
-                        ..=u64::from(MAX_IC_NODE_PROVIDER_REWARD_HISTORY_STEP_SECS),
-                ))
-                .help("Observation step in seconds; defaults to 86400"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, HISTORY_HELP_AFTER))
+    with_options::<RewardHistoryOptions>(
+        ClapCommand::new("history")
+            .about("Show bounded aggregate Dashboard node-provider reward history")
+            .after_help(collection_help(COLLECTION_MODE_LIVE, HISTORY_HELP_AFTER)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
 }
 
 fn info_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcNodeProviderRewardInfoRequest) {
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let request =
-        IcNodeProviderRewardInfoRequest::new(dashboard, required_typed(matches, "reward-id"));
+    let options: RewardInfoOptions = parsed_options(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
+    let request = IcNodeProviderRewardInfoRequest::new(dashboard, options.reward_id);
     (format, request)
 }
 
@@ -193,15 +213,11 @@ fn list_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcNodeProviderRewardListRequest) {
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let options: RewardListOptions = parsed_options(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcNodeProviderRewardListRequest::new(
         dashboard,
-        IcNodeProviderRewardListQuery::new(
-            required_typed(matches, "limit"),
-            required_typed(matches, "offset"),
-            typed_option(matches, "max-reward-index"),
-        ),
+        IcNodeProviderRewardListQuery::new(options.limit, options.offset, options.max_reward_index),
     );
     (format, request)
 }
@@ -210,18 +226,18 @@ fn history_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcNodeProviderRewardHistoryRequest) {
+    let options: RewardHistoryOptions = parsed_options(matches);
     let (start, end) = resolve_time_bounds(
-        typed_option(matches, "start"),
-        typed_option(matches, "end"),
+        options.start,
+        options.end,
         now_unix_secs,
         DEFAULT_IC_NODE_PROVIDER_REWARD_HISTORY_WINDOW_SECS,
         0,
     );
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcNodeProviderRewardHistoryRequest::new(
         dashboard,
-        IcNodeProviderRewardHistoryQuery::new(start, end, required_typed(matches, "step")),
+        IcNodeProviderRewardHistoryQuery::new(start, end, options.step),
     );
     (format, request)
 }

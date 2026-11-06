@@ -41,7 +41,6 @@ pub use model::{
 
 pub const DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT: &str = "https://icp-api.io";
 #[cfg(feature = "nns-host")]
-#[cfg(feature = "nns-host")]
 pub const NNS_NODE_PROVIDER_LIST_REPORT_SCHEMA_VERSION: u32 = 1;
 #[cfg(feature = "nns-host")]
 pub const NNS_NODE_PROVIDER_INFO_REPORT_SCHEMA_VERSION: u32 = 1;

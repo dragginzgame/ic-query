@@ -48,9 +48,9 @@ url = "2.5.8"
 
 # Tests and tooling only
 futures = { version = "0.3", default-features = false }
-ic-build = "0.74.3"
+ic-build = "0.75.0"
 ic-host-process = { version = "0.74.3", default-features = false }
-ic-testkit = "0.87.0"
+ic-testkit = "0.88.0"
 ic-wire = "0.17.2"
 libc = "0.2"
 time = { version = "0.3", features = ["formatting"] }

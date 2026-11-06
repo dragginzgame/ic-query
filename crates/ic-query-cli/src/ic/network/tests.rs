@@ -28,7 +28,7 @@ fn boundary_node_data_center_options_preserve_format_and_endpoint() {
     )
     .expect("boundary-node options");
 
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://example.com/api/v4");
 }
 

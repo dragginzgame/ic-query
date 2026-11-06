@@ -1,5 +1,4 @@
 //! Explicit Governance neuron command namespace.
-mod args;
 pub(in crate::sns::commands) mod neurons;
 pub(in crate::sns::commands) fn sns_command() -> clap::Command {
     clap::Command::new("sns")

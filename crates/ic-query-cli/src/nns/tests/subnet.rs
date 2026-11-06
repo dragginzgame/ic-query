@@ -123,8 +123,8 @@ fn refresh_parses_defaults_and_export_options() {
     .expect("parse refresh");
 
     assert_eq!(options.common.network, MAINNET_NETWORK);
-    assert_eq!(options.common.format, OutputFormat::Json);
-    assert_eq!(options.common.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.common.format(), OutputFormat::Json);
+    assert_eq!(options.common.source.source_endpoint, "https://icp-api.io");
 
     assert!(options.dry_run);
     assert_eq!(

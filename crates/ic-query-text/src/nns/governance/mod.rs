@@ -15,6 +15,7 @@ pub use crate::nns::governance::collection::nns_governance_refresh_report_text;
 mod economics;
 mod events;
 mod metrics;
+use ic_query::nns::governance::NnsGovernanceAnalyticsContext;
 use ic_query::nns::governance::NnsGovernanceReportContext;
 use ic_query::nns::governance::NnsGovernanceSourceProvenance;
 
@@ -33,20 +34,15 @@ pub(super) fn context_lines(context: &NnsGovernanceReportContext) -> Vec<String>
     lines
 }
 
-pub(super) fn collection_context_lines(
-    network: &str,
-    governance_canister_id: &str,
-    started_at: &str,
-    updated_at: &str,
-    source: &NnsGovernanceSourceProvenance,
-) -> Vec<String> {
-    let mut lines = vec![
-        field("network", &(network)),
-        field("governance_canister_id", &(governance_canister_id)),
-        field("collection_started_at", &(started_at)),
-        field("collection_updated_at", &(updated_at)),
-    ];
-    lines.extend(source_lines(source));
+pub(super) fn collection_context_lines(context: &NnsGovernanceAnalyticsContext) -> Vec<String> {
+    let mut lines: Vec<_> = crate::text_value::report_fields!(context;
+        network,
+        governance_canister_id,
+        collection_started_at,
+        collection_updated_at,
+    )
+    .into();
+    lines.extend(source_lines(&context.source));
     lines
 }
 

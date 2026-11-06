@@ -11,8 +11,8 @@ mod system;
 
 pub use crate::cli::clap::prepare_command_tree;
 
-use crate::cli::clap::{parse_matches, string_option};
-use clap::{Arg, Command, error::ErrorKind};
+use crate::cli::clap::{parse_matches, parsed_options};
+use clap::{Command, CommandFactory, error::ErrorKind};
 use ic_host_text::escape::terminal_text;
 use ic_query::subnet_catalog::MAINNET_NETWORK;
 use std::ffi::OsString;
@@ -158,7 +158,7 @@ where
         return Ok(());
     }
 
-    let selected_network = string_option(&matches, "network");
+    let selected_network = parsed_options::<CliOptions>(&matches).network;
     let network = selected_network.as_deref().unwrap_or(MAINNET_NETWORK);
     let Some((command, matches)) = matches.subcommand() else {
         return Err(IcqCliError::Usage(usage()));
@@ -203,24 +203,17 @@ fn reject_network_option(
     )))
 }
 
-fn network_arg() -> Arg {
-    Arg::new("network")
-        .num_args(1)
-        .long("network")
-        .value_name("name")
-        .value_parser([MAINNET_NETWORK])
-        .help("Network identity for CloudEngine, NNS, SNS, and system commands; currently only ic")
+#[derive(clap::Parser)]
+#[command(name = "icq", version = env!("CARGO_PKG_VERSION"), propagate_version = true,
+    about = "Internet Computer metadata query CLI", subcommand_help_heading = "Commands",
+    help_template = TOP_LEVEL_HELP_TEMPLATE, after_help = "Run `icq <command> --help` for command-specific help.")]
+struct CliOptions {
+    #[arg(long, value_name = "name", value_parser = [MAINNET_NETWORK], help = "Network identity for CloudEngine, NNS, SNS, and system commands; currently only ic")]
+    network: Option<String>,
 }
 
 fn top_level_command() -> Command {
-    Command::new("icq")
-        .version(env!("CARGO_PKG_VERSION"))
-        .propagate_version(true)
-        .about("Internet Computer metadata query CLI")
-        .arg(network_arg())
-        .subcommand_help_heading("Commands")
-        .help_template(TOP_LEVEL_HELP_TEMPLATE)
-        .after_help("Run `icq <command> --help` for command-specific help.")
+    CliOptions::command()
         .subcommand(cloud_engine::command())
         .subcommand(ic::command())
         .subcommand(icrc::command())

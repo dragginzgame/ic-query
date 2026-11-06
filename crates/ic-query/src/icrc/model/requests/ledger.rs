@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::requests::ledger
+//! Module: icrc::model::requests::ledger
 //!
 //! Responsibility: shared ICRC ledger identity and provenance requests.
 //! Does not own: account selection, history pagination, live transport, or reports.

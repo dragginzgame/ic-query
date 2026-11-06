@@ -5,18 +5,15 @@
 //! Boundary: carries parsed values into requests without report construction or IO.
 
 use super::{
-    ACCOUNT_ID_ARG, DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE, DEFAULT_ICRC_TRANSACTIONS_LIMIT,
+    DEFAULT_ICRC_ACCOUNT_TRANSACTION_PAGE_SIZE, DEFAULT_ICRC_TRANSACTIONS_LIMIT,
     FOLLOW_ARCHIVES_ARG, FROM_CANISTER_ID_ARG, INDEX_CANISTER_ID_ARG, LEDGER_CANISTER_ID_ARG,
     LIMIT_ARG, MAX_ICRC_TRANSACTIONS_LIMIT, MAX_PAGES_ARG, OWNER_PRINCIPAL_ARG,
     OWNER_SUBACCOUNT_ARG, PAGE_SIZE_ARG, PRINCIPAL_ARG, SORT_ARG, SPENDER_PRINCIPAL_ARG,
     SPENDER_SUBACCOUNT_ARG, START_ARG, SUBACCOUNT_ARG, principal_text_value_parser,
     subaccount_hex_value_parser,
 };
-use crate::cli::{
-    clap::{required_typed, string_option},
-    common::{OutputFormat, SourceOutputOptions},
-};
-use clap::{ArgMatches, Args, FromArgMatches, builder::RangedU64ValueParser};
+use crate::cli::{clap::parsed_options, common::OutputFormat};
+use clap::{ArgMatches, Args, builder::RangedU64ValueParser};
 use ic_query::icrc::IcrcAccountTransactionCacheRequest;
 use ic_query::icrc::IcrcAccountTransactionListRequest;
 use ic_query::icrc::IcrcAccountTransactionPageRequest;
@@ -46,7 +43,7 @@ pub(in crate::icrc) struct IcrcLedgerOptions {
         help = "Print raw JSON instead of human-readable text"
     )]
     json: bool,
-    #[arg(id = "source-endpoint", long = "source-endpoint", display_order = 1000, value_name = "url", default_value = ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT, help = "IC API endpoint used for ICRC ledger queries")]
+    #[arg(id = "source-endpoint", long, display_order = 1000, value_name = "url", default_value = ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT, help = "IC API endpoint used for ICRC ledger queries")]
     pub(in crate::icrc) source_endpoint: String,
 }
 
@@ -67,11 +64,8 @@ impl IcrcLedgerOptions {
         self,
         now_unix_secs: u64,
     ) -> (OutputFormat, ic_query::ic::IcDashboardRequest, String) {
-        let (format, request) = SourceOutputOptions {
-            format: self.format(),
-            source_endpoint: self.source_endpoint,
-        }
-        .into_dashboard_request(now_unix_secs);
+        let format = self.format();
+        let request = ic_query::ic::IcDashboardRequest::new(self.source_endpoint, now_unix_secs);
         (format, request, self.ledger_canister_id)
     }
 
@@ -205,10 +199,6 @@ pub(in crate::icrc) struct IcrcTransactionRefreshOptions {
     max_pages: Option<u32>,
 }
 
-fn parsed_options<Options: FromArgMatches>(matches: &ArgMatches) -> Options {
-    Options::from_arg_matches(matches).expect("Clap admitted the typed account argument schema")
-}
-
 fn account_transaction_cursor(value: &str) -> Result<String, String> {
     if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err("expected unsigned decimal transaction id".to_string());
@@ -291,19 +281,53 @@ pub(in crate::icrc) fn account_transaction_refresh_request(
     )
 }
 
+///
+/// IcrcTransactionsOptions
+///
+/// Ledger-wide transaction page and archive-following policy.
+///
+
+#[derive(Args)]
+#[group(skip)]
+pub(in crate::icrc) struct IcrcTransactionsOptions {
+    #[command(flatten)]
+    ledger: IcrcLedgerOptions,
+    #[arg(id = START_ARG, long = START_ARG, value_name = "index", default_value = "0", help = "First ICRC-3 block index to request from the ledger")]
+    start: u64,
+    #[arg(id = LIMIT_ARG, long = LIMIT_ARG, value_name = "count", default_value = DEFAULT_ICRC_TRANSACTIONS_LIMIT, value_parser = RangedU64ValueParser::<u32>::new().range(1..=MAX_ICRC_TRANSACTIONS_LIMIT), help = "Maximum ICRC-3 blocks to request from the ledger")]
+    limit: u32,
+    #[arg(id = FOLLOW_ARCHIVES_ARG, long = FOLLOW_ARCHIVES_ARG, display_order = 1001, help = "Follow returned ICRC-3 archive callbacks for the requested block page")]
+    follow_archives: bool,
+}
+
+///
+/// IcrcArchivesOptions
+///
+/// Ledger target and the optional last-seen archive principal.
+///
+
+#[derive(Args)]
+#[group(skip)]
+pub(in crate::icrc) struct IcrcArchivesOptions {
+    #[command(flatten)]
+    ledger: IcrcLedgerOptions,
+    #[arg(id = FROM_CANISTER_ID_ARG, long = FROM_CANISTER_ID_ARG, value_name = "canister-id", value_parser = principal_text_value_parser(), help = "Last archive canister already seen; returns later archives")]
+    from: Option<String>,
+}
+
 pub(in crate::icrc) fn transactions_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcrcTransactionsRequest) {
-    let (format, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_ledger_request(now_unix_secs);
+    let options: IcrcTransactionsOptions = parsed_options(matches);
+    let (format, ledger) = options.ledger.into_ledger_request(now_unix_secs);
     (
         format,
         IcrcTransactionsRequest {
             ledger,
-            start: required_typed(matches, START_ARG),
-            limit: required_typed(matches, LIMIT_ARG),
-            follow_archives: matches.get_flag(FOLLOW_ARCHIVES_ARG),
+            start: options.start,
+            limit: options.limit,
+            follow_archives: options.follow_archives,
         },
     )
 }
@@ -312,13 +336,13 @@ pub(in crate::icrc) fn archives_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcrcArchivesRequest) {
-    let (format, ledger) =
-        IcrcLedgerOptions::from_matches(matches).into_ledger_request(now_unix_secs);
+    let options: IcrcArchivesOptions = parsed_options(matches);
+    let (format, ledger) = options.ledger.into_ledger_request(now_unix_secs);
     (
         format,
         IcrcArchivesRequest {
             ledger,
-            from_canister_id: string_option(matches, FROM_CANISTER_ID_ARG),
+            from_canister_id: options.from,
         },
     )
 }

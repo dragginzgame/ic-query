@@ -11,9 +11,9 @@ fn registry_version_parses_defaults_and_json_format() {
     .expect("parse defaults");
 
     assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.format(), OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.source.source_endpoint,
         DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT
     );
 
@@ -24,8 +24,8 @@ fn registry_version_parses_defaults_and_json_format() {
     )
     .expect("parse registry version");
 
-    assert_eq!(options.format, OutputFormat::Json);
-    assert_eq!(options.source_endpoint, "https://icp-api.io");
+    assert_eq!(options.format(), OutputFormat::Json);
+    assert_eq!(options.source.source_endpoint, "https://icp-api.io");
 }
 
 #[test]

@@ -5,14 +5,12 @@
 //! Boundary: exposes only explicit ledger and time bounds supported by the official API.
 
 use super::{
-    ACCOUNT_ID_ARG, ledger_canister_id_arg,
+    ACCOUNT_ID_ARG,
     options::{AccountListOptions, HolderListOptions, TokenValueOptions, TotalSupplyOptions},
 };
-use crate::cli::{
-    clap::value_arg,
-    common::{COLLECTION_MODE_LIVE, collection_help, json_arg, source_endpoint_arg},
-};
-use clap::{Args, Command as ClapCommand};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
+use clap::Command as ClapCommand;
 use ic_query::ic::{
     DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT, DEFAULT_ICRC_ANALYTICS_SOURCE_ENDPOINT,
 };
@@ -48,7 +46,7 @@ fn icrc_analytics_transaction_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_analytics_token_values_command() -> ClapCommand {
     with_common_analytics_options(
-        TokenValueOptions::augment_args(ClapCommand::new("token-values"))
+        with_options::<TokenValueOptions>(ClapCommand::new("token-values"))
 
             .about("Show bounded external token value observations for one ICRC ledger")
             .long_about(
@@ -63,7 +61,7 @@ pub(in crate::icrc) fn icrc_analytics_token_values_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_analytics_total_supply_command() -> ClapCommand {
     with_common_analytics_options(
-        TotalSupplyOptions::augment_args(ClapCommand::new("total-supply"))
+        with_options::<TotalSupplyOptions>(ClapCommand::new("total-supply"))
 
             .about("Show bounded historical total supply for one indexed ICRC ledger")
             .long_about(
@@ -81,13 +79,14 @@ fn with_common_analytics_options(command: ClapCommand) -> ClapCommand {
 }
 
 fn with_analytics_endpoint(command: ClapCommand, endpoint: &'static str) -> ClapCommand {
-    command
-        .arg(ledger_canister_id_arg().index(1))
-        .arg(
-            source_endpoint_arg(endpoint)
-                .help("Official IC Dashboard ICRC analytics API base endpoint"),
-        )
-        .arg(json_arg())
+    with_options::<super::options::IcrcLedgerOptions>(command)
+        .mut_arg("ledger-canister-id", |arg| arg.index(1))
+        .mut_arg("json", |arg| arg.display_order(21))
+        .mut_arg("source-endpoint", |arg| {
+            arg.display_order(20)
+                .default_value(endpoint)
+                .help("Official IC Dashboard ICRC analytics API base endpoint")
+        })
 }
 
 fn indexed_count_namespace(entity: &'static str, plural: &'static str) -> ClapCommand {
@@ -98,8 +97,21 @@ fn indexed_count_namespace(entity: &'static str, plural: &'static str) -> ClapCo
         .subcommand(indexed_count_command(entity, plural))
 }
 
+///
+/// AnalyticsAccountInfoOptions
+///
+/// Typed arguments for the icrc_analytics_account_info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct AnalyticsAccountInfoOptions {
+    #[arg(id = ACCOUNT_ID_ARG, value_name = "account-id", index = 2, help = "Opaque account id returned by account list")]
+    pub(super) account_id: String,
+}
+
 pub(in crate::icrc) fn icrc_analytics_account_info_command() -> ClapCommand {
-    with_analytics_endpoint(
+    with_options::<AnalyticsAccountInfoOptions>(with_analytics_endpoint(
         ClapCommand::new("info")
 
             .about("Show one exact off-chain account record; not point-in-time guaranteed")
@@ -110,20 +122,14 @@ pub(in crate::icrc) fn icrc_analytics_account_info_command() -> ClapCommand {
                 COLLECTION_MODE_LIVE,
                 "Examples:\n  icq icrc analytics account info mxzaz-hqaaa-aaaar-qaada-cai 222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4eug3-2ejie-vae\n  icq icrc analytics account info mxzaz-hqaaa-aaaar-qaada-cai 222nw-nqiei-h4uy6-fqm54-d3slu-jveav-vqrn6-yojxi-4eug3-2ejie-vae --json",
             ))
-            .arg(
-                value_arg(ACCOUNT_ID_ARG)
-                    .value_name("account-id")
-                    .index(2)
-                    .required(true)
-                    .help("Opaque account id returned by account list"),
-            ),
+            ,
         DEFAULT_ICRC_ACCOUNT_INFO_SOURCE_ENDPOINT,
-    )
+    ))
 }
 
 pub(in crate::icrc) fn icrc_analytics_account_list_command() -> ClapCommand {
     with_common_analytics_options(
-        AccountListOptions::augment_args(ClapCommand::new("list"))
+        with_options::<AccountListOptions>(ClapCommand::new("list"))
 
                 .about("Show one bounded off-chain account page; not a complete snapshot")
                 .long_about(
@@ -138,7 +144,7 @@ pub(in crate::icrc) fn icrc_analytics_account_list_command() -> ClapCommand {
 
 pub(in crate::icrc) fn icrc_analytics_holder_list_command() -> ClapCommand {
     with_common_analytics_options(
-        HolderListOptions::augment_args(ClapCommand::new("list"))
+        with_options::<HolderListOptions>(ClapCommand::new("list"))
 
             .about("Show one bounded off-chain holder page; not a complete snapshot")
             .long_about(

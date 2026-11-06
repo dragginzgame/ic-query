@@ -42,13 +42,7 @@ pub fn nns_proposal_activity_report_text(report: &NnsProposalActivityReport) -> 
 }
 
 fn activity_preamble(report: &NnsProposalActivityReport) -> Vec<String> {
-    let mut lines = governance_collection_context_lines(
-        &report.context.network,
-        &report.context.governance_canister_id,
-        &report.context.collection_started_at,
-        &report.context.collection_updated_at,
-        &report.context.source,
-    );
+    let mut lines = governance_collection_context_lines(&report.context);
     lines.extend(crate::text_value::report_fields!(report;
         collection_page_count = report.context.collection_page_count,
         collected_proposal_count,

@@ -5,7 +5,7 @@
 //! Boundary: carries raw source results into report assembly without display conversion.
 
 use super::IcrcTokenStandardRow;
-use super::contracts::{IcrcAccountTransactionRow, IcrcCapabilityRow};
+use super::{IcrcAccountTransactionRow, IcrcCapabilityRow};
 use std::path::PathBuf;
 
 ///
@@ -43,7 +43,7 @@ pub struct CachedIcrcAccountTransactionSnapshot {
     /// Local cache path.
     pub path: PathBuf,
     /// Validated complete snapshot.
-    pub snapshot: super::contracts::IcrcAccountTransactionSnapshot,
+    pub snapshot: super::IcrcAccountTransactionSnapshot,
 }
 
 ///

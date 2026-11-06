@@ -1,7 +1,5 @@
-use crate::{
-    cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help},
-    nns::leaf,
-};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_CACHE_REFRESH_MISSING, collection_help};
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 const TOPOLOGY_COMPONENT_CACHE_SOURCE_HELP: &str =
@@ -87,12 +85,17 @@ Examples:
   icq --network ic nns topology {name} --json
   icq nns topology {name} --source-endpoint https://icp-api.io"
     );
-    clap::Command::new(name)
-        .about(about)
-        .arg(leaf::json_arg())
-        .arg(leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT).help(source_help))
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_REFRESH_MISSING,
-            &examples,
-        ))
+
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        clap::Command::new(name)
+            .about(about)
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_REFRESH_MISSING,
+                &examples,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
+            .help(source_help)
+    })
 }

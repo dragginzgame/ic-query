@@ -11,9 +11,9 @@ fn nns_governance_options_are_shared_across_reports() {
     )
     .expect("economics defaults");
     assert_eq!(defaults.network, MAINNET_NETWORK);
-    assert_eq!(defaults.format, OutputFormat::Text);
+    assert_eq!(defaults.format(), OutputFormat::Text);
     assert_eq!(
-        defaults.source_endpoint,
+        defaults.source.source_endpoint,
         DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT
     );
 
@@ -23,8 +23,8 @@ fn nns_governance_options_are_shared_across_reports() {
         NnsCommonOptions::from_matches,
     )
     .expect("metrics options");
-    assert_eq!(explicit.format, OutputFormat::Json);
-    assert_eq!(explicit.source_endpoint, "https://example.test");
+    assert_eq!(explicit.format(), OutputFormat::Json);
+    assert_eq!(explicit.source.source_endpoint, "https://example.test");
 }
 
 #[test]
@@ -58,6 +58,6 @@ fn nns_governance_each_report_command_accepts_common_options() {
     ] {
         let options = parse_test_options(command, &["--json"], NnsCommonOptions::from_matches)
             .expect("shared report options");
-        assert_eq!(options.format, OutputFormat::Json);
+        assert_eq!(options.format(), OutputFormat::Json);
     }
 }

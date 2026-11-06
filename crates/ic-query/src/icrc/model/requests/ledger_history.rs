@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::requests::ledger_history
+//! Module: icrc::model::requests::ledger_history
 //!
 //! Responsibility: ICRC ledger-wide transaction and archive request contracts.
 //! Does not own: account-index history, live transport, archive following, or reports.

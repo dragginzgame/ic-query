@@ -1,9 +1,7 @@
 //! Clap specifications for direct NNS Governance reports.
 
-use crate::{
-    cli::common::{COLLECTION_MODE_LIVE, collection_help},
-    nns::leaf,
-};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
 use clap::Command as ClapCommand;
 use ic_query::nns::governance::DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT;
 
@@ -77,12 +75,13 @@ pub(in crate::nns) fn governance_maturity_modulation_command() -> ClapCommand {
 }
 
 fn report_command(name: &'static str, about: &'static str, examples: &'static str) -> ClapCommand {
-    ClapCommand::new(name)
-        .about(about)
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS Governance query"),
-        )
-        .after_help(collection_help(COLLECTION_MODE_LIVE, examples))
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        ClapCommand::new(name)
+            .about(about)
+            .after_help(collection_help(COLLECTION_MODE_LIVE, examples)),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS Governance query")
+    })
 }

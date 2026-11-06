@@ -1,6 +1,6 @@
 //! Clap schemas and request projection for bounded Dashboard analytics.
+use super::super::analytics::AnalyticsAccountInfoOptions;
 use super::{IcrcLedgerOptions, parsed_options};
-use crate::cli::clap::required_string;
 use crate::cli::common::{OutputFormat, resolve_time_bounds};
 use clap::{
     ArgMatches, Args,
@@ -136,15 +136,12 @@ pub(in crate::icrc) fn analytics_account_info_request(
     matches: &ArgMatches,
     now: u64,
 ) -> (OutputFormat, IcIcrcAccountInfoRequest) {
+    let options: AnalyticsAccountInfoOptions = parsed_options(matches);
     let (format, dashboard, ledger) =
         IcrcLedgerOptions::from_matches(matches).into_dashboard_request(now);
     (
         format,
-        IcIcrcAccountInfoRequest::new(
-            dashboard,
-            ledger,
-            required_string(matches, super::ACCOUNT_ID_ARG),
-        ),
+        IcIcrcAccountInfoRequest::new(dashboard, ledger, options.account_id),
     )
 }
 

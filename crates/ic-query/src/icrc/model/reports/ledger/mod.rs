@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::reports::ledger
+//! Module: icrc::model::reports::ledger
 //!
 //! Responsibility: serialized ICRC ledger metadata, capability, and history contracts.
 //! Does not own: account-index history, requests, live transport, archive following, or rendering.

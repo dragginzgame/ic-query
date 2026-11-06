@@ -1,9 +1,9 @@
 //! Construct catalog requests while keeping text verbosity at the CLI boundary.
 
-use crate::cli::{
-    clap::{required_string, required_typed, typed_option},
-    common::{OutputFormat, SourceOutputOptions},
-};
+use super::commands::{SubnetInfoOptions, SubnetListOptions};
+use crate::cli::clap::parsed_options;
+
+use crate::cli::common::OutputFormat;
 use clap::ArgMatches;
 use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
 use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
@@ -16,7 +16,9 @@ pub(in crate::nns) fn catalog_list_request(
     cache: SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> (OutputFormat, bool, SubnetCatalogListRequest) {
-    let source = SourceOutputOptions::from_matches(matches);
+    let options: SubnetListOptions = parsed_options(matches);
+    let source = options.source;
+    let format = source.format();
     let mut request = SubnetCatalogListRequest::new(
         cache,
         source.source_endpoint,
@@ -24,15 +26,15 @@ pub(in crate::nns) fn catalog_list_request(
         DEFAULT_STALE_AFTER_SECONDS,
     );
     request.filters = SubnetCatalogFilters {
-        kind: typed_option(matches, "kind"),
-        specialization: typed_option(matches, "specialization"),
-        geographic_scope: typed_option(matches, "geo"),
+        kind: options.kind,
+        specialization: options.specialization,
+        geographic_scope: options.geo,
     };
-    request.show_ranges = matches.get_flag("show-ranges");
-    request.range_limit = required_typed(matches, "range-limit");
-    request.range_offset = required_typed(matches, "range-offset");
+    request.show_ranges = options.show_ranges;
+    request.range_limit = options.range_limit;
+    request.range_offset = options.range_offset;
 
-    (source.format, matches.get_flag("verbose"), request)
+    (format, options.verbose, request)
 }
 
 pub(in crate::nns) fn catalog_info_request(
@@ -40,16 +42,16 @@ pub(in crate::nns) fn catalog_info_request(
     cache: SubnetCatalogCacheRequest,
     now_unix_secs: u64,
 ) -> (OutputFormat, SubnetCatalogInfoRequest) {
-    let source = SourceOutputOptions::from_matches(matches);
+    let options: SubnetInfoOptions = parsed_options(matches);
+    let source = options.source;
+    let format = source.format();
     let mut request = SubnetCatalogInfoRequest::new(
         cache,
         source.source_endpoint,
-        required_string(matches, "input"),
+        options.input,
         now_unix_secs,
         DEFAULT_STALE_AFTER_SECONDS,
     );
-    if let Some(forced) = typed_option(matches, "as") {
-        request.forced = Some(forced);
-    }
-    (source.format, request)
+    request.forced = options.forced;
+    (format, request)
 }

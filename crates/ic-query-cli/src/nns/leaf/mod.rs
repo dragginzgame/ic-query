@@ -2,12 +2,14 @@ mod commands;
 pub(in crate::nns) mod model;
 mod options;
 mod run;
-pub(super) use crate::cli::common::{json_arg, source_endpoint_arg};
-pub(super) use commands::{command, command_with_list, list_command, output_path_arg};
+pub(super) use crate::cli::common::json_arg;
+pub(super) use commands::{command, command_with_list, list_command};
 #[cfg(test)]
 pub(super) use commands::{info_command, refresh_command};
 pub(super) use model::NnsLeafCommandSpec;
-pub(super) use options::{NnsCommonOptions, NnsLeafRefreshOptions, NnsPagedRefreshOptions};
 #[cfg(test)]
-pub(super) use options::{NnsLeafInfoOptions, NnsLeafListOptions};
+pub(super) use options::NnsLeafInfoOptions;
+pub(super) use options::{
+    NnsCommonOptions, NnsLeafListOptions, NnsLeafRefreshOptions, NnsPagedRefreshOptions,
+};
 pub(super) use run::{run_cached_leaf_info, run_cached_leaf_list, run_cached_leaf_refresh};

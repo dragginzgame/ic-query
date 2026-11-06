@@ -1,10 +1,5 @@
-use crate::{
-    cli::{
-        clap::flag_arg,
-        common::{COLLECTION_MODE_FORCE_REFRESH, collection_help},
-    },
-    nns::leaf,
-};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_FORCE_REFRESH, collection_help};
 use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
 
 pub(in crate::nns::topology) const DRY_RUN_ARG: &str = "dry-run";
@@ -18,21 +13,32 @@ Examples:
 const TOPOLOGY_REFRESH_SOURCE_HELP: &str =
     "IC API endpoint used for NNS topology component refreshes";
 
+///
+/// TopologyRefreshOptions
+///
+/// Typed arguments for the topology_refresh_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(in crate::nns) struct TopologyRefreshOptions {
+    #[command(flatten)]
+    pub(in crate::nns) source: crate::cli::common::SourceOutputOptions,
+    #[arg(id = DRY_RUN_ARG, long = DRY_RUN_ARG, help = "Fetch and validate without replacing topology component caches")]
+    pub(in crate::nns) dry_run: bool,
+}
+
 pub(in crate::nns) fn topology_refresh_command() -> clap::Command {
-    clap::Command::new("refresh")
-        .about("Refresh cached mainnet NNS topology component reports")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
-                .help(TOPOLOGY_REFRESH_SOURCE_HELP),
-        )
-        .arg(
-            flag_arg(DRY_RUN_ARG)
-                .long(DRY_RUN_ARG)
-                .help("Fetch and validate without replacing topology component caches"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_FORCE_REFRESH,
-            TOPOLOGY_REFRESH_HELP_AFTER,
-        ))
+    with_options::<TopologyRefreshOptions>(
+        clap::Command::new("refresh")
+            .about("Refresh cached mainnet NNS topology component reports")
+            .after_help(collection_help(
+                COLLECTION_MODE_FORCE_REFRESH,
+                TOPOLOGY_REFRESH_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT)
+            .help(TOPOLOGY_REFRESH_SOURCE_HELP)
+    })
 }

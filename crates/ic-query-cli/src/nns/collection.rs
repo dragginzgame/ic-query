@@ -27,7 +27,7 @@ where
     Error: Into<NnsCommandError>,
 {
     let options = NnsPagedRefreshOptions::from_matches(matches, network);
-    let format = options.common.format;
+    let format = options.common.format();
     let request = options.into_request(cache_root()?, current_unix_secs()?);
     let report = refresh(&request, &mut StderrQueryProgress::new())
         .await

@@ -5,10 +5,10 @@
 //! Boundary: writes text/JSON reports and builds common CLI arguments.
 
 use crate::{
-    cli::clap::{flag_arg, required_string, value_arg},
+    cli::clap::{flag_arg, parsed_options},
     output::{write_pretty_json, write_text},
 };
-use clap::{ArgMatches, builder::RangedU64ValueParser};
+use clap::{ArgMatches, Args};
 use serde::Serialize;
 use std::{
     io,
@@ -55,24 +55,34 @@ pub enum OutputFormat {
     Json,
 }
 
+impl OutputFormat {
+    pub const fn from_json(json: bool) -> Self {
+        if json { Self::Json } else { Self::Text }
+    }
+}
+
 ///
 /// SourceOutputOptions
 ///
 /// Common explicit source endpoint and output format for report commands.
 ///
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Args, Clone, Debug, Eq, PartialEq)]
+#[group(skip)]
 pub struct SourceOutputOptions {
-    pub(crate) format: OutputFormat,
+    #[arg(long, help = "Print raw JSON instead of human-readable text")]
+    json: bool,
+    #[arg(id = SOURCE_ENDPOINT_ARG, long = SOURCE_ENDPOINT_ARG, value_name = "url", default_value = ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT)]
     pub(crate) source_endpoint: String,
 }
 
 impl SourceOutputOptions {
     pub(crate) fn from_matches(matches: &ArgMatches) -> Self {
-        Self {
-            format: output_format(matches),
-            source_endpoint: required_string(matches, SOURCE_ENDPOINT_ARG),
-        }
+        parsed_options(matches)
+    }
+
+    pub(crate) const fn format(&self) -> OutputFormat {
+        OutputFormat::from_json(self.json)
     }
 
     pub(crate) fn into_dashboard_request(
@@ -80,7 +90,7 @@ impl SourceOutputOptions {
         now_unix_secs: u64,
     ) -> (OutputFormat, ic_query::ic::IcDashboardRequest) {
         (
-            self.format,
+            self.format(),
             ic_query::ic::IcDashboardRequest::new(self.source_endpoint, now_unix_secs),
         )
     }
@@ -155,14 +165,15 @@ pub fn resolve_time_bounds(
 
 /// Admit shared direction flags while the family owns sort semantics and defaults.
 pub fn resolve_proposal_sort_direction(
-    matches: &ArgMatches,
+    asc: bool,
+    desc: bool,
     uses_local_direction: bool,
     default_direction: ic_query::report::SortDirection,
     local_sort_names: impl FnOnce() -> String,
 ) -> Result<ic_query::report::SortDirection, String> {
-    let explicit = if matches.get_flag("asc") {
+    let explicit = if asc {
         Some(("asc", ic_query::report::SortDirection::Asc))
-    } else if matches.get_flag("desc") {
+    } else if desc {
         Some(("desc", ic_query::report::SortDirection::Desc))
     } else {
         None
@@ -210,56 +221,8 @@ pub fn output_format(matches: &clap::ArgMatches) -> OutputFormat {
     }
 }
 
-pub fn source_endpoint_arg(default_source_endpoint: &'static str) -> clap::Arg {
-    value_arg(SOURCE_ENDPOINT_ARG)
-        .long(SOURCE_ENDPOINT_ARG)
-        .value_name("url")
-        .default_value(default_source_endpoint)
-}
-
 pub fn collection_help(mode: &str, examples: &str) -> String {
     format!("Collection mode: {mode}\n\n{examples}")
-}
-
-pub fn page_size_arg(default: &'static str, maximum: u32) -> clap::Arg {
-    value_arg("page-size")
-        .long("page-size")
-        .value_name("count")
-        .default_value(default)
-        .value_parser(RangedU64ValueParser::<u32>::new().range(1..=u64::from(maximum)))
-}
-
-pub fn max_pages_arg() -> clap::Arg {
-    value_arg("max-pages")
-        .long("max-pages")
-        .value_name("count")
-        .value_parser(RangedU64ValueParser::<u32>::new().range(1..))
-}
-
-/// Build a bounded row limit while the command family owns its default and maximum.
-pub fn page_limit_arg(default: &'static str, maximum: u16) -> clap::Arg {
-    value_arg("limit")
-        .long("limit")
-        .value_name("rows")
-        .default_value(default)
-        .value_parser(RangedU64ValueParser::<u16>::new().range(1..=u64::from(maximum)))
-}
-
-/// Build an explicit zero-based offset for a single Dashboard page.
-pub fn page_offset_arg() -> clap::Arg {
-    value_arg("offset")
-        .long("offset")
-        .value_name("rows")
-        .default_value("0")
-        .value_parser(clap::value_parser!(u64))
-}
-
-/// Build the optional index ceiling selected by a Dashboard command family.
-pub fn index_ceiling_arg(name: &'static str) -> clap::Arg {
-    value_arg(name)
-        .long(name)
-        .value_name("index")
-        .value_parser(clap::value_parser!(u64))
 }
 
 #[cfg(test)]

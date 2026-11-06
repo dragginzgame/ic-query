@@ -1,5 +1,6 @@
 use super::*;
 use crate::cli::clap::{parse_matches, render_help};
+use crate::cli::common::SOURCE_ENDPOINT_ARG;
 use std::ffi::OsString;
 
 #[test]
@@ -48,7 +49,9 @@ fn report_options_default_to_mainnet_and_native_endpoint() {
     .expect("parse default CMC options");
 
     assert_eq!(
-        required_string(&matches, SOURCE_ENDPOINT_ARG),
+        matches
+            .get_one::<String>(SOURCE_ENDPOINT_ARG)
+            .expect("validated source endpoint"),
         DEFAULT_CMC_SOURCE_ENDPOINT
     );
     assert_eq!(

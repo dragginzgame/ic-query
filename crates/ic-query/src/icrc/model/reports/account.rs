@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::reports::account
+//! Module: icrc::model::reports::account
 //!
 //! Responsibility: serialized ICRC balance and allowance report contracts.
 //! Does not own: account history, ledger-wide reports, live transport, or rendering.

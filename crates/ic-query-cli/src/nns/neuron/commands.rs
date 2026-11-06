@@ -1,12 +1,10 @@
 //! Clap specifications for public NNS neuron commands.
 
+use crate::cli::clap::with_options;
 use crate::{
-    cli::{
-        clap::{flag_arg, value_arg},
-        common::{
-            COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            COLLECTION_MODE_FORCE_REFRESH, collection_help, max_pages_arg, page_size_arg,
-        },
+    cli::common::{
+        COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+        COLLECTION_MODE_FORCE_REFRESH, collection_help,
     },
     nns::leaf,
 };
@@ -72,86 +70,97 @@ pub(in crate::nns) fn neuron_distribution_command() -> ClapCommand {
         ))
 }
 
+///
+/// NeuronListOptions
+///
+/// Typed arguments for the neuron_list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct NeuronListOptions {
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+    #[arg(long, value_name = "count", default_value = LIST_DEFAULT_LIMIT, value_parser = RangedU64ValueParser::<u32>::new() .range(1..=u64::from(NNS_NEURON_MAX_PAGE_SIZE)), help = "Maximum public neurons to return")]
+    pub(super) limit: u32,
+    #[arg(id = "start-neuron-id", long, value_name = "neuron-id", value_parser = RangedU64ValueParser::<u64>::new().range(1..), help = "Return neurons with ids greater than this exclusive cursor")]
+    pub(super) start_neuron_id: Option<u64>,
+    #[arg(long, help = "Show expanded public neuron details in text output")]
+    pub(super) verbose: bool,
+}
+
 pub(in crate::nns) fn neuron_list_command() -> ClapCommand {
-    ClapCommand::new("list")
-        .about("List public NNS neurons")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS Governance query"),
-        )
-        .arg(
-            value_arg("limit")
-                .long("limit")
-                .value_name("count")
-                .default_value(LIST_DEFAULT_LIMIT)
-                .value_parser(
-                    RangedU64ValueParser::<u32>::new()
-                        .range(1..=u64::from(NNS_NEURON_MAX_PAGE_SIZE)),
-                )
-                .help("Maximum public neurons to return"),
-        )
-        .arg(
-            value_arg("start-neuron-id")
-                .long("start-neuron-id")
-                .value_name("neuron-id")
-                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
-                .help("Return neurons with ids greater than this exclusive cursor"),
-        )
-        .arg(
-            flag_arg("verbose")
-                .long("verbose")
-                .help("Show expanded public neuron details in text output"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            LIST_HELP_AFTER,
-        ))
+    with_options::<NeuronListOptions>(
+        ClapCommand::new("list")
+            .about("List public NNS neurons")
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+                LIST_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS Governance query")
+    })
+}
+
+///
+/// NeuronInfoOptions
+///
+/// Typed arguments for the neuron_info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct NeuronInfoOptions {
+    #[arg(id = "neuron-id", value_name = "neuron-id", value_parser = RangedU64ValueParser::<u64>::new().range(1..), help = "NNS Governance neuron id")]
+    pub(super) neuron_id: u64,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+    #[arg(long, help = "Show expanded public neuron details in text output")]
+    pub(super) verbose: bool,
 }
 
 pub(in crate::nns) fn neuron_info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one public NNS neuron")
-        .arg(
-            value_arg("neuron-id")
-                .value_name("neuron-id")
-                .required(true)
-                .value_parser(RangedU64ValueParser::<u64>::new().range(1..))
-                .help("NNS Governance neuron id"),
-        )
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the native NNS Governance query"),
-        )
-        .arg(
-            flag_arg("verbose")
-                .long("verbose")
-                .help("Show expanded public neuron details in text output"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
-            INFO_HELP_AFTER,
-        ))
+    with_options::<NeuronInfoOptions>(
+        ClapCommand::new("info")
+            .about("Show one public NNS neuron")
+            .after_help(collection_help(
+                COLLECTION_MODE_CACHE_PREFERRED_LIVE_FALLBACK,
+                INFO_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the native NNS Governance query")
+    })
 }
 
 pub(in crate::nns) fn neuron_refresh_command() -> ClapCommand {
-    ClapCommand::new("refresh")
-        .about("Refresh the complete public NNS neuron snapshot")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for every native NNS Governance page"),
-        )
-        .arg(
-            page_size_arg(REFRESH_DEFAULT_PAGE_SIZE, NNS_NEURON_MAX_PAGE_SIZE)
-                .help("Maximum public neurons requested per Governance page"),
-        )
-        .arg(max_pages_arg().help("Stop without publishing if this cap precedes API exhaustion"))
-        .after_help(collection_help(
-            COLLECTION_MODE_FORCE_REFRESH,
-            REFRESH_HELP_AFTER,
-        ))
+    with_options::<crate::nns::leaf::NnsPagedRefreshOptions>(
+        ClapCommand::new("refresh")
+            .about("Refresh the complete public NNS neuron snapshot")
+            .after_help(collection_help(
+                COLLECTION_MODE_FORCE_REFRESH,
+                REFRESH_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_NEURON_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for every native NNS Governance page")
+    })
+    .mut_arg("page-size", |arg| {
+        arg.default_value(REFRESH_DEFAULT_PAGE_SIZE)
+            .value_parser(
+                clap::builder::RangedU64ValueParser::<u32>::new()
+                    .range(1..=u64::from(NNS_NEURON_MAX_PAGE_SIZE)),
+            )
+            .help("Maximum public neurons requested per Governance page")
+    })
+    .mut_arg("max-pages", |arg| {
+        arg.value_parser(clap::builder::RangedU64ValueParser::<u32>::new().range(1..))
+            .help("Stop without publishing if this cap precedes API exhaustion")
+    })
 }
 
 pub(in crate::nns) fn neuron_cache_command() -> ClapCommand {

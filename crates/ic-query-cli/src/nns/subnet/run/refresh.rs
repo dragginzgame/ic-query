@@ -14,10 +14,10 @@ pub(super) async fn run_catalog_refresh(
     network: &str,
 ) -> Result<(), NnsCommandError> {
     let options = NnsLeafRefreshOptions::from_matches(matches, network);
-    let format = options.common.format;
+    let format = options.common.format();
     let mut request = SubnetCatalogRefreshRequest::new(
         cache_request(&options.common.network)?,
-        CatalogSourceSelection::uncertified_query(options.common.source_endpoint),
+        CatalogSourceSelection::uncertified_query(options.common.source.source_endpoint),
         current_unix_secs()?,
     );
     request.dry_run = options.dry_run;

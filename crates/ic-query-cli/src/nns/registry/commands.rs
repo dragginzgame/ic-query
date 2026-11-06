@@ -1,7 +1,5 @@
-use crate::{
-    cli::common::{COLLECTION_MODE_LIVE, collection_help},
-    nns::leaf,
-};
+use crate::cli::clap::with_options;
+use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
 use clap::Command as ClapCommand;
 use ic_query::nns::registry::DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT;
 
@@ -18,15 +16,16 @@ pub(in crate::nns) fn registry_command() -> ClapCommand {
 }
 
 pub(in crate::nns) fn registry_version_command() -> ClapCommand {
-    ClapCommand::new("version")
-        .about("Show the certified latest mainnet NNS registry version")
-        .arg(leaf::json_arg())
-        .arg(
-            leaf::source_endpoint_arg(DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT)
-                .help("IC API endpoint used for the certified NNS registry query"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE,
-            REGISTRY_VERSION_HELP_AFTER,
-        ))
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        ClapCommand::new("version")
+            .about("Show the certified latest mainnet NNS registry version")
+            .after_help(collection_help(
+                COLLECTION_MODE_LIVE,
+                REGISTRY_VERSION_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_NNS_REGISTRY_SOURCE_ENDPOINT)
+            .help("IC API endpoint used for the certified NNS registry query")
+    })
 }

@@ -5,12 +5,10 @@
 //! Boundary: requests the explicit Type4 and complete current status scope.
 
 use super::{CloudEngineCommandError, report_args};
-use crate::cli::{
-    clap::{required_string, string_option, value_arg},
-    common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
-        write_text_or_json,
-    },
+use crate::cli::clap::{parsed_options, with_options};
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+    write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand};
 use ic_query::cloud_engine::CloudEngineNodeInfoRequest;
@@ -57,19 +55,20 @@ pub(super) async fn run_matches(
 }
 
 async fn run_info(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let options: NodeInfoOptions = parsed_options(matches);
     let (format, dashboard) =
         SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
-    let request =
-        CloudEngineNodeInfoRequest::new(network, dashboard, required_string(matches, "node-id"));
+    let request = CloudEngineNodeInfoRequest::new(network, dashboard, options.node_id);
     let report = build_cloud_engine_node_info_report(&request).await?;
     write_text_or_json(format, &report, cloud_engine_node_info_report_text)
 }
 
 async fn run_list(matches: &ArgMatches, network: &str) -> Result<(), CloudEngineCommandError> {
+    let options: NodeListOptions = parsed_options(matches);
     let (format, dashboard) =
         SourceOutputOptions::from_matches(matches).into_dashboard_request(current_unix_secs()?);
     let request = CloudEngineNodeListRequest::new(network, dashboard);
-    let request = match string_option(matches, "node-provider-id") {
+    let request = match options.node_provider_id {
         Some(provider) => {
             let mut configured_request = request;
             configured_request.node_provider_id = Some(provider);
@@ -91,32 +90,59 @@ pub(super) fn command() -> ClapCommand {
         )
 }
 
+///
+/// NodeInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct NodeInfoOptions {
+    #[arg(
+        id = "node-id",
+        value_name = "node-id",
+        help = "Exact CloudEngine Type4 node principal"
+    )]
+    pub(super) node_id: String,
+}
+
 fn info_command() -> ClapCommand {
-    report_args(
-        ClapCommand::new("info")
-            .about("Show one exact node required to carry the Type4 reward type")
-            .arg(
-                value_arg("node-id")
-                    .required(true)
-                    .value_name("node-id")
-                    .help("Exact CloudEngine Type4 node principal"),
-            ),
-        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
-        SOURCE_ENDPOINT_HELP,
+    with_options::<NodeInfoOptions>(
+        report_args(
+            ClapCommand::new("info")
+                .about("Show one exact node required to carry the Type4 reward type"),
+            DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
+            SOURCE_ENDPOINT_HELP,
+        )
+        .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER)),
     )
-    .after_help(collection_help(COLLECTION_MODE_LIVE, INFO_HELP_AFTER))
+}
+
+///
+/// NodeListOptions
+///
+/// Typed arguments for the list_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct NodeListOptions {
+    #[arg(
+        id = "node-provider-id",
+        long,
+        value_name = "principal",
+        help = "Restrict the remote query to one exact node-provider principal"
+    )]
+    pub(super) node_provider_id: Option<String>,
 }
 
 fn list_command() -> ClapCommand {
     report_args(
-        ClapCommand::new("list")
-            .about("List the complete explicitly scoped Dashboard Type4 node resource")
-            .arg(
-                value_arg("node-provider-id")
-                    .long("node-provider-id")
-                    .value_name("principal")
-                    .help("Restrict the remote query to one exact node-provider principal"),
-            ),
+        with_options::<NodeListOptions>(
+            ClapCommand::new("list")
+                .about("List the complete explicitly scoped Dashboard Type4 node resource"),
+        ),
         DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT,
         SOURCE_ENDPOINT_HELP,
     )

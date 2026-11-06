@@ -1,9 +1,8 @@
 //! Construct topology refresh requests from CLI inputs and explicit storage/time context.
 
-use crate::{
-    cli::common::OutputFormat,
-    nns::{leaf::NnsCommonOptions, topology::commands::DRY_RUN_ARG},
-};
+use super::commands::TopologyRefreshOptions;
+use crate::cli::clap::parsed_options;
+use crate::{cli::common::OutputFormat, nns::leaf::NnsCommonOptions};
 use clap::ArgMatches;
 use ic_query::nns::NnsInventoryCacheRequest;
 use ic_query::nns::NnsInventoryListRequest;
@@ -16,14 +15,15 @@ pub(in crate::nns) fn topology_refresh_request(
     cache_root: PathBuf,
     now_unix_secs: u64,
 ) -> (OutputFormat, NnsTopologyRefreshRequest) {
-    let common = NnsCommonOptions::from_matches(matches, network);
-    (common.format, {
+    let options: TopologyRefreshOptions = parsed_options(matches);
+    let common = NnsCommonOptions::from_source(options.source, network);
+    (common.format(), {
         let mut configured_request = NnsTopologyRefreshRequest::new(NnsInventoryListRequest::new(
             NnsInventoryCacheRequest::new(cache_root, common.network),
-            common.source_endpoint,
+            common.source.source_endpoint,
             now_unix_secs,
         ));
-        configured_request.dry_run = matches.get_flag(DRY_RUN_ARG);
+        configured_request.dry_run = options.dry_run;
         configured_request
     })
 }

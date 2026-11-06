@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::requests::account_history
+//! Module: icrc::model::requests::account_history
 //!
 //! Responsibility: ICRC account-history page, cache, refresh, and list requests.
 //! Does not own: ledger-wide history, live transport, cache mechanics, or reports.

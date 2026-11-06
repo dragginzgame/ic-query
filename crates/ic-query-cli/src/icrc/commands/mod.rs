@@ -32,12 +32,8 @@ pub(in crate::icrc) use ledger::{
 pub use dispatch::run_matches;
 pub(in crate::icrc) use options::{IcrcAccountOptions, IcrcLedgerOptions};
 
-use crate::cli::{
-    clap::{principal_text_value_parser, value_arg},
-    common::{json_arg, source_endpoint_arg},
-};
+use crate::cli::clap::principal_text_value_parser;
 use clap::{Command as ClapCommand, builder::ValueParser};
-use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
 use ic_query::icrc::normalize_subaccount_hex;
 
 const DEFAULT_ICRC_TRANSACTIONS_LIMIT: &str = "25";
@@ -59,7 +55,6 @@ const MAX_PAGES_ARG: &str = "max-pages";
 const SORT_ARG: &str = "sort";
 const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
-const ICRC_SOURCE_ENDPOINT_HELP: &str = "IC API endpoint used for ICRC ledger queries";
 
 pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
@@ -67,34 +62,6 @@ pub fn command() -> ClapCommand {
         .subcommand(ledger::command())
         .subcommand(account::command())
         .subcommand(analytics::command())
-}
-
-fn ledger_canister_id_arg() -> clap::Arg {
-    principal_arg(LEDGER_CANISTER_ID_ARG, "ICRC ledger canister principal")
-}
-
-fn with_common_icrc_options(command: ClapCommand) -> ClapCommand {
-    with_icrc_json_option(with_icrc_source_endpoint_option(command))
-}
-
-fn with_icrc_source_endpoint_option(command: ClapCommand) -> ClapCommand {
-    command.arg(icrc_source_endpoint_arg())
-}
-
-fn with_icrc_json_option(command: ClapCommand) -> ClapCommand {
-    command.arg(json_arg())
-}
-
-fn icrc_source_endpoint_arg() -> clap::Arg {
-    source_endpoint_arg(DEFAULT_ICRC_SOURCE_ENDPOINT).help(ICRC_SOURCE_ENDPOINT_HELP)
-}
-
-fn principal_arg(id: &'static str, help: &'static str) -> clap::Arg {
-    value_arg(id)
-        .value_name(id)
-        .required(true)
-        .value_parser(principal_text_value_parser())
-        .help(help)
 }
 
 fn subaccount_hex_value_parser() -> ValueParser {

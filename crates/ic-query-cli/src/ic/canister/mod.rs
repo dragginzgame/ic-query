@@ -5,14 +5,13 @@
 //! Boundary: exposes one bounded canister command family to the IC CLI facade.
 
 use super::IcCommandError;
+use crate::cli::clap::{parsed_options, with_options};
 use crate::cli::common::OutputFormat;
 use crate::cli::{
-    clap::{
-        principal_text_value_parser, required_string, required_typed, string_option, value_arg,
-    },
+    clap::principal_text_value_parser,
     common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-        source_endpoint_arg, write_text_or_json,
+        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+        write_text_or_json,
     },
 };
 use clap::{
@@ -97,7 +96,7 @@ pub(super) fn command() -> ClapCommand {
 
 fn count_command() -> ClapCommand {
     collection_args(
-        CanisterFilterOptions::augment_args(ClapCommand::new("count"))
+        with_options::<CanisterFilterOptions>(ClapCommand::new("count"))
             .about("Count canisters through one official Dashboard API request"),
     )
     .after_help(collection_help(
@@ -106,46 +105,43 @@ fn count_command() -> ClapCommand {
     ))
 }
 
+///
+/// CanisterPageOptions
+///
+/// Typed arguments for the page_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct CanisterPageOptions {
+    #[arg(long, value_name = "rows", default_value = DEFAULT_CANISTER_PAGE_LIMIT_ARG, value_parser = RangedU64ValueParser::<u16>::new().range(1..=u64::from(MAX_IC_CANISTER_PAGE_LIMIT)), help = "Maximum rows; one through 100")]
+    pub(super) limit: u16,
+    #[arg(long, value_name = "canister-id", value_parser = principal_text_value_parser(), conflicts_with = "before", help = "Exclusive forward cursor returned by a prior page")]
+    pub(super) after: Option<String>,
+    #[arg(long, value_name = "canister-id", value_parser = principal_text_value_parser(), help = "Exclusive backward cursor returned by a prior page")]
+    pub(super) before: Option<String>,
+}
+
 fn page_command() -> ClapCommand {
-    collection_args(
-        CanisterFilterOptions::augment_args(ClapCommand::new("page"))
-            .about("Show one bounded official Dashboard canister page"),
+    with_options::<CanisterPageOptions>(
+        collection_args(
+            with_options::<CanisterFilterOptions>(ClapCommand::new("page"))
+                .about("Show one bounded official Dashboard canister page"),
+        )
+        .after_help(collection_help(
+            COLLECTION_MODE_LIVE,
+            CANISTER_PAGE_HELP_AFTER,
+        )),
     )
-    .arg(
-        value_arg("limit")
-            .long("limit")
-            .value_name("rows")
-            .default_value(DEFAULT_CANISTER_PAGE_LIMIT_ARG)
-            .value_parser(
-                RangedU64ValueParser::<u16>::new().range(1..=u64::from(MAX_IC_CANISTER_PAGE_LIMIT)),
-            )
-            .help("Maximum rows; one through 100"),
-    )
-    .arg(
-        value_arg("after")
-            .long("after")
-            .value_name("canister-id")
-            .value_parser(principal_text_value_parser())
-            .conflicts_with("before")
-            .help("Exclusive forward cursor returned by a prior page"),
-    )
-    .arg(
-        value_arg("before")
-            .long("before")
-            .value_name("canister-id")
-            .value_parser(principal_text_value_parser())
-            .help("Exclusive backward cursor returned by a prior page"),
-    )
-    .after_help(collection_help(
-        COLLECTION_MODE_LIVE,
-        CANISTER_PAGE_HELP_AFTER,
-    ))
 }
 
 fn collection_args(command: ClapCommand) -> ClapCommand {
-    command.arg(json_arg()).arg(
-        source_endpoint_arg(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
-            .help("Official IC Dashboard API v4 base endpoint"),
+    with_options::<crate::cli::common::SourceOutputOptions>(command).mut_arg(
+        "source-endpoint",
+        |arg| {
+            arg.default_value(DEFAULT_IC_DASHBOARD_CANISTER_COLLECTION_SOURCE_ENDPOINT)
+                .help("Official IC Dashboard API v4 base endpoint")
+        },
     )
 }
 
@@ -195,25 +191,34 @@ struct CanisterFilterOptions {
     query: Option<String>,
 }
 
+///
+/// CanisterInfoOptions
+///
+/// Typed arguments for the info_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct CanisterInfoOptions {
+    #[arg(id = "canister-id", value_name = "canister-id", value_parser = principal_text_value_parser(), help = "Canister principal")]
+    pub(super) canister_id: String,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
+}
+
 fn info_command() -> ClapCommand {
-    ClapCommand::new("info")
-        .about("Show one canister from the official Dashboard API")
-        .arg(
-            value_arg("canister-id")
-                .required(true)
-                .value_name("canister-id")
-                .value_parser(principal_text_value_parser())
-                .help("Canister principal"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API base endpoint"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE,
-            CANISTER_INFO_HELP_AFTER,
-        ))
+    with_options::<CanisterInfoOptions>(
+        ClapCommand::new("info")
+            .about("Show one canister from the official Dashboard API")
+            .after_help(collection_help(
+                COLLECTION_MODE_LIVE,
+                CANISTER_INFO_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API base endpoint")
+    })
 }
 
 fn canister_filters(matches: &ArgMatches) -> IcCanisterFilters {
@@ -230,9 +235,9 @@ fn canister_filters(matches: &ArgMatches) -> IcCanisterFilters {
 }
 
 fn info_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcCanisterRequest) {
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
-    let request = IcCanisterRequest::new(dashboard, required_string(matches, "canister-id"));
+    let options: CanisterInfoOptions = parsed_options(matches);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
+    let request = IcCanisterRequest::new(dashboard, options.canister_id);
     (format, request)
 }
 
@@ -249,13 +254,14 @@ fn count_request(
 }
 
 fn page_request(matches: &ArgMatches, now_unix_secs: u64) -> (OutputFormat, IcCanisterPageRequest) {
+    let options: CanisterPageOptions = parsed_options(matches);
     let (format, collection) = count_request(matches, now_unix_secs);
     let mut request = IcCanisterPageRequest::new(collection.dashboard);
     request.filters = collection.filters;
-    request.limit = required_typed(matches, "limit");
+    request.limit = options.limit;
 
-    request.after = string_option(matches, "after");
-    request.before = string_option(matches, "before");
+    request.after = options.after;
+    request.before = options.before;
     (format, request)
 }
 

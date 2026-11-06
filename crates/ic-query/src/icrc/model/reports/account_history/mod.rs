@@ -1,4 +1,4 @@
-//! Module: icrc::model::contracts::reports::account_history
+//! Module: icrc::model::reports::account_history
 //!
 //! Responsibility: serialized ICRC account-history page, cache, and row contracts.
 //! Does not own: ledger-wide history, requests, live transport, cache mechanics, or rendering.

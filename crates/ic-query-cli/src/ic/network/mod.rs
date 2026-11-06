@@ -5,13 +5,11 @@
 //! Boundary: exposes the network command family to the IC CLI facade.
 
 use super::IcCommandError;
+use crate::cli::clap::{parsed_options, with_options};
 use crate::cli::common::OutputFormat;
-use crate::cli::{
-    clap::{typed_option, value_arg},
-    common::{
-        COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs, json_arg,
-        resolve_time_bounds, source_endpoint_arg, write_text_or_json,
-    },
+use crate::cli::common::{
+    COLLECTION_MODE_LIVE, SourceOutputOptions, collection_help, current_unix_secs,
+    resolve_time_bounds, write_text_or_json,
 };
 use clap::{ArgMatches, Command as ClapCommand, builder::RangedU64ValueParser};
 use ic_query::ic::DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT;
@@ -79,64 +77,65 @@ pub(super) fn command() -> ClapCommand {
 }
 
 fn boundary_node_data_centers_command() -> ClapCommand {
-    ClapCommand::new("boundary-node-data-centers")
-        .about("List official Dashboard boundary-node data-center aggregates")
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v4 base endpoint"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE,
-            BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER,
-        ))
+    with_options::<crate::cli::common::SourceOutputOptions>(
+        ClapCommand::new("boundary-node-data-centers")
+            .about("List official Dashboard boundary-node data-center aggregates")
+            .after_help(collection_help(
+                COLLECTION_MODE_LIVE,
+                BOUNDARY_NODE_DATA_CENTERS_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_BOUNDARY_NODE_DATA_CENTERS_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v4 base endpoint")
+    })
+}
+
+///
+/// DailyStatsOptions
+///
+/// Typed arguments for the daily_stats_command operation.
+///
+
+#[derive(clap::Args)]
+#[group(skip)]
+pub(super) struct DailyStatsOptions {
+    #[arg(long, value_name = "unix-seconds", value_parser = RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..), help = "Inclusive start; defaults to seven days before end")]
+    pub(super) start: Option<u64>,
+    #[arg(long, value_name = "unix-seconds", value_parser = RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..), help = "Inclusive end; defaults to the current time")]
+    pub(super) end: Option<u64>,
+    #[command(flatten)]
+    pub(super) source: crate::cli::common::SourceOutputOptions,
 }
 
 fn daily_stats_command() -> ClapCommand {
-    ClapCommand::new("daily-stats")
-        .about("Query bounded official Dashboard daily network activity")
-        .arg(
-            value_arg("start")
-                .long("start")
-                .value_name("unix-seconds")
-                .value_parser(
-                    RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..),
-                )
-                .help("Inclusive start; defaults to seven days before end"),
-        )
-        .arg(
-            value_arg("end")
-                .long("end")
-                .value_name("unix-seconds")
-                .value_parser(
-                    RangedU64ValueParser::<u64>::new().range(MIN_IC_DAILY_STATS_TIMESTAMP..),
-                )
-                .help("Inclusive end; defaults to the current time"),
-        )
-        .arg(json_arg())
-        .arg(
-            source_endpoint_arg(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
-                .help("Official IC Dashboard API v3 base endpoint"),
-        )
-        .after_help(collection_help(
-            COLLECTION_MODE_LIVE,
-            DAILY_STATS_HELP_AFTER,
-        ))
+    with_options::<DailyStatsOptions>(
+        ClapCommand::new("daily-stats")
+            .about("Query bounded official Dashboard daily network activity")
+            .after_help(collection_help(
+                COLLECTION_MODE_LIVE,
+                DAILY_STATS_HELP_AFTER,
+            )),
+    )
+    .mut_arg("source-endpoint", |arg| {
+        arg.default_value(DEFAULT_IC_DASHBOARD_SOURCE_ENDPOINT)
+            .help("Official IC Dashboard API v3 base endpoint")
+    })
 }
 
 fn daily_stats_request(
     matches: &ArgMatches,
     now_unix_secs: u64,
 ) -> (OutputFormat, IcDailyStatsRequest) {
+    let options: DailyStatsOptions = parsed_options(matches);
     let (start_unix_secs, end_unix_secs) = resolve_time_bounds(
-        typed_option(matches, "start"),
-        typed_option(matches, "end"),
+        options.start,
+        options.end,
         now_unix_secs,
         DEFAULT_IC_DAILY_STATS_WINDOW_SECS,
         0,
     );
-    let (format, dashboard) =
-        SourceOutputOptions::from_matches(matches).into_dashboard_request(now_unix_secs);
+    let (format, dashboard) = options.source.into_dashboard_request(now_unix_secs);
     let request = IcDailyStatsRequest::new(
         dashboard,
         IcDailyStatsQuery::new(start_unix_secs, end_unix_secs),

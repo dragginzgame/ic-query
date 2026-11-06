@@ -23,8 +23,8 @@ macro_rules! topology_read_options_parse_test {
                 .expect("parse defaults");
             assert_topology_read_defaults(
                 &defaults.network,
-                defaults.format,
-                &defaults.source_endpoint,
+                defaults.format(),
+                &defaults.source.source_endpoint,
             );
 
             let options = parse_test_options(
@@ -33,7 +33,7 @@ macro_rules! topology_read_options_parse_test {
                 NnsCommonOptions::from_matches,
             )
             .expect($description);
-            assert_topology_json_source(options.format, &options.source_endpoint);
+            assert_topology_json_source(options.format(), &options.source.source_endpoint);
         }
     };
 }

@@ -25,6 +25,6 @@ fn options_preserve_format_and_endpoint() {
     )
     .expect("API boundary-node options");
 
-    assert_eq!(options.format, OutputFormat::Json);
+    assert_eq!(options.format(), OutputFormat::Json);
     assert_eq!(options.source_endpoint, "https://example.com");
 }
