@@ -320,13 +320,7 @@ fn probe_inputs_refuse_oversized_configuration() {
 #[test]
 fn probe_input_deadline_retains_original_process_evidence() {
     let directory = probe_workspace();
-    let program = directory.path().join("stalled-cargo");
-    fs::write(
-        &program,
-        "#!/bin/sh\nprintf 'original probe output'\nexec sleep 5\n",
-    )
-    .unwrap();
-    fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
+    let program = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/stalled-cargo.sh");
     let spec = build::probe_spec(directory.path(), &directory.path().join("target"))
         .with_cargo_program(program);
     let error = build::resolve_probe_inputs(&spec, Duration::from_secs(1)).unwrap_err();

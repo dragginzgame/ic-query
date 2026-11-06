@@ -9,6 +9,12 @@ Baseline version: `0.85.0`.
 
 ## [0.93.2]
 
+### 🧪 Testing
+
+- Use an immutable smoke-test command fixture to avoid transient executable-file
+  launch failures while retaining deadline and process-evidence assertions.
+  [Details](0.93.md).
+
 ### 🧹 Cleanup
 
 - Reuse scalar report rendering, JSON display conversion, inventory dispatch and
