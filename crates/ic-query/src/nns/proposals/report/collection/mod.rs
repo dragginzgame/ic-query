@@ -133,23 +133,16 @@ pub async fn advance_nns_proposal_collection_with_source(
     let mut page_request = NnsProposalListRequest::new(request.clone(), state.collection.page_size);
     page_request.before_proposal_id = state.next_before_proposal_id;
     let page = build_nns_proposal_list_report_with_source(&page_request, source).await?;
-    if let Some(expected) = &state.collection.source
-        && *expected != page.context.source
-    {
-        return Err(NnsProposalError::CollectionSourceChanged {
-            expected: expected.clone(),
-            actual: page.context.source,
-        });
-    }
-
+    let (collection, proposals_fetched) = state.collection.after_page(
+        request,
+        page.context.source.clone(),
+        state.proposals_fetched,
+        page.proposals.len(),
+        |expected, actual| NnsProposalError::CollectionSourceChanged { expected, actual },
+        NnsProposalError::CollectionAccountingOverflow,
+    )?;
     let page_count = u32::try_from(page.proposals.len())
         .map_err(|_| NnsProposalError::CollectionAccountingOverflow)?;
-    let (pages_fetched, proposals_fetched) = crate::nns::governance::advance_collection_counts(
-        state.collection.pages_fetched,
-        state.proposals_fetched,
-        u64::from(page_count),
-    )
-    .ok_or(NnsProposalError::CollectionAccountingOverflow)?;
     let next_before_proposal_id = (page_count == state.collection.page_size)
         .then(|| {
             page.proposals
@@ -160,11 +153,7 @@ pub async fn advance_nns_proposal_collection_with_source(
         })
         .flatten();
     let next_state = NnsProposalCollectionState {
-        collection: state.collection.after_page(
-            request,
-            page.context.source.clone(),
-            pages_fetched,
-        ),
+        collection,
         proposals_fetched,
         next_before_proposal_id,
     };
@@ -184,13 +173,10 @@ pub(super) fn validate_collection_state(
     validate_proposal_page_size(state.collection.page_size)?;
 
     let proposals_fetched = state.proposals_fetched;
-    let maximum_rows = crate::nns::governance::validate_governance_collection_row_bounds(
-        "proposals_fetched",
-        proposals_fetched,
-        state.collection.pages_fetched,
-        state.collection.page_size,
-        invalid,
-    )?;
+    let maximum_rows =
+        state
+            .collection
+            .validate_row_bounds("proposals_fetched", proposals_fetched, invalid)?;
 
     if state
         .next_before_proposal_id
@@ -201,22 +187,13 @@ pub(super) fn validate_collection_state(
         ));
     }
 
-    let valid_lifecycle = crate::nns::governance::collection_lifecycle_matches(
-        state.status(),
-        state.collection.pages_fetched,
-        state.collection.max_pages,
-        state.proposals_fetched,
+    state.collection.validate_lifecycle(
+        proposals_fetched,
         maximum_rows,
         state.next_before_proposal_id.is_some(),
-        state.collection.source.is_some(),
-    );
-    if !valid_lifecycle {
-        return Err(invalid(format!(
-            "status {} disagrees with cursor, provenance, or counters",
-            state.status()
-        )));
-    }
-    Ok(())
+        true,
+        invalid,
+    )
 }
 
 #[cfg(test)]

@@ -30,7 +30,9 @@ use crate::hex::hex_bytes;
 #[cfg(feature = "sns-host")]
 pub use build::*;
 #[cfg(feature = "sns-host")]
-use cache_summary::load_sns_cache_summary_at;
+pub use cache_status::build_sns_neurons_cache_status_report;
+#[cfg(feature = "sns-host")]
+pub use cache_summary::build_sns_neurons_cache_list_report;
 #[cfg(feature = "sns-host")]
 pub use live::LiveSnsSource;
 #[cfg(feature = "sns-host")]

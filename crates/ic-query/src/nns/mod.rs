@@ -6,8 +6,6 @@ mod macros;
 pub mod data_center;
 pub mod governance;
 #[cfg(feature = "nns-host")]
-mod governance_query;
-#[cfg(feature = "nns-host")]
 pub(crate) mod inventory;
 #[cfg(feature = "nns-host")]
 mod inventory_error;

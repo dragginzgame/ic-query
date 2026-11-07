@@ -1,111 +1,40 @@
+use ic_query::icrc::{
+    DEFAULT_ICRC_SOURCE_ENDPOINT, IcrcAccountRow, IcrcAccountTransactionCacheRequest,
+    IcrcAccountTransactionListRequest, IcrcAccountTransactionPageReport,
+    IcrcAccountTransactionPageRequest, IcrcAccountTransactionRefreshRequest,
+    IcrcAccountTransactionRow, IcrcAccountTransactionSort, IcrcAllowanceData, IcrcAllowanceReport,
+    IcrcAllowanceRequest, IcrcArchiveFollowErrorRow, IcrcArchiveRow, IcrcArchivedBlocksRow,
+    IcrcArchivedRangeRow, IcrcArchivesReport, IcrcArchivesRequest, IcrcBalanceData,
+    IcrcBalanceReport, IcrcBalanceRequest, IcrcBlockTypeRow, IcrcBlockTypesReport,
+    IcrcCapabilitiesReport, IcrcCapabilityRow, IcrcCapabilityStatus, IcrcFollowedArchiveBlockRow,
+    IcrcIndexReport, IcrcLedgerRequest, IcrcMetadataValueKind, IcrcTipCertificateReport,
+    IcrcTokenMetadataRow, IcrcTokenReport, IcrcTokenStandardRow, IcrcTransactionBlockRow,
+    IcrcTransactionsReport, IcrcTransactionsRequest, normalize_subaccount_hex,
+};
 #[cfg(feature = "icrc-host")]
-use ic_query::QueryProgress;
-use ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT;
-use ic_query::icrc::IcrcAccountRow;
-use ic_query::icrc::IcrcAccountTransactionCacheRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionCollectionData;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionCollectionSource;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionError;
-use ic_query::icrc::IcrcAccountTransactionListRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionPageData;
-use ic_query::icrc::IcrcAccountTransactionPageReport;
-use ic_query::icrc::IcrcAccountTransactionPageRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAccountTransactionPageSource;
-use ic_query::icrc::IcrcAccountTransactionRefreshRequest;
-use ic_query::icrc::IcrcAccountTransactionRow;
-use ic_query::icrc::IcrcAccountTransactionSort;
-use ic_query::icrc::IcrcAllowanceData;
-use ic_query::icrc::IcrcAllowanceReport;
-use ic_query::icrc::IcrcAllowanceRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcAllowanceSource;
-use ic_query::icrc::IcrcArchiveFollowErrorRow;
-use ic_query::icrc::IcrcArchiveRow;
-use ic_query::icrc::IcrcArchivedBlocksRow;
-use ic_query::icrc::IcrcArchivedRangeRow;
-use ic_query::icrc::IcrcArchivesReport;
-use ic_query::icrc::IcrcArchivesRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcArchivesSource;
-use ic_query::icrc::IcrcBalanceData;
-use ic_query::icrc::IcrcBalanceReport;
-use ic_query::icrc::IcrcBalanceRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcBalanceSource;
-use ic_query::icrc::IcrcBlockTypeRow;
-use ic_query::icrc::IcrcBlockTypesReport;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcBlockTypesSource;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcCapabilitiesData;
-use ic_query::icrc::IcrcCapabilitiesReport;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcCapabilitiesSource;
-use ic_query::icrc::IcrcCapabilityRow;
-use ic_query::icrc::IcrcCapabilityStatus;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcError;
-use ic_query::icrc::IcrcFollowedArchiveBlockRow;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcIndexData;
-use ic_query::icrc::IcrcIndexReport;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcIndexSource;
-use ic_query::icrc::IcrcLedgerRequest;
-use ic_query::icrc::IcrcMetadataValueKind;
-use ic_query::icrc::IcrcTipCertificateReport;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcTipCertificateSource;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcTokenData;
-use ic_query::icrc::IcrcTokenMetadataRow;
-use ic_query::icrc::IcrcTokenReport;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcTokenSource;
-use ic_query::icrc::IcrcTokenStandardRow;
-use ic_query::icrc::IcrcTransactionBlockRow;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcTransactionsData;
-use ic_query::icrc::IcrcTransactionsReport;
-use ic_query::icrc::IcrcTransactionsRequest;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::IcrcTransactionsSource;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_account_transaction_page_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_allowance_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_archives_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_balance_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_block_types_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_capabilities_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_index_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_tip_certificate_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_token_report_with_source;
-#[cfg(feature = "icrc-host")]
-use ic_query::icrc::build_icrc_transactions_report_with_source;
-use ic_query::icrc::normalize_subaccount_hex;
-use ic_query_text::icrc::icrc_account_transaction_page_report_text;
-use ic_query_text::icrc::icrc_allowance_report_text;
-use ic_query_text::icrc::icrc_archives_report_text;
-use ic_query_text::icrc::icrc_balance_report_text;
-use ic_query_text::icrc::icrc_block_types_report_text;
-use ic_query_text::icrc::icrc_capabilities_report_text;
-use ic_query_text::icrc::icrc_index_report_text;
-use ic_query_text::icrc::icrc_tip_certificate_report_text;
-use ic_query_text::icrc::icrc_token_report_text;
-use ic_query_text::icrc::icrc_transactions_report_text;
+use ic_query::{
+    QueryProgress,
+    icrc::{
+        IcrcAccountTransactionCollectionData, IcrcAccountTransactionCollectionSource,
+        IcrcAccountTransactionError, IcrcAccountTransactionPageData,
+        IcrcAccountTransactionPageSource, IcrcAllowanceSource, IcrcArchivesSource,
+        IcrcBalanceSource, IcrcBlockTypesSource, IcrcCapabilitiesData, IcrcCapabilitiesSource,
+        IcrcError, IcrcIndexData, IcrcIndexSource, IcrcTipCertificateSource, IcrcTokenData,
+        IcrcTokenSource, IcrcTransactionsData, IcrcTransactionsSource,
+        build_icrc_account_transaction_page_report_with_source,
+        build_icrc_allowance_report_with_source, build_icrc_archives_report_with_source,
+        build_icrc_balance_report_with_source, build_icrc_block_types_report_with_source,
+        build_icrc_capabilities_report_with_source, build_icrc_index_report_with_source,
+        build_icrc_tip_certificate_report_with_source, build_icrc_token_report_with_source,
+        build_icrc_transactions_report_with_source,
+    },
+};
+use ic_query_text::icrc::{
+    icrc_account_transaction_page_report_text, icrc_allowance_report_text,
+    icrc_archives_report_text, icrc_balance_report_text, icrc_block_types_report_text,
+    icrc_capabilities_report_text, icrc_index_report_text, icrc_tip_certificate_report_text,
+    icrc_token_report_text, icrc_transactions_report_text,
+};
 use serde_json::json;
 
 const LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";

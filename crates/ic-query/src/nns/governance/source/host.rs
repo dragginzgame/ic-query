@@ -1,122 +1,77 @@
-//! Module: nns::governance::source::host
-//!
-//! Responsibility: adapt replica query calls to the portable Governance source boundary.
-//! Does not own: report assembly, process IO, or caller runtime policy.
-//! Boundary: only this module converts the Governance request into the shared host request.
+//! Native Governance admission and replica-query transport.
 
-use super::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
-use crate::nns::{
-    LiveNnsSource,
-    governance::{
-        NnsGovernanceEconomics, NnsGovernanceError, NnsGovernanceMaturityModulation,
-        NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,
-        NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
-        source::metrics_result,
-        validation::validate_governance_request,
-        wire::{
-            GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult,
-            NetworkEconomics, RewardEvent,
+use super::GovernanceQuery;
+use crate::{
+    nns::{
+        LiveNnsSource, MAINNET_GOVERNANCE_CANISTER_ID,
+        governance::{
+            MAX_NNS_GOVERNANCE_RESPONSE_BYTES, NnsGovernanceError, NnsGovernanceRequest,
+            NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+            validation::validate_governance_request,
         },
     },
-    governance_query::{query_nns_governance, query_nns_governance_no_args},
+    report::CollectionSourceRequest,
 };
-use crate::report::CollectionSourceRequest;
+use ic_platform::candid::contract::{ArgumentEncoder, CandidType, Principal, serde::Deserialize};
 
-impl NnsGovernanceSource for LiveNnsSource {
-    fn fetch_economics<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
-        Box::pin(async move {
-            let (request, provenance) = host_request(request)?;
-            let economics: NetworkEconomics = query_nns_governance_no_args(
-                self,
-                &request,
-                "get_network_economics_parameters",
-                "NetworkEconomics",
-            )
-            .await?;
-            Ok(NnsGovernanceSourceData::new(economics.into(), provenance))
-        })
+impl GovernanceQuery for LiveNnsSource {
+    type Request = CollectionSourceRequest;
+
+    fn prepare(
+        &self,
+        request: &NnsGovernanceRequest,
+    ) -> Result<(Self::Request, NnsGovernanceSourceProvenance), NnsGovernanceError> {
+        validate_governance_request(request)?;
+        let NnsGovernanceSourceSelection::ReplicaQuery {
+            endpoint,
+            fetched_by,
+        } = &request.source
+        else {
+            return Err(NnsGovernanceError::InvalidSourceSelection {
+                reason: "the native live adapter requires a replica_query source".to_string(),
+            });
+        };
+        let request = CollectionSourceRequest::new(
+            &request.network,
+            endpoint,
+            &request.fetched_at,
+            fetched_by,
+        );
+        let provenance = NnsGovernanceSourceProvenance::ReplicaQuery {
+            endpoint: endpoint.clone(),
+            fetched_by: fetched_by.clone(),
+        };
+        Ok((request, provenance))
     }
 
-    fn fetch_metrics<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceMetrics> {
-        Box::pin(async move {
-            let (request, provenance) = host_request(request)?;
-            let result: GetMetricsResult =
-                query_nns_governance_no_args(self, &request, "get_metrics", "GetMetricsResult")
-                    .await?;
-            Ok(NnsGovernanceSourceData::new(
-                NnsGovernanceMetrics::from(metrics_result(result)?),
-                provenance,
-            ))
-        })
+    async fn query<Args, Response>(
+        &self,
+        request: &Self::Request,
+        method: &'static str,
+        request_message: &'static str,
+        response_message: &'static str,
+        args: Args,
+    ) -> Result<Response, NnsGovernanceError>
+    where
+        Args: ArgumentEncoder + Send,
+        Response: for<'de> Deserialize<'de> + CandidType,
+    {
+        let arg = crate::candid_call::encode_request(args, request_message)?;
+        let agent = crate::agent::endpoint_agent(
+            &self.agent,
+            &request.endpoint,
+            MAX_NNS_GOVERNANCE_RESPONSE_BYTES,
+            |reason| NnsGovernanceError::AgentBuild {
+                endpoint: request.endpoint.clone(),
+                reason,
+            },
+        )?;
+        let canister = Principal::from_text(MAINNET_GOVERNANCE_CANISTER_ID).map_err(|error| {
+            NnsGovernanceError::CandidDecode {
+                message: "governance_canister_id",
+                reason: error.to_string(),
+            }
+        })?;
+        crate::candid_call::query_encoded(agent, &canister, method, response_message, arg).await
     }
-
-    fn fetch_reward_event<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
-        Box::pin(async move {
-            let (request, provenance) = host_request(request)?;
-            let reward_event: RewardEvent = query_nns_governance_no_args(
-                self,
-                &request,
-                "get_latest_reward_event",
-                "RewardEvent",
-            )
-            .await?;
-            Ok(NnsGovernanceSourceData::new(
-                reward_event.into(),
-                provenance,
-            ))
-        })
-    }
-
-    fn fetch_maturity_modulation<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
-        Box::pin(async move {
-            let (request, provenance) = host_request(request)?;
-            let response: GetMaturityModulationResponse = query_nns_governance(
-                self,
-                &request,
-                "get_maturity_modulation",
-                "GetMaturityModulationRequest",
-                "GetMaturityModulationResponse",
-                &GetMaturityModulationRequest {},
-            )
-            .await?;
-            Ok(NnsGovernanceSourceData::new(
-                response.maturity_modulation.map(Into::into),
-                provenance,
-            ))
-        })
-    }
-}
-
-pub fn host_request(
-    request: &NnsGovernanceRequest,
-) -> Result<(CollectionSourceRequest, NnsGovernanceSourceProvenance), NnsGovernanceError> {
-    validate_governance_request(request)?;
-    let NnsGovernanceSourceSelection::ReplicaQuery {
-        endpoint,
-        fetched_by,
-    } = &request.source
-    else {
-        return Err(NnsGovernanceError::InvalidSourceSelection {
-            reason: "the native live adapter requires a replica_query source".to_string(),
-        });
-    };
-    let request =
-        CollectionSourceRequest::new(&request.network, endpoint, &request.fetched_at, fetched_by);
-    let provenance = NnsGovernanceSourceProvenance::ReplicaQuery {
-        endpoint: endpoint.clone(),
-        fetched_by: fetched_by.clone(),
-    };
-    Ok((request, provenance))
 }

@@ -1,265 +1,149 @@
 mod support;
+use support::temp_root;
+#[cfg(feature = "nns-host")]
+use support::write_json_cache;
 
 #[cfg(feature = "nns-host")]
-use ic_query::nns::governance::NnsGovernanceRefreshReport;
-#[cfg(feature = "nns-host")]
-use ic_query::report::CollectionSourceRequest;
-use ic_query::report::SortDirection;
+use ic_query::{
+    nns::{
+        NnsGovernanceCacheRequest, NnsGovernanceRefreshRequest, NnsInventoryError,
+        NnsInventoryRefreshRequest,
+        data_center::{
+            DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT,
+            build_nns_data_center_info_report_with_source_and_progress,
+            build_nns_data_center_list_report_with_source_and_progress,
+        },
+        governance::NnsGovernanceRefreshReport,
+        neuron::{
+            NnsNeuronHostError, build_nns_neuron_cache_status_report, nns_neuron_cache_path,
+            nns_neuron_refresh_attempt_path, nns_neuron_refresh_lock_path,
+        },
+        node::{
+            DEFAULT_NNS_NODE_SOURCE_ENDPOINT, NnsNodeListRequest,
+            build_nns_node_info_report_with_source_and_progress,
+            build_nns_node_list_report_with_source_and_progress,
+        },
+        node_operator::{
+            DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT,
+            build_nns_node_operator_info_report_with_source_and_progress,
+            build_nns_node_operator_list_report_with_source_and_progress,
+        },
+        node_provider::{
+            DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT, NnsNodeProviderSource,
+            build_nns_node_provider_info_report_with_source_and_progress,
+            build_nns_node_provider_list_report_with_source_and_progress,
+            refresh_nns_node_provider_report_with_source,
+        },
+        proposals::{
+            NnsProposalHostError, build_nns_proposal_cache_status_report,
+            build_nns_proposal_list_report_from_cache, build_nns_proposal_report_from_cache,
+            nns_proposal_cache_path, nns_proposal_cache_root, nns_proposal_refresh_attempt_path,
+            nns_proposal_refresh_lock_path, refresh_nns_proposal_cache_with_source_and_progress,
+        },
+        refresh_nns_registry_inventory_with_source,
+        registry::{
+            NnsRegistryHostError, NnsRegistrySource, build_nns_registry_version_report_with_source,
+        },
+        topology::{
+            DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT, NnsTopologyHostError, NnsTopologyRefreshSource,
+            NnsTopologySource, build_nns_topology_capacity_report_with_source,
+            build_nns_topology_check_report_with_source,
+            build_nns_topology_coverage_report_with_source,
+            build_nns_topology_gaps_report_with_source,
+            build_nns_topology_providers_report_with_source,
+            build_nns_topology_regions_report_with_source,
+            build_nns_topology_summary_report_with_source,
+            build_nns_topology_versions_report_with_source,
+            refresh_nns_topology_report_with_source,
+        },
+    },
+    report::CollectionSourceRequest,
+    subnet_catalog::{
+        CacheDisposition, CatalogAssurance, ClassificationSource, GeographicScope,
+        SubnetCatalogListReport, SubnetCatalogRefreshReport, SubnetCatalogSubnetRow,
+        SubnetSpecialization,
+    },
+};
+use ic_query::{
+    nns::{
+        NnsInventoryCacheRequest, NnsInventoryInfoRequest, NnsInventoryListRequest,
+        data_center::{NnsDataCenterInfoReport, NnsDataCenterListReport, NnsDataCenterRow},
+        governance::{
+            DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT, NnsGovernanceCollectionStatus,
+            NnsGovernanceError, NnsGovernanceMaturityModulation,
+            NnsGovernanceMaturityModulationReport, NnsGovernanceReportContext,
+            NnsGovernanceRequest, NnsGovernanceSource, NnsGovernanceSourceData,
+            NnsGovernanceSourceFuture, NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+            build_nns_governance_economics_report_with_source,
+        },
+        neuron::{
+            DEFAULT_NNS_NEURON_SOURCE_ENDPOINT, NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION,
+            NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION, NNS_NEURON_MAX_PAGE_SIZE,
+            NnsKnownNeuronData, NnsNeuronCollectionState, NnsNeuronCollectionStep,
+            NnsNeuronDistributionError, NnsNeuronDistributionReport, NnsNeuronError,
+            NnsNeuronInfoRequest, NnsNeuronListRequest, NnsNeuronPage, NnsNeuronRow,
+            NnsNeuronSource, NnsNeuronSourceFuture, NnsNeuronState, NnsNeuronType,
+            NnsNeuronVisibility, advance_nns_neuron_collection_with_source,
+            build_nns_neuron_distribution_report, build_nns_neuron_info_report_with_source,
+            build_nns_neuron_list_report_with_source,
+        },
+        node::{NnsNodeInfoReport, NnsNodeListReport, NnsNodeRow},
+        node_operator::{NnsNodeOperatorInfoReport, NnsNodeOperatorListReport, NnsNodeOperatorRow},
+        node_provider::{NnsNodeProviderInfoReport, NnsNodeProviderListReport, NnsNodeProviderRow},
+        proposals::{
+            DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT, NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION,
+            NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION, NNS_PROPOSAL_MAX_PAGE_SIZE,
+            NnsProposalActivityError, NnsProposalActivityReport, NnsProposalActivityRequest,
+            NnsProposalBallotRow, NnsProposalCollectionState, NnsProposalError,
+            NnsProposalListReport, NnsProposalListRequest, NnsProposalListSort, NnsProposalReport,
+            NnsProposalRequest, NnsProposalRewardStatusFilter, NnsProposalRow, NnsProposalSource,
+            NnsProposalSourceFuture, NnsProposalStatusFilter, NnsProposalTally,
+            NnsProposalTopicFilter, advance_nns_proposal_collection_with_source,
+            build_nns_proposal_activity_report, build_nns_proposal_list_report_with_source,
+            build_nns_proposal_report_with_source,
+        },
+        registry::{NnsRegistryCertification, NnsRegistryVersionReport, NnsRegistryVersionRequest},
+        topology::{
+            NnsTopologyAssessmentStatus, NnsTopologyCapacityReport, NnsTopologyCapacityRow,
+            NnsTopologyCapacityStatus, NnsTopologyCheckReport, NnsTopologyCheckRow,
+            NnsTopologyCoverageReport, NnsTopologyGapRelationKind, NnsTopologyGapRow,
+            NnsTopologyGapSubjectKind, NnsTopologyGapsReport, NnsTopologyProviderRow,
+            NnsTopologyProviderStatus, NnsTopologyProvidersReport, NnsTopologyRefreshReport,
+            NnsTopologyRefreshRequest, NnsTopologyRefreshRow, NnsTopologyRegionRow,
+            NnsTopologyRegionsReport, NnsTopologyRegistryVersionRow, NnsTopologySummaryReport,
+            NnsTopologyVersionsReport,
+        },
+    },
+    report::{ReportResultScope, SortDirection},
+    subnet_catalog::SubnetKind,
+};
 #[cfg(feature = "nns-host")]
 use ic_query_text::nns::governance::nns_governance_refresh_report_text;
 use std::future::Future;
-#[cfg(all(unix, feature = "nns-host"))]
-use std::os::unix::fs::PermissionsExt;
 
-#[cfg(feature = "nns-host")]
-use ic_query::nns::NnsInventoryError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::DEFAULT_NNS_DATA_CENTER_SOURCE_ENDPOINT;
-use ic_query::nns::data_center::NnsDataCenterInfoReport;
-use ic_query::nns::data_center::NnsDataCenterListReport;
-use ic_query::nns::data_center::NnsDataCenterRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::build_nns_data_center_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::data_center::build_nns_data_center_list_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::refresh_nns_registry_inventory_with_source;
-use ic_query_text::nns::data_center::nns_data_center_info_report_text;
-use ic_query_text::nns::data_center::nns_data_center_list_report_text;
+use ic_query_text::nns::{
+    data_center::{nns_data_center_info_report_text, nns_data_center_list_report_text},
+    governance::nns_governance_maturity_modulation_report_text,
+    neuron::{
+        nns_neuron_distribution_report_text, nns_neuron_info_report_text,
+        nns_neuron_list_report_text,
+    },
+    node::{nns_node_info_report_text, nns_node_list_report_text},
+    node_operator::{nns_node_operator_info_report_text, nns_node_operator_list_report_text},
+    node_provider::{nns_node_provider_info_report_text, nns_node_provider_list_report_text},
+    proposals::{
+        nns_proposal_activity_report_text, nns_proposal_list_report_text, nns_proposal_report_text,
+    },
+    registry::nns_registry_version_report_text,
+    topology::{
+        nns_topology_capacity_report_text, nns_topology_check_report_text,
+        nns_topology_coverage_report_text, nns_topology_gaps_report_text,
+        nns_topology_providers_report_text, nns_topology_refresh_report_text,
+        nns_topology_regions_report_text, nns_topology_summary_report_text,
+        nns_topology_versions_report_text,
+    },
+};
 
-#[cfg(feature = "nns-host")]
-use ic_query::nns::NnsGovernanceCacheRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::NnsGovernanceRefreshRequest;
-use ic_query::nns::NnsInventoryCacheRequest;
-use ic_query::nns::NnsInventoryInfoRequest;
-use ic_query::nns::NnsInventoryListRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::NnsInventoryRefreshRequest;
-use ic_query::nns::governance::DEFAULT_NNS_GOVERNANCE_SOURCE_ENDPOINT;
-use ic_query::nns::governance::NnsGovernanceCollectionStatus;
-use ic_query::nns::governance::NnsGovernanceError;
-use ic_query::nns::governance::NnsGovernanceMaturityModulation;
-use ic_query::nns::governance::NnsGovernanceMaturityModulationReport;
-use ic_query::nns::governance::NnsGovernanceReportContext;
-use ic_query::nns::governance::NnsGovernanceRequest;
-use ic_query::nns::governance::NnsGovernanceSource;
-use ic_query::nns::governance::NnsGovernanceSourceData;
-use ic_query::nns::governance::NnsGovernanceSourceFuture;
-use ic_query::nns::governance::NnsGovernanceSourceProvenance;
-use ic_query::nns::governance::NnsGovernanceSourceSelection;
-use ic_query::nns::governance::build_nns_governance_economics_report_with_source;
-use ic_query::nns::neuron::DEFAULT_NNS_NEURON_SOURCE_ENDPOINT;
-use ic_query::nns::neuron::NNS_NEURON_COLLECTION_STATE_SCHEMA_VERSION;
-use ic_query::nns::neuron::NNS_NEURON_DISTRIBUTION_REPORT_SCHEMA_VERSION;
-use ic_query::nns::neuron::NNS_NEURON_MAX_PAGE_SIZE;
-use ic_query::nns::neuron::NnsKnownNeuronData;
-use ic_query::nns::neuron::NnsNeuronCollectionState;
-use ic_query::nns::neuron::NnsNeuronCollectionStep;
-use ic_query::nns::neuron::NnsNeuronDistributionError;
-use ic_query::nns::neuron::NnsNeuronDistributionReport;
-use ic_query::nns::neuron::NnsNeuronError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::neuron::NnsNeuronHostError;
-use ic_query::nns::neuron::NnsNeuronInfoRequest;
-use ic_query::nns::neuron::NnsNeuronListRequest;
-use ic_query::nns::neuron::NnsNeuronPage;
-use ic_query::nns::neuron::NnsNeuronRow;
-use ic_query::nns::neuron::NnsNeuronSource;
-use ic_query::nns::neuron::NnsNeuronSourceFuture;
-use ic_query::nns::neuron::NnsNeuronState;
-use ic_query::nns::neuron::NnsNeuronType;
-use ic_query::nns::neuron::NnsNeuronVisibility;
-use ic_query::nns::neuron::advance_nns_neuron_collection_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::neuron::build_nns_neuron_cache_status_report;
-use ic_query::nns::neuron::build_nns_neuron_distribution_report;
-use ic_query::nns::neuron::build_nns_neuron_info_report_with_source;
-use ic_query::nns::neuron::build_nns_neuron_list_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::neuron::nns_neuron_cache_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::neuron::nns_neuron_refresh_attempt_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::neuron::nns_neuron_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::DEFAULT_NNS_NODE_SOURCE_ENDPOINT;
-use ic_query::nns::node::NnsNodeInfoReport;
-use ic_query::nns::node::NnsNodeListReport;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::NnsNodeListRequest;
-use ic_query::nns::node::NnsNodeRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::build_nns_node_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node::build_nns_node_list_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::DEFAULT_NNS_NODE_OPERATOR_SOURCE_ENDPOINT;
-use ic_query::nns::node_operator::NnsNodeOperatorInfoReport;
-use ic_query::nns::node_operator::NnsNodeOperatorListReport;
-use ic_query::nns::node_operator::NnsNodeOperatorRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::build_nns_node_operator_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_operator::build_nns_node_operator_list_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::DEFAULT_NNS_NODE_PROVIDER_SOURCE_ENDPOINT;
-use ic_query::nns::node_provider::NnsNodeProviderInfoReport;
-use ic_query::nns::node_provider::NnsNodeProviderListReport;
-use ic_query::nns::node_provider::NnsNodeProviderRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::NnsNodeProviderSource;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::build_nns_node_provider_info_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::build_nns_node_provider_list_report_with_source_and_progress;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::node_provider::refresh_nns_node_provider_report_with_source;
-use ic_query::nns::proposals::DEFAULT_NNS_PROPOSAL_SOURCE_ENDPOINT;
-use ic_query::nns::proposals::NNS_PROPOSAL_ACTIVITY_REPORT_SCHEMA_VERSION;
-use ic_query::nns::proposals::NNS_PROPOSAL_COLLECTION_STATE_SCHEMA_VERSION;
-use ic_query::nns::proposals::NNS_PROPOSAL_MAX_PAGE_SIZE;
-use ic_query::nns::proposals::NnsProposalActivityError;
-use ic_query::nns::proposals::NnsProposalActivityReport;
-use ic_query::nns::proposals::NnsProposalActivityRequest;
-use ic_query::nns::proposals::NnsProposalBallotRow;
-use ic_query::nns::proposals::NnsProposalCollectionState;
-use ic_query::nns::proposals::NnsProposalError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::NnsProposalHostError;
-use ic_query::nns::proposals::NnsProposalListReport;
-use ic_query::nns::proposals::NnsProposalListRequest;
-use ic_query::nns::proposals::NnsProposalListSort;
-use ic_query::nns::proposals::NnsProposalReport;
-use ic_query::nns::proposals::NnsProposalRequest;
-use ic_query::nns::proposals::NnsProposalRewardStatusFilter;
-use ic_query::nns::proposals::NnsProposalRow;
-use ic_query::nns::proposals::NnsProposalSource;
-use ic_query::nns::proposals::NnsProposalSourceFuture;
-use ic_query::nns::proposals::NnsProposalStatusFilter;
-use ic_query::nns::proposals::NnsProposalTally;
-use ic_query::nns::proposals::NnsProposalTopicFilter;
-use ic_query::nns::proposals::advance_nns_proposal_collection_with_source;
-use ic_query::nns::proposals::build_nns_proposal_activity_report;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::build_nns_proposal_cache_status_report;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::build_nns_proposal_list_report_from_cache;
-use ic_query::nns::proposals::build_nns_proposal_list_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::build_nns_proposal_report_from_cache;
-use ic_query::nns::proposals::build_nns_proposal_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::nns_proposal_cache_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::nns_proposal_cache_root;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::nns_proposal_refresh_attempt_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::nns_proposal_refresh_lock_path;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::proposals::refresh_nns_proposal_cache_with_source_and_progress;
-use ic_query::nns::registry::NnsRegistryCertification;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistryHostError;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::NnsRegistrySource;
-use ic_query::nns::registry::NnsRegistryVersionReport;
-use ic_query::nns::registry::NnsRegistryVersionRequest;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::registry::build_nns_registry_version_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::DEFAULT_NNS_TOPOLOGY_SOURCE_ENDPOINT;
-use ic_query::nns::topology::NnsTopologyAssessmentStatus;
-use ic_query::nns::topology::NnsTopologyCapacityReport;
-use ic_query::nns::topology::NnsTopologyCapacityRow;
-use ic_query::nns::topology::NnsTopologyCapacityStatus;
-use ic_query::nns::topology::NnsTopologyCheckReport;
-use ic_query::nns::topology::NnsTopologyCheckRow;
-use ic_query::nns::topology::NnsTopologyCoverageReport;
-use ic_query::nns::topology::NnsTopologyGapRelationKind;
-use ic_query::nns::topology::NnsTopologyGapRow;
-use ic_query::nns::topology::NnsTopologyGapSubjectKind;
-use ic_query::nns::topology::NnsTopologyGapsReport;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::NnsTopologyHostError;
-use ic_query::nns::topology::NnsTopologyProviderRow;
-use ic_query::nns::topology::NnsTopologyProviderStatus;
-use ic_query::nns::topology::NnsTopologyProvidersReport;
-use ic_query::nns::topology::NnsTopologyRefreshReport;
-use ic_query::nns::topology::NnsTopologyRefreshRequest;
-use ic_query::nns::topology::NnsTopologyRefreshRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::NnsTopologyRefreshSource;
-use ic_query::nns::topology::NnsTopologyRegionRow;
-use ic_query::nns::topology::NnsTopologyRegionsReport;
-use ic_query::nns::topology::NnsTopologyRegistryVersionRow;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::NnsTopologySource;
-use ic_query::nns::topology::NnsTopologySummaryReport;
-use ic_query::nns::topology::NnsTopologyVersionsReport;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_capacity_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_check_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_coverage_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_gaps_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_providers_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_regions_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_summary_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::build_nns_topology_versions_report_with_source;
-#[cfg(feature = "nns-host")]
-use ic_query::nns::topology::refresh_nns_topology_report_with_source;
-use ic_query::report::ReportResultScope;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::CacheDisposition;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::CatalogAssurance;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::ClassificationSource;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::GeographicScope;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::SubnetCatalogListReport;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::SubnetCatalogRefreshReport;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::SubnetCatalogSubnetRow;
-use ic_query::subnet_catalog::SubnetKind;
-#[cfg(feature = "nns-host")]
-use ic_query::subnet_catalog::SubnetSpecialization;
-use ic_query_text::nns::governance::nns_governance_maturity_modulation_report_text;
-use ic_query_text::nns::neuron::nns_neuron_distribution_report_text;
-use ic_query_text::nns::neuron::nns_neuron_info_report_text;
-use ic_query_text::nns::neuron::nns_neuron_list_report_text;
-use ic_query_text::nns::node::nns_node_info_report_text;
-use ic_query_text::nns::node::nns_node_list_report_text;
-use ic_query_text::nns::node_operator::nns_node_operator_info_report_text;
-use ic_query_text::nns::node_operator::nns_node_operator_list_report_text;
-use ic_query_text::nns::node_provider::nns_node_provider_info_report_text;
-use ic_query_text::nns::node_provider::nns_node_provider_list_report_text;
-use ic_query_text::nns::proposals::nns_proposal_activity_report_text;
-use ic_query_text::nns::proposals::nns_proposal_list_report_text;
-use ic_query_text::nns::proposals::nns_proposal_report_text;
-use ic_query_text::nns::registry::nns_registry_version_report_text;
-use ic_query_text::nns::topology::nns_topology_capacity_report_text;
-use ic_query_text::nns::topology::nns_topology_check_report_text;
-use ic_query_text::nns::topology::nns_topology_coverage_report_text;
-use ic_query_text::nns::topology::nns_topology_gaps_report_text;
-use ic_query_text::nns::topology::nns_topology_providers_report_text;
-use ic_query_text::nns::topology::nns_topology_refresh_report_text;
-use ic_query_text::nns::topology::nns_topology_regions_report_text;
-use ic_query_text::nns::topology::nns_topology_summary_report_text;
-use ic_query_text::nns::topology::nns_topology_versions_report_text;
-#[cfg(feature = "nns-host")]
-use serde::Serialize;
-use std::path::PathBuf;
 #[cfg(feature = "nns-host")]
 use std::{fs, path::Path};
 
@@ -2511,53 +2395,6 @@ fn write_nns_proposal_fixture_cache(root: &Path) {
             }}
         }),
     );
-}
-
-#[cfg(feature = "nns-host")]
-fn write_json_cache<T>(root: &Path, path: &Path, value: &T)
-where
-    T: Serialize,
-{
-    let parent = path.parent().expect("cache parent");
-    fs::create_dir_all(parent).expect("create cache parent");
-    #[cfg(unix)]
-    {
-        let mut directory = root.to_path_buf();
-        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
-            .expect("secure cache root");
-        for component in parent.strip_prefix(root).expect("parent beneath root") {
-            directory.push(component);
-            fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
-                .expect("secure cache directory");
-        }
-    }
-    fs::write(
-        path,
-        serde_json::to_string_pretty(value).expect("serialize fixture cache"),
-    )
-    .expect("write fixture cache");
-    #[cfg(unix)]
-    {
-        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).expect("secure cache file");
-    }
-}
-
-#[must_use]
-fn temp_root(name: &str) -> PathBuf {
-    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let mut path = crate::support::scratch_root()
-        .canonicalize()
-        .expect("physical temporary directory");
-    let sequence = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    path.push(format!(
-        "ic-query-{name}-{}-{timestamp}-{sequence}",
-        std::process::id()
-    ));
-    path
 }
 
 #[cfg(feature = "nns-host")]

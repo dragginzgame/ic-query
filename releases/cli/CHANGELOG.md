@@ -7,6 +7,32 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.93.4]
+
+### 🧹 Cleanup
+
+- Reuse common source/output options for ICRC commands while retaining their
+  help and defaults. Share private cache fixtures and use Host FS temporary
+  directories in text integration tests. [Details](0.93.md).
+- Normalize decimal transaction cursors directly while retaining arbitrary-size
+  IDs and Clap validation. Group feature-gated public-API test imports without
+  changing coverage. [Details](0.93.md).
+- Consolidate SNS command definitions and simplify SNS/ICRC cache-status
+  rendering, preserving command help, field order and terminal escaping.
+  [Details](0.93.md).
+
+### 🩹 Fixed
+
+- Adopt Shared Tooling 0.31.3, including the Bash 3.2 tool-setup fix and clear
+  LOC diagnostics when cleanup removes active scratch inputs. Preserve checksum
+  NUL rejection and backend failure status.
+  [#115](https://github.com/dragginzgame/ic-query/issues/115). [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Update the locked graph to Build 0.77.0, Platform 0.23.5, Wire 0.17.6 and Testkit 0.90.0
+  without changing public APIs or schema-1 contracts. [Details](0.93.md).
+
 ## [0.93.3] - 2026-11-06
 
 ### 🔧 Tooling

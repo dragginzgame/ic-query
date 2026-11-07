@@ -310,57 +310,16 @@ pub fn advance_collection_counts(pages: u32, rows: u64, page_rows: u64) -> Optio
     Some((pages.checked_add(1)?, rows.checked_add(page_rows)?))
 }
 
-pub const fn collection_lifecycle_matches(
-    status: NnsGovernanceCollectionStatus,
-    pages: u32,
-    max_pages: u32,
-    rows: u64,
-    maximum_rows: u64,
-    has_cursor: bool,
-    has_source: bool,
-) -> bool {
-    match status {
-        NnsGovernanceCollectionStatus::Ready => {
-            pages == 0 && rows == 0 && !has_cursor && !has_source
-        }
-        NnsGovernanceCollectionStatus::Collecting => {
-            pages > 0 && pages < max_pages && rows == maximum_rows && has_cursor && has_source
-        }
-        NnsGovernanceCollectionStatus::Complete => pages > 0 && !has_cursor && has_source,
-        NnsGovernanceCollectionStatus::PageLimitReached => {
-            pages == max_pages && rows == maximum_rows && has_cursor && has_source
-        }
-    }
-}
-
 pub const fn collection_status_after_page(
     has_next: bool,
     pages: u32,
     max_pages: u32,
-) -> super::NnsGovernanceCollectionStatus {
+) -> NnsGovernanceCollectionStatus {
     if !has_next {
-        super::NnsGovernanceCollectionStatus::Complete
+        NnsGovernanceCollectionStatus::Complete
     } else if pages == max_pages {
-        super::NnsGovernanceCollectionStatus::PageLimitReached
+        NnsGovernanceCollectionStatus::PageLimitReached
     } else {
-        super::NnsGovernanceCollectionStatus::Collecting
+        NnsGovernanceCollectionStatus::Collecting
     }
-}
-
-pub fn validate_governance_collection_row_bounds<Error>(
-    field: &str,
-    rows: u64,
-    pages: u32,
-    page_size: u32,
-    invalid: impl FnOnce(String) -> Error,
-) -> Result<u64, Error> {
-    // Widen before multiplication: both operands originate as u32.
-    let maximum = u64::from(pages) * u64::from(page_size);
-    let minimum = u64::from(pages.saturating_sub(1)) * u64::from(page_size);
-    if rows < minimum || rows > maximum {
-        return Err(invalid(format!(
-            "{field} {rows} is outside {minimum}..={maximum} for {pages} pages of size {page_size}"
-        )));
-    }
-    Ok(maximum)
 }

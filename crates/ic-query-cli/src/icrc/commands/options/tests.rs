@@ -1,11 +1,16 @@
 use super::*;
 
 fn target() -> IcrcLedgerOptions {
-    IcrcLedgerOptions {
-        ledger_canister_id: "aaaaa-aa".to_string(),
-        source_endpoint: "https://example.com/api".to_string(),
-        json: true,
-    }
+    let matches = super::super::ledger::icrc_token_command()
+        .try_get_matches_from([
+            "token",
+            "aaaaa-aa",
+            "--source-endpoint",
+            "https://example.com/api",
+            "--json",
+        ])
+        .unwrap();
+    IcrcLedgerOptions::from_matches(&matches)
 }
 
 #[test]

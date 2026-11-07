@@ -1,113 +1,44 @@
 #[cfg(feature = "subnet-catalog-host")]
 mod support;
+#[cfg(feature = "subnet-catalog-host")]
+use support::{temp_root, write_json_cache};
 
+use ic_query::subnet_catalog::{
+    CANISTER_RANGES_KEY_PREFIX, CATALOG_SCHEMA_VERSION, CLASSIFICATION_SCHEMA_VERSION,
+    CatalogAssurance, ClassificationSource, GeographicScope, MAINNET_NETWORK,
+    MAINNET_REGISTRY_CANISTER_ID, RESOLVER_SCHEMA_VERSION, ROUTING_TABLE_KEY, RawSubnetCatalog,
+    ResolveAs, ResolvedSubnetSubject, RoutingRange, SUBNET_LIST_KEY, SUBNET_RECORD_KEY_PREFIX,
+    SubnetCatalogProvenance, SubnetCatalogRegistryRecordEvidence,
+    SubnetCatalogRegistryRecordSubject, SubnetCatalogRegistryValueEncoding,
+    SubnetCatalogRoutingSource, SubnetInfo, SubnetKind, SubnetSpecialization,
+    catalog_to_pretty_json, parse_catalog_json,
+};
 #[cfg(feature = "subnet-catalog-host")]
-use ic_query::report::CollectionSourceRequest;
-use ic_query::subnet_catalog::CANISTER_RANGES_KEY_PREFIX;
-use ic_query::subnet_catalog::CATALOG_SCHEMA_VERSION;
-use ic_query::subnet_catalog::CLASSIFICATION_SCHEMA_VERSION;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::CacheDisposition;
-use ic_query::subnet_catalog::CatalogAssurance;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::CatalogSnapshotAuthorityEvidence;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::CatalogSourceSelection;
-use ic_query::subnet_catalog::ClassificationSource;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::DEFAULT_STALE_AFTER_SECONDS;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT;
-use ic_query::subnet_catalog::GeographicScope;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::LiveSubnetCatalogSource;
-use ic_query::subnet_catalog::MAINNET_NETWORK;
-use ic_query::subnet_catalog::MAINNET_REGISTRY_CANISTER_ID;
-use ic_query::subnet_catalog::RESOLVER_SCHEMA_VERSION;
-use ic_query::subnet_catalog::ROUTING_TABLE_KEY;
-use ic_query::subnet_catalog::RawSubnetCatalog;
-use ic_query::subnet_catalog::ResolveAs;
-use ic_query::subnet_catalog::ResolvedSubnetSubject;
-use ic_query::subnet_catalog::RoutingRange;
-use ic_query::subnet_catalog::SUBNET_LIST_KEY;
-use ic_query::subnet_catalog::SUBNET_RECORD_KEY_PREFIX;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogCacheRequest;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogDetailedSourceFuture;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogFailureCacheDisposition;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogFilters;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogHostError;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogInfoReport;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogInfoRequest;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogListReport;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogListRequest;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogLoadFailure;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogLoadRequest;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogLoadStage;
-use ic_query::subnet_catalog::SubnetCatalogProvenance;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogRefreshReport;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogRefreshRequest;
-use ic_query::subnet_catalog::SubnetCatalogRegistryRecordEvidence;
-use ic_query::subnet_catalog::SubnetCatalogRegistryRecordSubject;
-use ic_query::subnet_catalog::SubnetCatalogRegistryValueEncoding;
-use ic_query::subnet_catalog::SubnetCatalogRoutingSource;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogSource;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogSourceFailure;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogSourceFuture;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogSubject;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::SubnetCatalogSubnetRow;
-use ic_query::subnet_catalog::SubnetInfo;
-use ic_query::subnet_catalog::SubnetKind;
-use ic_query::subnet_catalog::SubnetSpecialization;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::build_subnet_catalog_info_report;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::build_subnet_catalog_list_report;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::build_subnet_catalog_list_report_with_source_and_progress;
-use ic_query::subnet_catalog::catalog_to_pretty_json;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::fetch_subnet_catalog_async;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::load_cached_subnet_catalog;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::load_subnet_catalog;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::load_subnet_catalog_with_source;
-use ic_query::subnet_catalog::parse_catalog_json;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::refresh_subnet_catalog_with_source;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::subnet_catalog_path;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query::subnet_catalog::subnet_catalog_refresh_lock_path;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query_text::subnet_catalog::subnet_catalog_info_report_text;
-#[cfg(feature = "subnet-catalog-host")]
-use ic_query_text::subnet_catalog::subnet_catalog_list_report_text;
+use ic_query::{
+    report::CollectionSourceRequest,
+    subnet_catalog::{
+        CacheDisposition, CatalogSnapshotAuthorityEvidence, CatalogSourceSelection,
+        DEFAULT_STALE_AFTER_SECONDS, DEFAULT_SUBNET_CATALOG_SOURCE_ENDPOINT,
+        LiveSubnetCatalogSource, SubnetCatalogCacheRequest, SubnetCatalogDetailedSourceFuture,
+        SubnetCatalogFailureCacheDisposition, SubnetCatalogFilters, SubnetCatalogHostError,
+        SubnetCatalogInfoReport, SubnetCatalogInfoRequest, SubnetCatalogListReport,
+        SubnetCatalogListRequest, SubnetCatalogLoadFailure, SubnetCatalogLoadRequest,
+        SubnetCatalogLoadStage, SubnetCatalogRefreshReport, SubnetCatalogRefreshRequest,
+        SubnetCatalogSource, SubnetCatalogSourceFailure, SubnetCatalogSourceFuture,
+        SubnetCatalogSubject, SubnetCatalogSubnetRow, build_subnet_catalog_info_report,
+        build_subnet_catalog_list_report,
+        build_subnet_catalog_list_report_with_source_and_progress, fetch_subnet_catalog_async,
+        load_cached_subnet_catalog, load_subnet_catalog, load_subnet_catalog_with_source,
+        refresh_subnet_catalog_with_source, subnet_catalog_path, subnet_catalog_refresh_lock_path,
+    },
+};
 #[cfg(feature = "subnet-catalog-host")]
 #[cfg(feature = "subnet-catalog-host")]
 use ic_query_text::subnet_catalog::subnet_catalog_refresh_report_text;
-#[cfg(all(feature = "subnet-catalog-host", unix))]
-use std::os::unix::fs::PermissionsExt;
+#[cfg(feature = "subnet-catalog-host")]
+use ic_query_text::subnet_catalog::{
+    subnet_catalog_info_report_text, subnet_catalog_list_report_text,
+};
 #[cfg(feature = "subnet-catalog-host")]
 use std::{
     fs,
@@ -475,32 +406,8 @@ impl SubnetCatalogSource for FixtureSubnetCatalogSource {
 #[must_use]
 fn write_fixture_catalog(root: &Path) -> PathBuf {
     let path = subnet_catalog_path(root, MAINNET_NETWORK);
-    create_managed_fixture_parent(root, &path);
-    fs::write(
-        &path,
-        catalog_to_pretty_json(&fixture_catalog()).expect("catalog serializes"),
-    )
-    .expect("write catalog");
-    #[cfg(unix)]
-    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).expect("secure catalog file");
+    write_json_cache(root, &path, &fixture_catalog());
     path
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-fn create_managed_fixture_parent(root: &Path, path: &Path) {
-    let parent = path.parent().expect("catalog parent");
-    fs::create_dir_all(parent).expect("create catalog parent");
-    #[cfg(unix)]
-    {
-        let mut directory = root.to_path_buf();
-        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
-            .expect("secure catalog root");
-        for component in parent.strip_prefix(root).expect("parent beneath root") {
-            directory.push(component);
-            fs::set_permissions(&directory, fs::Permissions::from_mode(0o700))
-                .expect("secure catalog directory");
-        }
-    }
 }
 
 #[cfg(feature = "subnet-catalog-host")]
@@ -594,15 +501,6 @@ fn fixture_refresh_report(root: &Path, catalog_path: &Path) -> SubnetCatalogRefr
         subnet_count: 1,
         routing_range_count: 1,
     }
-}
-
-#[cfg(feature = "subnet-catalog-host")]
-#[must_use]
-fn temp_root(name: &str) -> PathBuf {
-    let mut path = crate::support::scratch_root();
-    path.push(format!("ic-query-{name}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    path
 }
 
 #[cfg(feature = "subnet-catalog-host")]

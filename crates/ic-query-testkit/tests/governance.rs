@@ -39,7 +39,7 @@ async fn compiled_governance_reports_preserve_values_provenance_and_failures() {
     let owned = PocketIcStartupConfig::from_env(Duration::from_secs(60))
         .expect("explicit Testkit server")
         .build_instance(
-            PocketIcBuilder::new()
+            PocketIcBuilder::new(Duration::from_secs(300))
                 .with_nns_subnet()
                 .with_application_subnet(),
         )

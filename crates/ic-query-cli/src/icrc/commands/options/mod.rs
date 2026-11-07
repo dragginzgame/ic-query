@@ -12,7 +12,10 @@ use super::{
     SPENDER_SUBACCOUNT_ARG, START_ARG, SUBACCOUNT_ARG, principal_text_value_parser,
     subaccount_hex_value_parser,
 };
-use crate::cli::{clap::parsed_options, common::OutputFormat};
+use crate::cli::{
+    clap::parsed_options,
+    common::{OutputFormat, SourceOutputOptions},
+};
 use clap::{ArgMatches, Args, builder::RangedU64ValueParser};
 use ic_query::icrc::IcrcAccountTransactionCacheRequest;
 use ic_query::icrc::IcrcAccountTransactionListRequest;
@@ -37,14 +40,8 @@ pub(in crate::icrc) use analytics::*;
 pub(in crate::icrc) struct IcrcLedgerOptions {
     #[arg(id = LEDGER_CANISTER_ID_ARG, value_name = LEDGER_CANISTER_ID_ARG, value_parser = principal_text_value_parser(), help = "ICRC ledger canister principal")]
     pub(in crate::icrc) ledger_canister_id: String,
-    #[arg(
-        long,
-        display_order = 1001,
-        help = "Print raw JSON instead of human-readable text"
-    )]
-    json: bool,
-    #[arg(id = "source-endpoint", long, display_order = 1000, value_name = "url", default_value = ic_query::icrc::DEFAULT_ICRC_SOURCE_ENDPOINT, help = "IC API endpoint used for ICRC ledger queries")]
-    pub(in crate::icrc) source_endpoint: String,
+    #[command(flatten)]
+    source: SourceOutputOptions,
 }
 
 impl IcrcLedgerOptions {
@@ -53,19 +50,14 @@ impl IcrcLedgerOptions {
     }
 
     pub(in crate::icrc) const fn format(&self) -> OutputFormat {
-        if self.json {
-            OutputFormat::Json
-        } else {
-            OutputFormat::Text
-        }
+        self.source.format()
     }
 
     pub(in crate::icrc) fn into_dashboard_request(
         self,
         now_unix_secs: u64,
     ) -> (OutputFormat, ic_query::ic::IcDashboardRequest, String) {
-        let format = self.format();
-        let request = ic_query::ic::IcDashboardRequest::new(self.source_endpoint, now_unix_secs);
+        let (format, request) = self.source.into_dashboard_request(now_unix_secs);
         (format, request, self.ledger_canister_id)
     }
 
@@ -76,7 +68,7 @@ impl IcrcLedgerOptions {
         (
             self.format(),
             ic_query::icrc::IcrcLedgerRequest::new(
-                self.source_endpoint,
+                self.source.source_endpoint,
                 now_unix_secs,
                 self.ledger_canister_id,
             ),
@@ -114,7 +106,7 @@ impl IcrcAccountOptions {
             self.ledger.format(),
             IcrcAccountTransactionCacheRequest {
                 cache_root,
-                source_endpoint: self.ledger.source_endpoint,
+                source_endpoint: self.ledger.source.source_endpoint,
                 ledger_canister_id: self.ledger.ledger_canister_id,
                 account_owner: self.account_owner,
                 subaccount_hex: self.subaccount_hex,
@@ -203,10 +195,8 @@ fn account_transaction_cursor(value: &str) -> Result<String, String> {
     if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err("expected unsigned decimal transaction id".to_string());
     }
-    value
-        .parse::<ic_platform::candid::contract::Nat>()
-        .map(|cursor| cursor.0.to_str_radix(10))
-        .map_err(|error| error.to_string())
+    let digits = value.trim_start_matches('0');
+    Ok(if digits.is_empty() { "0" } else { digits }.to_string())
 }
 
 pub(in crate::icrc) fn allowance_request(

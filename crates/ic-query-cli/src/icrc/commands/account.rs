@@ -8,7 +8,7 @@ use super::options::{
     IcrcAccountOptions, IcrcAllowanceOptions, IcrcTransactionListOptions,
     IcrcTransactionPageOptions, IcrcTransactionRefreshOptions,
 };
-use crate::cli::clap::with_options;
+use super::with_ledger_options as with_options;
 use crate::cli::common::{
     COLLECTION_MODE_CACHE_ONLY, COLLECTION_MODE_FORCE_REFRESH, COLLECTION_MODE_LIVE,
     collection_help,

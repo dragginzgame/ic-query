@@ -54,19 +54,20 @@ pub(in crate::nns) use model::{
 pub use request::{NnsGovernanceRequest, NnsGovernanceSourceSelection};
 #[cfg(all(feature = "canister", target_arch = "wasm32"))]
 pub use source::CanisterNnsSource;
-#[cfg(all(feature = "canister", target_arch = "wasm32"))]
-pub(crate) use source::canister::{call_with_arg, canister_provenance};
-#[cfg(feature = "nns-host")]
-pub(crate) use source::host::host_request;
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+pub(in crate::nns) use source::GovernanceQuery;
 pub use source::{NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture};
 #[cfg(feature = "nns-host")]
 pub(crate) use validation::enforce_mainnet_network as enforce_governance_mainnet_network;
 pub(in crate::nns) use validation::validate_governance_continuation;
 pub(crate) use validation::{
-    advance_collection_counts, collection_lifecycle_matches, collection_status_after_page,
+    advance_collection_counts, collection_status_after_page,
     validate_governance_collection_identity, validate_governance_collection_page_bounds,
-    validate_governance_collection_row_bounds, validate_governance_continuation_request,
-    validate_governance_request, validate_governance_time_interval, validate_source_provenance,
+    validate_governance_continuation_request, validate_governance_request,
+    validate_governance_time_interval, validate_source_provenance,
 };
 #[cfg(any(feature = "nns-host", feature = "canister"))]
 pub(in crate::nns) use wire::{

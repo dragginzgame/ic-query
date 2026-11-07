@@ -56,6 +56,15 @@ const SORT_ARG: &str = "sort";
 const FOLLOW_ARCHIVES_ARG: &str = "follow-archives";
 const FROM_CANISTER_ID_ARG: &str = "from";
 
+fn with_ledger_options<T: clap::Args>(command: ClapCommand) -> ClapCommand {
+    crate::cli::clap::with_options::<T>(command)
+        .mut_arg("source-endpoint", |arg| {
+            arg.display_order(1000)
+                .help("IC API endpoint used for ICRC ledger queries")
+        })
+        .mut_arg("json", |arg| arg.display_order(1001))
+}
+
 pub fn command() -> ClapCommand {
     ClapCommand::new("icrc")
         .about("Inspect generic ICRC ledgers and official analytics")

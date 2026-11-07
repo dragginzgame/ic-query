@@ -4,24 +4,17 @@
 //! Does not own: scheduling, retries, persistence, or report assembly.
 //! Boundary: this is the only module coupled to the IC canister runtime.
 
-use super::{
-    NnsGovernanceSource, NnsGovernanceSourceData, NnsGovernanceSourceFuture, metrics_result,
-};
+use super::GovernanceQuery;
 use crate::nns::{
     MAINNET_GOVERNANCE_CANISTER_ID,
     governance::{
-        NnsGovernanceEconomics, NnsGovernanceError, NnsGovernanceMaturityModulation,
-        NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,
-        NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+        NnsGovernanceError, NnsGovernanceRequest, NnsGovernanceSourceProvenance,
+        NnsGovernanceSourceSelection,
         validation::{validate_governance_request, validate_governance_response_size},
-        wire::{
-            GetMaturityModulationRequest, GetMaturityModulationResponse, GetMetricsResult,
-            NetworkEconomics, RewardEvent,
-        },
     },
 };
 use ic_platform::Principal;
-use ic_platform::candid::contract::{CandidType, serde::Deserialize};
+use ic_platform::candid::contract::{ArgumentEncoder, CandidType, serde::Deserialize};
 use ic_platform::cdk::{
     api::canister_self,
     call::{Call, CallFailed},
@@ -36,70 +29,40 @@ use ic_platform::cdk::{
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CanisterNnsSource;
 
-impl NnsGovernanceSource for CanisterNnsSource {
-    fn fetch_economics<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceEconomics> {
-        Box::pin(async move {
-            let provenance = canister_provenance(request)?;
-            let economics: NetworkEconomics =
-                call_no_args("get_network_economics_parameters", "NetworkEconomics").await?;
-            Ok(NnsGovernanceSourceData::new(economics.into(), provenance))
-        })
+impl GovernanceQuery for CanisterNnsSource {
+    type Request = ();
+
+    fn prepare(
+        &self,
+        request: &NnsGovernanceRequest,
+    ) -> Result<(Self::Request, NnsGovernanceSourceProvenance), NnsGovernanceError> {
+        Ok(((), canister_provenance(request)?))
     }
 
-    fn fetch_metrics<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceMetrics> {
-        Box::pin(async move {
-            let provenance = canister_provenance(request)?;
-            let result: GetMetricsResult = call_no_args("get_metrics", "GetMetricsResult").await?;
-            Ok(NnsGovernanceSourceData::new(
-                NnsGovernanceMetrics::from(metrics_result(result)?),
-                provenance,
-            ))
-        })
-    }
-
-    fn fetch_reward_event<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, NnsGovernanceRewardEvent> {
-        Box::pin(async move {
-            let provenance = canister_provenance(request)?;
-            let reward_event: RewardEvent =
-                call_no_args("get_latest_reward_event", "RewardEvent").await?;
-            Ok(NnsGovernanceSourceData::new(
-                reward_event.into(),
-                provenance,
-            ))
-        })
-    }
-
-    fn fetch_maturity_modulation<'a>(
-        &'a self,
-        request: &'a NnsGovernanceRequest,
-    ) -> NnsGovernanceSourceFuture<'a, Option<NnsGovernanceMaturityModulation>> {
-        Box::pin(async move {
-            let provenance = canister_provenance(request)?;
-            let response: GetMaturityModulationResponse = call_with_arg(
-                "get_maturity_modulation",
-                "GetMaturityModulationRequest",
-                "GetMaturityModulationResponse",
-                &GetMaturityModulationRequest {},
-            )
-            .await?;
-            Ok(NnsGovernanceSourceData::new(
-                response.maturity_modulation.map(Into::into),
-                provenance,
-            ))
-        })
+    async fn query<Args, Response>(
+        &self,
+        _request: &(),
+        method: &'static str,
+        request_message: &'static str,
+        response_message: &'static str,
+        args: Args,
+    ) -> Result<Response, NnsGovernanceError>
+    where
+        Args: ArgumentEncoder + Send,
+        Response: for<'de> Deserialize<'de> + CandidType,
+    {
+        let arg = ic_platform::candid::contract::encode_args(args).map_err(|error| {
+            NnsGovernanceError::CandidEncode {
+                message: request_message,
+                reason: error.to_string(),
+            }
+        })?;
+        let bytes = call_bytes(method, arg).await?;
+        decode_response(&bytes, response_message)
     }
 }
 
-pub fn canister_provenance(
+fn canister_provenance(
     request: &NnsGovernanceRequest,
 ) -> Result<NnsGovernanceSourceProvenance, NnsGovernanceError> {
     validate_governance_request(request)?;
@@ -112,47 +75,6 @@ pub fn canister_provenance(
     Ok(NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
         collector_canister_id: canister_self().to_text(),
     })
-}
-
-async fn call_no_args<Response>(
-    method: &'static str,
-    response_message: &'static str,
-) -> Result<Response, NnsGovernanceError>
-where
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = ic_platform::candid::contract::encode_args(()).map_err(|error| {
-        NnsGovernanceError::CandidEncode {
-            message: "()",
-            reason: error.to_string(),
-        }
-    })?;
-    let bytes = call_bytes(method, arg).await?;
-    decode_response(&bytes, response_message)
-}
-
-#[expect(
-    clippy::future_not_send,
-    reason = "IC canister futures run on one thread"
-)]
-pub async fn call_with_arg<Arg, Response>(
-    method: &'static str,
-    request_message: &'static str,
-    response_message: &'static str,
-    arg: &Arg,
-) -> Result<Response, NnsGovernanceError>
-where
-    Arg: CandidType,
-    Response: for<'de> Deserialize<'de> + CandidType,
-{
-    let arg = ic_platform::candid::contract::encode_one(arg).map_err(|error| {
-        NnsGovernanceError::CandidEncode {
-            message: request_message,
-            reason: error.to_string(),
-        }
-    })?;
-    let bytes = call_bytes(method, arg).await?;
-    decode_response(&bytes, response_message)
 }
 
 async fn call_bytes(method: &'static str, arg: Vec<u8>) -> Result<Vec<u8>, NnsGovernanceError> {

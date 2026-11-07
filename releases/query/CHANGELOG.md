@@ -5,6 +5,34 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.93.4]
+
+### 🧹 Cleanup
+
+- Share typed NNS Governance operations between native and canister adapters,
+  and centralize continuation source checks, accounting and lifecycle validation.
+  Preserve transport admission, bounded calls, family paging rules and public
+  contracts. [Details](0.93.md).
+- Remove SNS cache-report forwarding layers and keep native Governance query
+  execution in its adapter while preserving public report and source paths.
+  [Details](0.93.md).
+
+### 🩹 Fixed
+
+- Adopt Shared Tooling 0.31.3, including the Bash 3.2 tool-setup fix and clear
+  LOC diagnostics when cleanup removes active scratch inputs. Preserve checksum
+  NUL rejection and backend failure status.
+  [#115](https://github.com/dragginzgame/ic-query/issues/115). [Details](0.93.md).
+- Give the compiled Governance fixture an explicit finite PocketIC request
+  timeout for Testkit 0.90, retaining its protocol, provenance and cleanup
+  assertions. [#116](https://github.com/dragginzgame/ic-query/issues/116).
+  [Details](0.93.md).
+
+### ⬆️ Dependencies
+
+- Update the locked graph to Build 0.77.0, Platform 0.23.5, Wire 0.17.6 and Testkit 0.90.0
+  without changing public APIs or schema-1 contracts. [Details](0.93.md).
+
 ## [0.93.3] - 2026-11-06
 
 ### 🔧 Tooling

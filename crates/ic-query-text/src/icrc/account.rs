@@ -201,29 +201,20 @@ pub fn icrc_account_transaction_cache_status_report_text(
     ));
     match report.cache.as_ref() {
         Some(ic_query::icrc::IcrcAccountTransactionCacheSummary::Valid { data: cache }) => {
-            lines.extend([
-                "cache_status: valid".to_string(),
-                "cache_error: -".to_string(),
-                field("index_canister_id", &(cache.index_canister_id)),
-                field("transaction_count", &(cache.transaction_count)),
-                field(
-                    "newest_transaction_id",
-                    &(optional_text(cache.newest_transaction_id.as_ref())),
-                ),
-                field(
-                    "oldest_transaction_id",
-                    &(optional_text(cache.oldest_transaction_id.as_ref())),
-                ),
-                field("page_size", &(cache.page_size)),
-                field("page_count", &(cache.page_count)),
-                "complete: true".to_string(),
-                field(
-                    "point_in_time_guaranteed",
-                    &(cache.point_in_time_guaranteed),
-                ),
-                field("collection_started_at", &cache.collection_started_at),
-                field("collection_completed_at", &cache.collection_completed_at),
-            ]);
+            lines.extend(crate::text_value::report_fields!(cache;
+                cache_status = "valid",
+                cache_error = "-",
+                index_canister_id,
+                transaction_count,
+                newest_transaction_id = optional_text(cache.newest_transaction_id.as_ref()),
+                oldest_transaction_id = optional_text(cache.oldest_transaction_id.as_ref()),
+                page_size,
+                page_count,
+                complete = true,
+                point_in_time_guaranteed,
+                collection_started_at,
+                collection_completed_at,
+            ));
         }
         Some(ic_query::icrc::IcrcAccountTransactionCacheSummary::Invalid {
             cache_path,

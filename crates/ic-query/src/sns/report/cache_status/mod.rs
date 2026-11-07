@@ -7,7 +7,8 @@ use crate::{
         SNS_CACHE_COMPONENT, SnsCacheStatusReport, SnsCacheStatusRequest, SnsHostError,
         cache_attempt::read_sns_refresh_attempt_status_strict,
         cache_paths::{sns_snapshot_cache_paths, sns_snapshot_network_cache_dir},
-        enforce_mainnet_network, load_sns_cache_summary_at,
+        cache_summary::load_sns_cache_summary_at,
+        enforce_mainnet_network,
         target::parse_governance_canister_input,
     },
 };

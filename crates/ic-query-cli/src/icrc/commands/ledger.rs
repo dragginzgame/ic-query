@@ -4,7 +4,7 @@
 //! Does not own: typed option extraction, command dispatch, report construction, or output.
 //! Boundary: keeps metadata, capability, transaction, archive, and certificate commands together.
 
-use crate::cli::clap::with_options;
+use super::with_ledger_options as with_options;
 use crate::cli::common::{COLLECTION_MODE_LIVE, collection_help};
 use clap::Command as ClapCommand;
 

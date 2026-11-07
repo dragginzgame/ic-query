@@ -1,80 +1,47 @@
-use ic_query::cloud_engine::CLOUD_ENGINE_NODE_INCLUDED_STATUSES;
-use ic_query::cloud_engine::CLOUD_ENGINE_NODE_REWARD_TYPE;
+use ic_query::{
+    cloud_engine::{
+        CLOUD_ENGINE_NODE_INCLUDED_STATUSES, CLOUD_ENGINE_NODE_REWARD_TYPE,
+        CloudEngineNodeInfoReport, CloudEngineNodeInfoRequest, CloudEngineNodeListReport,
+        CloudEngineNodeListRequest, CloudEngineNodeRow, CloudEngineNodeType,
+        CloudEngineOperatorReport, CloudEnginePriceRow, CloudEnginePricesReport,
+        CloudEngineProviderInfoReport, CloudEngineProviderInfoRequest,
+        CloudEngineProviderListReport, CloudEngineProviderListRequest, CloudEngineProviderLocation,
+        CloudEngineProviderRow, CloudEngineReportContext,
+        DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT, DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT,
+        MAINNET_CLOUD_ENGINE_CANISTER_ID, MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS,
+        MAX_CLOUD_ENGINE_DOMAINS, MAX_CLOUD_ENGINE_NODE_ROWS, MAX_CLOUD_ENGINE_PRICE_ROWS,
+        MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS, MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS,
+    },
+    ic::{IcDashboardReportProvenance, IcNodeStatusCounts},
+};
 #[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEngineHostError;
-use ic_query::cloud_engine::CloudEngineNodeInfoReport;
-use ic_query::cloud_engine::CloudEngineNodeInfoRequest;
+use ic_query::{
+    cloud_engine::{
+        CloudEngineHostError, CloudEngineOperatorBindingSource,
+        CloudEngineOperatorBindingSourceData, CloudEngineOperatorSourceData,
+        CloudEnginePricesSourceData, CloudEngineSource,
+        build_cloud_engine_operator_report_with_source,
+        build_cloud_engine_prices_report_with_source,
+    },
+    report::CollectionSourceRequest,
+};
 #[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineNodeInfoSourceData;
-use ic_query::cloud_engine::CloudEngineNodeListReport;
-use ic_query::cloud_engine::CloudEngineNodeListRequest;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineNodeListSourceData;
-use ic_query::cloud_engine::CloudEngineNodeRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineNodeSource;
-use ic_query::cloud_engine::CloudEngineNodeType;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEngineOperatorBindingSource;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEngineOperatorBindingSourceData;
-use ic_query::cloud_engine::CloudEngineOperatorReport;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEngineOperatorSourceData;
-use ic_query::cloud_engine::CloudEnginePriceRow;
-use ic_query::cloud_engine::CloudEnginePricesReport;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEnginePricesSourceData;
-use ic_query::cloud_engine::CloudEngineProviderInfoReport;
-use ic_query::cloud_engine::CloudEngineProviderInfoRequest;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineProviderInfoSourceData;
-use ic_query::cloud_engine::CloudEngineProviderListReport;
-use ic_query::cloud_engine::CloudEngineProviderListRequest;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineProviderListSourceData;
-use ic_query::cloud_engine::CloudEngineProviderLocation;
-use ic_query::cloud_engine::CloudEngineProviderRow;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::CloudEngineProviderSource;
-use ic_query::cloud_engine::CloudEngineReportContext;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::CloudEngineSource;
-use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_DASHBOARD_SOURCE_ENDPOINT;
-use ic_query::cloud_engine::DEFAULT_CLOUD_ENGINE_SOURCE_ENDPOINT;
-use ic_query::cloud_engine::MAINNET_CLOUD_ENGINE_CANISTER_ID;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_CYCLE_DECIMAL_DIGITS;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_DOMAINS;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_NODE_ROWS;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PRICE_ROWS;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PROVIDER_LOCATIONS;
-use ic_query::cloud_engine::MAX_CLOUD_ENGINE_PROVIDER_SOURCE_ROWS;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_node_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_node_list_report_with_source;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::build_cloud_engine_operator_report_with_source;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::cloud_engine::build_cloud_engine_prices_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_provider_info_report_with_source;
-#[cfg(feature = "dashboard-host")]
-use ic_query::cloud_engine::build_cloud_engine_provider_list_report_with_source;
-use ic_query::ic::IcDashboardReportProvenance;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcHostError;
-use ic_query::ic::IcNodeStatusCounts;
-#[cfg(feature = "dashboard-host")]
-use ic_query::ic::IcSourceRequest;
-#[cfg(feature = "cloud-engine-host")]
-use ic_query::report::CollectionSourceRequest;
-use ic_query_text::cloud_engine::cloud_engine_node_info_report_text;
-use ic_query_text::cloud_engine::cloud_engine_node_list_report_text;
-use ic_query_text::cloud_engine::cloud_engine_operator_report_text;
-use ic_query_text::cloud_engine::cloud_engine_prices_report_text;
-use ic_query_text::cloud_engine::cloud_engine_provider_info_report_text;
-use ic_query_text::cloud_engine::cloud_engine_provider_list_report_text;
+use ic_query::{
+    cloud_engine::{
+        CloudEngineNodeInfoSourceData, CloudEngineNodeListSourceData, CloudEngineNodeSource,
+        CloudEngineProviderInfoSourceData, CloudEngineProviderListSourceData,
+        CloudEngineProviderSource, build_cloud_engine_node_info_report_with_source,
+        build_cloud_engine_node_list_report_with_source,
+        build_cloud_engine_provider_info_report_with_source,
+        build_cloud_engine_provider_list_report_with_source,
+    },
+    ic::{IcHostError, IcSourceRequest},
+};
+use ic_query_text::cloud_engine::{
+    cloud_engine_node_info_report_text, cloud_engine_node_list_report_text,
+    cloud_engine_operator_report_text, cloud_engine_prices_report_text,
+    cloud_engine_provider_info_report_text, cloud_engine_provider_list_report_text,
+};
 
 const SUBNET_ID: &str = "2nl67-oqoc5-cmocj-otlhq-kr2kr-53hov-drrds-7ihcs-fhomv-2eyvu-6qe";
 const OPERATOR_ID: &str = "wlnge-zyaaa-aaabw-aaaaa-cai";

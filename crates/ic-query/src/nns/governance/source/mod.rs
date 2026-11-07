@@ -9,6 +9,17 @@ pub mod canister;
 #[cfg(feature = "nns-host")]
 pub mod host;
 
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+mod query;
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+pub(in crate::nns) use query::GovernanceQuery;
+
 use super::{
     NnsGovernanceEconomics, NnsGovernanceError, NnsGovernanceMaturityModulation,
     NnsGovernanceMetrics, NnsGovernanceRequest, NnsGovernanceRewardEvent,

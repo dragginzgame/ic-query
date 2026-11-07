@@ -107,9 +107,11 @@ The Make targets select its required `cli` feature for both setup and offline
 checks; library-only Testkit consumers leave that feature disabled.
 Testkit owns authenticated server setup, offline admission and managed launch
 under `.tools/testkit-server/`; these are separate from the common tool bundle.
-Testkit 0.85's client requires an explicit server URL. Query's
-`PocketIcStartupConfig::build_instance` supplies the managed endpoint; the client
-never discovers, downloads or launches a server implicitly.
+Testkit's client requires an explicit server URL and a positive finite request
+timeout. Query's `PocketIcStartupConfig::build_instance` supplies the managed
+endpoint; the fixture selects a five-minute request timeout independently of
+its one-minute startup deadline. The client never discovers, downloads or
+launches a server implicitly.
 
 `canister-test` builds the probe under `target/testkit/` and compiles the native
 test executable before starting PocketIC. It then runs the selected ignored test

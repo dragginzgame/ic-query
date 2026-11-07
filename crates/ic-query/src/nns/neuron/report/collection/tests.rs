@@ -1,5 +1,39 @@
 use super::*;
+use crate::nns::governance::NnsGovernanceSourceProvenance;
 use crate::nns::governance::{NnsGovernanceError, validate_governance_time_interval};
+
+#[test]
+fn restored_collection_requires_complete_pages_until_short_terminal_page() {
+    let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 100);
+    let initial = NnsNeuronCollectionState::new(&request, 2, 3).unwrap();
+    for (pages, rows, cursor, has_source, valid) in [
+        (0, 0, None, false, true),
+        (0, 0, Some(10), false, false),
+        (1, 2, Some(10), true, true),
+        (1, 1, Some(10), true, false),
+        (1, 1, None, true, true),
+        (1, 2, None, true, false),
+        (1, 1, None, false, false),
+        (3, 6, Some(10), true, true),
+        (3, 5, Some(10), true, false),
+    ] {
+        let mut state = initial.clone();
+        state.collection.pages_fetched = pages;
+        state.collection.source =
+            has_source.then(
+                || NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+                    collector_canister_id: "aaaaa-aa".to_string(),
+                },
+            );
+        state.neurons_fetched = rows;
+        state.next_start_neuron_id = cursor;
+        assert_eq!(
+            validate_collection_state(&state).is_ok(),
+            valid,
+            "pages={pages}, rows={rows}, cursor={cursor:?}, source={has_source}"
+        );
+    }
+}
 
 struct UnexpectedSource;
 impl NnsNeuronSource for UnexpectedSource {

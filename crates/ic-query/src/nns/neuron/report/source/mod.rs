@@ -9,10 +9,11 @@
     all(feature = "canister", target_arch = "wasm32")
 ))]
 use crate::nns::governance::{GovernanceError, NnsGovernanceNeuronId};
-#[cfg(all(feature = "canister", target_arch = "wasm32"))]
-mod canister;
-#[cfg(feature = "nns-host")]
-mod host;
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+mod query;
 
 use crate::report::ReportProvenance;
 

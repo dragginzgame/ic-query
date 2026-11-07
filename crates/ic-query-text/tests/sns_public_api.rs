@@ -116,14 +116,7 @@ mod host {
         .await
         .unwrap();
         assert_eq!(live.neurons, [neuron()]);
-        let root = crate::support::scratch_root().join(format!(
-            "ic-query-neuron-api-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
+        let root = crate::support::temp_root("ic-query-neuron-api");
         let refresh = refresh_sns_neurons_cache_with_source_and_progress(
             &SnsSnapshotRefreshRequest::new(&root, target.clone(), 2),
             &source,

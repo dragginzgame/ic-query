@@ -68,7 +68,10 @@ fn token_options_parse_through_clap() {
 
     assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
     assert_eq!(options.format(), OutputFormat::Json);
-    assert_eq!(options.source_endpoint, SOURCE_ENDPOINT);
+    assert_eq!(
+        options.into_ledger_request(0).1.source_endpoint,
+        SOURCE_ENDPOINT
+    );
 }
 
 #[test]
@@ -128,37 +131,51 @@ fn allowance_options_parse_through_clap_and_normalize_subaccounts() {
 
 #[test]
 fn account_transaction_page_options_parse_arbitrary_nat_cursor() {
-    let (format, options) = parse_test_options(
-        icrc_account_transaction_page_command(),
-        &[
-            LEDGER_CANISTER_ID,
-            ACCOUNT_OWNER,
-            "--index-canister-id",
-            INDEX_CANISTER_ID,
-            "--subaccount",
-            SUBACCOUNT,
-            "--start",
-            "18446744073709551616",
-            "--limit",
-            "42",
-            "--json",
-            "--source-endpoint",
-            SOURCE_ENDPOINT,
-        ],
-        |matches| account_transaction_page_request(matches, 123),
-    );
+    for (cursor, expected) in [
+        ("0", "0"),
+        ("000", "0"),
+        ("18446744073709551616", "18446744073709551616"),
+        ("00018446744073709551616", "18446744073709551616"),
+    ] {
+        let (format, options) = parse_test_options(
+            icrc_account_transaction_page_command(),
+            &[
+                LEDGER_CANISTER_ID,
+                ACCOUNT_OWNER,
+                "--index-canister-id",
+                INDEX_CANISTER_ID,
+                "--subaccount",
+                SUBACCOUNT,
+                "--start",
+                cursor,
+                "--limit",
+                "42",
+                "--json",
+                "--source-endpoint",
+                SOURCE_ENDPOINT,
+            ],
+            |matches| account_transaction_page_request(matches, 123),
+        );
 
-    assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
-    assert_eq!(
-        options.index_canister_id.as_deref(),
-        Some(INDEX_CANISTER_ID)
-    );
-    assert_eq!(options.account_owner, ACCOUNT_OWNER);
-    assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
-    assert_eq!(options.start.as_deref(), Some("18446744073709551616"));
-    assert_eq!(options.limit, 42);
-    assert_eq!(format, OutputFormat::Json);
-    assert_eq!(options.ledger.source_endpoint, SOURCE_ENDPOINT);
+        assert_eq!(options.ledger.ledger_canister_id, LEDGER_CANISTER_ID);
+        assert_eq!(
+            options.index_canister_id.as_deref(),
+            Some(INDEX_CANISTER_ID)
+        );
+        assert_eq!(options.account_owner, ACCOUNT_OWNER);
+        assert_eq!(options.subaccount_hex.as_deref(), Some(SUBACCOUNT));
+        assert_eq!(options.start.as_deref(), Some(expected));
+        assert_eq!(options.limit, 42);
+        assert_eq!(format, OutputFormat::Json);
+        assert_eq!(options.ledger.source_endpoint, SOURCE_ENDPOINT);
+    }
+    for cursor in ["", "-1", "+1", "1_000", "١", " 1"] {
+        let argument = format!("--start={cursor}");
+        let error = icrc_account_transaction_page_command()
+            .try_get_matches_from(["page", LEDGER_CANISTER_ID, ACCOUNT_OWNER, &argument])
+            .unwrap_err();
+        assert_eq!(error.kind(), clap::error::ErrorKind::ValueValidation);
+    }
 }
 
 #[test]
@@ -417,7 +434,10 @@ fn analytics_indexed_count_options_reuse_the_shared_ledger_target() {
 
         assert_eq!(options.ledger_canister_id, LEDGER_CANISTER_ID);
         assert_eq!(options.format(), OutputFormat::Json);
-        assert_eq!(options.source_endpoint, "https://example.com/api/v2");
+        assert_eq!(
+            options.into_dashboard_request(0).1.source_endpoint,
+            "https://example.com/api/v2"
+        );
     }
 }
 

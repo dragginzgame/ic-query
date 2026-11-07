@@ -1,5 +1,32 @@
 use super::*;
+use crate::nns::governance::NnsGovernanceSourceProvenance;
 use crate::nns::governance::{NnsGovernanceError, validate_governance_time_interval};
+
+#[test]
+fn restored_collection_preserves_full_terminal_pages_and_cursor_validation_order() {
+    let request = NnsGovernanceRequest::replicated_inter_canister_call_from_unix_secs("ic", 100);
+    let initial = NnsProposalCollectionState::new(&request, 2, 3).unwrap();
+    let mut state = initial;
+    state.collection.pages_fetched = 1;
+    state.collection.source = Some(NnsGovernanceSourceProvenance::ReplicatedInterCanisterCall {
+        collector_canister_id: "aaaaa-aa".to_string(),
+    });
+    state.proposals_fetched = 2;
+    assert!(validate_collection_state(&state).is_ok());
+
+    state.next_before_proposal_id = Some(1);
+    assert!(matches!(
+        validate_collection_state(&state),
+        Err(NnsProposalError::InvalidCollectionState { reason })
+            if reason.contains("next_before_proposal_id")
+    ));
+    state.proposals_fetched = 3;
+    assert!(matches!(
+        validate_collection_state(&state),
+        Err(NnsProposalError::InvalidCollectionState { reason })
+            if reason.contains("proposals_fetched")
+    ));
+}
 
 struct UnexpectedSource;
 impl NnsProposalSource for UnexpectedSource {

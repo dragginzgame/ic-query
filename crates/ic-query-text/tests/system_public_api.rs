@@ -1,25 +1,16 @@
+use ic_query::system::cmc::{
+    CYCLES_PER_XDR, CmcCertification, CmcCyclesReport, CmcIcpXdrConversionRate, CmcReportContext,
+    CmcXdrReport, DEFAULT_CMC_SOURCE_ENDPOINT, MAINNET_CMC_CANISTER_ID,
+};
 #[cfg(feature = "cmc-host")]
-use ic_query::report::CollectionSourceRequest;
-use ic_query::system::cmc::CYCLES_PER_XDR;
-use ic_query::system::cmc::CmcCertification;
-#[cfg(feature = "cmc-host")]
-use ic_query::system::cmc::CmcCertifiedRate;
-use ic_query::system::cmc::CmcCyclesReport;
-#[cfg(feature = "cmc-host")]
-use ic_query::system::cmc::CmcHostError;
-use ic_query::system::cmc::CmcIcpXdrConversionRate;
-use ic_query::system::cmc::CmcReportContext;
-#[cfg(feature = "cmc-host")]
-use ic_query::system::cmc::CmcSource;
-use ic_query::system::cmc::CmcXdrReport;
-use ic_query::system::cmc::DEFAULT_CMC_SOURCE_ENDPOINT;
-use ic_query::system::cmc::MAINNET_CMC_CANISTER_ID;
-#[cfg(feature = "cmc-host")]
-use ic_query::system::cmc::build_cmc_cycles_report_with_source;
-#[cfg(feature = "cmc-host")]
-use ic_query::system::cmc::build_cmc_xdr_report_with_source;
-use ic_query_text::system::cmc::cmc_cycles_report_text;
-use ic_query_text::system::cmc::cmc_xdr_report_text;
+use ic_query::{
+    report::CollectionSourceRequest,
+    system::cmc::{
+        CmcCertifiedRate, CmcHostError, CmcSource, build_cmc_cycles_report_with_source,
+        build_cmc_xdr_report_with_source,
+    },
+};
+use ic_query_text::system::cmc::{cmc_cycles_report_text, cmc_xdr_report_text};
 
 #[test]
 fn public_cmc_reports_are_constructible_serializable_and_renderable() {

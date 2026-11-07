@@ -10,10 +10,11 @@
 ))]
 use crate::nns::governance::GovernanceProposalId;
 use crate::report::ReportProvenance;
-#[cfg(all(feature = "canister", target_arch = "wasm32"))]
-mod canister;
-#[cfg(feature = "nns-host")]
-mod host;
+#[cfg(any(
+    feature = "nns-host",
+    all(feature = "canister", target_arch = "wasm32")
+))]
+mod query;
 
 use super::{
     NNS_PROPOSAL_MAX_PAGE_SIZE, NnsProposalError,

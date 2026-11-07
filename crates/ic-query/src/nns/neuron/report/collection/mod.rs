@@ -14,8 +14,8 @@ use super::{
 #[cfg(feature = "nns-host")]
 use crate::nns::LiveNnsSource;
 use crate::nns::governance::{
-    GovernanceCollectionState, NnsGovernanceCollectionStatus, NnsGovernanceRequest,
-    governance_collection_accessors, validate_governance_continuation, validate_governance_request,
+    GovernanceCollectionState, NnsGovernanceRequest, governance_collection_accessors,
+    validate_governance_continuation, validate_governance_request,
 };
 use serde::{Deserialize, Serialize};
 
@@ -131,29 +131,17 @@ pub async fn advance_nns_neuron_collection_with_source(
     let mut page_request = NnsNeuronListRequest::new(request.clone(), state.collection.page_size);
     page_request.exclusive_start_neuron_id = state.next_start_neuron_id;
     let page = build_nns_neuron_list_report_with_source(&page_request, source).await?;
-    if let Some(expected) = &state.collection.source
-        && *expected != page.context.source
-    {
-        return Err(NnsNeuronError::CollectionSourceChanged {
-            expected: expected.clone(),
-            actual: page.context.source,
-        });
-    }
-
-    let (pages_fetched, neurons_fetched) = crate::nns::governance::advance_collection_counts(
-        state.collection.pages_fetched,
+    let (collection, neurons_fetched) = state.collection.after_page(
+        request,
+        page.context.source.clone(),
         state.neurons_fetched,
-        u64::try_from(page.neurons.len())
-            .map_err(|_| NnsNeuronError::CollectionAccountingOverflow)?,
-    )
-    .ok_or(NnsNeuronError::CollectionAccountingOverflow)?;
+        page.neurons.len(),
+        |expected, actual| NnsNeuronError::CollectionSourceChanged { expected, actual },
+        NnsNeuronError::CollectionAccountingOverflow,
+    )?;
     let next_start_neuron_id = page.next_start_neuron_id;
     let next_state = NnsNeuronCollectionState {
-        collection: state.collection.after_page(
-            request,
-            page.context.source.clone(),
-            pages_fetched,
-        ),
+        collection,
         neurons_fetched,
         next_start_neuron_id,
     };
@@ -173,31 +161,18 @@ pub(super) fn validate_collection_state(
     validate_page_size(state.collection.page_size)?;
 
     let neurons_fetched = state.neurons_fetched;
-    let maximum_rows = crate::nns::governance::validate_governance_collection_row_bounds(
-        "neurons_fetched",
-        neurons_fetched,
-        state.collection.pages_fetched,
-        state.collection.page_size,
-        invalid,
-    )?;
+    let maximum_rows =
+        state
+            .collection
+            .validate_row_bounds("neurons_fetched", neurons_fetched, invalid)?;
 
-    let valid_lifecycle = crate::nns::governance::collection_lifecycle_matches(
-        state.status(),
-        state.collection.pages_fetched,
-        state.collection.max_pages,
-        state.neurons_fetched,
+    state.collection.validate_lifecycle(
+        neurons_fetched,
         maximum_rows,
         state.next_start_neuron_id.is_some(),
-        state.collection.source.is_some(),
-    ) && (state.status() != NnsGovernanceCollectionStatus::Complete
-        || neurons_fetched < maximum_rows);
-    if !valid_lifecycle {
-        return Err(invalid(format!(
-            "status {} disagrees with cursor, provenance, or counters",
-            state.status()
-        )));
-    }
-    Ok(())
+        neurons_fetched < maximum_rows,
+        invalid,
+    )
 }
 
 #[cfg(test)]

@@ -17,16 +17,6 @@ use ic_query::sns::SnsCacheStatusReport;
 /// Render an SNS neuron cache-list report as human-readable text.
 #[must_use]
 pub fn sns_neurons_cache_list_report_text(report: &SnsCacheListReport) -> String {
-    sns_cache_list_report_text(report)
-}
-
-/// Render an SNS neuron cache-status report as human-readable text.
-#[must_use]
-pub fn sns_neurons_cache_status_report_text(report: &SnsCacheStatusReport) -> String {
-    sns_cache_status_report_text(report, "neuron")
-}
-
-fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
     let mut lines = Vec::from(crate::text_value::report_fields!(report;
         network,
         cache_root,
@@ -67,7 +57,9 @@ fn sns_cache_list_report_text(report: &SnsCacheListReport) -> String {
     lines.join("\n")
 }
 
-fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &str) -> String {
+/// Render an SNS neuron cache-status report as human-readable text.
+#[must_use]
+pub fn sns_neurons_cache_status_report_text(report: &SnsCacheStatusReport) -> String {
     let mut lines = Vec::from(crate::text_value::report_fields!(report;
         network,
         input,
@@ -77,15 +69,15 @@ fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &
     if let Some(cache) = report.cache.as_ref() {
         lines.push(field("cache_status", &(cache.cache_status())));
         if let Some(data) = cache.valid() {
-            lines.extend([
-                field("governance_canister_id", &(data.governance_canister_id)),
-                "complete: yes".to_string(),
-                field("row_count", &(data.row_count)),
-                field("page_count", &(data.page_count)),
-                field("page_size", &(data.page_size)),
-                field("fetched_at", &data.fetched_at),
-                field("source_endpoint", &data.source_endpoint),
-            ]);
+            lines.extend(crate::text_value::report_fields!(data;
+                governance_canister_id,
+                complete = "yes",
+                row_count,
+                page_count,
+                page_size,
+                fetched_at,
+                source_endpoint,
+            ));
         }
         lines.push(field("cache_path", &cache.cache_path));
         lines.push(field("refresh_attempt_path", &cache.refresh_attempt_path));
@@ -96,7 +88,7 @@ fn sns_cache_status_report_text(report: &SnsCacheStatusReport, refresh_family: &
         lines.push(field("expected_cache_path", &report.expected_cache_path));
         lines.push(field("refresh_attempt_path", &report.refresh_attempt_path));
         lines.push(format!(
-            "refresh_hint: icq sns {refresh_family} refresh {}",
+            "refresh_hint: icq sns neuron refresh {}",
             terminal_text(&report.input)
         ));
     }

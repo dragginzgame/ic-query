@@ -2,7 +2,7 @@
 
 use super::{
     NnsGovernanceCollectionStatus, NnsGovernanceError, NnsGovernanceRequest,
-    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection,
+    NnsGovernanceSourceProvenance, NnsGovernanceSourceSelection, advance_collection_counts,
     validate_governance_collection_identity, validate_governance_collection_page_bounds,
     validate_source_provenance,
 };
@@ -86,18 +86,94 @@ impl GovernanceCollectionState {
         }
     }
 
-    pub(in crate::nns) fn after_page(
+    pub(in crate::nns) fn validate_row_bounds<Error>(
+        &self,
+        field: &str,
+        rows: u64,
+        invalid: impl FnOnce(String) -> Error,
+    ) -> Result<u64, Error> {
+        // Widen before multiplication: both operands originate as u32.
+        let maximum = u64::from(self.pages_fetched) * u64::from(self.page_size);
+        let minimum = u64::from(self.pages_fetched.saturating_sub(1)) * u64::from(self.page_size);
+        if rows < minimum || rows > maximum {
+            return Err(invalid(format!(
+                "{field} {rows} is outside {minimum}..={maximum} for {} pages of size {}",
+                self.pages_fetched, self.page_size
+            )));
+        }
+        Ok(maximum)
+    }
+
+    pub(in crate::nns) fn validate_lifecycle<Error>(
+        &self,
+        rows: u64,
+        maximum_rows: u64,
+        has_cursor: bool,
+        complete_page_valid: bool,
+        invalid: impl FnOnce(String) -> Error,
+    ) -> Result<(), Error> {
+        let status = self.status(has_cursor);
+        let has_source = self.source.is_some();
+        let valid = match status {
+            NnsGovernanceCollectionStatus::Ready => {
+                self.pages_fetched == 0 && rows == 0 && !has_cursor && !has_source
+            }
+            NnsGovernanceCollectionStatus::Collecting => {
+                self.pages_fetched > 0
+                    && self.pages_fetched < self.max_pages
+                    && rows == maximum_rows
+                    && has_cursor
+                    && has_source
+            }
+            NnsGovernanceCollectionStatus::Complete => {
+                // Neurons require a short terminal page; proposals may exhaust a full page.
+                self.pages_fetched > 0 && !has_cursor && has_source && complete_page_valid
+            }
+            NnsGovernanceCollectionStatus::PageLimitReached => {
+                self.pages_fetched == self.max_pages
+                    && rows == maximum_rows
+                    && has_cursor
+                    && has_source
+            }
+        };
+        if !valid {
+            return Err(invalid(format!(
+                "status {status} disagrees with cursor, provenance, or counters"
+            )));
+        }
+        Ok(())
+    }
+
+    pub(in crate::nns) fn after_page<Error>(
         &self,
         request: &NnsGovernanceRequest,
         source: NnsGovernanceSourceProvenance,
-        pages_fetched: u32,
-    ) -> Self {
-        Self {
-            source: Some(source),
-            pages_fetched,
-            updated_at: request.fetched_at.clone(),
-            ..self.clone()
+        rows_fetched: u64,
+        page_rows: usize,
+        source_changed: impl FnOnce(
+            NnsGovernanceSourceProvenance,
+            NnsGovernanceSourceProvenance,
+        ) -> Error,
+        overflow: Error,
+    ) -> Result<(Self, u64), Error> {
+        if let Some(expected) = &self.source
+            && *expected != source
+        {
+            return Err(source_changed(expected.clone(), source));
         }
+        let counts = u64::try_from(page_rows).ok().and_then(|page_rows| {
+            advance_collection_counts(self.pages_fetched, rows_fetched, page_rows)
+        });
+        let (pages_fetched, rows_fetched) = counts.ok_or(overflow)?;
+        Ok((
+            Self {
+                source: Some(source),
+                pages_fetched,
+                updated_at: request.fetched_at.clone(),
+                ..self.clone()
+            },
+            rows_fetched,
+        ))
     }
 }
 
