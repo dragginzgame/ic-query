@@ -5,7 +5,7 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
-## [0.94.0]
+## [0.94.0] - 2026-11-07
 
 ### ⚠️ Breaking
 
