@@ -5,6 +5,28 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.94.0]
+
+### ⚠️ Breaking
+
+- Adopt Platform 0.24.0. Certificate decode errors now carry Platform 0.24’s
+  typed parse source; callers that name or downcast it must select that version.
+  Report schemas, commands and bounded decoding behavior remain unchanged.
+  [Details](0.94.md).
+
+### ⬆️ Dependencies
+
+- Adopt Build 0.78.0 and Host Artifacts, FS, HTTP and Process 0.75.0.
+  Align Host Tools 0.84.0 with that Foundation family while retaining cache
+  admission, bounded HTTP reads and Governance build/recovery behavior.
+  [Details](0.94.md).
+
+### 🩹 Fixed
+
+- Adopt Shared Tooling 0.31.5. Isolate inherited release settings in the
+  release-command checker and verify outer batch and captured inner dispatch
+  without running a real release from the fixture. [Details](0.94.md).
+
 ## [0.93.4] - 2026-11-07
 
 ### 🧹 Cleanup

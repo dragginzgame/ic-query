@@ -9,7 +9,8 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-21 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected native paths use Platform 0.23.6 for Query and Host Tools 0.83.0,
+The selected native paths use Platform 0.24.0 for Query. Host Tools 0.84.0
+and Testkit 0.90.0 retain their required Platform 0.23.6 facade,
 reaching Agent 0.49.3 → elliptic-curve 0.13.8
 → crypto-bigint 0.5.5,
 including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
@@ -49,6 +50,29 @@ qualification or a correction of the retained dependency. The selected lockfile
 subsequently advanced only Platform to 0.23.6; it retains the same affected Agent
 path. The maintainer renewed this Query-only acceptance through 2026-11-20 UTC.
 The gate refuses from 2026-11-21 UTC, and all other dependency checks remain active.
+
+On 2026-11-07, the Platform 0.24.0 adoption on the 0.93.4 release source
+was reviewed with Cargo.lock SHA-256 `08b5e8968cc18637b8a84df78c142506101fc2e533c73d47be4179890e81ca7b`.
+Locked, offline native graph inspection still reaches Agent 0.49.3 →
+elliptic-curve 0.13.8 → crypto-bigint 0.5.5. The two Platform facade versions
+resolve to the same Agent and canonical Principal supplier identities. Removing
+Platform’s separate offline derivation capability does not remove Agent’s
+affected crypto path. This adoption neither fixes the advisory nor renews its
+acceptance; refusal remains scheduled for 2026-11-21 UTC.
+
+On 2026-11-07, the subsequent Build 0.78.0 and Host Foundation 0.75.0
+adoption was reviewed with Cargo.lock SHA-256
+`36bf98741480210cac49b656ef8c61469bff0195c3693db1247868421b6ea38a`. The locked, offline
+native graph retains Host Tools 0.83.0, Agent 0.49.3, elliptic-curve 0.13.8
+and crypto-bigint 0.5.5. The bounded Host HTTP, filesystem and build updates
+do not replace that Agent crypto path or extend the 2026-11-21 review deadline.
+
+On 2026-11-07, the Host Tools 0.84.0 release candidate was reviewed with
+Cargo.lock SHA-256 `fc42e486a0c62338abd814018bee2028cd35b532a2f91afdf81a92c27b538ed5`.
+The locked native graph keeps Agent 0.49.3 → elliptic-curve 0.13.8 →
+crypto-bigint 0.5.5. Host Tools now shares Foundation 0.75 with Query;
+Testkit retains its separate Foundation 0.74 dependencies. This supplier
+alignment does not correct the advisory or extend the existing acceptance.
 
 Query's built-in clients use `src/agent/mod.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.
