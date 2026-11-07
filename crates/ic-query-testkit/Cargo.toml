@@ -2,7 +2,7 @@
 name = "ic-query-testkit"
 edition.workspace = true
 rust-version.workspace = true
-version = "0.94.0"
+version = "0.95.0"
 license.workspace = true
 publish = false
 
