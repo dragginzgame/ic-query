@@ -48,7 +48,7 @@ run_case() {
   printf '%s\n' "$status" > "$work_dir/$review_date.status"
 }
 
-for review_date in 2026-11-07 2026-11-08 invalid; do
+for review_date in 2026-11-21 2026-11-22 invalid; do
   run_case
   [[ "$status" == 2 ]] || fail "returned $status instead of expiry refusal status 2"
   grep -Fq 'acceptance requires review' "$work_dir/$review_date.log" \
@@ -59,7 +59,7 @@ for review_date in 2026-11-07 2026-11-08 invalid; do
 done
 
 # The preceding day admits explicit preparation; its original failure must survive.
-review_date=2026-11-06
+review_date=2026-11-20
 run_case
 [[ "$status" == 53 ]] || fail "preparation failure returned $status instead of 53"
 printf 'fetch\n' > "$work_dir/expected-trace"

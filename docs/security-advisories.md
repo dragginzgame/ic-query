@@ -3,12 +3,13 @@
 ## RUSTSEC-2026-0387
 
 Accepted on 2026-10-24 at the maintainer's direction to retain upstream IC
-versions. Review by **2026-11-07**, and on the next Platform/Agent adoption.
+versions; renewed with explicit maintainer approval on 2026-11-07 for Query
+only. Review by **2026-11-21**, and on the next Platform/Agent adoption.
 This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
-2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
+2026-11-21 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected native paths use Platform 0.23.5 for Query and Host Tools 0.83.0,
+The selected native paths use Platform 0.23.6 for Query and Host Tools 0.83.0,
 reaching Agent 0.49.3 → elliptic-curve 0.13.8
 → crypto-bigint 0.5.5,
 including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
@@ -44,8 +45,10 @@ requires crypto-bigint >=0.7.6; the published Agent line requires elliptic-curve
 0.13, so no compatible Agent correction is available. Platform 0.23.6, published
 during review, retains that Agent requirement. Current source observations
 below narrow the Query-owned operation scope, but are not a timing/CPU
-qualification or a correction of the retained dependency. This review does not
-renew the acceptance or extend its deadline; the expired gate remains active.
+qualification or a correction of the retained dependency. The selected lockfile
+subsequently advanced only Platform to 0.23.6; it retains the same affected Agent
+path. The maintainer renewed this Query-only acceptance through 2026-11-20 UTC.
+The gate refuses from 2026-11-21 UTC, and all other dependency checks remain active.
 
 Query's built-in clients use `src/agent/mod.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.

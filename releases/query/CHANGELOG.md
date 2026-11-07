@@ -19,6 +19,9 @@ Baseline version: `0.85.0`.
 
 ### 🩹 Fixed
 
+- Renew the existing Query-only RUSTSEC-2026-0387 acceptance through 20 November
+  UTC after maintainer review; retain refusal from 21 November and all other
+  dependency checks. The affected dependency remains. [Details](0.93.md).
 - Keep fixture-lifecycle checks independent of the wall clock while retaining
   explicit dependency-advisory expiry tests and the real release guard.
   [Details](0.93.md).
@@ -33,7 +36,7 @@ Baseline version: `0.85.0`.
 
 ### ⬆️ Dependencies
 
-- Update the locked graph to Build 0.77.0, Platform 0.23.5, Wire 0.17.6 and Testkit 0.90.0
+- Update the locked graph to Build 0.77.0, Platform 0.23.6, Wire 0.17.6 and Testkit 0.90.0
   without changing public APIs or schema-1 contracts. [Details](0.93.md).
 
 ## [0.93.3] - 2026-11-06

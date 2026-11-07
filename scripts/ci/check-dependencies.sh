@@ -10,8 +10,8 @@ machete="$2"
 
 # Keep the temporary upstream-alignment acceptance subject to explicit review.
 review_date="$(date -u +%Y-%m-%d)"
-if [[ ! "$review_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ || "$review_date" > 2026-11-06 ]]; then
-  echo 'RUSTSEC-2026-0387 acceptance requires review by 2026-11-07; see docs/security-advisories.md' >&2
+if [[ ! "$review_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ || "$review_date" > 2026-11-20 ]]; then
+  echo 'RUSTSEC-2026-0387 acceptance requires review by 2026-11-21; see docs/security-advisories.md' >&2
   exit 2
 fi
 
@@ -34,7 +34,7 @@ bash "$repo_root/scripts/ci/prepare-rustsec-db.sh" online \
   https://github.com/RustSec/advisory-db.git "$work_dir/rustsec" > /dev/null
 
 # RUSTSEC-2026-0387: temporary upstream-alignment acceptance; review by
-# 2026-11-07. Scope, residual signing risk and removal: docs/security-advisories.md.
+# 2026-11-21. Scope, residual signing risk and removal: docs/security-advisories.md.
 "$audit" audit --no-fetch --db "${work_dir}/rustsec/db" --deny warnings \
   --ignore RUSTSEC-2021-0127 \
   --ignore RUSTSEC-2024-0436 \
