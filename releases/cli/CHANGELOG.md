@@ -23,6 +23,9 @@ Baseline version: `0.85.0`.
 
 ### 🩹 Fixed
 
+- Keep fixture-lifecycle checks independent of the wall clock while retaining
+  explicit dependency-advisory expiry tests and the real release guard.
+  [Details](0.93.md).
 - Adopt Shared Tooling 0.31.3, including the Bash 3.2 tool-setup fix and clear
   LOC diagnostics when cleanup removes active scratch inputs. Preserve checksum
   NUL rejection and backend failure status.

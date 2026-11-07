@@ -12,8 +12,15 @@ fixture_complete=false
 trap 'fixture_finish "$?" "$work_dir" "Fixture completion diagnostics retained"' EXIT
 export TMPDIR="${work_dir%/*}"
 
-mkdir -p "$work_dir/scripts/ci" "$work_dir/attempts"
+mkdir -p "$work_dir/scripts/ci" "$work_dir/attempts" "$work_dir/bin"
 cp "$repo_root/scripts/ci/fixture-lifecycle.sh" "$work_dir/scripts/ci/"
+# Exercise lifecycle handlers on an admitted historical day. The separate
+# dependency-review fixture qualifies expiry refusal before any allocation.
+cat > "$work_dir/bin/date" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' 2026-11-06
+STUB
+chmod +x "$work_dir/bin/date"
 mkdir "$work_dir/redirected-attempts"
 printf 'unrelated evidence\n' > "$work_dir/redirected-attempts/payload"
 ln -s "$work_dir/attempts" "$work_dir/relative-parent"
@@ -55,7 +62,7 @@ PROBE
       COMPLETION_MODE="$mode" COMPLETION_DIRECTORY="$work_dir/directory" \
         CDPATH="$work_dir" COMPLETION_ALIAS="$work_dir/relative-parent" \
         COMPLETION_OTHER_PARENT="$work_dir/redirected-attempts" \
-        TMPDIR=relative-parent "$BASH" "$work_dir/scripts/ci/$owner.sh" ${arguments[@]+"${arguments[@]}"}
+        TMPDIR=relative-parent PATH="$work_dir/bin:$PATH" "$BASH" "$work_dir/scripts/ci/$owner.sh" ${arguments[@]+"${arguments[@]}"}
     ) > "$work_dir/$owner-$mode.log" 2>&1 || status=$?
     [[ "$(cat "$work_dir/redirected-attempts/payload")" == 'unrelated evidence' ]] || exit 1
     selected="$(cat "$work_dir/directory")"

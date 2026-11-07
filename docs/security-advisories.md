@@ -8,7 +8,7 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-07 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected native paths use Platform 0.22.0 for Query and Host Tools 0.82.0,
+The selected native paths use Platform 0.23.5 for Query and Host Tools 0.83.0,
 reaching Agent 0.49.3 → elliptic-curve 0.13.8
 → crypto-bigint 0.5.5,
 including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
@@ -36,12 +36,25 @@ remain unchanged. This is a dependency/source review, not a new acceptance or
 side-channel qualification; release admission separately runs the current-feed
 audit.
 
+On 2026-11-07, the pending 0.93.4 source at `13e12a4f` was reviewed with
+Cargo.lock SHA-256 `bcb22487cb5d64cf8dc331eb9d2b5c7350d973d486eb56bfcaeb71da7e94b0e7`.
+Locked, offline native graph inspection still reaches Agent 0.49.3,
+elliptic-curve 0.13.8 and crypto-bigint 0.5.5. The current RustSec record still
+requires crypto-bigint >=0.7.6; the published Agent line requires elliptic-curve
+0.13, so no compatible Agent correction is available. Platform 0.23.6, published
+during review, retains that Agent requirement. Current source observations
+below narrow the Query-owned operation scope, but are not a timing/CPU
+qualification or a correction of the retained dependency. This review does not
+renew the acceptance or extend its deadline; the expired gate remains active.
+
 Query's built-in clients use `src/agent/mod.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.
 Agent 0.49.3's `AnonymousIdentity::sign` produces no signature or public key.
-Query does not load signing keys. However, library interfaces accept configured
-Agents and dispatch queries through them; caller-supplied ECDSA identities can
-exercise secret arithmetic. Their exposure is not excluded by this review.
+Query does not load signing keys. Earlier reviews recorded configured-Agent
+query injection; current live adapters have private Agent fields and expose
+default construction instead. Public certificate helpers accept Agents only to
+authenticate certificates and witnesses, without issuing signed requests. These
+source observations do not establish a blanket exemption for Agent consumers.
 
 The [advisory](https://rustsec.org/advisories/RUSTSEC-2026-0387.html) concerns
 secret-dependent timing, with exploitability dependent on operations, compiler,
