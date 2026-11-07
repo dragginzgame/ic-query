@@ -24,6 +24,8 @@ Baseline version: `0.85.0`.
 
 ### 🩹 Fixed
 
+- Keep frozen-batch fixture detail-note ownership aligned with its simulated
+  release, including when Query has a pending minor. [Details](0.94.md).
 - Adopt Shared Tooling 0.31.5. Isolate inherited release settings in the
   release-command checker and verify outer batch and captured inner dispatch
   without running a real release from the fixture. [Details](0.94.md).

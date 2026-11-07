@@ -124,9 +124,15 @@ FROZEN_PLATFORM=$("$root/.tools/host/bin/yq" -p toml -o json -r '.package[] | se
 for group in query cli; do
   version=$(make -s --no-print-directory -C "$FROZEN_NORMAL" release-version "RELEASE_GROUP=$group")
   next=$(perl "$root/scripts/ci/validate-release-inputs.pl" next-version "$version" patch)
+  detail="releases/$group/${next%.*}.md"
   printf '%s\n' "$next" > "$FROZEN_RECORD/$group-version"
   printf '# Frozen fixture\n\n## [%s]\n\n- Qualify consumer hooks.\n' "$next" > "$FROZEN_NORMAL/releases/$group/CHANGELOG.md"
-  printf '# Frozen fixture\n\n## %s\n\n- Qualify consumer hooks.\n' "$next" > "$FROZEN_NORMAL/releases/$group/${next%.*}.md"
+  printf '# Frozen fixture\n\n## %s\n\n- Qualify consumer hooks.\n' "$next" > "$FROZEN_NORMAL/$detail"
+  # Simulated patch notes must not inherit the consumer's pending minor ownership.
+  jq --arg group "$group" --arg detail "$detail" \
+    '.groups |= map(if .name == $group then .metadata_files = [$detail] else . end)' \
+    "$FROZEN_NORMAL/ci/cargo-release-groups.json" > "$FROZEN_RECORD/group-policy"
+  mv "$FROZEN_RECORD/group-policy" "$FROZEN_NORMAL/ci/cargo-release-groups.json"
 done
 [[ ! -e "$FROZEN_NORMAL/.tools" ]]
 git init -q -b main "$FROZEN_NORMAL"
