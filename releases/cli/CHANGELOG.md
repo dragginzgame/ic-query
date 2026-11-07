@@ -7,6 +7,19 @@ package versions or claiming an earlier publication.
 
 Baseline version: `0.85.0`.
 
+## [0.95.0]
+
+### ⚠️ Breaking
+
+- Align rendering and certificate integration with Query’s Host Tools 0.85
+  boundary. CLI commands and output remain unchanged. [Details](0.95.md).
+
+### ⬆️ Dependencies
+
+- Adopt Testkit 0.92.0 and Wire 0.17.10. Use one
+  Platform 0.24 and Foundation 0.75 family throughout native qualification,
+  removing the older transitive copies. [Details](0.95.md).
+
 ## [0.94.0] - 2026-11-07
 
 ### ⚠️ Breaking

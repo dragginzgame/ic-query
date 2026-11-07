@@ -9,8 +9,8 @@ This is a temporary risk acceptance, not a vulnerability fix or a finding that
 all library consumers are unaffected. The dependency gate refuses execution from
 2026-11-21 UTC until the acceptance is explicitly reviewed or removed.
 
-The selected native paths use Platform 0.24.0 for Query. Host Tools 0.84.0
-and Testkit 0.90.0 retain their required Platform 0.23.6 facade,
+The selected native paths use one Platform 0.24.0 facade for Query,
+Host Tools 0.85.0 and Testkit 0.92.0,
 reaching Agent 0.49.3 → elliptic-curve 0.13.8
 → crypto-bigint 0.5.5,
 including Agent's k256/p256 paths. elliptic-curve requires crypto-bigint 0.5;
@@ -73,6 +73,13 @@ The locked native graph keeps Agent 0.49.3 → elliptic-curve 0.13.8 →
 crypto-bigint 0.5.5. Host Tools now shares Foundation 0.75 with Query;
 Testkit retains its separate Foundation 0.74 dependencies. This supplier
 alignment does not correct the advisory or extend the existing acceptance.
+
+On 2026-11-07, Host Tools 0.85.0 and Testkit 0.92.0 were reviewed with
+Cargo.lock SHA-256 `2a30f34115f67d2adb534f81a88d9cc6703d160cfdae140186d2c67e77d290ce`.
+The native graph now contains only Platform 0.24.0 and Foundation 0.75;
+Agent 0.49.3 still reaches elliptic-curve 0.13.8 and crypto-bigint 0.5.5.
+Removing duplicate supplier versions does not fix the advisory or extend its
+existing 2026-11-21 review deadline.
 
 Query's built-in clients use `src/agent/mod.rs` in `crates/ic-query` and Host's
 `agent_builder`/`EndpointAgent`, retaining Agent's default anonymous identity.

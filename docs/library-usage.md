@@ -43,7 +43,7 @@ The usual downstream shape is:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["host"] }
+ic-query = { version = "0.95", default-features = false, features = ["host"] }
 ```
 
 Use `host` for native tools that need live calls, filesystem caches, refresh
@@ -66,7 +66,7 @@ the native host graph, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["canister"] }
+ic-query = { version = "0.95", default-features = false, features = ["canister"] }
 ```
 
 `canister` exposes `CanisterNnsSource` on `wasm32` and does not enable `host`,
@@ -263,7 +263,7 @@ node-status cache, use the independent Dashboard feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["dashboard-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["dashboard-host"] }
 ```
 
 `dashboard-host` exposes `LiveIcSource`, Dashboard custom-source traits and
@@ -281,7 +281,7 @@ state feature:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["ic-state-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["ic-state-host"] }
 ```
 
 `ic-state-host` exposes `LiveIcStateSource`, `IcApiBoundaryNodeSource`, the
@@ -295,7 +295,7 @@ For authenticated Cycle Minting Canister ICP/XDR and cycles reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["cmc-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["cmc-host"] }
 ```
 
 `cmc-host` exposes `LiveCmcSource`, `CmcSource`, report builders, and certified
@@ -308,7 +308,7 @@ For public CloudEngine operator and marketplace reports, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["cloud-engine-host"] }
 ```
 
 `cloud-engine-host` exposes `LiveCloudEngineSource`, `CloudEngineSource`, and
@@ -326,7 +326,7 @@ For the Registry-backed CloudEngine inventory, enable both authority features
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["cloud-engine-host", "subnet-catalog-host"] }
 ```
 
 CloudEngine marketplace rows use `CloudEngineNodeType` directly for Candid and
@@ -342,7 +342,7 @@ account-history caches, use:
 
 ```toml
 [dependencies]
-ic-query = { version = "0.90", default-features = false, features = ["icrc-host"] }
+ic-query = { version = "0.95", default-features = false, features = ["icrc-host"] }
 ```
 
 `icrc-host` exposes `LiveIcrcSource`, its report-specific source traits and
@@ -1409,7 +1409,7 @@ rendering, a direct frontend query can be simpler and cheaper.
 The `certificate-host` feature exposes `certificate::authenticate` and
 `authenticate_hash_tree`. Supply a configured
 Agent whose trust root matches the intended network, and an explicit combined
-wire-byte allowance. Host's IC Agent codec owns CBOR nesting admission through
+wire-byte allowance. Platform’s strict CBOR codec owns nesting admission through
 its built-in recursion limit; Query exposes no depth override. A witness commitment alone is insufficient:
 authenticate the certificate before trusting its leaves.
 
@@ -1421,7 +1421,7 @@ chain verifier. Consumers use `LedgerBlock`, `BlockEvidenceLimits` and
 `BoundedLedgerBlocks` directly from Host with an explicit dependency:
 
 ```toml
-ic-host-tools = { version = "0.31.1", default-features = false, features = ["ledger-evidence"] }
+ic-host-tools = { version = "0.85.0", default-features = false, features = ["ledger-evidence"] }
 ```
 
 ```rust

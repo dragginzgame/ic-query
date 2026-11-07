@@ -5,6 +5,20 @@ baseline is 0.85.0; earlier coordinated releases remain in [shared history](../h
 
 Baseline version: `0.85.0`.
 
+## [0.95.0]
+
+### ⚠️ Breaking
+
+- Adopt Host Tools 0.85.0: authenticated ledger tips now use that version’s
+  public `LedgerTip` identity. Callers passing tips to Host’s verifier must align
+  their Host Tools dependency. [Details](0.95.md).
+
+### ⬆️ Dependencies
+
+- Adopt Testkit 0.92.0 and Wire 0.17.10. Use one
+  Platform 0.24 and Foundation 0.75 family throughout native qualification,
+  removing the older transitive copies. [Details](0.95.md).
+
 ## [0.94.0] - 2026-11-07
 
 ### ⚠️ Breaking

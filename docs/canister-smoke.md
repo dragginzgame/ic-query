@@ -115,7 +115,7 @@ launches a server implicitly.
 
 `canister-test` builds the probe under `target/testkit/` and compiles the native
 test executable before starting PocketIC. It then runs the selected ignored test
-through `ic-testkit-server run`, with separate 300-second hard and idle lifetimes.
+through `ic-testkit run`, with separate 300-second hard and idle lifetimes.
 Cold compilation therefore does not consume the managed server lifetime. It never
 downloads a server during validation. An explicitly selected `POCKET_IC_BIN` or
 `IC_TESTKIT_POCKET_IC_URL` conflicts with this managed directory selection and
@@ -470,15 +470,15 @@ probe Wire contract, metadata and receipts. No artifact cache, deployment or run
 The workspace catalog labels `Production dependencies` and `Tests and tooling
 only`. The latter contains `ic-build`, `ic-host-process`, `ic-testkit` and `ic-wire`.
 Platform owns required external Candid decoding; the private probe and native
-callers use Wire. Query selects Platform 0.23.0, Types 0.18.1 and Runtime 0.19.2.
-Host Tools 0.83.0 and Testkit 0.89.0 select the same Platform 0.23
-generation and canonical Types, external Candid and Runtime identities. Testkit
+callers use Wire. Query, Host Tools 0.85.0 and Testkit 0.92.0 select Platform
+0.24.0, Types 0.18.2 and Runtime 0.19.5. Canonical Types, external Candid,
+management DTO and Runtime identities remain shared. Testkit
 owns the native PocketIC client used by the private fixture through
 `ic_testkit::pocket_ic`, matching its extension traits and management DTO 0.11
 identity. The separate `ic-platform-pocket-ic`
 dependency is retired. Query owns its report arithmetic without Metrics.
 External Candid/PocketIC Principal bytes retain their explicit boundary, and the
-probe codec selects Wire 0.17.2 for Query’s existing string frames and budgets.
+probe codec selects locked Wire 0.17.10 for Query’s existing string frames and budgets.
 The prepared server remains PocketIC 16.1.0.
 Native IC packet fixtures select Platform's `ic-protocol-fixtures` only through
 a native development dependency. Query has no direct CBOR codec dependency or

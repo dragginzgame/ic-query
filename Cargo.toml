@@ -38,7 +38,7 @@ thiserror = "2.0"
 # Production and test dependencies
 ic-host-artifacts = { version = "0.75.0", default-features = false }
 ic-host-fs = { version = "0.75.0", default-features = false }
-ic-host-tools = { version = "0.84.0", default-features = false }
+ic-host-tools = { version = "0.85.0", default-features = false }
 ic-platform = { version = "0.24.0", default-features = false, features = ["candid"] }
 reqwest = { version = "0.13.4", default-features = false }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
@@ -50,7 +50,7 @@ url = "2.5.8"
 futures = { version = "0.3", default-features = false }
 ic-build = "0.78.0"
 ic-host-process = { version = "0.75.0", default-features = false }
-ic-testkit = "0.90.0"
+ic-testkit = "0.92.0"
 ic-wire = "0.17.2"
 libc = "0.2"
 time = { version = "0.3", features = ["formatting"] }
