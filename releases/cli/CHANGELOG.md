@@ -2,6 +2,62 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.3] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### 📚 Documentation
+
+- Surface copyable setup and new-command examples directly in the root changelog,
+  following Toko Tooling 0.43.1; retain detailed CLI notes here.
+- Explain how to use the reports together for Canic planning in the
+  [topology usage guide](../../docs/usage/topology.md), including evidence limits
+  and the additional inputs needed for sizing, maintenance and TEE decisions.
+
+### ➕ Added
+
+- Add `topology node show` for a selected node's registered operator, optional
+  SEV-SNP chip ID and configured HostOS. Preserve null versus empty values in JSON;
+  escape text and distinguish Registry data from verified attestation and running software.
+- Add `topology subnet membership` for registered-versus-observed node-set
+  differences. Preserve both source reports and their separate evidence; matching
+  sets do not establish live nodes, and differences are not a health verdict.
+- Add `topology subnet configuration` for Registry membership, configured replica
+  version, raw subnet type and halt flags. JSON preserves raw values; text escapes
+  the version string and distinguishes configured state from observed downtime.
+
+This development checkout uses published Platform 0.33.3; no sibling is required.
+After dependency preparation, install it with `make icq`. Reads require mainnet
+network access; the effective/running version is not resolved, including when a
+cloud engine's configured version is empty.
+
+```bash
+make icq
+icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+Membership comparison makes two sequential report reads.
+Neither text nor JSON claims an atomic snapshot:
+
+```bash
+icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+For node inventory, run these commands from the repository root after the same
+setup and installation. They make anonymous, read-only mainnet queries and print
+one record's operator, chip and HostOS data with source evidence:
+
+```bash
+icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae
+icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
+```
+
+Chip registration does not establish usable TEE protection, and an absent chip
+ID does not prove absent hardware capability. No provider/location join or
+running HostOS resolution is performed.
+
 ## [0.105.2] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

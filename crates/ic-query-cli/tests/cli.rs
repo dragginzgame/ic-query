@@ -60,7 +60,8 @@ fn topology_namespace_help_is_local_and_consistent() {
     assert!(expected.stderr.is_empty());
     let text = String::from_utf8_lossy(&expected.stdout);
     assert!(text.find("  canister ").unwrap() < text.find("  help ").unwrap());
-    assert!(text.find("  help ").unwrap() < text.find("  subnet ").unwrap());
+    assert!(text.find("  help ").unwrap() < text.find("  node ").unwrap());
+    assert!(text.find("  node ").unwrap() < text.find("  subnet ").unwrap());
     for arguments in [
         &["topology"][..],
         &["topology", "help"][..],
@@ -75,7 +76,11 @@ fn topology_namespace_help_is_local_and_consistent() {
 
 #[test]
 fn report_commands_require_valid_principals_before_network_access() {
-    for (command, placeholder) in [("canister", "CANISTER_ID"), ("subnet", "SUBNET_ID")] {
+    for (command, placeholder) in [
+        ("canister", "CANISTER_ID"),
+        ("node", "NODE_ID"),
+        ("subnet", "SUBNET_ID"),
+    ] {
         for arguments in [
             &["topology", command, "show"][..],
             &["topology", command, "show", "invalid"][..],
@@ -91,21 +96,26 @@ fn report_commands_require_valid_principals_before_network_access() {
         let text = String::from_utf8_lossy(&help.stdout);
         assert!(text.contains("--json"));
         assert!(text.contains(placeholder));
+        if command == "node" {
+            assert!(text.contains("not verified attestation"));
+        }
     }
 }
 
 #[test]
 fn entity_namespace_help_is_local_and_consistent() {
-    for entity in ["canister", "subnet"] {
+    for entity in ["canister", "node", "subnet"] {
         let expected = run(&["topology", entity, "--help"]);
         assert!(expected.status.success());
         assert!(expected.stderr.is_empty());
         let text = String::from_utf8_lossy(&expected.stdout);
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
         if entity == "subnet" {
-            assert!(text.find("  activity ").unwrap() < text.find("  help ").unwrap());
+            assert!(text.find("  activity ").unwrap() < text.find("  configuration ").unwrap());
+            assert!(text.find("  configuration ").unwrap() < text.find("  help ").unwrap());
             assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
-            assert!(text.find("  list ").unwrap() < text.find("  metrics ").unwrap());
+            assert!(text.find("  list ").unwrap() < text.find("  membership ").unwrap());
+            assert!(text.find("  membership ").unwrap() < text.find("  metrics ").unwrap());
             assert!(text.find("  metrics ").unwrap() < text.find("  show ").unwrap());
         }
         for arguments in [
@@ -151,6 +161,48 @@ fn subnet_metrics_requires_a_typed_identity_and_discloses_its_scope() {
         &["topology", "subnet", "metrics"][..],
         &["topology", "subnet", "metrics", "invalid"][..],
         &["topology", "subnet", "metrics", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn subnet_configuration_requires_an_identity_and_discloses_configured_state() {
+    let help = run(&["topology", "subnet", "configuration", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(text.contains("SUBNET_ID"));
+    assert!(text.contains("--json"));
+    assert!(text.contains("not running state"));
+    for arguments in [
+        &["topology", "subnet", "configuration"][..],
+        &["topology", "subnet", "configuration", "invalid"][..],
+        &["topology", "subnet", "configuration", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn subnet_membership_help_and_invalid_arguments_remain_local() {
+    let help = run(&["topology", "subnet", "membership", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(text.contains("SUBNET_ID"));
+    assert!(text.contains("--json"));
+    assert!(text.contains("not an atomic snapshot"));
+    for arguments in [
+        &["topology", "subnet", "membership"][..],
+        &["topology", "subnet", "membership", "invalid"][..],
+        &["topology", "subnet", "membership", "--unknown"][..],
     ] {
         let output = run(arguments);
         assert_eq!(output.status.code(), Some(2));

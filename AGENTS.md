@@ -14,7 +14,10 @@ initial topology phase: the [placement](docs/design/canister-placement.md),
 [Registry inventory](docs/design/subnet-list.md) and
 [resource metrics](docs/design/subnet-metrics.md) and
 [two-sample activity](docs/design/subnet-activity.md) contracts own the selected
-mainnet reports and their limits. Further report implementation
+mainnet reports and their limits. The [configuration report](docs/design/subnet-configuration.md)
+and [membership comparison](docs/design/subnet-membership.md), plus the
+[node inventory](docs/design/node-inventory.md), use published
+Platform capabilities. Further report implementation
 requires a concrete Canic decision and source contract.
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
@@ -154,7 +157,8 @@ scope instead of concealing it behind a workaround. This is a focused review of
 the patch, not an instruction to rerun unrelated suites or audit other repositories.
 
 Keep root `CHANGELOG.md` as the navigation index for the group ledgers declared
-in `ci/cargo-release-groups.json`; release notes belong to their owning group.
+in `ci/cargo-release-groups.json`, including the baseline's required CLI quick
+starts. Detailed release notes belong to their owning group.
 Include copyable command examples in fenced `bash` blocks in the owning ledger,
 especially every added or changed `icq` command in `releases/cli/CHANGELOG.md`. Use actual
 public subnet and canister IDs whenever required, not placeholders such as

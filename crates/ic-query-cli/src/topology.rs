@@ -24,6 +24,21 @@ pub(crate) fn command() -> Command {
                 ),
         )
         .subcommand(
+            Command::new("node")
+                .about("Inspect one node's registered configuration")
+                .subcommand(
+                    Command::new("show")
+                        .about("Read Registry operator, chip ID and configured HostOS; not verified attestation")
+                        .arg(
+                            Arg::new("node")
+                                .value_name("NODE_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(json_argument()),
+                ),
+        )
+        .subcommand(
             Command::new("subnet")
                 .about("Inspect subnet topology")
                 .subcommand(
@@ -45,8 +60,30 @@ pub(crate) fn command() -> Command {
                         .arg(json_argument()),
                 )
                 .subcommand(
+                    Command::new("configuration")
+                        .about("Read Registry membership, configured version and halt flags; not running state")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
                     Command::new("list")
                         .about("List registered subnet IDs from the mainnet NNS Registry")
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("membership")
+                        .about("Compare registered members and observed node keys; not an atomic snapshot")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
                         .arg(json_argument()),
                 )
                 .subcommand(
@@ -91,6 +128,39 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<String, Box<dyn std::err
         .subcommand()
         .expect("entrypoint handles namespace help");
     match (entity, action) {
+        ("node", "show") => {
+            let id = *arguments
+                .get_one::<Principal>("node")
+                .expect("required typed argument");
+            let report = ic_topology::node::fetch(id).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::node(&report))
+            }
+        }
+        ("subnet", "membership") => {
+            let id = *arguments
+                .get_one::<Principal>("subnet")
+                .expect("required typed argument");
+            let report = ic_topology::subnet::membership::fetch(id).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::subnet_membership(&report))
+            }
+        }
+        ("subnet", "configuration") => {
+            let id = *arguments
+                .get_one::<Principal>("subnet")
+                .expect("required typed argument");
+            let report = ic_topology::subnet::configuration::fetch(id).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::subnet_configuration(&report))
+            }
+        }
         ("subnet", "activity") => {
             let subnet_id = *arguments
                 .get_one::<Principal>("subnet")

@@ -24,13 +24,22 @@ The [subnet metrics report](docs/design/subnet-metrics.md) adds certified raw
 resource values for one subnet, without inferring spare capacity or uptime.
 The [activity report](docs/design/subnet-activity.md) compares two certified
 message totals with a bounded wait, preserving both observations without a health verdict.
+The [configuration report](docs/design/subnet-configuration.md) adds registered
+membership, configured replica version and halt flags using published Platform.
+The [membership comparison](docs/design/subnet-membership.md) retains that
+configuration and a separate certified node-key observation, exposing differences
+without treating matching sets as proof of live nodes or an atomic snapshot.
+The [node report](docs/design/node-inventory.md) reads one node's registered
+operator, optional SEV-SNP chip ID and configured HostOS version. It supplies
+no verified attestation or running-software claim.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
 
 The retained restart baseline is **0.104**. The specialist libraries start at
 `0.104.0`; the incompatible CLI replacement's GitHub baseline is `0.105.0`, after
-the published legacy CLI `0.104.1`. Pending next versions are in the group ledgers.
+the published legacy CLI `0.104.1`. Current group versions and delivery history
+are in the group ledgers.
 GitHub delivery does not imply crates.io publication or waive consumer migration.
 
 After preparing the tools described in [setup](docs/development/setup.md):
@@ -55,6 +64,7 @@ accepted. The subnet report authenticates returned node-key identities but does
 not establish complete Registry membership, node liveness or capacity.
 
 - [Architecture and open report decisions](docs/design/0.104-restart.md)
+- [Using topology evidence for Canic decisions](docs/usage/topology.md)
 - [Development and qualification](docs/development/setup.md)
 - [Release-group notes](CHANGELOG.md)
 - [CLI release notes and copyable examples](releases/cli/CHANGELOG.md)

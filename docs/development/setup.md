@@ -10,6 +10,12 @@ The root virtual workspace contains `ic-topology`, `ic-sns-migration` and
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+The [configuration integration](../design/subnet-configuration.md) and
+[membership comparison](../design/subnet-membership.md) use published Platform
+0.33.3 and Types 0.20.4, also supplying the
+[node report](../design/node-inventory.md). The temporary sibling-path selections have been removed;
+dependency preparation requires no sibling checkout.
+
 ## Preparation
 
 Use Bash, GNU Make, Git, Perl with core modules and a SHA-256 backend. Install the
@@ -106,16 +112,18 @@ check explicitly and record its endpoint and result separately from offline test
 ## Tooling provenance
 
 Independent groups own their release notes in `releases/<group>/CHANGELOG.md`;
-root `CHANGELOG.md` is navigation only. Copyable CLI examples belong alongside
-the affected release in the [CLI ledger](../../releases/cli/CHANGELOG.md), using
-actual public IDs. This follows the installed baseline's pinned
+root `CHANGELOG.md` is the navigation index and includes a short `▶️ Try it`
+section identifying the affected CLI group/version. Keep setup, runnable commands
+and expected results directly in that root quick start, with detailed examples
+in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
+This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.43.0** was verified as the latest stable, non-yanked registry
+Toko Tooling **0.43.1** was verified as the latest stable, non-yanked registry
 release on 2026-11-14. Its authenticated archive SHA-256 is:
 
 ```text
-060d3507b66eb290ce12bc2572098f7e7cb1e12e9d6697a9b1a5d1552fcb2588
+467162f616caafe69c965fe4e96173a0df37256f4767bfefd28114781aad76b3
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the eight selected roots and
@@ -125,7 +133,7 @@ interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
 
 See the release-pinned
-[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/bd24a0b7bc95b20a849b16f63d77f6551ff48ab4/docs/adoption/consuming-snapshots.md)
-and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/bd24a0b7bc95b20a849b16f63d77f6551ff48ab4/docs/adoption/make-interface.md).
+[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/b50aeb42a9e23fca22f08bb0c31cd19b728e8591/docs/adoption/consuming-snapshots.md)
+and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/b50aeb42a9e23fca22f08bb0c31cd19b728e8591/docs/adoption/make-interface.md).
 Refresh through the authenticated exporter with the complete retained entrypoint
 set and review its preview. Never edit managed files or the receipt by hand.

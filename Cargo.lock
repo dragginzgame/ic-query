@@ -1121,9 +1121,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.33.1"
+version = "0.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d780999e8b7e89cf9f3f78c979daaaf0299127451d904636867c61b56cd233c"
+checksum = "74c6e194ce3a80487320edef0041e286fd89d6d96e8a9f641811c7e38b856e51"
 dependencies = [
  "ic-agent",
  "ic-platform-types",
@@ -1134,9 +1134,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-types"
-version = "0.20.3"
+version = "0.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6985b97bc8996c25cedccf61fc3147b6494aad620daabea6bbfa06287c02ec1a"
+checksum = "a8df2753db752bd0c29fa87353b98613465a5f0c5269b6fb8dd0e45ea5c12a22"
 dependencies = [
  "crc32fast",
  "data-encoding",
@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.2"
+version = "0.105.3"
 dependencies = [
  "clap",
  "ic-platform-types",
@@ -1166,7 +1166,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.105.0"
+version = "0.105.1"
 dependencies = [
  "ic-platform",
  "ic-platform-types",
@@ -2474,9 +2474,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.43.0"
+version = "0.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "060d3507b66eb290ce12bc2572098f7e7cb1e12e9d6697a9b1a5d1552fcb2588"
+checksum = "467162f616caafe69c965fe4e96173a0df37256f4767bfefd28114781aad76b3"
 
 [[package]]
 name = "tower"

@@ -2,6 +2,30 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.1] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Read a selected node's registered operator, optional raw chip ID and configured
+  HostOS through published Platform 0.33.3
+  ([#160 — Add bounded Registry NodeRecord decoding](https://github.com/dragginzgame/ic-platform/issues/160)).
+  Retain optional presence, bounded values and mutation evidence without
+  inferring attestation, usable hardware, liveness or provider relations.
+- Compare registered members with separately observed certified node keys.
+  Retain both reports, bounded set differences and explicit non-atomicity;
+  preserve configuration on a second-read failure without inferring node health.
+- Add bounded Registry subnet configuration: registered members, raw configured
+  replica version and subnet type, and halt flags. Preserve schema defaults and
+  unknown values; distinguish configuration from running software or downtime.
+- Use published Platform for bounded Registry subnet-record decoding
+  ([#159 — Add bounded Registry SubnetRecord decoding](https://github.com/dragginzgame/ic-platform/issues/159)).
+  Remove the temporary Platform and Types sibling paths. Platform 0.33.3 requires
+  Types 0.20.4; retain one shared registry identity and the existing Registry limits.
+  Platform 0.33.3, Types 0.20.4 and Toko Tooling 0.43.1 were verified as the latest
+  stable, non-yanked first-party selections at this delivery review.
+
 ## [0.105.0] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

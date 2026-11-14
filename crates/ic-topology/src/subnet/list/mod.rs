@@ -8,16 +8,10 @@ use ic_platform_types::{Principal, PrincipalError};
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::mainnet::{REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD};
 use crate::{ReadError, mainnet};
 
-const METHOD: &str = "get_value";
 const KEY: &str = "subnet_list";
-const LIMITS: protobuf::Limits = protobuf::Limits {
-    bytes: 64 * 1024,
-    fields: 4096,
-    allocation: 128 * 1024,
-    items: 1024,
-};
 
 /// Every registered subnet in one returned Registry record.
 #[derive(Debug, Serialize)]

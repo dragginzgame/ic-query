@@ -1,10 +1,103 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 
+use std::fmt::Write;
+
+use ic_topology::node::NodeReport;
 use ic_topology::placement::PlacementReport;
 use ic_topology::subnet::SubnetReport;
 use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
+use ic_topology::subnet::configuration::SubnetConfigurationReport;
 use ic_topology::subnet::list::SubnetListReport;
+use ic_topology::subnet::membership::SubnetMembershipReport;
 use ic_topology::subnet::metrics::SubnetMetricsReport;
+
+pub(crate) fn node(report: &NodeReport) -> String {
+    let chip_id = report.chip_id.as_ref().map_or_else(
+        || "absent".to_owned(),
+        |bytes| {
+            let mut hex = String::from("0x");
+            for byte in bytes {
+                write!(hex, "{byte:02x}").expect("writing to a String cannot fail");
+            }
+            hex
+        },
+    );
+    let hostos = report
+        .hostos_version_id
+        .as_ref()
+        .map_or_else(|| "absent".to_owned(), |value| format!("{value:?}"));
+    format!(
+        "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nTEE attestation verified: {}\n\nNode: {}\nRegistered operator: {}\nRegistered SEV-SNP chip ID (hex; 0x alone means present-empty): {}\nConfigured HostOS version: {}\nRunning HostOS version: not observed\nA registered chip ID does not establish usable TEE protection, node liveness or reduced authentication requirements; absence does not prove missing hardware capability.",
+        report.evidence.endpoint,
+        report.evidence.source_canister,
+        report.evidence.source_method,
+        report.evidence.source_key,
+        report.evidence.observed_at_unix_seconds,
+        report.evidence.record_version,
+        report.evidence.record_timestamp_nanoseconds,
+        report.evidence.query_signature_verified,
+        report.evidence.result_certified,
+        report.evidence.tee_attestation_verified,
+        report.node_id,
+        report.node_operator_id,
+        chip_id,
+        hostos,
+    )
+}
+
+pub(crate) fn subnet_membership(report: &SubnetMembershipReport) -> String {
+    let registered_only = report
+        .registered_without_observed_key
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let observed_only = report
+        .observed_key_without_registration
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "Atomic snapshot: {}\nRegistered IDs without an observed key ({}):\n{}\nObserved key IDs absent from the returned Registry record ({}):\n{}\nDifferences may reflect transitions, source age or coverage; matching sets do not establish live nodes.\n\nRegistry observation:\n{}\n\nSubnet-certified observation:\n{}",
+        report.atomic_snapshot,
+        report.registered_without_observed_key.len(),
+        registered_only,
+        report.observed_key_without_registration.len(),
+        observed_only,
+        subnet_configuration(&report.configuration),
+        subnet(&report.observation),
+    )
+}
+
+pub(crate) fn subnet_configuration(report: &SubnetConfigurationReport) -> String {
+    let nodes = report
+        .registered_node_ids
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nReturned record membership complete: {}\n\nSubnet: {}\nRegistered subnet type (raw): {}\nConfigured replica version: {:?}\nEffective/running version: not resolved (empty configuration can use a separate cloud-engine record)\nConfigured is_halted: {}\nConfigured halt_at_cup_height: {}\nHalt flags do not establish observed downtime or a reached CUP height.\nRegistered node identities ({}):\n{}",
+        report.evidence.endpoint,
+        report.evidence.source_canister,
+        report.evidence.source_method,
+        report.evidence.source_key,
+        report.evidence.observed_at_unix_seconds,
+        report.evidence.record_version,
+        report.evidence.record_timestamp_nanoseconds,
+        report.evidence.query_signature_verified,
+        report.evidence.result_certified,
+        report.evidence.membership_complete,
+        report.subnet_id,
+        report.registered_subnet_type,
+        report.replica_version_id,
+        report.is_halted,
+        report.halt_at_cup_height,
+        report.registered_node_ids.len(),
+        nodes,
+    )
+}
 
 pub(crate) fn subnet_activity(report: &SubnetActivityReport) -> String {
     let change = match report.message_change {

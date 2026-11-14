@@ -4,10 +4,18 @@ use std::future::Future;
 use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
 
 use ic_platform::agent::{Agent, AgentError, AnonymousIdentity};
+use ic_platform::nns_registry_types::protobuf;
 use thiserror::Error;
 
 pub(crate) const ENDPOINT: &str = "https://ic0.app";
 pub(crate) const REGISTRY: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
+pub(crate) const REGISTRY_METHOD: &str = "get_value";
+pub(crate) const REGISTRY_LIMITS: protobuf::Limits = protobuf::Limits {
+    bytes: 64 * 1024,
+    fields: 4096,
+    allocation: 128 * 1024,
+    items: 1024,
+};
 const DEADLINE: Duration = Duration::from_secs(20);
 const HTTP_BODY_BYTES: usize = 1024 * 1024;
 const INGRESS_EXPIRY: Duration = Duration::from_secs(300);

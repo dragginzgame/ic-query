@@ -9,11 +9,13 @@ has capacity or should be moved. It is not a complete subnet/node inventory.
 
 ## Source and boundary
 
-Use published Platform 0.32.3's `agent` and `nns-registry-types` capabilities,
-including its bounded owned codec. The supplier exposes
-`GetSubnetForCanisterRequest` and `GetSubnetForCanisterResponse`; its Registry
-surface does not yet supply full node/subnet inventory records. Those external
-contracts must be added at Platform before Query can consume them.
+Use Platform's `agent` and `nns-registry-types` capabilities, including its bounded
+owned codec. This report originally adopted published Platform 0.32.3's
+`GetSubnetForCanisterRequest` and `GetSubnetForCanisterResponse`; their source
+contract remains unchanged. The workspace also uses published Platform's
+[decoder integration](subnet-configuration.md) for additional subnet
+configuration reports. That does not expand this placement lookup or authorize
+Query-owned external protocol definitions.
 
 - Endpoint: `https://ic0.app`, mainnet only in this first slice.
 - Canister: `rwlgt-iiaaa-aaaaa-aaaaa-cai` (NNS Registry).
@@ -44,7 +46,7 @@ Use a 20-second overall asynchronous query deadline, a 1 MiB HTTP response-body
 ceiling (including Agent verification reads), a 64 KiB decoded reply-byte ceiling,
 and explicit codec header/type/work/allocation budgets. No Query retry loop;
 disable Agent TCP retries. The shared internal mainnet module owns these settings
-for both implemented reports, with an explicit 300-second Agent ingress expiry.
+for the implemented reports, with an explicit 300-second Agent ingress expiry.
 Agent may perform its own bounded-by-deadline HTTP
 retry or signature-key discovery work. Bound synchronous decoding separately.
 

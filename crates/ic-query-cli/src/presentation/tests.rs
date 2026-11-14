@@ -1,11 +1,154 @@
 use ic_platform_types::Principal;
+use ic_topology::node::{NodeEvidence, NodeReport};
 use ic_topology::placement::{PlacementEvidence, PlacementReport};
 use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
+use ic_topology::subnet::configuration::{SubnetConfigurationEvidence, SubnetConfigurationReport};
 use ic_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
+use ic_topology::subnet::membership::SubnetMembershipReport;
 use ic_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
 use ic_topology::subnet::{SubnetEvidence, SubnetReport};
 
-use super::{placement, subnet, subnet_activity, subnet_list, subnet_metrics};
+use super::{
+    node, placement, subnet, subnet_activity, subnet_configuration, subnet_list, subnet_membership,
+    subnet_metrics,
+};
+
+#[test]
+fn node_text_preserves_presence_escapes_hostos_and_disclaims_attestation() {
+    for (chip_id, hostos_version_id, expected_chip, expected_hostos) in [
+        (None, None, "absent", "absent"),
+        (Some(vec![]), Some(String::new()), "0x", "\"\""),
+        (
+            Some(vec![0, 255, 27]),
+            Some("host\n\u{1b}[31m\u{202e}".into()),
+            "0x00ff1b",
+            "\"host\\n\\u{1b}[31m\\u{202e}\"",
+        ),
+    ] {
+        let report = NodeReport {
+            schema: 1,
+            node_id: Principal::from_slice(&[1]),
+            node_operator_id: Principal::from_slice(&[2]),
+            chip_id,
+            hostos_version_id,
+            evidence: NodeEvidence {
+                endpoint: "fixture",
+                source_canister: "registry",
+                source_method: "get_value",
+                source_key: "node_record_fixture".into(),
+                observed_at_unix_seconds: 123,
+                record_version: 300,
+                record_timestamp_nanoseconds: u64::MAX,
+                query_signature_verified: false,
+                result_certified: false,
+                tee_attestation_verified: false,
+            },
+        };
+        let text = node(&report);
+        assert!(text.contains(&format!("present-empty): {expected_chip}\n")));
+        assert!(text.contains(&format!("Configured HostOS version: {expected_hostos}\n")));
+        assert!(!text.contains('\u{1b}') && !text.contains('\u{202e}'));
+        assert!(text.contains("Query signature verified: false"));
+        assert!(text.contains("Result consensus-certified: false"));
+        assert!(text.contains("TEE attestation verified: false"));
+        assert!(text.contains("Running HostOS version: not observed"));
+        assert!(text.contains("Record mutation timestamp: 18446744073709551615 Unix nanoseconds"));
+        assert!(text.contains("absence does not prove missing hardware capability"));
+    }
+}
+
+fn configuration_fixture() -> SubnetConfigurationReport {
+    SubnetConfigurationReport {
+        schema: 1,
+        subnet_id: Principal::from_slice(&[1]),
+        registered_node_ids: vec![],
+        replica_version_id: "future\n\u{1b}[31m\u{202e}".into(),
+        registered_subnet_type: -1,
+        is_halted: true,
+        halt_at_cup_height: false,
+        evidence: SubnetConfigurationEvidence {
+            endpoint: "fixture",
+            source_canister: "registry",
+            source_method: "get_value",
+            source_key: "subnet_record_fixture".into(),
+            observed_at_unix_seconds: 123,
+            record_version: 300,
+            record_timestamp_nanoseconds: u64::MAX,
+            query_signature_verified: false,
+            result_certified: false,
+            membership_complete: true,
+        },
+    }
+}
+
+#[test]
+fn configuration_text_escapes_source_version_and_distinguishes_configured_state() {
+    let mut report = configuration_fixture();
+    let text = subnet_configuration(&report);
+    assert!(text.contains("Configured replica version: \"future\\n\\u{1b}[31m\\u{202e}\""));
+    assert!(!text.contains('\u{1b}') && !text.contains('\u{202e}'));
+    assert!(text.contains("Registered subnet type (raw): -1"));
+    assert!(text.contains("Configured is_halted: true"));
+    assert!(text.contains("Configured halt_at_cup_height: false"));
+    assert!(text.contains("Query signature verified: false"));
+    assert!(text.contains("Result consensus-certified: false"));
+    assert!(text.contains("Record mutation timestamp: 18446744073709551615 Unix nanoseconds"));
+    assert!(text.contains("Halt flags do not establish observed downtime"));
+    assert!(text.ends_with("Registered node identities (0):\n"));
+    report.replica_version_id.clear();
+    report.registered_subnet_type = 5;
+    let text = subnet_configuration(&report);
+    assert!(text.contains("Configured replica version: \"\"\n"));
+    assert!(text.contains("Effective/running version: not resolved"));
+}
+
+#[test]
+fn membership_text_labels_differences_without_upgrading_source_assurance() {
+    let registered = Principal::from_slice(&[2]);
+    let observed = Principal::from_slice(&[3]);
+    let mut configuration = configuration_fixture();
+    configuration.registered_node_ids = vec![registered];
+    let mut report = SubnetMembershipReport {
+        schema: 1,
+        atomic_snapshot: false,
+        configuration,
+        observation: SubnetReport {
+            schema: 1,
+            subnet_id: Principal::from_slice(&[1]),
+            observed_node_ids: vec![observed],
+            observed_subnet_type: None,
+            evidence: SubnetEvidence {
+                endpoint: "fixture",
+                source_path: "/read_state".into(),
+                observed_at_unix_seconds: 122,
+                state_certificate_verified: false,
+                membership_complete: false,
+                registry_version: None,
+            },
+        },
+        registered_without_observed_key: vec![registered],
+        observed_key_without_registration: vec![observed],
+    };
+    let text = subnet_membership(&report);
+    assert!(text.starts_with("Atomic snapshot: false"));
+    assert!(text.contains(&format!(
+        "Registered IDs without an observed key (1):\n{registered}"
+    )));
+    assert!(text.contains(&format!(
+        "Observed key IDs absent from the returned Registry record (1):\n{observed}"
+    )));
+    assert!(text.contains("Query signature verified: false"));
+    assert!(text.contains("State certificate verified: false"));
+    assert!(text.contains("Complete Registry membership established: false"));
+    assert!(text.contains("matching sets do not establish live nodes"));
+    assert!(!text.contains('\u{1b}'));
+    report.observation.observed_node_ids = vec![registered];
+    report.registered_without_observed_key.clear();
+    report.observed_key_without_registration.clear();
+    let text = subnet_membership(&report);
+    assert!(text.contains("Registered IDs without an observed key (0):"));
+    assert!(text.contains("matching sets do not establish live nodes"));
+}
 
 #[test]
 fn activity_text_preserves_both_samples_and_avoids_health_verdicts() {

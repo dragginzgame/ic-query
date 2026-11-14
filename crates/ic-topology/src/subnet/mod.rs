@@ -11,7 +11,9 @@ use thiserror::Error;
 use crate::{ReadError, mainnet};
 
 pub mod activity;
+pub mod configuration;
 pub mod list;
+pub mod membership;
 pub mod metrics;
 
 const MAX_NODES: usize = 1024;
