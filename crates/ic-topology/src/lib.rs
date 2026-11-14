@@ -9,6 +9,7 @@
 //! [`subnet::membership`] compares registered members and observed node keys
 //! while retaining their separate evidence and non-atomic acquisition.
 //! [`node`] reads registered operator, chip and HostOS data without attestation.
+//! [`subnet::changes`] compares registered configurations without inferring events.
 //! Further topology, capability, resource, cost and change reports remain planned,
 //! including scoped uptime and subnet-maintenance evidence. Native use requires
 //! a Tokio runtime with time and IO enabled.

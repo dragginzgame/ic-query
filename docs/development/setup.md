@@ -99,11 +99,12 @@ single pinned Gitleaks history scan run separately from the host matrix. Every j
 admits snapshot bytes before preparing host tools and Rust, then admits the Cargo
 pin, members and lockfile before validation.
 
-[CI run 43582918957](https://github.com/dragginzgame/ic-query/actions/runs/43582918957)
-passed on 2026-11-14 for commit `acdac2706e664e40712ca07ed4d55bdb593b8485`:
+[CI run 43611996586](https://github.com/dragginzgame/ic-query/actions/runs/43611996586)
+passed on 2026-11-14 for commit `e8da5a9966732009a7eef3afa5f1b5f4a24d854b`:
 Clippy, Rustdoc and tests succeeded on all three hosts; formatting, snapshot and
 documentation admission, and the secret scan also passed. This qualifies the
-implemented offline contracts at that commit. Broader protocol, retained-data
+implemented offline contracts at that commit, through selected-node inventory;
+it does not qualify the subsequent subnet node collection addition. Broader protocol, retained-data
 migration and publication qualification remain future work tied to implemented contracts.
 Placement fixtures qualify decoding, projection, bounds and failures; they do not
 prove cryptographic verification or live network availability. Run any live smoke

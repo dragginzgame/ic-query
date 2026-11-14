@@ -111,12 +111,14 @@ fn entity_namespace_help_is_local_and_consistent() {
         let text = String::from_utf8_lossy(&expected.stdout);
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
         if entity == "subnet" {
-            assert!(text.find("  activity ").unwrap() < text.find("  configuration ").unwrap());
+            assert!(text.find("  activity ").unwrap() < text.find("  changes ").unwrap());
+            assert!(text.find("  changes ").unwrap() < text.find("  configuration ").unwrap());
             assert!(text.find("  configuration ").unwrap() < text.find("  help ").unwrap());
             assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
             assert!(text.find("  list ").unwrap() < text.find("  membership ").unwrap());
             assert!(text.find("  membership ").unwrap() < text.find("  metrics ").unwrap());
-            assert!(text.find("  metrics ").unwrap() < text.find("  show ").unwrap());
+            assert!(text.find("  metrics ").unwrap() < text.find("  nodes ").unwrap());
+            assert!(text.find("  nodes ").unwrap() < text.find("  show ").unwrap());
         }
         for arguments in [
             &["topology", entity][..],
@@ -128,6 +130,67 @@ fn entity_namespace_help_is_local_and_consistent() {
             assert!(output.stderr.is_empty());
             assert_eq!(output.stdout, expected.stdout);
         }
+    }
+}
+
+#[test]
+fn subnet_changes_help_and_invalid_intervals_are_local() {
+    let help = run(&["topology", "subnet", "changes", "--help"]);
+    assert!(help.status.success());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(text.contains("not a maintenance event log"));
+    assert!(text.contains("SUBNET_ID") && text.contains("--json"));
+    assert!(text.contains("[default: 10]"));
+    for arguments in [
+        &["topology", "subnet", "changes"][..],
+        &["topology", "subnet", "changes", "invalid"][..],
+        &["topology", "subnet", "changes", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+    for interval in ["0", "61", "18446744073709551615"] {
+        let output = run(&[
+            "topology",
+            "subnet",
+            "changes",
+            "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+            "--interval-seconds",
+            interval,
+            "--json",
+        ]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn subnet_nodes_requires_one_typed_identity_and_discloses_partial_exit_status() {
+    let help = run(&["topology", "subnet", "nodes", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(text.contains("SUBNET_ID"));
+    assert!(text.contains("--json"));
+    assert!(text.contains("partial output exits with status 1"));
+    for arguments in [
+        &["topology", "subnet", "nodes"][..],
+        &["topology", "subnet", "nodes", "invalid"][..],
+        &["topology", "subnet", "nodes", "--unknown"][..],
+        &[
+            "topology",
+            "subnet",
+            "nodes",
+            "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe",
+            "extra",
+        ][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
     }
 }
 

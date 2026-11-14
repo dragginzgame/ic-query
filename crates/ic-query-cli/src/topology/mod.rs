@@ -2,8 +2,14 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use ic_platform_types::Principal;
+use std::process::ExitCode;
 
 use crate::presentation;
+
+pub(crate) struct CommandOutput {
+    pub(crate) text: String,
+    pub(crate) exit_code: ExitCode,
+}
 
 pub(crate) fn command() -> Command {
     Command::new("topology")
@@ -60,6 +66,24 @@ pub(crate) fn command() -> Command {
                         .arg(json_argument()),
                 )
                 .subcommand(
+                    Command::new("changes")
+                        .about("Compare two Registry configurations; not a maintenance event log")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(
+                            Arg::new("interval-seconds")
+                                .long("interval-seconds")
+                                .help("Wait 1–60 seconds after the first read before starting the second")
+                                .default_value("10")
+                                .value_parser(value_parser!(u64)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
                     Command::new("configuration")
                         .about("Read Registry membership, configured version and halt flags; not running state")
                         .arg(
@@ -100,6 +124,17 @@ pub(crate) fn command() -> Command {
                         .arg(json_argument()),
                 )
                 .subcommand(
+                    Command::new("nodes")
+                        .about("Read registered nodes for one subnet; partial output exits with status 1")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
                     Command::new("show")
                         .about("Observe subnet type and node identities in certified state")
                         .arg(
@@ -116,18 +151,39 @@ pub(crate) fn command() -> Command {
 fn json_argument() -> Arg {
     Arg::new("json")
         .long("json")
-        .help("Print the complete report as JSON")
+        .help("Print the report and its coverage as JSON")
         .action(ArgAction::SetTrue)
 }
 
-pub(crate) async fn run(matches: &ArgMatches) -> Result<String, Box<dyn std::error::Error>> {
+pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn std::error::Error>> {
     let (entity, scope) = matches
         .subcommand()
         .expect("entrypoint handles namespace help");
     let (action, arguments) = scope
         .subcommand()
         .expect("entrypoint handles namespace help");
-    match (entity, action) {
+    if (entity, action) == ("subnet", "nodes") {
+        let id = *arguments
+            .get_one::<Principal>("subnet")
+            .expect("required typed argument");
+        let report = ic_topology::subnet::nodes::fetch(id).await?;
+        return Ok(nodes_output(&report, arguments.get_flag("json"))?);
+    }
+    let text: Result<String, Box<dyn std::error::Error>> = match (entity, action) {
+        ("subnet", "changes") => {
+            let id = *arguments
+                .get_one::<Principal>("subnet")
+                .expect("required typed argument");
+            let interval = *arguments
+                .get_one::<u64>("interval-seconds")
+                .expect("default interval");
+            let report = ic_topology::subnet::changes::fetch(id, interval).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::subnet_changes(&report))
+            }
+        }
         ("node", "show") => {
             let id = *arguments
                 .get_one::<Principal>("node")
@@ -219,5 +275,30 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<String, Box<dyn std::err
         _ => unreachable!(
             "Clap admits only declared operations; the entrypoint handles namespace help"
         ),
-    }
+    };
+    Ok(CommandOutput {
+        text: text?,
+        exit_code: ExitCode::SUCCESS,
+    })
 }
+
+fn nodes_output(
+    report: &ic_topology::subnet::nodes::SubnetNodesReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::subnet_nodes(report)
+        },
+        exit_code: if report.all_node_reads_succeeded {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+#[cfg(test)]
+mod tests;

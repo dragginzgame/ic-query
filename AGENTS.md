@@ -16,9 +16,14 @@ initial topology phase: the [placement](docs/design/canister-placement.md),
 [two-sample activity](docs/design/subnet-activity.md) contracts own the selected
 mainnet reports and their limits. The [configuration report](docs/design/subnet-configuration.md)
 and [membership comparison](docs/design/subnet-membership.md), plus the
-[node inventory](docs/design/node-inventory.md), use published
+[node inventory](docs/design/node-inventory.md) and
+[selected-subnet node collection](docs/design/subnet-nodes.md), use published
 Platform capabilities. Further report implementation
 requires a concrete Canic decision and source contract.
+The next selected slice is [provider/location distribution](docs/design/subnet-distribution.md);
+its version-pinned join contract awaits published Platform decoders.
+The independent [configuration comparison](docs/design/subnet-changes.md) uses
+the existing readers; it does not establish maintenance completion or uptime.
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
 

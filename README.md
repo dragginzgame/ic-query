@@ -32,6 +32,11 @@ without treating matching sets as proof of live nodes or an atomic snapshot.
 The [node report](docs/design/node-inventory.md) reads one node's registered
 operator, optional SEV-SNP chip ID and configured HostOS version. It supplies
 no verified attestation or running-software claim.
+The [subnet node inventory](docs/design/subnet-nodes.md) reads those records for
+one subnet's registered membership, with bounded concurrency and explicit
+per-node failures or unfinished reads.
+The [configuration comparison](docs/design/subnet-changes.md) identifies selected
+membership, replica-version and halt-flag differences across two observations.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

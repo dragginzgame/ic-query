@@ -8,7 +8,7 @@ use clap::Command;
 mod presentation;
 mod topology;
 
-fn run() -> Result<(), Box<dyn std::error::Error>> {
+fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let mut root = Command::new("icq")
         .version(env!("CARGO_PKG_VERSION"))
         .about("Read-only IC infrastructure evidence for Canic")
@@ -27,15 +27,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     if selected_command.has_subcommands() {
         selected_command.print_help()?;
-        return Ok(());
+        return Ok(ExitCode::SUCCESS);
     }
     let (_, topology) = matches.subcommand().expect("declared specialist namespace");
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
     let output = runtime.block_on(topology::run(topology))?;
-    writeln!(io::stdout().lock(), "{output}")?;
-    Ok(())
+    writeln!(io::stdout().lock(), "{}", output.text)?;
+    Ok(output.exit_code)
 }
 
 // Apply one presentation policy after Clap has generated its help commands.
@@ -45,7 +45,7 @@ fn alphabetical(command: Command) -> Command {
 
 fn main() -> ExitCode {
     match run() {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(code) => code,
         Err(error) => {
             eprintln!("icq: {error}");
             ExitCode::FAILURE

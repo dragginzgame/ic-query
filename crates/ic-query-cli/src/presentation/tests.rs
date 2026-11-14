@@ -14,6 +14,30 @@ use super::{
 };
 
 #[test]
+fn changes_text_is_compact_escapes_values_and_keeps_observation_limits() {
+    let before = configuration_fixture();
+    let mut after = configuration_fixture();
+    after.evidence.record_version += 1;
+    after.replica_version_id = "new\n\u{1b}[31m".into();
+    after.registered_node_ids = vec![Principal::from_slice(&[3])];
+    let report = ic_topology::subnet::changes::compare(before, after).unwrap();
+    let text = super::subnet_changes(&report);
+    assert!(text.contains("Selected configuration changed"));
+    assert!(text.contains("300 -> 301"));
+    assert!(text.contains("1 added, 0 removed"));
+    assert!(text.contains("Added registered nodes"));
+    assert!(text.contains("new\\n\\u{1b}[31m"));
+    assert!(!text.contains('\u{1b}') && !text.contains('\u{202e}'));
+    assert!(text.contains("not a complete change history"));
+    let report =
+        ic_topology::subnet::changes::compare(configuration_fixture(), configuration_fixture())
+            .unwrap();
+    let text = super::subnet_changes(&report);
+    assert!(text.contains("No selected configuration changes observed"));
+    assert!(!text.contains("Configured replica:"));
+}
+
+#[test]
 fn node_text_preserves_presence_escapes_hostos_and_disclaims_attestation() {
     for (chip_id, hostos_version_id, expected_chip, expected_hostos) in [
         (None, None, "absent", "absent"),

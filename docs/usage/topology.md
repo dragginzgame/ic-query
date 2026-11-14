@@ -57,6 +57,42 @@ comparison is needed, use it directly instead of also issuing the standalone
 configuration command. Each command acquires new evidence; their results are
 not an atomic snapshot.
 
+## Compare configuration observations
+
+```bash
+icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+```
+
+The second read starts ten seconds after the first completes. The wait accepts
+1–60 seconds; each read has its own 20-second deadline. Text prints changed
+configured fields and member IDs; `--json` retains both full observations.
+No selected changes is a successful result. It cannot exclude changes between
+samples or prove maintenance completion, running software or node liveness.
+Library callers can also compare two previously acquired configuration reports
+without IO through `subnet::changes::compare`.
+
+## Read the registered nodes of one subnet
+
+Collect node operator, configured HostOS and registered chip IDs for the selected
+subnet's membership. Configuration is included, so no separate configuration
+command is needed:
+
+```bash
+icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+The collection allows up to 128 members, reads in batches of four and has a
+60-second overall budget including configuration. Every registered member gets
+an outcome, including failed, cancelled and unstarted reads. Inspect
+`all_node_reads_succeeded` and each row before comparing machine configurations.
+This command prints partial evidence to stdout and exits 1 if any node read is
+unavailable. Exit 0 means all selected reads succeeded, not that nodes are live.
+Separate latest-record reads do not constitute an atomic snapshot.
+Omit `--json` for a compact table: full node IDs, operator/HostOS references,
+chip-ID presence and read status. The keys beneath the table list each distinct
+operator and configured HostOS version once. JSON retains raw chip IDs and all
+per-node evidence and timing.
+
 ## Inspect one node's registered configuration
 
 Select a node ID from subnet configuration or an independently known candidate.
@@ -84,8 +120,11 @@ the values. A Registry query signature is distinct from consensus certification;
 a local observation timestamp is distinct from certified time. Separate reports
 do not acquire a shared version merely because they were requested close together.
 
-A failed command exits unsuccessfully and emits no success JSON. Treat the
-failure as unavailable evidence, not zero usage, an empty membership or downtime.
+A failed single report exits unsuccessfully and emits no success JSON. The
+`subnet nodes` collection deliberately emits explicit partial JSON with exit 1
+after configuration succeeds; initial configuration/admission failure emits no
+report. Treat failures as unavailable evidence, not zero usage, empty membership
+or downtime.
 The library preserves typed causes; membership also retains its first report
 when the second read fails. Query adds no persistent history or background retry.
 

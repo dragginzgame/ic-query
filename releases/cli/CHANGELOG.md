@@ -2,6 +2,54 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.4] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add `topology subnet changes` for two configuration observations, with a
+  1–60-second wait (default 10). Text shows changed fields and membership only;
+  JSON retains both reports. No differences is success, not proof of stability
+  between samples. This does not implement the pending provider/location joins.
+
+- Add `topology subnet nodes` for a selected subnet's registered node inventory.
+  Show a compact table with full node IDs, operator/HostOS keys, chip-ID presence
+  and read status. Shared details and caveats appear once; JSON retains full
+  per-node evidence and raw chip IDs. Exit 1
+  while printing the partial report if any selected node could not be read;
+  configuration/admission failures produce no report. Successful reads do not
+  prove live nodes or an atomic snapshot.
+
+### ▶️ Try it
+
+From the repository root, with the [setup prerequisites](../../docs/development/setup.md):
+
+```bash
+make fetch-dependencies
+make icq
+icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+Installation refreshes Cargo's `icq` on PATH. Fetching and mainnet reads need
+network access; queries require no credentials. Each node inventory acquires
+configuration and up to 128 node records, in batches of four within 60 seconds.
+Expect registered operators, optional chip IDs, configured HostOS and source
+evidence. Inspect `all_node_reads_succeeded` and each row; partial output exits 1.
+
+Compare selected subnet configurations with the same setup:
+
+```bash
+icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+```
+
+Each command makes two configuration reads. Expect membership, configured
+replica version, raw subnet type or halt-flag differences, or an explicit
+no-selected-changes result. Both observations retain source evidence; this is
+not a complete event history, running-software check or uptime assessment.
+
 ## [0.105.3] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

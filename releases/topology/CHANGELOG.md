@@ -2,6 +2,39 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.2] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### 🔧 Dependencies
+
+- Retain the worktree's registry lock selection of Platform 0.33.4. Its Registry
+  and Agent module sources match 0.33.3; the existing compatible manifest range
+  remains valid. Platform 0.33.4, Types 0.20.4 and Toko Tooling 0.43.1 were verified
+  as the latest stable, non-yanked first-party selections at delivery review.
+  Platform's pending [#165](https://github.com/dragginzgame/ic-platform/issues/165)
+  operator/data-center/version codecs remain a separate prerequisite.
+
+### 📚 Documentation
+
+- Specify the next selected-subnet provider/location distribution contract,
+  including a common requested Registry version and explicit partial coverage.
+  Implementation awaits published Platform version/operator/data-center decoders;
+  this adds no query API or CLI command.
+
+### ➕ Added
+
+- Compare two selected-subnet configurations, supplied by the caller or acquired
+  with a bounded wait. Retain both reports, membership differences and raw-field
+  change flags; refuse regressing/conflicting versions and invalid coverage
+  without inferring running software or maintenance completion.
+
+- Collect registered node reports for one selected subnet, retaining configuration,
+  per-node typed failures and observation timing. Bound membership to 128, read
+  batches to four and overall collection to 60 seconds; distinguish completed,
+  cancelled and unstarted reads without claiming an atomic snapshot or node health.
+  See the [contract](../../docs/design/subnet-nodes.md).
+
 ## [0.105.1] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

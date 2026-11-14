@@ -1,15 +1,195 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 
+use std::collections::BTreeSet;
 use std::fmt::Write;
 
 use ic_topology::node::NodeReport;
 use ic_topology::placement::PlacementReport;
 use ic_topology::subnet::SubnetReport;
 use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
+use ic_topology::subnet::changes::SubnetChangesReport;
 use ic_topology::subnet::configuration::SubnetConfigurationReport;
 use ic_topology::subnet::list::SubnetListReport;
 use ic_topology::subnet::membership::SubnetMembershipReport;
 use ic_topology::subnet::metrics::SubnetMetricsReport;
+use ic_topology::subnet::nodes::{NodeReadOutcome, SubnetNodesReport};
+
+pub(crate) fn subnet_changes(report: &SubnetChangesReport) -> String {
+    let before = &report.before;
+    let after = &report.after;
+    let summary = if report.has_selected_changes() {
+        "Selected configuration changed"
+    } else {
+        "No selected configuration changes observed"
+    };
+    let mut text = format!(
+        "Subnet {}\n\n{}\nRecord mutation version: {} -> {}\nObserved at (Unix seconds): {} -> {}\nSources: {} -> {}\n\n",
+        before.subnet_id,
+        summary,
+        before.evidence.record_version,
+        after.evidence.record_version,
+        before.evidence.observed_at_unix_seconds,
+        after.evidence.observed_at_unix_seconds,
+        before.evidence.endpoint,
+        after.evidence.endpoint,
+    );
+    for (changed, name, old, new) in [
+        (
+            report.replica_version_changed,
+            "Configured replica",
+            format!("{:?}", before.replica_version_id),
+            format!("{:?}", after.replica_version_id),
+        ),
+        (
+            report.subnet_type_changed,
+            "Registered subnet type",
+            before.registered_subnet_type.to_string(),
+            after.registered_subnet_type.to_string(),
+        ),
+        (
+            report.is_halted_changed,
+            "Configured halt",
+            before.is_halted.to_string(),
+            after.is_halted.to_string(),
+        ),
+        (
+            report.halt_at_cup_height_changed,
+            "Configured halt at CUP",
+            before.halt_at_cup_height.to_string(),
+            after.halt_at_cup_height.to_string(),
+        ),
+    ] {
+        if changed {
+            writeln!(text, "{name}: {old} -> {new}").expect("writing to a String cannot fail");
+        }
+    }
+    writeln!(
+        text,
+        "Registered members: {} -> {} ({} added, {} removed)",
+        before.registered_node_ids.len(),
+        after.registered_node_ids.len(),
+        report.registered_nodes_added.len(),
+        report.registered_nodes_removed.len()
+    )
+    .expect("writing to a String cannot fail");
+    for (label, nodes) in [
+        ("Added", &report.registered_nodes_added),
+        ("Removed", &report.registered_nodes_removed),
+    ] {
+        if !nodes.is_empty() {
+            writeln!(text, "\n{label} registered nodes").expect("writing to a String cannot fail");
+            for id in nodes {
+                writeln!(text, "  {id}").expect("writing to a String cannot fail");
+            }
+        }
+    }
+    text.push_str("\nTwo Registry observations, not a complete change history or proof of running software, maintenance completion or uptime.\nUse --json for both full configurations and their source/verification evidence.");
+    text
+}
+
+pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
+    let records: Vec<_> = report
+        .nodes
+        .iter()
+        .filter_map(|row| match &row.outcome {
+            NodeReadOutcome::Read { report } => Some(report.as_ref()),
+            _ => None,
+        })
+        .collect();
+    // Local references keep repeated identities/versions out of the table without
+    // abbreviating principals or pretending hash prefixes are unique identities.
+    let operators: Vec<_> = records
+        .iter()
+        .map(|node| node.node_operator_id)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let versions: Vec<_> = records
+        .iter()
+        .filter_map(|node| node.hostos_version_id.as_deref())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    let state = if report.all_node_reads_succeeded {
+        "complete"
+    } else {
+        "partial"
+    };
+    let mut text = format!(
+        "Subnet {}\n\nNodes: {} / {} read | {:.2}s | {}\nStarted: {} Unix seconds | Atomic snapshot: {}\nSource: {} / {} / {}\n",
+        report.configuration.subnet_id,
+        records.len(),
+        report.nodes.len(),
+        report.elapsed.as_secs_f64(),
+        state,
+        report.started_at_unix_seconds,
+        report.atomic_snapshot,
+        report.configuration.evidence.endpoint,
+        report.configuration.evidence.source_canister,
+        report.configuration.evidence.source_method,
+    );
+    if report.overall_deadline_reached {
+        text.push_str("Overall deadline reached; unfinished reads are marked below.\n");
+    }
+    write!(
+        text,
+        "\n{:<59}  {:<8}  {:<6}  {:<7}  READ\n",
+        "NODE", "OPERATOR", "HOSTOS", "CHIP ID"
+    )
+    .expect("writing to a String cannot fail");
+    for row in &report.nodes {
+        let (operator, hostos, chip, status) = match &row.outcome {
+            NodeReadOutcome::Read { report } => {
+                let operator = operators
+                    .binary_search(&report.node_operator_id)
+                    .expect("collected operator");
+                let hostos = report.hostos_version_id.as_deref().map_or_else(
+                    || "-".to_owned(),
+                    |version| {
+                        format!(
+                            "H{}",
+                            versions.binary_search(&version).expect("collected version") + 1
+                        )
+                    },
+                );
+                let chip = match report.chip_id.as_deref() {
+                    None => "absent",
+                    Some([]) => "empty",
+                    Some(_) => "present",
+                };
+                (format!("O{}", operator + 1), hostos, chip, "ok")
+            }
+            NodeReadOutcome::Failed { .. } => ("-".into(), "-".into(), "-", "failed"),
+            NodeReadOutcome::IdentityMismatch { .. } => {
+                ("-".into(), "-".into(), "-", "ID mismatch")
+            }
+            NodeReadOutcome::OverallDeadline => ("-".into(), "-".into(), "-", "cancelled"),
+            NodeReadOutcome::NotStarted => ("-".into(), "-".into(), "-", "not started"),
+        };
+        writeln!(
+            text,
+            "{:<59}  {operator:<8}  {hostos:<6}  {chip:<7}  {status}",
+            row.node_id.to_string()
+        )
+        .expect("writing to a String cannot fail");
+    }
+    if !operators.is_empty() {
+        text.push_str("\nRegistered operators\n");
+        for (index, operator) in operators.iter().enumerate() {
+            writeln!(text, "  O{}  {operator}", index + 1)
+                .expect("writing to a String cannot fail");
+        }
+    }
+    if !versions.is_empty() {
+        text.push_str("\nConfigured HostOS versions\n");
+        for (index, version) in versions.iter().enumerate() {
+            writeln!(text, "  H{}  {version:?}", index + 1)
+                .expect("writing to a String cannot fail");
+        }
+    }
+    text.push_str("\nChip ID shows registration only; '-' means unavailable. Read failures do not prove downtime.\nRunning software, node liveness and TEE attestation are not established.\nUse --json for full chip IDs, per-node timing, verification and source evidence.");
+    text
+}
 
 pub(crate) fn node(report: &NodeReport) -> String {
     let chip_id = report.chip_id.as_ref().map_or_else(

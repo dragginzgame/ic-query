@@ -15,6 +15,35 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.4 — GitHub delivery 2026-11-14
+
+### ▶️ Try it
+
+Read the registered node inventory for one subnet. From the repository root with
+the Rust/tool prerequisites in [setup](docs/development/setup.md):
+
+```bash
+make fetch-dependencies
+make icq
+icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+```
+
+Fetching and anonymous mainnet reads need network access. Installation refreshes
+`icq` on PATH. Text shows a compact node table with operator/HostOS keys and
+chip-ID presence; JSON retains full configuration, chip IDs and per-node evidence.
+Both identify failed or unfinished reads.
+Collection is limited to 128 nodes, batches of four and 60 seconds. Partial output
+is retained on stdout with exit 1; inspect `all_node_reads_succeeded` and each row.
+Successful reads do not prove live nodes or an atomic snapshot. See the
+[CLI group notes](releases/cli/CHANGELOG.md) for the detailed contract and text example.
+
+The `changes` command reads configuration twice, waiting ten seconds after the
+first read. It shows changed fields and membership differences, or reports no
+selected changes. Add `--json` for both original reports and their evidence.
+Two observations do not establish complete change history or maintenance completion.
+
 ## CLI 0.105.3 — GitHub delivery 2026-11-14
 
 ### ▶️ Try it

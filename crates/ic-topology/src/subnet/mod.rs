@@ -11,10 +11,12 @@ use thiserror::Error;
 use crate::{ReadError, mainnet};
 
 pub mod activity;
+pub mod changes;
 pub mod configuration;
 pub mod list;
 pub mod membership;
 pub mod metrics;
+pub mod nodes;
 
 const MAX_NODES: usize = 1024;
 const MAX_SUBNET_TYPE_BYTES: usize = 128;
