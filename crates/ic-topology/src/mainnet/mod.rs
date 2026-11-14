@@ -7,6 +7,7 @@ use ic_platform::agent::{Agent, AgentError, AnonymousIdentity};
 use thiserror::Error;
 
 pub(crate) const ENDPOINT: &str = "https://ic0.app";
+pub(crate) const REGISTRY: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 const DEADLINE: Duration = Duration::from_secs(20);
 const HTTP_BODY_BYTES: usize = 1024 * 1024;
 const INGRESS_EXPIRY: Duration = Duration::from_secs(300);

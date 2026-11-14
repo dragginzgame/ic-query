@@ -9,6 +9,8 @@ use thiserror::Error;
 
 use crate::{ReadError, mainnet};
 
+pub mod list;
+
 const MAX_NODES: usize = 1024;
 
 /// One selected subnet's observed node-key identities.

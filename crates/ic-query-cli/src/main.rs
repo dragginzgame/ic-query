@@ -16,16 +16,20 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     root.build();
     let mut root = alphabetical(root);
     let matches = root.get_matches_mut();
-    let Some(("topology", topology)) = matches.subcommand() else {
-        root.print_help()?;
-        return Ok(());
-    };
-    if topology.subcommand().is_none() {
-        root.find_subcommand_mut("topology")
-            .expect("declared namespace")
-            .print_help()?;
+    // Walk Clap's parsed tree so every namespace has the same local help behavior.
+    let mut selected_command = &mut root;
+    let mut selected_matches = &matches;
+    while let Some((name, child_matches)) = selected_matches.subcommand() {
+        selected_command = selected_command
+            .find_subcommand_mut(name)
+            .expect("Clap admits only declared commands");
+        selected_matches = child_matches;
+    }
+    if selected_command.has_subcommands() {
+        selected_command.print_help()?;
         return Ok(());
     }
+    let (_, topology) = matches.subcommand().expect("declared specialist namespace");
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;

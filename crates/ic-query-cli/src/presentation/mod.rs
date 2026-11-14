@@ -2,6 +2,31 @@
 
 use ic_topology::placement::PlacementReport;
 use ic_topology::subnet::SubnetReport;
+use ic_topology::subnet::list::SubnetListReport;
+
+pub(crate) fn subnet_list(report: &SubnetListReport) -> String {
+    let subnets = report
+        .subnet_ids
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nSelected record complete: {}\n\nRegistered subnets ({}):\n{}",
+        report.evidence.endpoint,
+        report.evidence.source_canister,
+        report.evidence.source_method,
+        report.evidence.source_key,
+        report.evidence.observed_at_unix_seconds,
+        report.evidence.record_version,
+        report.evidence.record_timestamp_nanoseconds,
+        report.evidence.query_signature_verified,
+        report.evidence.result_certified,
+        report.evidence.selected_record_complete,
+        report.subnet_ids.len(),
+        subnets,
+    )
+}
 
 pub(crate) fn placement(report: &PlacementReport) -> String {
     format!(

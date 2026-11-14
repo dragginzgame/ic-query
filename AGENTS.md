@@ -8,13 +8,31 @@ records the adopted payload; never hand-edit it or managed files under
 ## Current handoff
 
 Read [README.md](README.md), [CHANGELOG.md](CHANGELOG.md) and the
-[restart design](docs/design/0.104-restart.md) at session start. This is a
-initial topology phase: the [placement](docs/design/canister-placement.md) and
-[subnet observation](docs/design/subnet-observation.md) contracts own the selected
+[restart design](docs/design/0.104-restart.md) at session start. This is an
+initial topology phase: the [placement](docs/design/canister-placement.md),
+[subnet observation](docs/design/subnet-observation.md) and
+[Registry inventory](docs/design/subnet-list.md) contracts own the selected
 mainnet reports and their limits. Further report implementation
 requires a concrete Canic decision and source contract.
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
+
+## Learn from IC Query's predecessor
+
+- Before substantive report or subsystem work, inspect the relevant implementation,
+  regression tests and explanatory history in
+  [ic-query-legacy](https://github.com/dragginzgame/ic-query-legacy). Use the local
+  legacy checkout when available, otherwise inspect a pinned GitHub revision.
+  Keep this targeted to the selected report and its Canic or SNS migration need.
+- Identify the problem the old solution addressed and which assumptions have
+  changed. Reuse or adapt sound first-party solutions where they fit the current
+  ownership and published Platform boundaries; explain replacements or exclusions.
+  Legacy breadth does not authorize restoring excluded reports or infrastructure.
+- Carry applicable failure and regression cases into the owning implementation's
+  tests and verify them here. Cite the inspected revision and distinguish reused
+  code from retained invariants; historical passing tests do not qualify new code.
+- Keep legacy research read-only. Work in this task is scoped to IC Query;
+  guidance from another project does not authorize changes to that project.
 
 ## Product purpose
 

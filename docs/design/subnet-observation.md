@@ -1,6 +1,6 @@
 # Selected subnet observation
 
-`icq topology subnet SUBNET_ID` reports node identities with public-key leaves
+`icq topology subnet show SUBNET_ID` reports node identities with public-key leaves
 returned in that subnet's authenticated state. This lets Canic inspect observed
 node composition alongside an application's placement. It is not a network scan,
 a complete Registry inventory, a capacity estimate or an uptime measurement.

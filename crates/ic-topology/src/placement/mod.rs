@@ -10,9 +10,9 @@ use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::mainnet::REGISTRY;
 use crate::{ReadError, mainnet};
 
-const REGISTRY: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
 const METHOD: &str = "get_subnet_for_canister";
 const REPLY_LIMITS: decoder::Limits = decoder::Limits {
     bytes: 64 * 1024,

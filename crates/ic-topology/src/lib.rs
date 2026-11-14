@@ -1,7 +1,8 @@
 //! Read-only IC infrastructure evidence for Canic application topology decisions.
 //!
 //! [`placement`] supplies a bounded mainnet canister-to-subnet observation;
-//! [`subnet`] observes node identities in subnet-certified state.
+//! [`subnet`] observes node identities in subnet-certified state, and
+//! [`subnet::list`] enumerates the Registry's registered subnet identities.
 //! Further topology, capability, resource, cost and change reports remain planned,
 //! including scoped uptime and subnet-maintenance evidence. Native use requires
 //! a Tokio runtime with time and IO enabled.

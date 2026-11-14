@@ -13,11 +13,13 @@ uptime and subnet maintenance, with a separately scoped SNS migration library.
 remain independent. Add CLI adapters and their dependencies when reports exist.
 Shared helpers must have demonstrated consumers and respect Platform ownership.
 
-Native reports look up one canister's subnet through the mainnet NNS Registry,
-or observe node identities in one subnet's certified state. Both return explicit
+Native reports list registered subnets, look up one canister's subnet through the
+mainnet NNS Registry, or observe node identities in one subnet's certified state.
+All three return explicit
 source and observation evidence, with typed failures and bounded reads. See the
 [placement](docs/design/canister-placement.md) and
-[subnet observation](docs/design/subnet-observation.md) contracts.
+[subnet observation](docs/design/subnet-observation.md) contracts, plus the
+[Registry inventory](docs/design/subnet-list.md) contract.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
@@ -35,7 +37,8 @@ make deps-list
 toko-cloc -d 0
 make qualify-cli
 cargo run --locked --offline -p ic-query-cli -- --help
-cargo run --locked --offline -p ic-query-cli -- topology canister ryjl3-tyaaa-aaaaa-aaaba-cai --json
+cargo run --locked --offline -p ic-query-cli -- topology subnet list --json
+cargo run --locked --offline -p ic-query-cli -- topology canister show ryjl3-tyaaa-aaaaa-aaaba-cai --json
 ```
 
 `make deps-update` explicitly updates dependencies. `make check` is the aggregate

@@ -6,16 +6,19 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
 ### 🛠 Changed
 
-- Name the canister lookup `icq topology canister CANISTER_ID`, paired with
-  `icq topology subnet SUBNET_ID`. This replaces the unpublished `placement`
-  command; its routing report and JSON remain unchanged.
-- Add `icq topology subnet SUBNET_ID [--json]` for observed node identities from
+- Add `icq topology subnet list [--json]` for registered subnet IDs, with record
+  mutation version/time, query verification and complete selected-record coverage.
+- Organize commands as `icq <specialist> <entity> <action>`: use
+  `topology canister show CANISTER_ID` and `topology subnet show SUBNET_ID`.
+  This replaces the unpublished direct-ID and `placement` commands; report JSON
+  remains unchanged. Bare entity namespaces print local help successfully.
+- Add `icq topology subnet show SUBNET_ID [--json]` for observed node identities from
   subnet-certified state, explicitly distinguishing them from full Registry membership.
 - Move topology dispatch and pure report rendering out of the process entrypoint;
   render verification claims from report evidence rather than fixed success text.
 - Add `make icq` to build and install the checkout's development CLI into Cargo's
   bin directory with locked, offline dependencies, then verify PATH availability.
-- Start the `icq` replacement with help, version and `topology canister CANISTER_ID`
+- Start the `icq` replacement with help, version and `topology canister show CANISTER_ID`
   output, including `--json`. Unsupported
   commands fail explicitly; legacy commands are not restored. Publication is
   disabled pending real reports and explicit consumer migration.
@@ -41,7 +44,19 @@ icq help
 icq --version
 icq topology --help
 icq topology canister --help
+icq topology canister show --help
 icq topology subnet --help
+icq topology subnet list --help
+icq topology subnet show --help
+```
+
+List registered subnets from the mainnet NNS Registry. Network access is required;
+registration does not establish liveness, available capacity or deployment permission.
+The record version is its last mutation version, not the Registry's global latest version:
+
+```bash
+icq topology subnet list
+icq topology subnet list --json
 ```
 
 Look up the ICP ledger canister's current subnet through the mainnet NNS Registry.
@@ -49,8 +64,8 @@ These commands require network access; they report routing placement, not
 canister liveness or available capacity:
 
 ```bash
-icq topology canister ryjl3-tyaaa-aaaaa-aaaba-cai
-icq topology canister ryjl3-tyaaa-aaaaa-aaaba-cai --json
+icq topology canister show ryjl3-tyaaa-aaaaa-aaaba-cai
+icq topology canister show ryjl3-tyaaa-aaaaa-aaaba-cai --json
 ```
 
 Inspect observed node identities in a real subnet's certified state. The returned
@@ -58,11 +73,13 @@ node-key inventory does not establish complete Registry membership, node livenes
 or capacity:
 
 ```bash
-icq topology subnet tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 ### 🧪 Tests
 
-- Qualify matching bare/explicit namespace help, version output, typed canister
-  argument admission and unsupported-command exit/output behavior offline.
+- Qualify matching bare/explicit help at specialist and entity levels, version
+  output, typed show arguments, list argument rejection and report presentation
+  offline. Verify the installed list and both show commands against mainnet
+  separately; the list smoke observation returned 78 registered subnets.

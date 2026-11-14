@@ -6,6 +6,9 @@ Release group: `topology`. Package: `ic-topology`.
 
 ### ✨ Added
 
+- Add bounded Registry subnet inventory through Platform's published protobuf
+  capability. Preserve all registered IDs and raw record mutation version/time;
+  reject missing, empty, duplicate, invalid, chunked or excessive records.
 - Add bounded selected-subnet node-key observations from authenticated mainnet
   state, with deterministic ordering, explicit incomplete-membership coverage
   and typed identity/count/empty-data refusals. Do not infer routing or capacity
@@ -24,6 +27,8 @@ Release group: `topology`. Package: `ic-topology`.
 
 ### 🔧 Tooling
 
+- Adopt published Platform 0.33.0 for the bounded Registry protobuf capability;
+  external schemas and codecs remain with Platform.
 - Establish the virtual `ic-query` workspace and `ic-topology` package shell with
   Rust 1.100.0, shared lints and a Cargo lockfile. Publication remains disabled.
 - Adopt authenticated Toko Tooling 0.43.0, its standard Make interface, LOC

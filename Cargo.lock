@@ -1121,14 +1121,15 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.32.3"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19549b73b31d5ca3c73d6ce3dd96302409c3675041846f7157d2cd0391a4e102"
+checksum = "1ff16542d2cb6c8307afced4b0b1dc10b31640ea49f26304de6ff94e02eeb8bf"
 dependencies = [
  "ic-agent",
  "ic-platform-types",
  "num-bigint 0.5.1",
  "serde",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

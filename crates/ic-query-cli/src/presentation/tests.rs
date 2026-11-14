@@ -1,8 +1,37 @@
 use ic_platform_types::Principal;
 use ic_topology::placement::{PlacementEvidence, PlacementReport};
+use ic_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
 use ic_topology::subnet::{SubnetEvidence, SubnetReport};
 
-use super::{placement, subnet};
+use super::{placement, subnet, subnet_list};
+
+#[test]
+fn subnet_list_text_labels_record_version_and_preserves_evidence() {
+    let id = Principal::from_slice(&[1]);
+    let report = SubnetListReport {
+        schema: 1,
+        subnet_ids: vec![id],
+        evidence: SubnetListEvidence {
+            endpoint: "fixture",
+            source_canister: "registry",
+            source_method: "get_value",
+            source_key: "subnet_list",
+            observed_at_unix_seconds: 123,
+            record_version: 456,
+            record_timestamp_nanoseconds: u64::MAX,
+            query_signature_verified: false,
+            result_certified: false,
+            selected_record_complete: true,
+        },
+    };
+    let text = subnet_list(&report);
+    assert!(text.contains("Record mutation version: 456"));
+    assert!(text.contains("Record mutation timestamp: 18446744073709551615 Unix nanoseconds"));
+    assert!(text.contains("Query signature verified: false"));
+    assert!(text.ends_with(&format!(
+        "Selected record complete: true\n\nRegistered subnets (1):\n{id}"
+    )));
+}
 
 #[test]
 fn placement_text_uses_evidence_instead_of_hardcoded_verification_claims() {

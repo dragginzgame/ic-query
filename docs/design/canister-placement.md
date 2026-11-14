@@ -58,7 +58,7 @@ see the [subnet contract](subnet-observation.md) for the shared policy and its l
 
 ## CLI and qualification
 
-Implement `icq topology canister CANISTER_ID`, with `--json` for machine output.
+Implement `icq topology canister show CANISTER_ID`, with `--json` for machine output.
 CLI commands name the inspected entity (`canister` or `subnet`); this canister
 report currently supplies routing placement only.
 Bare namespaces and explicit help are local and successful; missing or invalid

@@ -77,19 +77,61 @@ fn topology_namespace_help_is_local_and_consistent() {
 fn report_commands_require_valid_principals_before_network_access() {
     for (command, placeholder) in [("canister", "CANISTER_ID"), ("subnet", "SUBNET_ID")] {
         for arguments in [
-            &["topology", command][..],
-            &["topology", command, "invalid"][..],
+            &["topology", command, "show"][..],
+            &["topology", command, "show", "invalid"][..],
         ] {
             let output = run(arguments);
             assert_eq!(output.status.code(), Some(2));
             assert!(output.stdout.is_empty());
             assert!(!output.stderr.is_empty());
         }
-        let help = run(&["topology", command, "--help"]);
+        let help = run(&["topology", command, "show", "--help"]);
         assert!(help.status.success());
         assert!(help.stderr.is_empty());
         let text = String::from_utf8_lossy(&help.stdout);
         assert!(text.contains("--json"));
         assert!(text.contains(placeholder));
+    }
+}
+
+#[test]
+fn entity_namespace_help_is_local_and_consistent() {
+    for entity in ["canister", "subnet"] {
+        let expected = run(&["topology", entity, "--help"]);
+        assert!(expected.status.success());
+        assert!(expected.stderr.is_empty());
+        let text = String::from_utf8_lossy(&expected.stdout);
+        assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
+        if entity == "subnet" {
+            assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
+            assert!(text.find("  list ").unwrap() < text.find("  show ").unwrap());
+        }
+        for arguments in [
+            &["topology", entity][..],
+            &["topology", entity, "help"][..],
+            &["help", "topology", entity][..],
+        ] {
+            let output = run(arguments);
+            assert!(output.status.success());
+            assert!(output.stderr.is_empty());
+            assert_eq!(output.stdout, expected.stdout);
+        }
+    }
+}
+
+#[test]
+fn subnet_list_help_and_argument_rejection_are_local() {
+    let help = run(&["topology", "subnet", "list", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    assert!(String::from_utf8_lossy(&help.stdout).contains("--json"));
+    for arguments in [
+        &["topology", "subnet", "list", "unexpected"][..],
+        &["topology", "subnet", "list", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
     }
 }
