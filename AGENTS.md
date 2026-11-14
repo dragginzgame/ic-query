@@ -145,5 +145,7 @@ it. Broader protocol and publication qualification remain deferred.
 
 Keep the local overlay small. Add implementation-specific commands and ownership
 rules when their corresponding product surface exists. The initial native support
-requirement remains Linux x86-64 and macOS ARM64/x86-64. CI selects all three;
-configured jobs are not evidence of successful hosted runs.
+requirement remains Linux x86-64 and macOS ARM64/x86-64. The
+[setup guide](docs/development/setup.md#focused-validation-and-qualification)
+records the successful hosted checks and their source commit; keep qualification
+claims bounded to the contracts and inputs actually checked.

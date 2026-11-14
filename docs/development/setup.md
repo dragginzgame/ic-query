@@ -88,9 +88,14 @@ At that point extend fetch, formatting and validation to the second workspace.
 CI checks the implemented packages on Linux x86-64 and macOS ARM64/x86-64. Formatting and a
 single pinned Gitleaks history scan run separately from the host matrix. Every job
 admits snapshot bytes before preparing host tools and Rust, then admits the Cargo
-pin, members and lockfile before validation. Hosted jobs still need to run; local Linux checks
-do not establish macOS support. Broader protocol, retained-data migration and
-publication qualification remain future work tied to implemented contracts.
+pin, members and lockfile before validation.
+
+[CI run 43582918957](https://github.com/dragginzgame/ic-query/actions/runs/43582918957)
+passed on 2026-11-14 for commit `acdac2706e664e40712ca07ed4d55bdb593b8485`:
+Clippy, Rustdoc and tests succeeded on all three hosts; formatting, snapshot and
+documentation admission, and the secret scan also passed. This qualifies the
+implemented offline contracts at that commit. Broader protocol, retained-data
+migration and publication qualification remain future work tied to implemented contracts.
 Placement fixtures qualify decoding, projection, bounds and failures; they do not
 prove cryptographic verification or live network availability. Run any live smoke
 check explicitly and record its endpoint and result separately from offline tests.
