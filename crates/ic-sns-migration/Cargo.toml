@@ -1,0 +1,18 @@
+[package]
+name = "ic-sns-migration"
+version = "0.104.0"
+description = "Selected SNS balance and neuron evidence for user migration"
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[target.'cfg(any())'.dev-dependencies]
+toko-tooling.workspace = true
+
+[package.metadata.cargo-machete]
+ignored = ["toko-tooling"]
+
+[lints]
+workspace = true
