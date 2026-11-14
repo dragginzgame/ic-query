@@ -22,7 +22,9 @@ or published version is replaced by this design.
 
 1. Query the fixed mainnet Registry's `get_latest_version` once, retaining its
    raw version and local observation time. Query-signature verification remains
-   distinct from consensus certification.
+   distinct from consensus certification. Refuse version zero before any record
+   reads: `get_value` interprets zero as latest, so it cannot establish a pin.
+   Admit all other `u64` values without narrowing them.
 2. Read the selected subnet record using `get_value` with that explicit version.
 3. Read its admitted registered nodes at the same requested version.
 4. Deduplicate referenced operator IDs and read each operator once at that version.
@@ -49,13 +51,24 @@ that referenced it; it does not erase those nodes or imply an absent provider.
 Empty provider bytes are missing identity, not the management principal. Validate
 any populated operator identity against its queried key. Preserve original
 data-center reference text and distinguish absent references from failed reads.
-Admit key IDs under the reviewed Registry key contract before joining; do not
-copy legacy trim/lowercase normalization without verifying its applicability.
-Compare the returned data-center ID with the admitted key identity.
+The Registry key contract lowercases data-center IDs; it does not trim whitespace.
+Treat an empty reference as absent. Refuse leading/trailing whitespace as an
+invalid reference, retaining the raw text, rather than silently repairing it or
+reporting it as absent. Bound both the raw ID and its lowercase key identity to
+256 UTF-8 bytes, since lowercasing can expand the text. Deduplicate by that key
+identity. Apply the same admission to the returned data-center ID and require
+the identities to match. Bound region and owner text to 256 UTF-8 bytes each;
+retain their raw values and never interpret owner text as a provider principal.
 
 Group only resolved relationships. Publish selected membership, resolved counts
 and unknown counts alongside provider/data-center totals. A complete provider
 mapping can coexist with incomplete location evidence; expose these separately.
+An admitted operator's missing/invalid provider identity does not discard its
+valid location reference. Conversely, a missing/invalid location reference or
+failed data-center read does not discard a resolved provider. Distinguish a
+known data-center reference from successfully read location details; only the
+latter contributes to region/owner distributions. Keep the full selected-node
+count as each coverage denominator, including unresolved dependencies.
 Do not extrapolate network-wide provider counts, spare node capacity, uptime,
 cloud-engine prices or deployment eligibility from this selected membership.
 
@@ -65,9 +78,9 @@ Initial version/configuration/admission failure produces no success report.
 
 ## Published Platform prerequisite
 
-On 2026-11-14 the public Cargo sparse index identified `ic-platform 0.33.3` as
+On 2026-11-14 the public Cargo sparse index identified `ic-platform 0.33.4` as
 the latest non-yanked stable release, checksum
-`74c6e194ce3a80487320edef0041e286fd89d6d96e8a9f641811c7e38b856e51`.
+`959cfca0933238dfb426f3deb356b7d5c27ee594f714cb61eca1a610b3e4ae44`.
 Its published `nns_registry_types::protobuf` supports explicit versions in
 `encode_get_value_request`, inline envelopes, subnet records and node records.
 It does not expose the following required bounded decoders:
@@ -90,8 +103,9 @@ Protocol facts were reviewed at IC revision
 `904f4dde68006d3cccee4dd3c3ecb4b3798d8790`:
 [transport schema](https://github.com/dfinity/ic/blob/904f4dde68006d3cccee4dd3c3ecb4b3798d8790/rs/registry/transport/proto/ic_registry_transport/pb/v1/transport.proto),
 [operator schema](https://github.com/dfinity/ic/blob/904f4dde68006d3cccee4dd3c3ecb4b3798d8790/rs/protobuf/def/registry/node_operator/v1/node_operator.proto),
-[data-center schema](https://github.com/dfinity/ic/blob/904f4dde68006d3cccee4dd3c3ecb4b3798d8790/rs/protobuf/def/registry/dc/v1/dc.proto).
-These are schema facts, not imported third-party implementation or tests.
+[data-center schema](https://github.com/dfinity/ic/blob/904f4dde68006d3cccee4dd3c3ecb4b3798d8790/rs/protobuf/def/registry/dc/v1/dc.proto)
+and [Registry key contract](https://github.com/dfinity/ic/blob/904f4dde68006d3cccee4dd3c3ecb4b3798d8790/rs/registry/keys/src/lib.rs).
+These are protocol facts, not imported third-party implementation or tests.
 
 No Query-local protobuf decoder, new direct external codec dependency or sibling
 path substitution is authorized by this design. Adopt the published supplier
@@ -99,6 +113,9 @@ capability before introducing the live readers and composition. This document
 specifies the consumer contract;
 [Platform issue #165](https://github.com/dragginzgame/ic-platform/issues/165)
 owns the supplier prerequisite and acceptance checks.
+Its [implementation update](https://github.com/dragginzgame/ic-platform/issues/165#issuecomment-6880840186)
+reports local decoder qualification complete and publication planned for 0.33.5.
+That is not evidence of publication or Query integration qualification.
 
 ## Legacy lessons and acceptance cases
 
@@ -120,6 +137,12 @@ global scanning nor caches. Carry forward missing operator/provider and mismatch
 data-center cases, shared-operator/provider counting, missing location and distinct
 provider/location counts. Add version-skew rejection, deduplicated call counts,
 dependency-failure coverage, cancellation and raw/escaped presentation cases.
+Specifically test zero-version refusal before fan-out, full-width versions,
+older mutation versions accepted and newer ones rejected; mixed-case shared
+data-center references, empty versus whitespace-padded IDs, lowercase expansion
+past the byte limit and returned-ID mismatches; and provider/location coverage
+independence when either relation fails. Verify shared operators contribute each
+selected node exactly once to its resolved groups and unknown counts.
 Global duplicate cross-subnet assignment checks require a multi-subnet scope and
 are not a claim this selected-subnet report can establish.
 

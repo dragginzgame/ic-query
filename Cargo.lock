@@ -1166,7 +1166,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.105.2"
+version = "0.105.3"
 dependencies = [
  "ic-platform",
  "ic-platform-types",

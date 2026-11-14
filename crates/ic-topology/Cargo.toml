@@ -1,6 +1,6 @@
 [package]
 name = "ic-topology"
-version = "0.105.2"
+version = "0.105.3"
 description = "Read-only IC infrastructure evidence for Canic topology decisions"
 edition.workspace = true
 rust-version.workspace = true

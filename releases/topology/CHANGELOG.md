@@ -2,6 +2,18 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.3] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### 📚 Documentation
+
+- Refine the pending provider/location distribution contract: reject zero as a
+  Registry version pin, use the reviewed data-center key rules without trimming,
+  and preserve independent provider/location coverage. Record Platform's local
+  decoder completion separately from its pending publication; no new command
+  or report is implemented.
+
 ## [0.105.2] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.
