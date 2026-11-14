@@ -14,7 +14,7 @@ remain independent. Add CLI adapters and their dependencies when reports exist.
 Shared helpers must have demonstrated consumers and respect Platform ownership.
 
 Native reports list registered subnets, look up one canister's subnet through the
-mainnet NNS Registry, or observe node identities in one subnet's certified state.
+mainnet NNS Registry, or observe subnet type and node identities in certified state.
 These reports return explicit
 source and observation evidence, with typed failures and bounded reads. See the
 [placement](docs/design/canister-placement.md) and
@@ -22,6 +22,8 @@ source and observation evidence, with typed failures and bounded reads. See the
 [Registry inventory](docs/design/subnet-list.md) contract.
 The [subnet metrics report](docs/design/subnet-metrics.md) adds certified raw
 resource values for one subnet, without inferring spare capacity or uptime.
+The [activity report](docs/design/subnet-activity.md) compares two certified
+message totals with a bounded wait, preserving both observations without a health verdict.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

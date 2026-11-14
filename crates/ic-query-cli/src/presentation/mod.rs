@@ -2,8 +2,24 @@
 
 use ic_topology::placement::PlacementReport;
 use ic_topology::subnet::SubnetReport;
+use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
 use ic_topology::subnet::list::SubnetListReport;
 use ic_topology::subnet::metrics::SubnetMetricsReport;
+
+pub(crate) fn subnet_activity(report: &SubnetActivityReport) -> String {
+    let change = match report.message_change {
+        MessageChange::Increased { by } => format!("increased by {by}"),
+        MessageChange::Unchanged => "unchanged (does not establish downtime)".to_owned(),
+        MessageChange::Decreased => "decreased (cause and state ordering unknown)".to_owned(),
+    };
+    format!(
+        "First observation:\n{}\n\nRequested wait between reads: {} seconds\n\nSecond observation:\n{}\n\nReplicated-message counter: {}\nTwo samples do not establish uptime, throughput or a certified time interval.",
+        subnet_metrics(&report.before),
+        report.interval_seconds,
+        subnet_metrics(&report.after),
+        change,
+    )
+}
 
 pub(crate) fn subnet_metrics(report: &SubnetMetricsReport) -> String {
     format!(
@@ -62,6 +78,10 @@ pub(crate) fn placement(report: &PlacementReport) -> String {
 }
 
 pub(crate) fn subnet(report: &SubnetReport) -> String {
+    let subnet_type = report
+        .observed_subnet_type
+        .as_ref()
+        .map_or_else(|| "absent".to_owned(), |value| format!("{value:?}"));
     let nodes = report
         .observed_node_ids
         .iter()
@@ -69,7 +89,7 @@ pub(crate) fn subnet(report: &SubnetReport) -> String {
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "Source: {}{}\nObserved at: {} Unix seconds\nState certificate verified: {}\nComplete Registry membership established: {}\nRegistry version: {}\n\nSubnet: {}\nObserved node identities ({}):\n{}",
+        "Source: {}{}\nObserved at: {} Unix seconds\nState certificate verified: {}\nComplete Registry membership established: {}\nRegistry version: {}\n\nSubnet: {}\nObserved subnet type (subnet-certified, not Registry-confirmed): {}\nObserved node identities ({}):\n{}",
         report.evidence.endpoint,
         report.evidence.source_path,
         report.evidence.observed_at_unix_seconds,
@@ -77,6 +97,7 @@ pub(crate) fn subnet(report: &SubnetReport) -> String {
         report.evidence.membership_complete,
         registry_version(report.evidence.registry_version),
         report.subnet_id,
+        subnet_type,
         report.observed_node_ids.len(),
         nodes,
     )

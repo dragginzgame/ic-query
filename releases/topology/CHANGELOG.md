@@ -2,6 +2,32 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.0] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ⚠️ Breaking
+
+- Add `SubnetReport::observed_subnet_type` and `SubnetError::SubnetTypeLimit`.
+  Update downstream struct literals and exhaustive error matches. JSON remains
+  schema 1 with an additive field; no retained evidence reset is required.
+
+### ➕ Added
+
+- Add bounded two-sample subnet activity: retain both certified metrics reports
+  and classify replicated-message totals as increased, unchanged or decreased.
+  Wait 1–60 seconds between reads; preserve the first sample on a second-read
+  error, with no retries, history service, uptime or throughput claims.
+- Preserve subnet-certified application, verified-application, system and
+  cloud-engine types, unknown strings and absent values in the existing read.
+  Bound the type to 128 UTF-8 bytes without truncation. Classification establishes
+  neither independent Registry agreement nor deployment permission or capacity.
+- Adopt published Platform 0.33.1 for its Agent `SubnetType` export, retaining
+  the existing transport and codec boundaries. Registry availability, non-yanked
+  status, archive checksum and release provenance were verified on 2026-11-14.
+  Platform 0.33.1, Types 0.20.3 and Toko Tooling 0.43.0 remain the latest stable,
+  non-yanked first-party selections at delivery review.
+
 ## [0.104.1] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

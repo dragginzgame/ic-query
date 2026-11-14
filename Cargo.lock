@@ -1121,9 +1121,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.33.0"
+version = "0.33.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ff16542d2cb6c8307afced4b0b1dc10b31640ea49f26304de6ff94e02eeb8bf"
+checksum = "4d780999e8b7e89cf9f3f78c979daaaf0299127451d904636867c61b56cd233c"
 dependencies = [
  "ic-agent",
  "ic-platform-types",
@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.1"
+version = "0.105.2"
 dependencies = [
  "clap",
  "ic-platform-types",
@@ -1166,7 +1166,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.104.1"
+version = "0.105.0"
 dependencies = [
  "ic-platform",
  "ic-platform-types",

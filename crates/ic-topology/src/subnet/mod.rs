@@ -3,18 +3,21 @@
 //! These observations do not establish complete Registry membership, node
 //! liveness, allocatable capacity, hardware capabilities or authoritative routing.
 
+use ic_platform::agent::SubnetType;
 use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
 
 use crate::{ReadError, mainnet};
 
+pub mod activity;
 pub mod list;
 pub mod metrics;
 
 const MAX_NODES: usize = 1024;
+const MAX_SUBNET_TYPE_BYTES: usize = 128;
 
-/// One selected subnet's observed node-key identities.
+/// One selected subnet's observed type and node-key identities.
 #[derive(Debug, Serialize)]
 pub struct SubnetReport {
     /// Query-owned report schema; remains 1 before 1.0.
@@ -23,11 +26,14 @@ pub struct SubnetReport {
     pub subnet_id: Principal,
     /// Sorted identities with node-key leaves returned by the authenticated source.
     pub observed_node_ids: Vec<Principal>,
+    /// Subnet-certified type, preserving unknown strings; None means absent.
+    /// Does not establish independent Registry agreement or deployment permission.
+    pub observed_subnet_type: Option<String>,
     /// Source, verification and coverage claims.
     pub evidence: SubnetEvidence,
 }
 
-/// Evidence limited to the node-key identities returned by the selected subnet.
+/// Evidence for the type and node-key identities returned by the selected subnet.
 #[derive(Debug, Serialize)]
 pub struct SubnetEvidence {
     /// Admitted mainnet HTTPS endpoint.
@@ -70,18 +76,22 @@ pub enum SubnetError {
     /// Duplicate identities make the projection ambiguous.
     #[error("subnet source repeated a node identity")]
     DuplicateNode,
+    /// The observed type exceeded the retained UTF-8 byte budget.
+    #[error("subnet type exceeds the 128-byte limit")]
+    SubnetTypeLimit,
 }
 
-/// Observe node-key identities in one subnet's mainnet certified state.
+/// Observe type and node-key identities in one subnet's mainnet certified state.
 ///
 /// Requires a Tokio runtime with IO and time enabled. Uses a fresh Agent fetch,
 /// the shared 20-second deadline and 1 MiB HTTP ceiling. Retains at most 1024
-/// node identities. Returned canister ranges and self-reported subnet keys are
+/// node identities and 128 UTF-8 bytes of subnet type. An absent type remains None;
+/// unknown values are preserved. Returned canister ranges and subnet keys are
 /// deliberately excluded: they do not establish NNS-authorized routing or trust.
 ///
 /// # Errors
 /// Returns typed read failures, identity mismatch, missing/duplicate node evidence
-/// or a node-count limit refusal. A failure does not prove subnet downtime.
+/// or a node-count/type-byte limit refusal. A failure does not prove subnet downtime.
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetReport, SubnetError> {
     let agent = mainnet::agent()?;
     let external_id = subnet_id
@@ -96,6 +106,7 @@ pub async fn fetch(subnet_id: Principal) -> Result<SubnetReport, SubnetError> {
             .iter_nodes()
             .map(|node| Principal::from_slice(node.as_slice())),
         mainnet::observed_at()?,
+        observation.subnet_type(),
     )
 }
 
@@ -104,6 +115,7 @@ fn project(
     returned: Principal,
     nodes: impl IntoIterator<Item = Principal>,
     observed_at: u64,
+    subnet_type: Option<&SubnetType>,
 ) -> Result<SubnetReport, SubnetError> {
     if returned != requested {
         return Err(SubnetError::IdentityMismatch {
@@ -122,10 +134,21 @@ fn project(
     if nodes.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(SubnetError::DuplicateNode);
     }
+    let subnet_type = subnet_type.map(|value| match value {
+        SubnetType::System => "system",
+        SubnetType::Application => "application",
+        SubnetType::VerifiedApplication => "verified_application",
+        SubnetType::CloudEngine => "cloud_engine",
+        SubnetType::Unknown(raw) => raw.as_str(),
+    });
+    if subnet_type.is_some_and(|value| value.len() > MAX_SUBNET_TYPE_BYTES) {
+        return Err(SubnetError::SubnetTypeLimit);
+    }
     Ok(SubnetReport {
         schema: 1,
         subnet_id: requested,
         observed_node_ids: nodes,
+        observed_subnet_type: subnet_type.map(str::to_owned),
         evidence: SubnetEvidence {
             endpoint: mainnet::ENDPOINT,
             source_path: format!("/api/v3/subnet/{requested}/read_state"),

@@ -2,6 +2,37 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.2] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add `topology subnet activity` to compare exactly two certified message totals.
+  `--interval-seconds` selects a 1–60-second wait after the first read (default 10).
+  JSON retains both observations; text labels source evidence and interpretation
+  limits. A failed read exits unsuccessfully without success JSON.
+- Include observed subnet type in `topology subnet show`. Text quotes and escapes
+  source strings and distinguishes absent values; JSON preserves raw strings or
+  null. Keep subnet certification distinct from independent Registry confirmation.
+
+After dependency preparation, install this checkout; report reads require network
+access. These commands include the new field without another network request:
+
+```bash
+make icq
+icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+Activity takes two network reads separated by the requested wait. These examples
+wait ten seconds; equal totals do not establish downtime:
+
+```bash
+icq topology subnet activity tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet activity tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+```
+
 ## [0.105.1] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

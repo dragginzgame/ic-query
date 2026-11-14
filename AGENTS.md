@@ -12,7 +12,8 @@ Read [README.md](README.md), [CHANGELOG.md](CHANGELOG.md) and the
 initial topology phase: the [placement](docs/design/canister-placement.md),
 [subnet observation](docs/design/subnet-observation.md),
 [Registry inventory](docs/design/subnet-list.md) and
-[resource metrics](docs/design/subnet-metrics.md) contracts own the selected
+[resource metrics](docs/design/subnet-metrics.md) and
+[two-sample activity](docs/design/subnet-activity.md) contracts own the selected
 mainnet reports and their limits. Further report implementation
 requires a concrete Canic decision and source contract.
 The legacy repository is read-only reference material. Do not import its source,

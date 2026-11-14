@@ -1,10 +1,52 @@
 use ic_platform_types::Principal;
 use ic_topology::placement::{PlacementEvidence, PlacementReport};
+use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
 use ic_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
 use ic_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
 use ic_topology::subnet::{SubnetEvidence, SubnetReport};
 
-use super::{placement, subnet, subnet_list, subnet_metrics};
+use super::{placement, subnet, subnet_activity, subnet_list, subnet_metrics};
+
+#[test]
+fn activity_text_preserves_both_samples_and_avoids_health_verdicts() {
+    let observation = |total, verified| SubnetMetricsReport {
+        schema: 1,
+        subnet_id: Principal::from_slice(&[1]),
+        num_canisters: 0,
+        canister_state_bytes: 0,
+        consumed_cycles_total: u128::MAX,
+        update_transactions_total: total,
+        evidence: SubnetMetricsEvidence {
+            endpoint: "fixture",
+            source_path: "/read_state".into(),
+            state_tree_path: "/subnet/fixture/metrics".into(),
+            observed_at_unix_seconds: 123,
+            state_certificate_verified: verified,
+        },
+    };
+    let mut report = SubnetActivityReport {
+        schema: 1,
+        interval_seconds: 10,
+        before: observation(0, false),
+        after: observation(u64::MAX, true),
+        message_change: MessageChange::Increased { by: u64::MAX },
+    };
+    let text = subnet_activity(&report);
+    assert!(text.contains("Requested wait between reads: 10 seconds"));
+    assert!(text.contains("State certificate verified: false"));
+    assert!(text.contains("State certificate verified: true"));
+    assert!(text.contains("Replicated-message counter: increased by 18446744073709551615"));
+    assert_eq!(text.matches(&u128::MAX.to_string()).count(), 2);
+    assert!(text.ends_with(
+        "Two samples do not establish uptime, throughput or a certified time interval."
+    ));
+    report.after.update_transactions_total = 0;
+    report.message_change = MessageChange::Unchanged;
+    assert!(subnet_activity(&report).contains("unchanged (does not establish downtime)"));
+    report.before.update_transactions_total = u64::MAX;
+    report.message_change = MessageChange::Decreased;
+    assert!(subnet_activity(&report).contains("decreased (cause and state ordering unknown)"));
+}
 
 #[test]
 fn metrics_text_preserves_precision_and_observation_limits() {
@@ -89,10 +131,11 @@ fn placement_text_uses_evidence_instead_of_hardcoded_verification_claims() {
 #[test]
 fn subnet_text_preserves_coverage_and_separates_metadata_from_inventory() {
     let node = Principal::from_slice(&[1]);
-    let report = SubnetReport {
+    let mut report = SubnetReport {
         schema: 1,
         subnet_id: Principal::from_slice(&[2]),
         observed_node_ids: vec![node],
+        observed_subnet_type: None,
         evidence: SubnetEvidence {
             endpoint: "fixture",
             source_path: "/read_state".into(),
@@ -106,4 +149,21 @@ fn subnet_text_preserves_coverage_and_separates_metadata_from_inventory() {
     assert!(text.contains("Complete Registry membership established: false"));
     assert!(text.contains("Registry version: unavailable\n\nSubnet:"));
     assert!(text.ends_with(&format!("Observed node identities (1):\n{node}")));
+    assert!(
+        text.contains("Observed subnet type (subnet-certified, not Registry-confirmed): absent\n")
+    );
+    for (raw, rendered) in [
+        ("cloud_engine", "\"cloud_engine\""),
+        ("", "\"\""),
+        (
+            "future\n\u{1b}[31m\u{202e}",
+            "\"future\\n\\u{1b}[31m\\u{202e}\"",
+        ),
+    ] {
+        report.observed_subnet_type = Some(raw.into());
+        let text = subnet(&report);
+        assert!(text.contains(&format!("Registry-confirmed): {rendered}\n")));
+        assert!(!text.contains('\u{1b}'));
+        assert!(!text.contains('\u{202e}'));
+    }
 }

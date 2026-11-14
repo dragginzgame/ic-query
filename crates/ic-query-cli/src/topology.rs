@@ -27,6 +27,24 @@ pub(crate) fn command() -> Command {
             Command::new("subnet")
                 .about("Inspect subnet topology")
                 .subcommand(
+                    Command::new("activity")
+                        .about("Compare two certified message totals; not uptime or throughput")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(
+                            Arg::new("interval-seconds")
+                                .long("interval-seconds")
+                                .help("Wait 1–60 seconds after the first read before starting the second")
+                                .default_value("10")
+                                .value_parser(value_parser!(u64)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
                     Command::new("list")
                         .about("List registered subnet IDs from the mainnet NNS Registry")
                         .arg(json_argument()),
@@ -46,7 +64,7 @@ pub(crate) fn command() -> Command {
                 )
                 .subcommand(
                     Command::new("show")
-                        .about("Observe node identities in a subnet's certified state")
+                        .about("Observe subnet type and node identities in certified state")
                         .arg(
                             Arg::new("subnet")
                                 .value_name("SUBNET_ID")
@@ -73,6 +91,20 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<String, Box<dyn std::err
         .subcommand()
         .expect("entrypoint handles namespace help");
     match (entity, action) {
+        ("subnet", "activity") => {
+            let subnet_id = *arguments
+                .get_one::<Principal>("subnet")
+                .expect("required subnet");
+            let interval = *arguments
+                .get_one::<u64>("interval-seconds")
+                .expect("default interval");
+            let report = ic_topology::subnet::activity::fetch(subnet_id, interval).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::subnet_activity(&report))
+            }
+        }
         ("subnet", "list") => {
             let report = ic_topology::subnet::list::fetch().await?;
             if arguments.get_flag("json") {

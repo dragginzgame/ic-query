@@ -103,6 +103,7 @@ fn entity_namespace_help_is_local_and_consistent() {
         let text = String::from_utf8_lossy(&expected.stdout);
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
         if entity == "subnet" {
+            assert!(text.find("  activity ").unwrap() < text.find("  help ").unwrap());
             assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
             assert!(text.find("  list ").unwrap() < text.find("  metrics ").unwrap());
             assert!(text.find("  metrics ").unwrap() < text.find("  show ").unwrap());
@@ -155,5 +156,50 @@ fn subnet_metrics_requires_a_typed_identity_and_discloses_its_scope() {
         assert_eq!(output.status.code(), Some(2));
         assert!(output.stdout.is_empty());
         assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn subnet_activity_help_and_invalid_inputs_do_not_access_the_network() {
+    let help = run(&["topology", "subnet", "activity", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(text.contains("not uptime or throughput"));
+    assert!(text.contains("--interval-seconds"));
+    assert!(text.contains("[default: 10]"));
+    assert!(text.contains("--json"));
+    let id = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+    for arguments in [
+        vec!["topology", "subnet", "activity"],
+        vec!["topology", "subnet", "activity", "invalid"],
+        vec![
+            "topology",
+            "subnet",
+            "activity",
+            id,
+            "--interval-seconds",
+            "oops",
+        ],
+        vec!["topology", "subnet", "activity", id, "--unknown"],
+    ] {
+        let output = run(&arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+    for interval in ["0", "61", "18446744073709551615"] {
+        let output = run(&[
+            "topology",
+            "subnet",
+            "activity",
+            id,
+            "--interval-seconds",
+            interval,
+            "--json",
+        ]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("between 1 and 60 seconds"));
     }
 }
