@@ -2,7 +2,21 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
-## [0.104.0] — pending
+## [0.104.1] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add certified single-subnet resource observations using the existing published
+  Platform Agent. Retain raw counts, bytes and nominal cycles with source evidence;
+  distinguish gauges and cumulative values without estimating capacity or uptime.
+- Carry forward legacy precision and source-authority lessons with focused
+  serialization and CLI qualification; keep network-wide REST history out of scope.
+
+## [0.104.0] — GitHub delivery 2026-11-14
+
+Delivered through `7695e00`; not published to crates.io.
 
 ### ✨ Added
 

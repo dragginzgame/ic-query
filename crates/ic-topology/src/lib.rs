@@ -3,6 +3,7 @@
 //! [`placement`] supplies a bounded mainnet canister-to-subnet observation;
 //! [`subnet`] observes node identities in subnet-certified state, and
 //! [`subnet::list`] enumerates the Registry's registered subnet identities.
+//! [`subnet::metrics`] supplies certified raw resource values for one subnet.
 //! Further topology, capability, resource, cost and change reports remain planned,
 //! including scoped uptime and subnet-maintenance evidence. Native use requires
 //! a Tokio runtime with time and IO enabled.

@@ -15,19 +15,21 @@ Shared helpers must have demonstrated consumers and respect Platform ownership.
 
 Native reports list registered subnets, look up one canister's subnet through the
 mainnet NNS Registry, or observe node identities in one subnet's certified state.
-All three return explicit
+These reports return explicit
 source and observation evidence, with typed failures and bounded reads. See the
 [placement](docs/design/canister-placement.md) and
 [subnet observation](docs/design/subnet-observation.md) contracts, plus the
 [Registry inventory](docs/design/subnet-list.md) contract.
+The [subnet metrics report](docs/design/subnet-metrics.md) adds certified raw
+resource values for one subnet, without inferring spare capacity or uptime.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
 
 The retained restart baseline is **0.104**. The specialist libraries start at
-`0.104.0`; the incompatible CLI replacement is drafted at `0.105.0`, after the
-published legacy CLI `0.104.1`. These are unpublished development versions, not
-version reservations or a waiver of consumer migration work.
+`0.104.0`; the incompatible CLI replacement's GitHub baseline is `0.105.0`, after
+the published legacy CLI `0.104.1`. Pending next versions are in the group ledgers.
+GitHub delivery does not imply crates.io publication or waive consumer migration.
 
 After preparing the tools described in [setup](docs/development/setup.md):
 

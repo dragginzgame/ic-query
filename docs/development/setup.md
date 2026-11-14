@@ -4,7 +4,8 @@ The root virtual workspace contains `ic-topology`, `ic-sns-migration` and
 `ic-query-cli` (`icq`). The topology library supplies bounded mainnet
 [placement](../design/canister-placement.md) and
 [subnet observation](../design/subnet-observation.md) reports, plus
-[registered subnet inventory](../design/subnet-list.md); SNS remains an API-free shell.
+[registered subnet inventory](../design/subnet-list.md) and
+[certified resource metrics](../design/subnet-metrics.md); SNS remains an API-free shell.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 

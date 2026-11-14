@@ -1,4 +1,4 @@
-//! Node identities returned by a subnet's authenticated state tree.
+//! Subnet inventory, observed node identities and certified resource values.
 //!
 //! These observations do not establish complete Registry membership, node
 //! liveness, allocatable capacity, hardware capabilities or authoritative routing.
@@ -10,6 +10,7 @@ use thiserror::Error;
 use crate::{ReadError, mainnet};
 
 pub mod list;
+pub mod metrics;
 
 const MAX_NODES: usize = 1024;
 

@@ -32,6 +32,19 @@ pub(crate) fn command() -> Command {
                         .arg(json_argument()),
                 )
                 .subcommand(
+                    Command::new("metrics")
+                        .about(
+                            "Read certified subnet resource values; not capacity, rates or uptime",
+                        )
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
                     Command::new("show")
                         .about("Observe node identities in a subnet's certified state")
                         .arg(
@@ -88,6 +101,17 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<String, Box<dyn std::err
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
                 Ok(presentation::subnet(&report))
+            }
+        }
+        ("subnet", "metrics") => {
+            let id = *arguments
+                .get_one::<Principal>("subnet")
+                .expect("required typed argument");
+            let report = ic_topology::subnet::metrics::fetch(id).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::subnet_metrics(&report))
             }
         }
         _ => unreachable!(

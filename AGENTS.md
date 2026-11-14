@@ -10,8 +10,9 @@ records the adopted payload; never hand-edit it or managed files under
 Read [README.md](README.md), [CHANGELOG.md](CHANGELOG.md) and the
 [restart design](docs/design/0.104-restart.md) at session start. This is an
 initial topology phase: the [placement](docs/design/canister-placement.md),
-[subnet observation](docs/design/subnet-observation.md) and
-[Registry inventory](docs/design/subnet-list.md) contracts own the selected
+[subnet observation](docs/design/subnet-observation.md),
+[Registry inventory](docs/design/subnet-list.md) and
+[resource metrics](docs/design/subnet-metrics.md) contracts own the selected
 mainnet reports and their limits. Further report implementation
 requires a concrete Canic decision and source contract.
 The legacy repository is read-only reference material. Do not import its source,
@@ -132,7 +133,12 @@ Exact fields and migration evidence requirements remain to be specified.
 
 Publication is deferred until the project is mature and working and the maintainer
 explicitly lifts this hold. Keep all packages `publish = false`. Requests to
-"push" authorize GitHub delivery only, never crates.io publication. This local
+"push" include preparing the next appropriate version for each changed release
+group, updating its manifest/lockfile and release notes, and delivering that version
+to GitHub. Compatible follow-ups normally increment the patch; incompatible
+pre-1.0 contracts require a minor. Delivered versions are not reused just because
+crates.io publication is disabled. Keep unchanged groups at their existing versions.
+These requests never authorize crates.io publication. This local
 restriction takes precedence over Toko Tooling's general delivery defaults;
 release or ship wording alone does not lift the publication hold.
 

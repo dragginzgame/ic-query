@@ -2,7 +2,29 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.0] — pending
+## [0.105.1] — GitHub delivery 2026-11-14
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Read certified subnet resource values with `topology subnet metrics`: canister
+  count, state bytes, nominal cycles and replicated-message totals. JSON preserves
+  the 128-bit cycle total as a decimal string; text explains the observation limits.
+
+After dependency preparation, `make icq` installs this checkout. These reads
+require network access and establish neither spare capacity nor uptime:
+
+```bash
+make icq
+icq topology subnet metrics --help
+icq topology subnet metrics tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet metrics tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
+## [0.105.0] — GitHub delivery 2026-11-14
+
+Delivered through `7695e00`; not published to crates.io.
 
 ### 🛠 Changed
 

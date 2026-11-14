@@ -104,7 +104,8 @@ fn entity_namespace_help_is_local_and_consistent() {
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
         if entity == "subnet" {
             assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
-            assert!(text.find("  list ").unwrap() < text.find("  show ").unwrap());
+            assert!(text.find("  list ").unwrap() < text.find("  metrics ").unwrap());
+            assert!(text.find("  metrics ").unwrap() < text.find("  show ").unwrap());
         }
         for arguments in [
             &["topology", entity][..],
@@ -128,6 +129,27 @@ fn subnet_list_help_and_argument_rejection_are_local() {
     for arguments in [
         &["topology", "subnet", "list", "unexpected"][..],
         &["topology", "subnet", "list", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn subnet_metrics_requires_a_typed_identity_and_discloses_its_scope() {
+    let help = run(&["topology", "subnet", "metrics", "--help"]);
+    assert!(help.status.success());
+    assert!(help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(text.contains("SUBNET_ID"));
+    assert!(text.contains("--json"));
+    assert!(text.contains("not capacity, rates or uptime"));
+    for arguments in [
+        &["topology", "subnet", "metrics"][..],
+        &["topology", "subnet", "metrics", "invalid"][..],
+        &["topology", "subnet", "metrics", "--unknown"][..],
     ] {
         let output = run(arguments);
         assert_eq!(output.status.code(), Some(2));

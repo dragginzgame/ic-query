@@ -3,6 +3,23 @@
 use ic_topology::placement::PlacementReport;
 use ic_topology::subnet::SubnetReport;
 use ic_topology::subnet::list::SubnetListReport;
+use ic_topology::subnet::metrics::SubnetMetricsReport;
+
+pub(crate) fn subnet_metrics(report: &SubnetMetricsReport) -> String {
+    format!(
+        "Source: {}{}\nState tree: {}\nObserved at: {} Unix seconds\nState certificate verified: {}\n\nSubnet: {}\nCurrent canisters: {}\nCanister state bytes (refreshed every 10 blocks): {}\nNominal cycles consumed (may decrease): {}\nReplicated messages total: {}\nThese values do not establish available capacity, rates or uptime.",
+        report.evidence.endpoint,
+        report.evidence.source_path,
+        report.evidence.state_tree_path,
+        report.evidence.observed_at_unix_seconds,
+        report.evidence.state_certificate_verified,
+        report.subnet_id,
+        report.num_canisters,
+        report.canister_state_bytes,
+        report.consumed_cycles_total,
+        report.update_transactions_total,
+    )
+}
 
 pub(crate) fn subnet_list(report: &SubnetListReport) -> String {
     let subnets = report

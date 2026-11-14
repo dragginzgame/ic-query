@@ -30,7 +30,7 @@ those claims implicitly through the word "subnet".
 
 ## Bounds and report
 
-Both implemented reports share one internal mainnet transport policy: anonymous
+The implemented reports share one internal mainnet transport policy: anonymous
 Agent, fixed HTTPS endpoint, built-in trust root, no root-key replacement,
 query-signature verification enabled, no TCP retries, a 1 MiB HTTP response-body
 ceiling and a 20-second asynchronous deadline. Agent-internal HTTP work shares
@@ -53,7 +53,7 @@ The node bound applies after the byte-bounded Agent response has been decoded.
 ## Ownership and qualification
 
 `ic-topology` owns report semantics, admission and evidence. Its private `mainnet`
-module shares only transport policy used by both actual reports. Evidence types
+module shares only transport policy used by actual reports. Evidence types
 remain distinct because query signatures and certified state support different
 claims. No generic query framework or cross-crate helper is needed.
 
