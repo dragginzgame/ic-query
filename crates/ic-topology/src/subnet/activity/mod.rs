@@ -97,16 +97,10 @@ where
             });
         }
     };
-    let message_change = match after
-        .update_transactions_total
-        .cmp(&before.update_transactions_total)
-    {
-        std::cmp::Ordering::Greater => MessageChange::Increased {
-            by: after.update_transactions_total - before.update_transactions_total,
-        },
-        std::cmp::Ordering::Equal => MessageChange::Unchanged,
-        std::cmp::Ordering::Less => MessageChange::Decreased,
-    };
+    let message_change = message_change(
+        before.update_transactions_total,
+        after.update_transactions_total,
+    );
     Ok(SubnetActivityReport {
         schema: 1,
         interval_seconds,
@@ -114,6 +108,14 @@ where
         after,
         message_change,
     })
+}
+
+pub(super) fn message_change(before: u64, after: u64) -> MessageChange {
+    match after.cmp(&before) {
+        std::cmp::Ordering::Greater => MessageChange::Increased { by: after - before },
+        std::cmp::Ordering::Equal => MessageChange::Unchanged,
+        std::cmp::Ordering::Less => MessageChange::Decreased,
+    }
 }
 
 #[cfg(test)]

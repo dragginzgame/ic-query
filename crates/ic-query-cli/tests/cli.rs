@@ -526,3 +526,65 @@ fn selected_engine_help_and_id_refusals_are_local() {
         assert!(output.stdout.is_empty());
     }
 }
+
+#[test]
+fn maintenance_help_and_pre_io_refusals() {
+    let help = run(&["topology", "subnet", "maintenance", "--help"]);
+    assert!(help.status.success());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(
+        text.contains("--expected-version")
+            && text.contains("--interval-seconds")
+            && text.contains("--json")
+    );
+    let subnet = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+    for interval in ["0", "61"] {
+        let out = run(&[
+            "topology",
+            "subnet",
+            "maintenance",
+            subnet,
+            "--interval-seconds",
+            interval,
+        ]);
+        assert_eq!(out.status.code(), Some(1));
+        assert!(out.stdout.is_empty());
+    }
+    let out = run(&[
+        "topology",
+        "subnet",
+        "maintenance",
+        subnet,
+        "--expected-version",
+        &"é".repeat(129),
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(out.stdout.is_empty());
+    let out = run(&["topology", "subnet", "maintenance", "not-principal"]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(out.stdout.is_empty());
+}
+
+#[test]
+fn compare_help_and_duplicate_selection_fail_before_io() {
+    let help = run(&["topology", "subnet", "compare", "--help"]);
+    assert!(help.status.success());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(
+        text.contains("LEFT_SUBNET_ID")
+            && text.contains("RIGHT_SUBNET_ID")
+            && text.contains("--json")
+    );
+    let subnet = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
+    let duplicate = run(&["topology", "subnet", "compare", subnet, subnet, "--json"]);
+    assert_eq!(duplicate.status.code(), Some(1));
+    assert!(duplicate.stdout.is_empty());
+    for args in [
+        vec!["topology", "subnet", "compare", subnet],
+        vec!["topology", "subnet", "compare", subnet, "not-principal"],
+    ] {
+        let out = run(&args);
+        assert_eq!(out.status.code(), Some(2));
+        assert!(out.stdout.is_empty());
+    }
+}

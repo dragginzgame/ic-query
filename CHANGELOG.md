@@ -15,6 +15,28 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.6 — GitHub delivery 2026-11-15
+
+### ▶️ Try it
+
+After the [setup prerequisites](docs/development/setup.md), install this checkout
+and compare two subnets or observe one over two rounds (network access required):
+
+```bash
+make icq
+icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+```
+
+Optional `--expected-version` checks exact configured text, including explicit
+empty text. Partial evidence or refused comparisons exit 1; mismatches and observed
+changes exit 0 when collection/comparison succeeds. No uptime or completion verdict.
+`compare` shows two selected subnets' configuration, provider/location coverage and
+resource observations. It retains independent Registry versions and emits partial
+evidence with exit 1; it does not rank capacity or establish merge feasibility.
+
 ## CLI 0.105.5 — GitHub delivery 2026-11-15
 
 ### ▶️ Try it

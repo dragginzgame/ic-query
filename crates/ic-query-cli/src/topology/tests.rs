@@ -6,12 +6,11 @@ use ic_topology::subnet::nodes::{NodeRead, NodeReadOutcome, SubnetNodesReport};
 
 use super::*;
 
-#[test]
-fn distribution_output_preserves_partial_json_and_escapes_source_text() {
+fn partial_distribution() -> ic_topology::subnet::distribution::SubnetDistributionReport {
     use ic_topology::subnet::distribution::*;
     let inventory = inventory(NodeReadOutcome::NotStarted);
     let node_id = inventory.nodes[0].node_id;
-    let mut report = SubnetDistributionReport {
+    SubnetDistributionReport {
         schema: 1,
         endpoint: "https://ic0.app",
         source_canister: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
@@ -60,7 +59,13 @@ fn distribution_output_preserves_partial_json_and_escapes_source_text() {
             owners: vec![],
             owner_unknown: 1,
         },
-    };
+    }
+}
+
+#[test]
+fn distribution_output_preserves_partial_json_and_escapes_source_text() {
+    use ic_topology::subnet::distribution::*;
+    let mut report = partial_distribution();
     let output = distribution_output(&report, true).unwrap();
     assert_eq!(output.exit_code, ExitCode::FAILURE);
     let json: serde_json::Value = serde_json::from_str(&output.text).unwrap();
@@ -588,4 +593,144 @@ fn engine_output_preserves_omission_raw_evidence_and_membership_uncertainty() {
             .text
             .contains("standard engine version")
     );
+}
+
+#[test]
+fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succeeds() {
+    use ic_topology::{
+        ReadError,
+        subnet::{
+            activity::MessageChange, configuration::SubnetConfigurationError, maintenance::*,
+        },
+    };
+    let before = inventory(NodeReadOutcome::NotStarted).configuration;
+    let mut report = MaintenanceReport {
+        schema: 1,
+        subnet_id: before.subnet_id,
+        interval_seconds: 1,
+        expected_version: Some("v\n\x1b".into()),
+        started_at_unix_seconds: 100,
+        elapsed: Duration::from_secs(1),
+        collection_complete: false,
+        atomic_snapshot: false,
+        configuration: ConfigurationOutcome::Failed {
+            before: Box::new(before),
+            error: SubnetConfigurationError::Read(ReadError::Deadline),
+        },
+        metrics_before: MetricsOutcome::Failed {
+            error: ic_topology::subnet::metrics::SubnetMetricsError::Read(ReadError::Deadline),
+        },
+        metrics_after: MetricsOutcome::Failed {
+            error: ic_topology::subnet::metrics::SubnetMetricsError::Read(ReadError::Deadline),
+        },
+        message_change: None,
+        expected_before: VersionMatch::Differs,
+        expected_after: VersionMatch::Unavailable,
+    };
+    let text = maintenance_output(&report, false).unwrap();
+    assert_eq!(text.exit_code, ExitCode::FAILURE);
+    assert!(text.text.contains("unavailable") && text.text.contains("| OBSERVATION"));
+    assert!(!text.text.contains('\x1b'));
+    let json: serde_json::Value =
+        serde_json::from_str(&maintenance_output(&report, true).unwrap().text).unwrap();
+    assert_eq!(json["configuration"]["error"]["category"], "read_deadline");
+    assert_eq!(json["expected_version"], "v\n\x1b");
+    let before = inventory(NodeReadOutcome::NotStarted).configuration;
+    let mut after = inventory(NodeReadOutcome::NotStarted).configuration;
+    after.registered_subnet_type = -1;
+    after.evidence.record_version += 1;
+    report.configuration = ConfigurationOutcome::Compared {
+        report: Box::new(ic_topology::subnet::changes::compare(before, after).unwrap()),
+    };
+    report.collection_complete = true;
+    let metrics = |total| {
+        use ic_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
+        MetricsOutcome::Read {
+            report: SubnetMetricsReport {
+                schema: 1,
+                subnet_id: report.subnet_id,
+                num_canisters: 1,
+                canister_state_bytes: 0,
+                consumed_cycles_total: 0,
+                update_transactions_total: total,
+                evidence: SubnetMetricsEvidence {
+                    endpoint: "https://ic0.app",
+                    source_path: format!("/api/v3/subnet/{}/read_state", report.subnet_id),
+                    state_tree_path: format!("/subnet/{}/metrics", report.subnet_id),
+                    observed_at_unix_seconds: 100,
+                    state_certificate_verified: true,
+                },
+            },
+        }
+    };
+    report.metrics_before = metrics(2);
+    report.metrics_after = metrics(1);
+    report.expected_after = VersionMatch::Differs;
+    report.message_change = Some(MessageChange::Decreased);
+    let text = maintenance_output(&report, false).unwrap().text;
+    let type_row = text
+        .lines()
+        .find(|line| line.contains("Registered type (raw)"))
+        .unwrap();
+    assert!(type_row.contains("| 2 ") && type_row.contains("| -1 "));
+    assert!(text.contains("decreased; cause unknown") && text.contains("differs"));
+    assert_eq!(
+        maintenance_output(&report, true).unwrap().exit_code,
+        ExitCode::SUCCESS
+    );
+}
+
+#[test]
+fn compare_output_preserves_partial_coverage_and_terminal_safety() {
+    use ic_topology::{
+        ReadError,
+        subnet::{compare::*, distribution::DistributionError, metrics::*},
+    };
+    let left = partial_distribution();
+    let left_id = left.configuration.subnet_id;
+    let report = SubnetComparisonReport {
+        schema: 1,
+        left: Candidate {
+            subnet_id: left_id,
+            distribution: DistributionOutcome::Read {
+                report: Box::new(left),
+            },
+            metrics: MetricsOutcome::Failed {
+                error: SubnetMetricsError::Read(ReadError::Deadline),
+            },
+        },
+        right: Candidate {
+            subnet_id: Principal::from_slice(&[4]),
+            distribution: DistributionOutcome::Failed {
+                error: DistributionError::InitialDeadline,
+            },
+            metrics: MetricsOutcome::Failed {
+                error: SubnetMetricsError::Read(ReadError::Deadline),
+            },
+        },
+        started_at_unix_seconds: 100,
+        elapsed: Duration::from_secs(160),
+        collection_complete: false,
+        atomic_snapshot: false,
+        registry_versions_agree: None,
+    };
+    let output = compare_output(&report, false).unwrap();
+    assert_eq!(output.exit_code, ExitCode::FAILURE);
+    assert!(output.text.contains("| LEFT") && output.text.contains("| RIGHT"));
+    assert!(output.text.contains("0 known / 1 unknown") && output.text.contains("unavailable"));
+    assert!(!output.text.contains('\x1b'));
+    let json: serde_json::Value =
+        serde_json::from_str(&compare_output(&report, true).unwrap().text).unwrap();
+    assert_eq!(json["left"]["metrics"]["error"], "read_deadline");
+    assert_eq!(
+        json["left"]["distribution"]["report"]["configuration"]["replica_version_id"],
+        report
+            .left
+            .distribution
+            .report()
+            .unwrap()
+            .configuration
+            .replica_version_id
+    );
+    assert_eq!(json["right"]["distribution"]["status"], "failed");
 }

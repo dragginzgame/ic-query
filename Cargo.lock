@@ -1156,7 +1156,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.5"
+version = "0.105.6"
 dependencies = [
  "clap",
  "ic-host-text",
@@ -1176,7 +1176,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.105.4"
+version = "0.105.5"
 dependencies = [
  "ic-platform",
  "ic-platform-types",
@@ -2484,9 +2484,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.44.1"
+version = "0.44.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b0da6eee9b9d4b95fc4e92fe86c54b90372a6babee661aa2e70f2b084082cc7"
+checksum = "8a9bc7b6827044baac8134cada7ee6bc31f86c70beec9608d1d39d911eba15e1"
 
 [[package]]
 name = "tower"

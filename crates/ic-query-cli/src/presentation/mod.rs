@@ -1,4 +1,5 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
+pub(crate) mod compare;
 
 use ic_host_text::table::render_bordered;
 use std::collections::BTreeSet;
@@ -19,6 +20,7 @@ mod available;
 mod candidates;
 mod distribution;
 mod engine;
+pub(crate) mod maintenance;
 mod node_changes;
 mod prices;
 pub(crate) use available::cloud_engine_available;

@@ -129,11 +129,11 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.44.1** was verified as the latest stable, non-yanked registry
+Toko Tooling **0.44.3** was verified as the latest stable, non-yanked registry
 release on 2026-11-15. Its authenticated archive SHA-256 is:
 
 ```text
-5b0da6eee9b9d4b95fc4e92fe86c54b90372a6babee661aa2e70f2b084082cc7
+8a9bc7b6827044baac8134cada7ee6bc31f86c70beec9608d1d39d911eba15e1
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the eight selected roots and
@@ -141,19 +141,26 @@ all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.1 refresh accounts for all 50 installed payload files. The baseline
+The 0.44.3 refresh accounts for all 50 installed payload files. The baseline
 retires the special subsystem-replacement workflow and adds a narrow Platform-only
 development-oracle exception; Query's external dependency boundary is unchanged.
-The LOC reporter now defaults to crate-level depth: `toko-cloc` and `toko-cloc -d 0`
-produce the same report; use `toko-cloc -d 1` to expand modules.
+The LOC reporter now defaults to repository totals: `toko-cloc` and `toko-cloc -d 0`
+produce the same report; use `toko-cloc -d 1` to expand crates and `-d 2` for
+top-level modules. Named crate/module selections expand immediate children at `-d 1`.
 Local verification compared both default-depth outputs byte-for-byte successfully.
 This checkout has no imports or
 snapshot selection for the retired Python evidence API, so no caller migration
 is needed. The exporter refreshed the receipt and admitted installed host/Rust
 tools. The Cargo pin, lockfile and receipt identify the authenticated release.
+Version 0.44.2 adds the baseline's focused post-push review before the next
+increment. Use the delivered commits and directly affected callers, retain
+existing validation evidence and record actionable findings in existing owning
+records. It adds no separate audit framework or automatic follow-up push.
+Version 0.44.3 changes only the selected LOC reporter and classifier; the baseline
+is unchanged from 0.44.2. Its depth correction leaves JSON counts unchanged.
 
 See the release-pinned
-[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/d9072adb355612043dbaac06960e60a6aea8a55e/docs/adoption/consuming-snapshots.md)
-and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/d9072adb355612043dbaac06960e60a6aea8a55e/docs/adoption/make-interface.md).
+[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/69ea17e551f33254d87de9824c30f2e74536eb10/docs/adoption/consuming-snapshots.md)
+and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/69ea17e551f33254d87de9824c30f2e74536eb10/docs/adoption/make-interface.md).
 Refresh through the authenticated exporter with the complete retained entrypoint
 set and review its preview. Never edit managed files or the receipt by hand.

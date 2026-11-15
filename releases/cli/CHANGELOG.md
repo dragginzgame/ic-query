@@ -2,6 +2,38 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.6] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add `topology subnet compare LEFT RIGHT` with a bordered side-by-side view of
+  configuration, provider/location coverage and resources. Preserve each source's
+  version and evidence; partial results exit 1. Duplicate selections fail before IO.
+
+- Add `topology subnet maintenance`: two coordinated configuration/metrics rounds,
+  one 1–60 second wait (default 10), optional exact `--expected-version` and a
+  bordered before/after table including raw registered subnet type and plain-text
+  expectation outcomes. Retain later failures in JSON with exit 1. Successful
+  version disagreements, configuration changes and counter changes exit 0 without
+  a health or maintenance-completion verdict. Invalid parameter values fail before IO.
+
+From the repository root after the [setup prerequisites](../../docs/development/setup.md):
+
+```bash
+make icq
+icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+```
+
+Mainnet reads need network access. Maintenance has four independent 20-second
+read deadlines plus the selected wait. Comparison has two 60-second distribution
+budgets and two 20-second metrics reads, at most 160 asynchronous seconds plus
+bounded synchronous work. Neither command adds retries, history or background polling.
+
 ## [0.105.5] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

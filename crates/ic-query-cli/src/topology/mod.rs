@@ -87,6 +87,17 @@ pub(crate) fn command() -> Command {
         .subcommand(
             Command::new("subnet")
                 .about("Inspect subnet topology")
+                .subcommand(Command::new("compare")
+                    .about("Compare two selected placement candidates; partial evidence exits 1")
+                    .arg(Arg::new("left").required(true).value_name("LEFT_SUBNET_ID").value_parser(value_parser!(Principal)))
+                    .arg(Arg::new("right").required(true).value_name("RIGHT_SUBNET_ID").value_parser(value_parser!(Principal)))
+                    .arg(json_argument()))
+                .subcommand(Command::new("maintenance")
+                    .about("Observe maintenance configuration and activity; not completion or uptime")
+                    .arg(Arg::new("subnet").required(true).value_name("SUBNET_ID").value_parser(value_parser!(Principal)))
+                    .arg(interval_argument())
+                    .arg(Arg::new("expected-version").long("expected-version").help("Exact configured-version expectation; empty is meaningful"))
+                    .arg(json_argument()))
                 .subcommand(
                     Command::new("activity")
                         .about("Compare two certified message totals; not uptime or throughput")
@@ -262,6 +273,31 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
         return Ok(distribution_output(&report, arguments.get_flag("json"))?);
     }
     let text: Result<String, Box<dyn std::error::Error>> = match (entity, action) {
+        ("subnet", "compare") => {
+            let report = ic_topology::subnet::compare::fetch(
+                *arguments
+                    .get_one::<Principal>("left")
+                    .expect("required left subnet"),
+                *arguments
+                    .get_one::<Principal>("right")
+                    .expect("required right subnet"),
+            )
+            .await?;
+            return Ok(compare_output(&report, arguments.get_flag("json"))?);
+        }
+        ("subnet", "maintenance") => {
+            let report = ic_topology::subnet::maintenance::fetch(
+                *arguments
+                    .get_one::<Principal>("subnet")
+                    .expect("required subnet"),
+                *arguments
+                    .get_one::<u64>("interval-seconds")
+                    .expect("default interval"),
+                arguments.get_one::<String>("expected-version").cloned(),
+            )
+            .await?;
+            return Ok(maintenance_output(&report, arguments.get_flag("json"))?);
+        }
         ("node", "changes") => {
             let id = *arguments
                 .get_one::<Principal>("node")
@@ -406,6 +442,24 @@ fn distribution_output(
     })
 }
 
+fn maintenance_output(
+    report: &ic_topology::subnet::maintenance::MaintenanceReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::maintenance::render(report)
+        },
+        exit_code: if report.comparisons_available() {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
 fn engine_output(
     report: &ic_topology::cloud_engine::engine::EngineReport,
     json: bool,
@@ -494,3 +548,21 @@ fn nodes_output(
 
 #[cfg(test)]
 mod tests;
+
+fn compare_output(
+    report: &ic_topology::subnet::compare::SubnetComparisonReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::compare::render(report)
+        },
+        exit_code: if report.collection_complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}

@@ -161,14 +161,16 @@ if (($ARGV[0] // '') eq '--table') {
             my $label=safe_label($w->{report}{selection} // $w->{name});
             my $kind=$w->{report}{selection} ? ($w->{report}{selection} =~ /::/ ? 37 : 34) : 32;
             push @rows, [$label, $w->{report}{totals},$kind];
+            next unless $depth;
+            my $module_depth=$w->{report}{selection} ? $depth : $depth-1;
             my %files_by_crate;
-            if ($depth) {
+            if ($module_depth) {
                 push @{$files_by_crate{$_->{crate}}},$_ for @{$w->{report}{files}};
             }
             for my $crate (@{$w->{report}{crates}}) {
                 push @rows,['  '.safe_label($crate->{crate}),$crate->{counts},34] unless $w->{report}{selection};
-                if ($depth) {
-                    my @modules=module_rows($crate,$files_by_crate{$crate->{crate}} // [],$depth);
+                if ($module_depth) {
+                    my @modules=module_rows($crate,$files_by_crate{$crate->{crate}} // [],$module_depth);
                     if ($w->{report}{selection}) { $_->[0] =~ s/^  // for @modules; }
                     push @rows,@modules;
                 }

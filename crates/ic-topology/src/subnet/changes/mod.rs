@@ -35,7 +35,8 @@ pub struct SubnetChangesReport {
 }
 
 /// Why two supplied configurations cannot support this comparison.
-#[derive(Debug, PartialEq, Eq, Error)]
+#[derive(Debug, PartialEq, Eq, Error, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ComparisonRefusal {
     /// The observations identify different subnets.
     #[error("configuration observations identify different subnets")]

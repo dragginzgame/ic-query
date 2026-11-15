@@ -61,6 +61,14 @@ backlog, caches, build outputs or release state wholesale.
 
 ## Product purpose
 
+The [two-subnet comparison](docs/design/subnet-compare.md) reuses distribution and
+metrics observations. Keep independent versions and partial coverage visible;
+comparison is not a capacity ranking or a merge-feasibility decision.
+
+The [maintenance report](docs/design/subnet-maintenance.md) coordinates one
+bounded observation window. Preserve partial evidence and
+keep configured-version agreement distinct from running software or completion.
+
 IC Query supports Canic application topology planning, uptime assessment and
 subnet maintenance decisions. It is not a general-purpose IC querying library.
 Select reports for the placement, capacity, performance, cost, availability and

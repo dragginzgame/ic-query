@@ -12,9 +12,11 @@ use crate::{ReadError, mainnet};
 
 pub mod activity;
 pub mod changes;
+pub mod compare;
 pub mod configuration;
 pub mod distribution;
 pub mod list;
+pub mod maintenance;
 pub mod membership;
 pub mod metrics;
 pub mod nodes;

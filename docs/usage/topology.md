@@ -252,6 +252,42 @@ copy is distinct from an empty available pool. If the initial status query fails
 there is no report; if the first page fails, the status and failure remain in
 partial output. There is no automatic restart or cross-command resume claim.
 
+## Compare two placement candidates
+
+Read two explicit subnets side by side, preserving argument order:
+
+```bash
+icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+```
+
+Add `--json` for the complete per-side distribution and metrics evidence. Each
+distribution selects its own Registry version; the table shows both versions
+and independent provider/location coverage. Missing evidence stays unavailable.
+Partial results exit 1, while complete observations exit 0 even when values differ.
+The command can take up to 160 asynchronous seconds plus bounded synchronous work.
+Lower state usage or canister count does not establish spare capacity, and this
+comparison does not establish whether a subnet merge is feasible. See the
+[comparison contract](../design/subnet-compare.md).
+
+## Observe a maintenance window
+
+Collect configuration and certified metrics before and after one bounded wait:
+
+```bash
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+```
+
+The interval defaults to 10 seconds and accepts 1–60. Optional
+`--expected-version` compares an exact configured version string; it does not
+observe running software. Collection performs four sequential reads and one
+wait, retaining later failures after the first configuration succeeds.
+
+Complete comparable evidence exits 0 even when versions differ, halt flags are
+set or the message counter decreases. Partial evidence or a refused comparison
+is emitted with exit 1. This is not a maintenance-completion or uptime verdict.
+See the [maintenance contract](../design/subnet-maintenance.md).
+
 ## Preserve uncertainty when consuming results
 
 Use the typed library reports or JSON for Canic integration. Text is a
@@ -265,10 +301,11 @@ a local observation timestamp is distinct from certified time. Separate reports
 do not acquire a shared version merely because they were requested close together.
 
 A failed single report exits unsuccessfully and emits no success JSON. The
-`subnet nodes`, `subnet distribution`, `cloud-engine prices` and
+`subnet compare`, `subnet maintenance`, `subnet nodes`, `subnet distribution`, `cloud-engine prices` and
 `cloud-engine available` and `cloud-engine candidates` collections deliberately emit explicit
 partial JSON with exit 1 after initial admission succeeds; initial admission
-failure emits no report. Treat failures as unavailable evidence, not zero usage, empty membership
+failure emits no report, except that `subnet compare` retains each independent
+component failure even when neither side succeeds. Treat failures as unavailable evidence, not zero usage, empty membership
 or downtime.
 The library preserves typed causes; membership also retains its first report
 when the second read fails. Query adds no persistent history or background retry.

@@ -2,6 +2,29 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.5] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### 🔧 Tooling
+
+- Adopt authenticated Toko Tooling 0.44.3 through the exporter. Retain the focused
+  post-push review baseline and restore compact LOC totals: default and `-d 0`
+  show repository totals, `-d 1` expands crates and `-d 2` expands modules.
+  Update the exact Cargo pin, lockfile and receipt; JSON LOC counts are unchanged.
+
+### ➕ Added
+
+- Add two-subnet placement comparison using existing distribution and metrics
+  readers, retaining independent versions and partial outcomes. Move shared
+  metrics acquisition outcomes to the metrics owner while retaining maintenance's
+  existing type path and serialized shape.
+
+- Implement a bounded selected-subnet maintenance report combining configuration
+  changes, certified message-counter observations and an optional configured
+  version expectation. Retain partial evidence and independent comparison availability.
+  Reuse the configuration comparator and shared message-counter classification.
+
 ## [0.105.4] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

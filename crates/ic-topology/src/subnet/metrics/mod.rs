@@ -91,5 +91,48 @@ fn decimal_cycles<S: Serializer>(value: &u128, serializer: S) -> Result<S::Ok, S
     serializer.collect_str(value)
 }
 
+/// Independent metrics acquisition, retaining failures separately from zero values.
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum MetricsOutcome {
+    /// Successful certified observation.
+    Read {
+        /// Full raw evidence.
+        report: SubnetMetricsReport,
+    },
+    /// Unavailable evidence, not a health verdict.
+    Failed {
+        /// Original typed cause; JSON exposes a stable category.
+        #[serde(serialize_with = "metrics_error")]
+        error: SubnetMetricsError,
+    },
+}
+impl MetricsOutcome {
+    /// Borrow successfully acquired evidence.
+    #[must_use]
+    pub fn report(&self) -> Option<&SubnetMetricsReport> {
+        match self {
+            Self::Read { report } => Some(report),
+            Self::Failed { .. } => None,
+        }
+    }
+}
+impl From<Result<SubnetMetricsReport, SubnetMetricsError>> for MetricsOutcome {
+    fn from(value: Result<SubnetMetricsReport, SubnetMetricsError>) -> Self {
+        match value {
+            Ok(report) => Self::Read { report },
+            Err(error) => Self::Failed { error },
+        }
+    }
+}
+fn metrics_error<S: Serializer>(error: &SubnetMetricsError, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_str(match error {
+        SubnetMetricsError::Read(ReadError::Transport(_)) => "transport",
+        SubnetMetricsError::Read(ReadError::Deadline) => "read_deadline",
+        SubnetMetricsError::Read(ReadError::Clock(_)) => "clock",
+        SubnetMetricsError::SourceIdentity(_) => "source_identity",
+    })
+}
+
 #[cfg(test)]
 mod tests;

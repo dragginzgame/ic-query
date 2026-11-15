@@ -24,6 +24,9 @@ The [subnet metrics report](docs/design/subnet-metrics.md) adds certified raw
 resource values for one subnet, without inferring spare capacity or uptime.
 The [activity report](docs/design/subnet-activity.md) compares two certified
 message totals with a bounded wait, preserving both observations without a health verdict.
+The [maintenance report](docs/design/subnet-maintenance.md) coordinates configuration
+and metrics observations, retaining partial evidence and optional exact configured-version
+expectations without claiming running software, uptime or completed maintenance.
 The [configuration report](docs/design/subnet-configuration.md) adds registered
 membership, configured replica version and halt flags using published Platform.
 The [membership comparison](docs/design/subnet-membership.md) retains that
@@ -42,6 +45,9 @@ membership, replica-version and halt-flag differences across two observations.
 The [distribution report](docs/design/subnet-distribution.md) joins providers and
 registered data centers at one requested Registry version, retaining independent
 coverage and unknown counts for placement concentration decisions.
+The [two-subnet comparison](docs/design/subnet-compare.md) presents two selected
+placement candidates' configuration, concentration and resources side by side,
+preserving independent versions and partial results without ranking capacity.
 The [cloud-engine price report](docs/design/cloud-engine-marketplace.md) retains
 exact daily marketplace amounts and a separate network markup, preserving prices
 if the fee read fails. The available-node report traverses public eligibility
