@@ -5,7 +5,8 @@ registered hardware identifiers and configured host software. This bounded
 report reads one explicit node's Registry record through `icq topology node show`.
 It is included in topology 0.105.1 and CLI 0.105.3's GitHub delivery.
 
-This supplies inputs for later hardware comparisons. It does not answer whether
+This supplies inputs for the [node registration comparison](node-changes.md).
+It does not answer whether
 a machine just came online, has spare capacity, belongs to an active subnet or
 supports weaker application authentication. Those claims require additional
 observations and an explicit Canic/Auth trust policy.

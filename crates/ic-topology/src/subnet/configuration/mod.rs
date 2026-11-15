@@ -134,6 +134,14 @@ fn project(
     observed_at: u64,
 ) -> Result<SubnetConfigurationReport, SubnetConfigurationError> {
     let response = protobuf::decode_get_value_response(bytes, LIMITS)?;
+    project_response(subnet_id, response, observed_at)
+}
+
+pub(crate) fn project_response(
+    subnet_id: Principal,
+    response: protobuf::GetValueResponse<'_>,
+    observed_at: u64,
+) -> Result<SubnetConfigurationReport, SubnetConfigurationError> {
     if let Some(error) = response.error {
         return Err(SubnetConfigurationError::RegistryRejected {
             code: error.code,

@@ -8,6 +8,8 @@ use thiserror::Error;
 use crate::mainnet::{REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD};
 use crate::{ReadError, mainnet};
 
+pub mod changes;
+
 const MAX_CHIP_ID_BYTES: usize = 256;
 const MAX_HOSTOS_VERSION_BYTES: usize = 256;
 
@@ -120,6 +122,14 @@ fn source_key(node_id: Principal) -> String {
 
 fn project(node_id: Principal, bytes: &[u8], observed_at: u64) -> Result<NodeReport, NodeError> {
     let response = protobuf::decode_get_value_response(bytes, LIMITS)?;
+    project_response(node_id, response, observed_at)
+}
+
+pub(crate) fn project_response(
+    node_id: Principal,
+    response: protobuf::GetValueResponse<'_>,
+    observed_at: u64,
+) -> Result<NodeReport, NodeError> {
     if let Some(error) = response.error {
         return Err(NodeError::RegistryRejected {
             code: error.code,

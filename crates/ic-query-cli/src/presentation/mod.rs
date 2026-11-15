@@ -1,5 +1,6 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 
+use ic_host_text::table::render_bordered;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
@@ -13,6 +14,19 @@ use ic_topology::subnet::list::SubnetListReport;
 use ic_topology::subnet::membership::SubnetMembershipReport;
 use ic_topology::subnet::metrics::SubnetMetricsReport;
 use ic_topology::subnet::nodes::{NodeReadOutcome, SubnetNodesReport};
+
+mod available;
+mod candidates;
+mod distribution;
+mod engine;
+mod node_changes;
+mod prices;
+pub(crate) use available::cloud_engine_available;
+pub(crate) use candidates::cloud_engine_candidates;
+pub(crate) use distribution::subnet_distribution;
+pub(crate) use engine::cloud_engine;
+pub(crate) use node_changes::node_changes;
+pub(crate) use prices::cloud_engine_prices;
 
 pub(crate) fn subnet_changes(report: &SubnetChangesReport) -> String {
     let before = &report.before;
@@ -131,48 +145,53 @@ pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
     if report.overall_deadline_reached {
         text.push_str("Overall deadline reached; unfinished reads are marked below.\n");
     }
-    write!(
-        text,
-        "\n{:<59}  {:<8}  {:<6}  {:<7}  READ\n",
-        "NODE", "OPERATOR", "HOSTOS", "CHIP ID"
-    )
-    .expect("writing to a String cannot fail");
-    for row in &report.nodes {
-        let (operator, hostos, chip, status) = match &row.outcome {
-            NodeReadOutcome::Read { report } => {
-                let operator = operators
-                    .binary_search(&report.node_operator_id)
-                    .expect("collected operator");
-                let hostos = report.hostos_version_id.as_deref().map_or_else(
-                    || "-".to_owned(),
-                    |version| {
-                        format!(
-                            "H{}",
-                            versions.binary_search(&version).expect("collected version") + 1
-                        )
-                    },
-                );
-                let chip = match report.chip_id.as_deref() {
-                    None => "absent",
-                    Some([]) => "empty",
-                    Some(_) => "present",
-                };
-                (format!("O{}", operator + 1), hostos, chip, "ok")
-            }
-            NodeReadOutcome::Failed { .. } => ("-".into(), "-".into(), "-", "failed"),
-            NodeReadOutcome::IdentityMismatch { .. } => {
-                ("-".into(), "-".into(), "-", "ID mismatch")
-            }
-            NodeReadOutcome::OverallDeadline => ("-".into(), "-".into(), "-", "cancelled"),
-            NodeReadOutcome::NotStarted => ("-".into(), "-".into(), "-", "not started"),
-        };
-        writeln!(
-            text,
-            "{:<59}  {operator:<8}  {hostos:<6}  {chip:<7}  {status}",
-            row.node_id.to_string()
-        )
-        .expect("writing to a String cannot fail");
-    }
+    let rows: Vec<_> = report
+        .nodes
+        .iter()
+        .map(|row| {
+            let (operator, hostos, chip, status) = match &row.outcome {
+                NodeReadOutcome::Read { report } => {
+                    let operator = operators
+                        .binary_search(&report.node_operator_id)
+                        .expect("collected operator");
+                    let hostos = report.hostos_version_id.as_deref().map_or_else(
+                        || "-".to_owned(),
+                        |version| {
+                            format!(
+                                "H{}",
+                                versions.binary_search(&version).expect("collected version") + 1
+                            )
+                        },
+                    );
+                    let chip = match report.chip_id.as_deref() {
+                        None => "absent",
+                        Some([]) => "empty",
+                        Some(_) => "present",
+                    };
+                    (format!("O{}", operator + 1), hostos, chip, "ok")
+                }
+                NodeReadOutcome::Failed { .. } => ("-".into(), "-".into(), "-", "failed"),
+                NodeReadOutcome::IdentityMismatch { .. } => {
+                    ("-".into(), "-".into(), "-", "ID mismatch")
+                }
+                NodeReadOutcome::OverallDeadline => ("-".into(), "-".into(), "-", "cancelled"),
+                NodeReadOutcome::NotStarted => ("-".into(), "-".into(), "-", "not started"),
+            };
+            vec![
+                row.node_id.to_string(),
+                operator,
+                hostos,
+                chip.into(),
+                status.into(),
+            ]
+        })
+        .collect();
+    text.push('\n');
+    text.push_str(&render_bordered(
+        &["NODE", "OPERATOR", "HOSTOS", "CHIP ID", "READ"],
+        &rows,
+    ));
+    text.push('\n');
     if !operators.is_empty() {
         text.push_str("\nRegistered operators\n");
         for (index, operator) in operators.iter().enumerate() {

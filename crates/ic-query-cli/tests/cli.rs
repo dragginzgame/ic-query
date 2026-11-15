@@ -110,10 +110,14 @@ fn entity_namespace_help_is_local_and_consistent() {
         assert!(expected.stderr.is_empty());
         let text = String::from_utf8_lossy(&expected.stdout);
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
+        if entity == "node" {
+            assert!(text.find("  changes ").unwrap() < text.find("  help ").unwrap());
+        }
         if entity == "subnet" {
             assert!(text.find("  activity ").unwrap() < text.find("  changes ").unwrap());
             assert!(text.find("  changes ").unwrap() < text.find("  configuration ").unwrap());
-            assert!(text.find("  configuration ").unwrap() < text.find("  help ").unwrap());
+            assert!(text.find("  configuration ").unwrap() < text.find("  distribution ").unwrap());
+            assert!(text.find("  distribution ").unwrap() < text.find("  help ").unwrap());
             assert!(text.find("  help ").unwrap() < text.find("  list ").unwrap());
             assert!(text.find("  list ").unwrap() < text.find("  membership ").unwrap());
             assert!(text.find("  membership ").unwrap() < text.find("  metrics ").unwrap());
@@ -130,6 +134,56 @@ fn entity_namespace_help_is_local_and_consistent() {
             assert!(output.stderr.is_empty());
             assert_eq!(output.stdout, expected.stdout);
         }
+    }
+}
+
+#[test]
+fn distribution_help_and_invalid_arguments_are_local() {
+    let help = run(&["topology", "subnet", "distribution", "--help"]);
+    assert!(help.status.success() && help.stderr.is_empty());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(text.contains("SUBNET_ID") && text.contains("--json"));
+    assert!(text.contains("partial output exits 1"));
+    for arguments in [
+        &["topology", "subnet", "distribution"][..],
+        &["topology", "subnet", "distribution", "invalid"][..],
+        &["topology", "subnet", "distribution", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty() && !output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn node_changes_help_and_invalid_intervals_are_local() {
+    let help = run(&["topology", "node", "changes", "--help"]);
+    assert!(help.status.success() && help.stderr.is_empty());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(text.contains("not TEE readiness"));
+    assert!(text.contains("NODE_ID") && text.contains("--json"));
+    assert!(text.contains("[default: 10]"));
+    for arguments in [
+        &["topology", "node", "changes"][..],
+        &["topology", "node", "changes", "invalid"][..],
+        &["topology", "node", "changes", "--unknown"][..],
+    ] {
+        let output = run(arguments);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+    for interval in ["0", "61", "18446744073709551615"] {
+        let output = run(&[
+            "topology",
+            "node",
+            "changes",
+            "nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae",
+            "--interval-seconds",
+            interval,
+            "--json",
+        ]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty() && !output.stderr.is_empty());
     }
 }
 
@@ -316,5 +370,159 @@ fn subnet_activity_help_and_invalid_inputs_do_not_access_the_network() {
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
         assert!(String::from_utf8_lossy(&output.stderr).contains("between 1 and 60 seconds"));
+    }
+}
+
+#[test]
+fn cloud_engine_prices_namespace_and_rejections_are_local() {
+    let expected = run(&["topology", "cloud-engine", "--help"]);
+    assert!(expected.status.success() && expected.stderr.is_empty());
+    let text = String::from_utf8_lossy(&expected.stdout);
+    assert!(text.find("  available ").unwrap() < text.find("  help ").unwrap());
+    assert!(text.find("  help ").unwrap() < text.find("  prices ").unwrap());
+    for args in [
+        &["topology", "cloud-engine"][..],
+        &["topology", "cloud-engine", "help"][..],
+        &["help", "topology", "cloud-engine"][..],
+    ] {
+        assert_eq!(run(args).stdout, expected.stdout);
+    }
+    let help = run(&["topology", "cloud-engine", "prices", "--help"]);
+    assert!(help.status.success() && help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(
+        text.contains("daily")
+            && text.contains("--json")
+            && text.contains("partial output exits 1")
+    );
+    for args in [
+        &["topology", "cloud-engine", "prices", "unexpected-id"][..],
+        &[
+            "topology",
+            "cloud-engine",
+            "prices",
+            "--method",
+            "getApiDoc",
+        ][..],
+        &[
+            "topology",
+            "cloud-engine",
+            "prices",
+            "--endpoint",
+            "https://example.com",
+        ][..],
+        &["topology", "cloud-engine", "available", "unexpected-id"][..],
+        &[
+            "topology",
+            "cloud-engine",
+            "available",
+            "--rejoining",
+            "private-engine",
+        ][..],
+        &[
+            "topology",
+            "cloud-engine",
+            "available",
+            "--start",
+            "aaaaa-aa",
+        ][..],
+    ] {
+        let output = run(args);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty() && !output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn available_help_declares_bounded_public_scope() {
+    let help = run(&["topology", "cloud-engine", "available", "--help"]);
+    assert!(help.status.success() && help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(
+        text.contains("bounded pagination")
+            && text.contains("--json")
+            && text.contains("partial output exits 1")
+    );
+}
+
+#[test]
+fn available_page_budget_is_parsed_and_bounded_before_io() {
+    for value in ["0", "101", "65535", "65536", "-1", "invalid"] {
+        let output = run(&[
+            "topology",
+            "cloud-engine",
+            "available",
+            "--max-pages",
+            value,
+        ]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty() && !output.stderr.is_empty());
+    }
+    let output = run(&[
+        "topology",
+        "cloud-engine",
+        "available",
+        "--max-pages",
+        "100",
+        "--help",
+    ]);
+    assert!(output.status.success());
+    let help = String::from_utf8_lossy(&output.stdout);
+    assert!(help.contains("--max-pages") && help.contains("[default: 10]"));
+}
+
+#[test]
+fn candidates_help_and_invalid_budgets_require_no_network() {
+    let output = run(&["topology", "cloud-engine", "candidates", "--help"]);
+    assert!(output.status.success() && output.stderr.is_empty());
+    let text = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        text.contains("does not select a tariff")
+            && text.contains("--max-pages")
+            && text.contains("--json")
+    );
+    for value in ["0", "101", "-1", "65536", "invalid"] {
+        let output = run(&[
+            "topology",
+            "cloud-engine",
+            "candidates",
+            "--max-pages",
+            value,
+        ]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty() && !output.stderr.is_empty());
+    }
+    for flag in ["--owner", "--reserve", "--quote", "--method"] {
+        let output = run(&["topology", "cloud-engine", "candidates", flag]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn selected_engine_help_and_id_refusals_are_local() {
+    let help = run(&["topology", "cloud-engine", "show", "--help"]);
+    assert!(help.status.success() && help.stderr.is_empty());
+    let text = String::from_utf8_lossy(&help.stdout);
+    assert!(text.contains("ENGINE_ID") && text.contains("--json") && text.contains("not liveness"));
+    let missing = run(&["topology", "cloud-engine", "show"]);
+    assert_eq!(missing.status.code(), Some(2));
+    assert!(missing.stdout.is_empty());
+    for id in ["", &"x".repeat(257), &"é".repeat(129)] {
+        let output = run(&["topology", "cloud-engine", "show", id, "--json"]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("1–256 UTF-8 bytes"));
+    }
+    for flag in [
+        "--owner",
+        "--method",
+        "--endpoint",
+        "--max-pages",
+        "--update",
+    ] {
+        let output = run(&["topology", "cloud-engine", "show", "engine-x", flag]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
     }
 }

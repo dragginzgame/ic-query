@@ -38,6 +38,68 @@ fn changes_text_is_compact_escapes_values_and_keeps_observation_limits() {
 }
 
 #[test]
+fn node_changes_text_distinguishes_presence_and_same_length_byte_changes() {
+    let fixture = || {
+        let node_id = Principal::from_slice(&[1]);
+        NodeReport {
+            schema: 1,
+            node_id,
+            node_operator_id: Principal::from_slice(&[2]),
+            chip_id: Some(vec![0, 255]),
+            hostos_version_id: None,
+            evidence: NodeEvidence {
+                endpoint: "source\n\u{1b}[31m",
+                source_canister: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+                source_method: "get_value",
+                source_key: format!("node_record_{node_id}"),
+                observed_at_unix_seconds: 1,
+                record_version: 300,
+                record_timestamp_nanoseconds: 2,
+                query_signature_verified: false,
+                result_certified: false,
+                tee_attestation_verified: false,
+            },
+        }
+    };
+    for (before_chip, after_chip, expected) in [
+        (None, Some(vec![]), "absent -> present-empty"),
+        (
+            Some(vec![]),
+            Some(vec![0, 255]),
+            "present-empty -> present (2 bytes)",
+        ),
+        (
+            Some(vec![0, 255]),
+            Some(vec![255, 0]),
+            "present (2 bytes) -> present (2 bytes)",
+        ),
+        (Some(vec![0, 255]), None, "present (2 bytes) -> absent"),
+    ] {
+        let mut before = fixture();
+        let mut after = fixture();
+        before.chip_id = before_chip;
+        after.chip_id = after_chip;
+        after.hostos_version_id = Some("next\n\u{1b}[31m\u{202e}".into());
+        after.node_operator_id = Principal::from_slice(&[3]);
+        after.evidence.record_version = 301;
+        let report = ic_topology::node::changes::compare(before, after).unwrap();
+        let text = super::node_changes(&report);
+        assert!(text.contains("Selected registration changed"));
+        assert!(text.contains(&format!("Registered chip ID changed: {expected}")));
+        assert!(text.contains("Configured HostOS: absent -> \"next\\n\\u{1b}[31m\\u{202e}\""));
+        assert!(text.contains("Registered operator:"));
+        assert!(text.contains("300 -> 301"));
+        assert!(!text.contains('\u{1b}') && !text.contains('\u{202e}'));
+        assert!(!text.contains("0x00ff") && !text.contains("Some("));
+        assert!(text.contains("do not establish event history"));
+    }
+    let report = ic_topology::node::changes::compare(fixture(), fixture()).unwrap();
+    let text = super::node_changes(&report);
+    assert!(text.contains("No selected registration changes observed"));
+    assert!(!text.contains("Configured HostOS:") && !text.contains("Registered chip ID changed:"));
+}
+
+#[test]
 fn node_text_preserves_presence_escapes_hostos_and_disclaims_attestation() {
     for (chip_id, hostos_version_id, expected_chip, expected_hostos) in [
         (None, None, "absent", "absent"),

@@ -2,6 +2,83 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.105.4] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### 📚 Documentation
+
+- Verify the selected-engine topology contract against public `getEngineViews`;
+  preserve omitted/hidden outcomes and separate record versus Registry-copy nodes.
+
+- Verify the next cloud-engine pricing/availability source contract directly
+  against the public canister: daily price units, all six node-class tags and
+  bounded availability pages with copy freshness. Keep availability evidence
+  separate from price declarations and usable-capacity claims.
+
+### ➕ Added
+
+- Add `cloud_engine::engine::fetch(EngineId)` using Platform 0.33.7. A validated
+  opaque ID selects one public record with subnet/operator bindings, deletion
+  evidence and both ordered node lists. Compare admitted sets without inferring
+  freshness, liveness or capacity. Keep absent copied membership distinct from
+  empty membership. One 20-second query, at most 128 nodes per list, no retry.
+
+- Add `cloud_engine::candidates::fetch(page_limit)`: compose availability then
+  prices with their existing 60/30-second budgets and preserve original evidence.
+  Match exact class/provider/DC scopes, retaining every overlap through price-row
+  indices. Pricing failure retains candidate observations with unknown coverage;
+  fee-only failure still permits matching. No tariff selection or billing claim.
+
+- Add `cloud_engine::available::fetch`: public new-engine eligibility in at most
+  ten pages/1,000 nodes within 60 seconds. Keep independent copy status, per-page
+  cursors/versions and raw chip-registration flags; stop on duplicate nodes,
+  repeated cursors, version changes or failures while retaining admitted pages.
+  Pagination exhaustion is distinct from an atomic inventory, live capacity or
+  TEE attestation. Skip node IP text through the published bounded decoder.
+  `fetch_with_page_limit` accepts 1–100 pages before IO, retains the selected
+  limits and allows up to 10,000 nodes under the same 60-second deadline.
+
+- Add `cloud_engine::prices::fetch` using published Platform 0.33.6. Retain exact
+  daily net/gross amounts, all six raw classes, optional scopes, signed timestamps
+  and separate query evidence. Bound prices to 1,000 unique validated identities
+  and collection to 30 seconds; retain admitted prices if the fee read fails.
+  Gross prices already include their fee. No monthly conversion or quote is inferred.
+
+- Compare selected-node registration observations through `node::changes`, using
+  supplied reports or two bounded reads. Preserve absent/empty/raw chip and HostOS
+  values, detect operator changes, and retain both inputs on identity, source,
+  field-limit or version refusal. This does not infer TEE readiness or node liveness.
+
+- Join one subnet's nodes, operators, providers and registered data centers at
+  one nonzero requested Registry version. Bound collection to 128 nodes, four
+  concurrent reads and 60 seconds; retain record failures, unfinished reads,
+  per-node relationships and independent provider/location unknown counts.
+  Registry declarations do not establish verified geography, failure domains,
+  capacity, uptime or TEE protection.
+
+### 🔧 Dependencies
+
+- Adopt Platform 0.33.7, adding the strict bounded selected-engine projection
+  ([Platform #168](https://github.com/dragginzgame/ic-platform/issues/168)).
+  Retain 0.33.6's `cloud-engine-types` capability for the four selected
+  public methods ([Platform #166](https://github.com/dragginzgame/ic-platform/issues/166));
+  use pricing and availability through the owning reports, with no direct protocol dependencies.
+
+- Adopt published Platform 0.33.5 for bounded global-version, operator and
+  data-center decoding ([Platform #165](https://github.com/dragginzgame/ic-platform/issues/165)).
+  Reuse existing node/configuration projection policy; retain registry sources
+  without sibling paths or direct protocol dependencies.
+
+### 🔧 Tooling
+
+- Refresh the workspace's authenticated Toko Tooling selection to 0.44.1 through
+  its exporter. All 50 selected files remain accounted for; the baseline changes
+  and the LOC reporter now makes omitted depth equivalent to explicit `-d 0`.
+  Query has no imports of
+  the retired Python evidence API. Tool/snapshot admission passes; optional
+  release automation remains unselected.
+
 ## [0.105.3] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

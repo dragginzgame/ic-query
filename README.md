@@ -32,11 +32,26 @@ without treating matching sets as proof of live nodes or an atomic snapshot.
 The [node report](docs/design/node-inventory.md) reads one node's registered
 operator, optional SEV-SNP chip ID and configured HostOS version. It supplies
 no verified attestation or running-software claim.
+The [node comparison](docs/design/node-changes.md) detects changes in those
+registration fields across supplied reports or two bounded reads.
 The [subnet node inventory](docs/design/subnet-nodes.md) reads those records for
 one subnet's registered membership, with bounded concurrency and explicit
 per-node failures or unfinished reads.
 The [configuration comparison](docs/design/subnet-changes.md) identifies selected
 membership, replica-version and halt-flag differences across two observations.
+The [distribution report](docs/design/subnet-distribution.md) joins providers and
+registered data centers at one requested Registry version, retaining independent
+coverage and unknown counts for placement concentration decisions.
+The [cloud-engine price report](docs/design/cloud-engine-marketplace.md) retains
+exact daily marketplace amounts and a separate network markup, preserving prices
+if the fee read fails. The available-node report traverses public eligibility
+pages with bounded collection, preserving earlier pages on failures or version
+changes. Exhausted pagination does not establish usable capacity or a snapshot.
+The candidate view joins those observations to every matching public declaration,
+preserving missing/overlapping scopes without selecting a tariff or quote.
+The [selected-engine report](docs/design/cloud-engine-topology.md) connects an
+opaque engine ID to its subnet/operator and compares its record nodes with the
+embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The SNS library remains a shell. All packages have publication disabled. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

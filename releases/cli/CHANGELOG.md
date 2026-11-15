@@ -2,6 +2,95 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.5] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### 🎨 Presentation
+
+- Use published `ic-host-text` 0.76.0 for bordered tables in subnet node and
+  provider/location reports, cloud-engine prices and available-node summaries.
+  Shared rendering owns visible `|` column delimiters, `+---+` borders, terminal
+  escaping and Unicode-width alignment. Raw JSON and report limits stay unchanged.
+
+### ➕ Added
+
+- Add `topology cloud-engine show ENGINE_ID`: one public selected-engine read,
+  showing subnet/operator bindings and a bordered comparison of engine-record
+  nodes with embedded Registry-copy membership. Preserve missing versus empty
+  membership and deletion evidence. Unknown/hidden IDs yield an explicit
+  not-returned report with exit 0; failed reads/admission exit 1 without a report.
+  IDs are opaque nonempty text, at most 256 UTF-8 bytes, checked before IO.
+
+- Add `topology cloud-engine candidates --max-pages 20`: join observed candidates
+  to every matching public price declaration. Show missing/single/multiple match
+  counts and a bordered daily-price table; JSON retains both source reports and
+  node-to-declaration indices. No precedence, customer discount or quote inferred.
+  Partial collection exits 1; successful missing/overlapping matches exit 0.
+
+- Add `topology cloud-engine available`: compact class/data-center counts with
+  provider and chip-registration counts. JSON retains full node identities,
+  page cursors and versions, copy status and stop details. Partial collections
+  remain on stdout with exit 1; exhausted pagination exits 0 without claiming
+  an atomic inventory or reserved capacity.
+  Add `--max-pages` (1–100, default 10) to collect more candidates while retaining
+  the 60-second deadline. JSON records the selected page and node ceilings.
+
+- Add `topology cloud-engine prices`: a compact daily-price table and independently
+  observed network markup. JSON preserves exact decimal amounts, raw scopes and
+  timestamps. Fee failures retain price output with exit 1; initial price failure
+  produces no report. These declarations are not binding quotes or usable capacity.
+
+- Add `topology node changes` for registered operator, chip-ID and configured
+  HostOS differences. Wait 1–60 seconds after the first read (default 10); show
+  changed fields with compact chip presence/byte counts, while JSON retains raw
+  values and both evidence records. Successful unchanged comparisons exit 0.
+
+- Add `topology subnet distribution`: compact provider and registered data-center
+  counts with independent coverage and unknown totals. JSON retains pinned-version
+  evidence, per-node relationships and all read outcomes. Partial results remain
+  on stdout with exit 1; initial version/configuration failures produce no report.
+
+### ▶️ Try it
+
+From the repository root after the [setup prerequisites](../../docs/development/setup.md):
+
+```bash
+make fetch-dependencies
+make icq
+icq topology cloud-engine show engine-0b56b29a-7ea0-40b8-a963-6c4539ea4414
+icq topology cloud-engine show engine-0b56b29a-7ea0-40b8-a963-6c4539ea4414 --json
+icq topology cloud-engine candidates --max-pages 20
+icq topology cloud-engine candidates --max-pages 20 --json
+icq topology cloud-engine available
+icq topology cloud-engine available --json
+icq topology cloud-engine available --max-pages 20 --json
+icq topology cloud-engine prices
+icq topology cloud-engine prices --json
+icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10
+icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10 --json
+```
+
+Fetching and anonymous mainnet reads require network access. Installation refreshes
+`icq` on PATH. Counts describe the selected membership at one requested Registry
+version, not verified failure domains or usable capacity. Collection allows 128
+nodes, batches of four and 60 seconds. Inspect `complete`, `summary` and the
+per-node `relationships` before using partial evidence for placement decisions.
+Node comparison failures emit no success report and exit 1. Changes in chip
+registration do not establish usable TEE protection; configured HostOS changes
+do not establish running software or completed maintenance.
+Prices allow up to 1,000 unique rows and 30 seconds across both queries. Amounts
+are whole cycles per node per day; supplied gross values already include their
+fee. `network_fee` records the separate observation or failure; `complete` means
+both reads passed admission, without claiming an atomic or fresh marketplace.
+Availability requests public new-engine pages only: up to 100 nodes per page,
+ten pages/1,000 nodes by default and 60 seconds including status. An explicit
+`--max-pages 20` permits up to 2,000 nodes without increasing that deadline. Inspect
+`pagination_exhausted`, `registry_copy`, `pages` and `stop`; a source version
+change stops traversal rather than mixing versions. No IP addresses are retained.
+
 ## [0.105.4] — GitHub delivery 2026-11-14
 
 GitHub-only version; not published to crates.io.

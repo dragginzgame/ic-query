@@ -15,6 +15,67 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.5 — GitHub delivery 2026-11-15
+
+### ▶️ Try it
+
+Read cloud-engine candidate nodes and daily prices, provider/location concentration and selected-node
+registration changes. From the
+repository root after the [setup prerequisites](docs/development/setup.md):
+
+```bash
+make fetch-dependencies
+make icq
+icq topology cloud-engine show engine-0b56b29a-7ea0-40b8-a963-6c4539ea4414
+icq topology cloud-engine show engine-0b56b29a-7ea0-40b8-a963-6c4539ea4414 --json
+icq topology cloud-engine candidates --max-pages 20
+icq topology cloud-engine candidates --max-pages 20 --json
+icq topology cloud-engine available
+icq topology cloud-engine available --json
+icq topology cloud-engine available --max-pages 20 --json
+icq topology cloud-engine prices
+icq topology cloud-engine prices --json
+icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10
+icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10 --json
+```
+
+Requires network access for fetching and mainnet reads. Text shows compact
+provider/location counts and unknown totals; JSON retains version-pinned joins,
+raw evidence and failures. Distribution partial results exit 1. Node comparison
+shows only changed fields and exits 0 even if unchanged; read/comparison failure
+exits 1. Chip registration and configured HostOS do not establish usable TEE
+protection or running software. Registry declarations do not
+prove independent failure domains, uptime or spare capacity. See the
+[CLI notes](releases/cli/CHANGELOG.md) for limits and coverage fields.
+Cloud-engine prices are exact whole cycles per node per day. Gross already
+includes its fee; a separate fee-read failure retains the prices with exit 1.
+Available-node text groups candidates by class/data center. JSON retains nodes
+and page evidence; partial traversal exits 1. Exhaustion does not prove an atomic
+inventory, reserved capacity or verified TEE protection.
+Use `--max-pages` (1–100, default 10) for a larger bounded collection; 20 pages
+allows up to 2,000 nodes under the same 60-second deadline.
+These reports use `ic-host-text` bordered tables with visible column delimiters.
+`candidates` matches observed nodes to all public declaration scopes. Missing and
+overlapping matches stay explicit; no tariff or quote is selected. It retains
+partial results with exit 1 and uses sequential availability/price budgets of
+60/30 seconds.
+`cloud-engine show` reads one selected engine in one bounded query, showing its
+subnet/operator and separate engine-record/Registry-copy node lists. Successful
+omission means unknown or hidden, not confirmed nonexistence. No liveness or
+Registry-copy freshness is inferred. This batch adopts Platform 0.33.7 and Toko
+Tooling 0.44.1.
+
+The updated LOC reporter defaults to crate rows. These first two commands now
+produce the same report; the third expands modules:
+
+```bash
+toko-cloc
+toko-cloc -d 0
+toko-cloc -d 1
+```
+
 ## CLI 0.105.4 — GitHub delivery 2026-11-14
 
 ### ▶️ Try it

@@ -1120,10 +1120,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-platform"
-version = "0.33.4"
+name = "ic-host-text"
+version = "0.76.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "959cfca0933238dfb426f3deb356b7d5c27ee594f714cb61eca1a610b3e4ae44"
+checksum = "7e4ca740ecd5342a449b401fca5ce2521e34ea3ab482dc67d989de3862b75c4a"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
+name = "ic-platform"
+version = "0.33.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e07e0565c70df9222016e93d6f488312176ef5e7036ded60db8b4bc3f61c05f"
 dependencies = [
  "ic-agent",
  "ic-platform-types",
@@ -1147,9 +1156,10 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.4"
+version = "0.105.5"
 dependencies = [
  "clap",
+ "ic-host-text",
  "ic-platform-types",
  "ic-topology",
  "serde_json",
@@ -1166,7 +1176,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.105.3"
+version = "0.105.4"
 dependencies = [
  "ic-platform",
  "ic-platform-types",
@@ -2474,9 +2484,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.43.1"
+version = "0.44.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "467162f616caafe69c965fe4e96173a0df37256f4767bfefd28114781aad76b3"
+checksum = "5b0da6eee9b9d4b95fc4e92fe86c54b90372a6babee661aa2e70f2b084082cc7"
 
 [[package]]
 name = "tower"

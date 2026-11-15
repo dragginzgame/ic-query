@@ -15,6 +15,34 @@ pub(crate) fn command() -> Command {
     Command::new("topology")
         .about("Inspect infrastructure evidence for Canic placement")
         .subcommand(
+            Command::new("cloud-engine")
+                .about("Inspect public cloud-engine topology, prices and candidate nodes")
+                .subcommand(
+                    Command::new("show")
+                        .about("Read one public engine's subnet/operator and node lists; not liveness")
+                        .arg(Arg::new("engine").value_name("ENGINE_ID").required(true)
+                            .value_parser(value_parser!(ic_topology::cloud_engine::engine::EngineId)))
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("candidates")
+                        .about("Match candidates to public price declarations; does not select a tariff")
+                        .arg(page_limit_argument())
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("available")
+                        .about("List public candidate nodes with bounded pagination; partial output exits 1")
+                        .arg(page_limit_argument())
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("prices")
+                        .about("Read daily marketplace prices and network markup; partial output exits 1")
+                        .arg(json_argument()),
+                ),
+        )
+        .subcommand(
             Command::new("canister")
                 .about("Inspect one canister's topology")
                 .subcommand(
@@ -32,6 +60,18 @@ pub(crate) fn command() -> Command {
         .subcommand(
             Command::new("node")
                 .about("Inspect one node's registered configuration")
+                .subcommand(
+                    Command::new("changes")
+                        .about("Compare registered chip, HostOS and operator changes; not TEE readiness")
+                        .arg(
+                            Arg::new("node")
+                                .value_name("NODE_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(interval_argument())
+                        .arg(json_argument()),
+                )
                 .subcommand(
                     Command::new("show")
                         .about("Read Registry operator, chip ID and configured HostOS; not verified attestation")
@@ -56,13 +96,7 @@ pub(crate) fn command() -> Command {
                                 .required(true)
                                 .value_parser(value_parser!(Principal)),
                         )
-                        .arg(
-                            Arg::new("interval-seconds")
-                                .long("interval-seconds")
-                                .help("Wait 1–60 seconds after the first read before starting the second")
-                                .default_value("10")
-                                .value_parser(value_parser!(u64)),
-                        )
+                        .arg(interval_argument())
                         .arg(json_argument()),
                 )
                 .subcommand(
@@ -74,18 +108,23 @@ pub(crate) fn command() -> Command {
                                 .required(true)
                                 .value_parser(value_parser!(Principal)),
                         )
-                        .arg(
-                            Arg::new("interval-seconds")
-                                .long("interval-seconds")
-                                .help("Wait 1–60 seconds after the first read before starting the second")
-                                .default_value("10")
-                                .value_parser(value_parser!(u64)),
-                        )
+                        .arg(interval_argument())
                         .arg(json_argument()),
                 )
                 .subcommand(
                     Command::new("configuration")
                         .about("Read Registry membership, configured version and halt flags; not running state")
+                        .arg(
+                            Arg::new("subnet")
+                                .value_name("SUBNET_ID")
+                                .required(true)
+                                .value_parser(value_parser!(Principal)),
+                        )
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("distribution")
+                        .about("Read providers and registered locations at one Registry version; partial output exits 1")
                         .arg(
                             Arg::new("subnet")
                                 .value_name("SUBNET_ID")
@@ -148,11 +187,30 @@ pub(crate) fn command() -> Command {
         )
 }
 
+fn page_limit_argument() -> Arg {
+    Arg::new("max-pages")
+        .long("max-pages")
+        .help("Read at most 1–100 pages of up to 100 nodes within 60 seconds")
+        .default_value("10")
+        .value_parser(
+            value_parser!(u16)
+                .range(1..=i64::from(ic_topology::cloud_engine::available::MAX_PAGE_LIMIT)),
+        )
+}
+
 fn json_argument() -> Arg {
     Arg::new("json")
         .long("json")
         .help("Print the report and its coverage as JSON")
         .action(ArgAction::SetTrue)
+}
+
+fn interval_argument() -> Arg {
+    Arg::new("interval-seconds")
+        .long("interval-seconds")
+        .help("Wait 1–60 seconds after the first read before starting the second")
+        .default_value("10")
+        .value_parser(value_parser!(u64))
 }
 
 pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn std::error::Error>> {
@@ -162,6 +220,33 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
     let (action, arguments) = scope
         .subcommand()
         .expect("entrypoint handles namespace help");
+    if (entity, action) == ("cloud-engine", "prices") {
+        let report = ic_topology::cloud_engine::prices::fetch().await?;
+        return Ok(prices_output(&report, arguments.get_flag("json"))?);
+    }
+    if (entity, action) == ("cloud-engine", "available") {
+        let page_limit = *arguments
+            .get_one::<u16>("max-pages")
+            .expect("default page budget");
+        let report =
+            ic_topology::cloud_engine::available::fetch_with_page_limit(page_limit).await?;
+        return Ok(available_output(&report, arguments.get_flag("json"))?);
+    }
+    if (entity, action) == ("cloud-engine", "candidates") {
+        let page_limit = *arguments
+            .get_one::<u16>("max-pages")
+            .expect("default page budget");
+        let report = ic_topology::cloud_engine::candidates::fetch(page_limit).await?;
+        return Ok(candidates_output(&report, arguments.get_flag("json"))?);
+    }
+    if (entity, action) == ("cloud-engine", "show") {
+        let id = arguments
+            .get_one::<ic_topology::cloud_engine::engine::EngineId>("engine")
+            .expect("required typed engine ID")
+            .clone();
+        let report = ic_topology::cloud_engine::engine::fetch(id).await?;
+        return Ok(engine_output(&report, arguments.get_flag("json"))?);
+    }
     if (entity, action) == ("subnet", "nodes") {
         let id = *arguments
             .get_one::<Principal>("subnet")
@@ -169,7 +254,28 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
         let report = ic_topology::subnet::nodes::fetch(id).await?;
         return Ok(nodes_output(&report, arguments.get_flag("json"))?);
     }
+    if (entity, action) == ("subnet", "distribution") {
+        let id = *arguments
+            .get_one::<Principal>("subnet")
+            .expect("required typed argument");
+        let report = ic_topology::subnet::distribution::fetch(id).await?;
+        return Ok(distribution_output(&report, arguments.get_flag("json"))?);
+    }
     let text: Result<String, Box<dyn std::error::Error>> = match (entity, action) {
+        ("node", "changes") => {
+            let id = *arguments
+                .get_one::<Principal>("node")
+                .expect("required node");
+            let interval = *arguments
+                .get_one::<u64>("interval-seconds")
+                .expect("default interval");
+            let report = ic_topology::node::changes::fetch(id, interval).await?;
+            if arguments.get_flag("json") {
+                Ok(serde_json::to_string_pretty(&report)?)
+            } else {
+                Ok(presentation::node_changes(&report))
+            }
+        }
         ("subnet", "changes") => {
             let id = *arguments
                 .get_one::<Principal>("subnet")
@@ -279,6 +385,92 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
     Ok(CommandOutput {
         text: text?,
         exit_code: ExitCode::SUCCESS,
+    })
+}
+
+fn distribution_output(
+    report: &ic_topology::subnet::distribution::SubnetDistributionReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::subnet_distribution(report)
+        },
+        exit_code: if report.complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn engine_output(
+    report: &ic_topology::cloud_engine::engine::EngineReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::cloud_engine(report)
+        },
+        exit_code: ExitCode::SUCCESS,
+    })
+}
+
+fn candidates_output(
+    report: &ic_topology::cloud_engine::candidates::CandidatesReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::cloud_engine_candidates(report)
+        },
+        exit_code: if report.collection_complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn available_output(
+    report: &ic_topology::cloud_engine::available::AvailableNodesReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::cloud_engine_available(report)
+        },
+        exit_code: if report.pagination_exhausted {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn prices_output(
+    report: &ic_topology::cloud_engine::prices::CloudEnginePricesReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::cloud_engine_prices(report)
+        },
+        exit_code: if report.complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
     })
 }
 

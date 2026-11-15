@@ -1,7 +1,6 @@
 # Selected-subnet provider and data-center distribution
 
-Status: accepted next slice; source contract prepared, implementation blocked on
-published Platform codecs. This is not an implemented command or report.
+Status: implemented native report and CLI action using published Platform 0.33.5.
 
 ## Canic decision and scope
 
@@ -13,7 +12,7 @@ Governance names, registration lists, rewards or payment accounts are needed.
 Registry location and ownership declarations are not independently verified
 physical locations or proof that providers have independent failure domains.
 
-Proposed additive surface: `subnet::distribution` and the CLI action
+Additive surface: `subnet::distribution` and the CLI action
 `topology subnet distribution`. Existing `subnet nodes`, configuration and
 membership reports retain their contracts. No existing report schema, saved JSON
 or published version is replaced by this design.
@@ -51,6 +50,10 @@ that referenced it; it does not erase those nodes or imply an absent provider.
 Empty provider bytes are missing identity, not the management principal. Validate
 any populated operator identity against its queried key. Preserve original
 data-center reference text and distinguish absent references from failed reads.
+Retain provider bytes up to the 29-byte principal limit and reference text up to
+256 UTF-8 bytes. For oversized references retain the original byte count and
+an explicit invalid relationship, with raw content absent rather than truncated.
+This field refusal does not discard the independently admitted relationship.
 The Registry key contract lowercases data-center IDs; it does not trim whitespace.
 Treat an empty reference as absent. Refuse leading/trailing whitespace as an
 invalid reference, retaining the raw text, rather than silently repairing it or
@@ -69,6 +72,10 @@ failed data-center read does not discard a resolved provider. Distinguish a
 known data-center reference from successfully read location details; only the
 latter contributes to region/owner distributions. Keep the full selected-node
 count as each coverage denominator, including unresolved dependencies.
+Empty region/owner declarations remain unknown for their respective groups,
+even when the location record was read successfully. `complete` means all
+provider/location relationships and records resolved, not that every declaration
+was populated or independently verified.
 Do not extrapolate network-wide provider counts, spare node capacity, uptime,
 cloud-engine prices or deployment eligibility from this selected membership.
 
@@ -76,14 +83,14 @@ Text should use compact tables and shared keys, retaining full evidence in JSON.
 Partial output remains explicit and exits 1, following the node collection.
 Initial version/configuration/admission failure produces no success report.
 
-## Published Platform prerequisite
+## Published Platform capability
 
-On 2026-11-14 the public Cargo sparse index identified `ic-platform 0.33.4` as
+On 2026-11-14 the public Cargo sparse index identified `ic-platform 0.33.5` as
 the latest non-yanked stable release, checksum
-`959cfca0933238dfb426f3deb356b7d5c27ee594f714cb61eca1a610b3e4ae44`.
+`9e61489a7377a2a67791f949a70976ec1445c75ac3dcc0ab5229cc1ea569385a`.
 Its published `nns_registry_types::protobuf` supports explicit versions in
 `encode_get_value_request`, inline envelopes, subnet records and node records.
-It does not expose the following required bounded decoders:
+It also supplies these bounded decoders under the existing feature:
 
 | Protocol | Selected fields |
 | --- | --- |
@@ -91,8 +98,8 @@ It does not expose the following required bounded decoders:
 | `NodeOperatorRecord` | Operator principal bytes (1), provider principal bytes (3), data-center ID text (4) |
 | `DataCenterRecord` | ID text (1), region text (2), owner text (3) |
 
-Request these within the existing `nns-registry-types` feature and explicit
-protobuf `Limits`, following the current borrowed-result/error policy. Preserve
+Use the existing `nns-registry-types` feature and explicit protobuf `Limits`,
+following the current borrowed-result/error policy. Preserve
 proto3 defaults, reject duplicate selected singular fields, malformed lengths,
 wrong wire types and invalid selected UTF-8; skip unknown fields within bounds.
 Do not expose rewards, node allowances, GPS or protocol-wide generic invocation
@@ -108,14 +115,11 @@ and [Registry key contract](https://github.com/dfinity/ic/blob/904f4dde68006d3cc
 These are protocol facts, not imported third-party implementation or tests.
 
 No Query-local protobuf decoder, new direct external codec dependency or sibling
-path substitution is authorized by this design. Adopt the published supplier
-capability before introducing the live readers and composition. This document
-specifies the consumer contract;
+path substitution is used. This document specifies the consumer contract;
 [Platform issue #165](https://github.com/dragginzgame/ic-platform/issues/165)
-owns the supplier prerequisite and acceptance checks.
-Its [implementation update](https://github.com/dragginzgame/ic-platform/issues/165#issuecomment-6880840186)
-reports local decoder qualification complete and publication planned for 0.33.5.
-That is not evidence of publication or Query integration qualification.
+owns the supplier capability and acceptance checks. The authenticated published
+archive and registry dependency were used for this integration, not the earlier
+local implementation or its supplier-only qualification.
 
 ## Legacy lessons and acceptance cases
 
@@ -146,5 +150,16 @@ selected node exactly once to its resolved groups and unknown counts.
 Global duplicate cross-subnet assignment checks require a multi-subnet scope and
 are not a claim this selected-subnet report can establish.
 
-Only documentation and supplier discovery are complete. No new product behavior
-or implementation qualification is claimed here.
+The Query regression suite exercises the real bounded decoder/projection path
+with independently authored wire fixtures and a deterministic asynchronous source.
+It covers version selection, per-key version admission, deduplication, independent
+coverage, empty/invalid references, identity mismatches, field bounds and cancellation.
+CLI checks cover local help/argument rejection, raw JSON, escaped text and partial
+exit status. Native compilation, Clippy, tests and Rustdoc are checked locally on
+Linux x86-64; other-host and live observations remain separate evidence.
+
+On 2026-11-14 a read-only JSON smoke check against `https://ic0.app` for NNS subnet
+`tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe` completed with
+exit 0 at requested Registry version `65719`: all 40 selected nodes resolved
+providers and location details in about 9.24 seconds, with no overall deadline.
+This is one observed successful collection, not an uptime or certification claim.

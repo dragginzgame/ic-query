@@ -1,10 +1,10 @@
 # Subnet configuration changes
 
 Canic needs to notice registered membership, software and halt-configuration
-differences while inspecting maintenance. This independent slice uses the
-existing published Platform configuration reader while provider/location joins
-await [Platform #165](https://github.com/dragginzgame/ic-platform/issues/165).
-It does not implement those joins, chip/HostOS comparison or a maintenance log.
+differences while inspecting maintenance. This slice uses the existing published
+Platform configuration reader. Provider/location joins now belong to the separate
+[distribution report](subnet-distribution.md). This configuration comparator does
+not compare chip/HostOS fields or establish a maintenance log.
 
 ## Library and CLI contract
 
@@ -87,4 +87,4 @@ the NNS subnet `tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe`
 returned mutation version `65525` in both observations at local Unix seconds
 `1794674012` and `1794674013`, with no selected differences and exit 0.
 This is a successful point check, not continuous availability or new macOS
-qualification. Provider/location distribution remains a separate blocked slice.
+qualification. Provider/location distribution has its own collection and qualification contract.

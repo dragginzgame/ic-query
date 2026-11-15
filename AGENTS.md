@@ -20,10 +20,25 @@ and [membership comparison](docs/design/subnet-membership.md), plus the
 [selected-subnet node collection](docs/design/subnet-nodes.md), use published
 Platform capabilities. Further report implementation
 requires a concrete Canic decision and source contract.
-The next selected slice is [provider/location distribution](docs/design/subnet-distribution.md);
-its version-pinned join contract awaits published Platform decoders.
+The [provider/location distribution](docs/design/subnet-distribution.md) joins
+selected membership at one Registry version using capabilities published in Platform 0.33.5;
+keep provider and location coverage independent and explicit.
 The independent [configuration comparison](docs/design/subnet-changes.md) uses
 the existing readers; it does not establish maintenance completion or uptime.
+The [node registration comparison](docs/design/node-changes.md) retains raw
+chip/HostOS presence and evidence without inferring TEE readiness or node liveness.
+The [cloud-engine marketplace slice](docs/design/cloud-engine-marketplace.md)
+uses published Platform 0.33.7 for daily prices and a separate network-fee read.
+Preserve exact daily units and partial outcomes. Available-node traversal retains
+per-page cursors and Registry versions, with bounded collection and explicit stop
+reasons. Exhausted pagination does not establish an atomic inventory or usable capacity.
+Availability defaults to ten pages; an explicit 1–100 page budget retains the
+same 60-second deadline and source checks.
+Candidate price matching composes those reports and retains every matching scope;
+do not infer tariff precedence, customer discounts or deployment quotes.
+The [selected-engine topology contract](docs/design/cloud-engine-topology.md)
+uses Platform's published selected-view decoder. Keep engine-record nodes separate
+from Registry-copy membership; omitted/hidden results are not proof of nonexistence.
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
 
@@ -160,6 +175,10 @@ transport and CLI responsibilities with their owners. Do not let architectural
 sediment accumulate. Report any boundary that cannot be resolved within authorized
 scope instead of concealing it behind a workaround. This is a focused review of
 the patch, not an instruction to rerun unrelated suites or audit other repositories.
+
+CLI tables use published `ic-host-text` bordered rendering for visible column
+delimiters, terminal escaping and Unicode-width alignment. Keep row selection
+and value semantics in the CLI; JSON retains raw report values.
 
 Keep root `CHANGELOG.md` as the navigation index for the group ledgers declared
 in `ci/cargo-release-groups.json`, including the baseline's required CLI quick

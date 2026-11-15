@@ -19,7 +19,7 @@ qualification workspaces, counting shared source paths once;
 a parent directory reports its sibling repositories.
 
 Options:
-  -d N            Show crates and N module levels (0 = crates only)
+  -d N            Show crates and N module levels (default: 0 = crates only)
   --json          Full file counts and diagnostics for one repository/selection
   --wide          Show full names instead of middle-truncated table labels
   --manifest PATH Count only the selected Cargo workspace
@@ -111,7 +111,7 @@ report_repositories() (
     exit "$status"
 )
 
-depth=''
+depth=0
 selected_manifest=''
 json=false
 wide=false
@@ -134,8 +134,7 @@ done
 [[ $# -le 1 ]] || { usage >&2; exit 2; }
 
 render_table() {
-    local flags=() columns=120 observed=''
-    if [[ -n "$depth" ]]; then flags=(-d "$depth"); fi
+    local flags=(-d "$depth") columns=120 observed=''
     if [[ "$wide" == true ]]; then
         flags+=(--wide)
     else
