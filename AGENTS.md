@@ -14,7 +14,10 @@ initial topology phase: the [placement](docs/design/canister-placement.md),
 [Registry inventory](docs/design/subnet-list.md) and
 [resource metrics](docs/design/subnet-metrics.md) and
 [two-sample activity](docs/design/subnet-activity.md) contracts own the selected
-mainnet reports and their limits. The [configuration report](docs/design/subnet-configuration.md)
+mainnet reports and their limits. The
+[selected placement collection](docs/design/placement-collection.md) accepts only
+caller-selected IDs, not fleet discovery or inferred ownership.
+The [configuration report](docs/design/subnet-configuration.md)
 and [membership comparison](docs/design/subnet-membership.md), plus the
 [node inventory](docs/design/node-inventory.md) and
 [selected-subnet node collection](docs/design/subnet-nodes.md), use published

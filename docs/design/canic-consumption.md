@@ -95,13 +95,52 @@ because its fields resemble a live result. A retained-report adapter needs its
 own bounded input, schema/identity checks, age policy and retirement contract.
 Query adds no storage or background watcher for this integration.
 
-## What remains to be selected
+## Proposed first Canic adapter
+
+A follow-up read-only inspection of the local sibling at HEAD
+`e3e7be86301c377db8b064d2ef914f5cde936265` found `fleet show` already owns optional
+live observations, HTML output and watching, while `fleet status` explicitly owns
+local retained operation progress. Start with a separate, one-shot
+`canic fleet placements` diagnostic rather than silently extending either budget.
+This is proposed syntax, not an implemented command.
+
+Use Canic's existing configuration resolution and app/fleet selection. Require
+one configured mainnet fleet; do not offer a journal-only fallback. Select its
+explicit `CanisterConfig.id` values in canonical slot-name order, retaining slot,
+role and parent as application declarations. Show unbound slots as unbound and
+make no lookup for them. Retained creation outputs and discovered children are
+outside this first configured-binding view; label that coverage explicitly.
+
+The Host adapter should parse every bound ID and reject duplicate identities or
+more than 32 selected IDs before IO. Do not silently split a larger fleet into
+multiple Query calls, because that would defeat the shared deadline. An all-unbound
+fleet produces a local unbound view without calling Query and without claiming
+successful placement collection. A nonempty admitted selection calls
+`placement::collection::fetch` once, retaining the original typed report alongside
+Canic's slot mapping. Per-row failures remain unknown placement. Canic owns the
+text/JSON envelope and partial exit status; it must not parse `icq` text or add
+an unbounded subprocess bridge.
+
+The diagnostic must make no journal writes, load no signer, refresh no deployment
+approval and leave Store's operation-bound checks intact. Its fixture acceptance
+should cover local-network refusal, ambiguous selection, unbound slots, bad IDs,
+duplicate/over-limit bindings, partial collection and preservation of source
+evidence. Keep these with the Host adapter and CLI callers, not Query's wire tests.
+
+Query packages remain unpublished. Before Canic can take this dependency, the
+collection must be delivered to GitHub and Canic must select that immutable
+revision under its own dependency policy. No local path override or release is
+implied by this design. Implementation requires scope to edit the local Canic
+checkout, which remains read-only in the current Query task.
+
+## Later integration choices
 
 Before implementing a consumer adapter, identify the exact Canic diagnostic
 command/view, how operators select candidate subnets, and whether its refresh
 budget accommodates the existing pair comparison (up to 160 asynchronous seconds).
-If the requirement is whole-fleet placement instead, specify an explicit bounded
-ID collection, per-canister outcomes and shared deadline before adding that report.
+The [selected placement collection](placement-collection.md) now admits 1–32
+explicit IDs with per-canister outcomes and a shared 60-second deadline. Canic
+must still select bound mainnet identities; Query does not discover the fleet.
 Do not hide unbounded fanout inside a fleet refresh or use a universal query plugin.
 
 Platform's rewrite does not require a speculative bridge in Query. Keep the

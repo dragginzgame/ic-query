@@ -15,6 +15,27 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.8 — GitHub delivery 2026-11-15
+
+### ▶️ Try it
+
+After the [setup prerequisites](docs/development/setup.md), install this checkout
+and inspect explicitly selected mainnet canisters:
+
+```bash
+make icq
+icq topology canister placements \
+  ryjl3-tyaaa-aaaaa-aaaba-cai \
+  rwlgt-iiaaa-aaaaa-aaaaa-cai
+icq topology canister placements \
+  ryjl3-tyaaa-aaaaa-aaaba-cai \
+  rwlgt-iiaaa-aaaaa-aaaaa-cai --json
+```
+
+Up to 32 unique IDs share a 60-second budget. Partial output exits 1 and preserves
+failed, cancelled and unstarted lookups. The examples are public IDs, not inferred
+fleet membership. See the [CLI notes](releases/cli/CHANGELOG.md).
+
 ## CLI 0.105.7 — GitHub delivery 2026-11-15
 
 ### ▶️ Try it

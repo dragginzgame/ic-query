@@ -2,6 +2,32 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.8] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add `topology canister placements` for 1–32 explicit IDs, with bordered
+  per-canister outcomes or raw JSON. Partial results remain on stdout with exit 1;
+  complete collection exits 0. Empty, excessive and duplicate selections are
+  rejected before network calls. Reads share 60 seconds, without fleet discovery.
+
+After the [setup prerequisites](../../docs/development/setup.md), install this
+checkout with `make icq`. Mainnet reads require network access:
+
+```bash
+icq topology canister placements \
+  ryjl3-tyaaa-aaaaa-aaaba-cai \
+  rwlgt-iiaaa-aaaaa-aaaaa-cai
+icq topology canister placements \
+  ryjl3-tyaaa-aaaaa-aaaba-cai \
+  rwlgt-iiaaa-aaaaa-aaaaa-cai --json
+```
+
+These public IDs demonstrate syntax, not Canic fleet bindings. Existing
+single-canister `show` is unchanged.
+
 ## [0.105.7] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

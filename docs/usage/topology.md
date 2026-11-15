@@ -28,6 +28,20 @@ icq topology subnet list --json
 ```
 
 A mapping is routing evidence, not proof of canister existence or uptime.
+
+For multiple explicitly selected mainnet canisters, use the
+[bounded placement collection](../design/placement-collection.md):
+
+```bash
+icq topology canister placements \
+  ryjl3-tyaaa-aaaaa-aaaba-cai \
+  rwlgt-iiaaa-aaaaa-aaaaa-cai --json
+```
+
+Select 1–32 unique IDs. Reads preserve argument order and share 60 seconds;
+failed, cancelled and unstarted rows remain explicit. Partial output exits 1.
+Omit `--json` for the bordered table. Query does not load Canic configuration,
+discover canisters or infer fleet membership; independent reads are not a snapshot.
 Registration identifies a candidate to investigate; it does not establish spare
 capacity, placement eligibility or permission to deploy there. Query does not
 rank candidates automatically.

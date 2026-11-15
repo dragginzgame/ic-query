@@ -1165,7 +1165,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.7"
+version = "0.105.8"
 dependencies = [
  "clap",
  "ic-host-text",
@@ -1185,7 +1185,7 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.106.0"
+version = "0.106.1"
 dependencies = [
  "ic-platform",
  "ic-platform-protocol",

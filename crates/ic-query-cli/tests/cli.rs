@@ -600,3 +600,28 @@ fn compare_help_and_duplicate_selection_fail_before_io() {
         assert!(out.stdout.is_empty());
     }
 }
+
+#[test]
+fn placements_help_and_invalid_selections_are_offline() {
+    let help = run(&["topology", "canister", "placements", "--help"]);
+    assert!(help.status.success());
+    let text = String::from_utf8(help.stdout).unwrap();
+    assert!(text.contains("CANISTER_ID") && text.contains("--json"));
+    for args in [
+        vec!["topology", "canister", "placements"],
+        vec!["topology", "canister", "placements", "not-principal"],
+    ] {
+        let result = run(&args);
+        assert_eq!(result.status.code(), Some(2));
+        assert!(result.stdout.is_empty());
+    }
+    let id = "ryjl3-tyaaa-aaaaa-aaaba-cai";
+    let duplicate = run(&["topology", "canister", "placements", id, id, "--json"]);
+    assert_eq!(duplicate.status.code(), Some(1));
+    assert!(duplicate.stdout.is_empty());
+    let mut excess = vec!["topology", "canister", "placements"];
+    excess.extend(std::iter::repeat_n(id, 33));
+    let result = run(&excess);
+    assert_eq!(result.status.code(), Some(2));
+    assert!(result.stdout.is_empty());
+}

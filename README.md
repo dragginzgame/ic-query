@@ -15,6 +15,8 @@ Shared helpers must have demonstrated consumers and respect Platform ownership.
 
 Native reports list registered subnets, look up one canister's subnet through the
 mainnet NNS Registry, or observe subnet type and node identities in certified state.
+The [selected placement collection](docs/design/placement-collection.md) reads
+1–32 explicit canister IDs with a shared deadline and per-canister partial outcomes.
 These reports return explicit
 source and observation evidence, with typed failures and bounded reads. See the
 [placement](docs/design/canister-placement.md) and

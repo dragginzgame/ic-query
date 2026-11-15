@@ -44,7 +44,15 @@ pub(crate) fn command() -> Command {
         )
         .subcommand(
             Command::new("canister")
-                .about("Inspect one canister's topology")
+                .about("Inspect explicitly selected canister placement")
+                .subcommand(
+                    Command::new("placements")
+                        .about("Read 1–32 selected placements within 60 seconds; partial output exits 1")
+                        .arg(Arg::new("canisters").value_name("CANISTER_ID")
+                            .required(true).num_args(1..=ic_topology::placement::collection::MAX_CANISTERS)
+                            .value_parser(value_parser!(Principal)))
+                        .arg(json_argument()),
+                )
                 .subcommand(
                     Command::new("show")
                         .about("Look up one canister's subnet in the mainnet NNS Registry")
@@ -232,6 +240,15 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
     let (action, arguments) = scope
         .subcommand()
         .expect("entrypoint handles namespace help");
+    if (entity, action) == ("canister", "placements") {
+        let ids: Vec<_> = arguments
+            .get_many::<Principal>("canisters")
+            .expect("required canister selection")
+            .copied()
+            .collect();
+        let report = ic_topology::placement::collection::fetch(&ids).await?;
+        return Ok(placements_output(&report, arguments.get_flag("json"))?);
+    }
     if (entity, action) == ("cloud-engine", "prices") {
         let report = ic_topology::cloud_engine::prices::fetch().await?;
         return Ok(prices_output(&report, arguments.get_flag("json"))?);
@@ -564,6 +581,24 @@ fn compare_output(
             serde_json::to_string_pretty(report)?
         } else {
             presentation::compare::render(report, overlap_details)
+        },
+        exit_code: if report.collection_complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn placements_output(
+    report: &ic_topology::placement::collection::PlacementCollectionReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::placements::render(report)
         },
         exit_code: if report.collection_complete {
             ExitCode::SUCCESS

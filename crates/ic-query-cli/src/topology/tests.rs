@@ -816,3 +816,63 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
         raw_dc
     );
 }
+
+#[test]
+fn placements_output_preserves_partial_json_and_escapes_rejections() {
+    use ic_topology::placement::{
+        PlacementError,
+        collection::{CanisterPlacement, PlacementCollectionReport, PlacementOutcome},
+    };
+    let canister_id: Principal = "ryjl3-tyaaa-aaaaa-aaaba-cai".parse().unwrap();
+    let mut report = PlacementCollectionReport {
+        schema: 1,
+        atomic_snapshot: false,
+        started_at_unix_seconds: 10,
+        elapsed: std::time::Duration::from_secs(1),
+        collection_complete: false,
+        overall_deadline_reached: false,
+        canisters: vec![CanisterPlacement {
+            canister_id,
+            outcome: PlacementOutcome::Failed {
+                error: PlacementError::RegistryRejected("bad\n\u{1b}[31m".into()),
+            },
+        }],
+    };
+    let json = placements_output(&report, true).unwrap();
+    assert_eq!(json.exit_code, ExitCode::FAILURE);
+    let value: serde_json::Value = serde_json::from_str(&json.text).unwrap();
+    assert_eq!(
+        value["canisters"][0]["outcome"]["error"]["reason"],
+        "bad\n\u{1b}[31m"
+    );
+    let text = placements_output(&report, false).unwrap();
+    assert_eq!(text.exit_code, ExitCode::FAILURE);
+    assert!(text.text.contains("| CANISTER") && text.text.contains("unavailable"));
+    assert!(!text.text.contains('\u{1b}'));
+    report.canisters[0].outcome = PlacementOutcome::Read {
+        report: ic_topology::placement::PlacementReport {
+            schema: 1,
+            canister_id,
+            subnet_id: canister_id,
+            evidence: ic_topology::placement::PlacementEvidence {
+                endpoint: "https://ic0.app",
+                source_canister: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+                source_method: "get_subnet_for_canister",
+                observed_at_unix_seconds: 11,
+                query_signature_verified: true,
+                result_certified: false,
+                registry_version: None,
+                selected_lookup_complete: true,
+            },
+        },
+    };
+    report.collection_complete = true;
+    assert_eq!(
+        placements_output(&report, false).unwrap().exit_code,
+        ExitCode::SUCCESS
+    );
+    assert_eq!(
+        placements_output(&report, true).unwrap().exit_code,
+        ExitCode::SUCCESS
+    );
+}

@@ -1,5 +1,6 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 pub(crate) mod compare;
+pub(crate) mod placements;
 
 use ic_host_text::table::render_bordered;
 use std::collections::BTreeSet;

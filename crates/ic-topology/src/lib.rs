@@ -1,6 +1,7 @@
 //! Read-only IC infrastructure evidence for Canic application topology decisions.
 //!
 //! [`placement`] supplies a bounded mainnet canister-to-subnet observation;
+//! [`placement::collection`] collects selected IDs with explicit partial outcomes.
 //! [`subnet`] observes node identities in subnet-certified state, and
 //! [`subnet::list`] enumerates the Registry's registered subnet identities.
 //! [`subnet::metrics`] supplies certified raw resource values for one subnet.

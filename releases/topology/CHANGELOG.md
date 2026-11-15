@@ -2,6 +2,17 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.106.1] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### ➕ Added
+
+- Add `placement::collection::fetch` for 1–32 unique, explicitly selected canister
+  IDs. Preserve argument order, each lookup's source evidence and typed failures
+  within a shared 60-second deadline. Distinguish cancelled from unstarted reads;
+  complete collection does not establish fleet ownership or an atomic snapshot.
+
 ## [0.106.0] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

@@ -4,6 +4,8 @@
 //! consensus-certified Registry snapshot. Transport admits only mainnet, using
 //! Agent's built-in trust root and query-signature verification.
 
+pub mod collection;
+
 use ic_platform::candid_codec::{self, decoder};
 use ic_platform::nns_registry_types::{GetSubnetForCanisterRequest, GetSubnetForCanisterResponse};
 use ic_platform_types::Principal;
