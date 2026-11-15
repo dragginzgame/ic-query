@@ -2,6 +2,47 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.7] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### 🔧 Changed
+
+- Adopt the selected-engine codec patch documented in the
+  [topology ledger](../topology/CHANGELOG.md), preserving command syntax and report
+  JSON fields. Malformed or over-budget responses remain failures, including the
+  replacement decoder's explicit vector limit. Reinstall `icq` for the update.
+
+### ➕ Added
+
+- Show observed provider/data-center overlap in `topology subnet compare`, with
+  separate coverage, unknown-node counts and per-side node fractions over full
+  selected membership. Shared identities and per-side node
+  counts are retained in JSON. Missing input is unavailable, not zero overlap.
+- Add `--overlap-details` to display the shared identities and per-side node counts
+  in bordered text tables, using the same collected evidence. It is a text-only
+  option and cannot be combined with `--json`.
+
+Install from this checkout after the [setup prerequisites](../../docs/development/setup.md);
+mainnet reads require network access:
+
+```bash
+make icq
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae \
+  --overlap-details
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+```
+
+Different Registry versions and incomplete coverage remain visible. Zero observed
+overlap does not establish independent failure domains; exit behavior is unchanged.
+
 ## [0.105.6] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.
@@ -23,10 +64,18 @@ From the repository root after the [setup prerequisites](../../docs/development/
 
 ```bash
 make icq
-icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
-icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 Mainnet reads need network access. Maintenance has four independent 20-second
@@ -99,10 +148,16 @@ icq topology cloud-engine available --json
 icq topology cloud-engine available --max-pages 20 --json
 icq topology cloud-engine prices
 icq topology cloud-engine prices --json
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10 --json
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10 --json
 ```
 
 Fetching and anonymous mainnet reads require network access. Installation refreshes
@@ -149,8 +204,10 @@ From the repository root, with the [setup prerequisites](../../docs/development/
 ```bash
 make fetch-dependencies
 make icq
-icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet nodes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet nodes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 Installation refreshes Cargo's `icq` on PATH. Fetching and mainnet reads need
@@ -162,8 +219,12 @@ evidence. Inspect `all_node_reads_succeeded` and each row; partial output exits 
 Compare selected subnet configurations with the same setup:
 
 ```bash
-icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
-icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet changes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
+icq topology subnet changes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 Each command makes two configuration reads. Expect membership, configured
@@ -202,16 +263,20 @@ cloud engine's configured version is empty.
 
 ```bash
 make icq
-icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet configuration \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet configuration \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 Membership comparison makes two sequential report reads.
 Neither text nor JSON claims an atomic snapshot:
 
 ```bash
-icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet membership \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet membership \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 For node inventory, run these commands from the repository root after the same
@@ -220,7 +285,8 @@ one record's operator, chip and HostOS data with source evidence:
 
 ```bash
 icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae
-icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
+icq topology node show \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
 ```
 
 Chip registration does not establish usable TEE protection, and an absent chip
@@ -247,15 +313,19 @@ access. These commands include the new field without another network request:
 ```bash
 make icq
 icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet show \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 Activity takes two network reads separated by the requested wait. These examples
 wait ten seconds; equal totals do not establish downtime:
 
 ```bash
-icq topology subnet activity tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet activity tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet activity \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet activity \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 ## [0.105.1] — GitHub delivery 2026-11-14
@@ -274,8 +344,10 @@ require network access and establish neither spare capacity nor uptime:
 ```bash
 make icq
 icq topology subnet metrics --help
-icq topology subnet metrics tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet metrics tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet metrics \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet metrics \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 ## [0.105.0] — GitHub delivery 2026-11-14
@@ -352,7 +424,8 @@ or capacity:
 
 ```bash
 icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet show tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet show \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 ### 🧪 Tests

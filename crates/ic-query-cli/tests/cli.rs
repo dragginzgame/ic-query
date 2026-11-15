@@ -574,11 +574,23 @@ fn compare_help_and_duplicate_selection_fail_before_io() {
         text.contains("LEFT_SUBNET_ID")
             && text.contains("RIGHT_SUBNET_ID")
             && text.contains("--json")
+            && text.contains("--overlap-details")
     );
     let subnet = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
     let duplicate = run(&["topology", "subnet", "compare", subnet, subnet, "--json"]);
     assert_eq!(duplicate.status.code(), Some(1));
     assert!(duplicate.stdout.is_empty());
+    let conflicting = run(&[
+        "topology",
+        "subnet",
+        "compare",
+        subnet,
+        subnet,
+        "--json",
+        "--overlap-details",
+    ]);
+    assert_eq!(conflicting.status.code(), Some(2));
+    assert!(conflicting.stdout.is_empty());
     for args in [
         vec!["topology", "subnet", "compare", subnet],
         vec!["topology", "subnet", "compare", subnet, "not-principal"],

@@ -14,6 +14,8 @@
 //! [`subnet::distribution`] joins providers and registered data centers at one
 //! requested Registry version, retaining independent relationship coverage.
 //! [`subnet::changes`] compares registered configurations without inferring events.
+//! [`subnet::maintenance`] coordinates configuration and metrics observations.
+//! [`subnet::compare`] places two selected candidates' evidence side by side.
 //! [`cloud_engine::prices`] reads daily marketplace prices and separate fee evidence.
 //! [`cloud_engine::available`] traverses public candidate nodes with page evidence
 //! and explicit stop reasons, without claiming an atomic inventory or capacity.
@@ -22,7 +24,7 @@
 //! [`cloud_engine::engine`] reads one selected engine's subnet/operator and
 //! separates engine-record node identities from embedded Registry-copy membership.
 //! Further topology, capability, resource, cost and change reports remain planned,
-//! including scoped uptime and subnet-maintenance evidence. Native use requires
+//! including additional scoped uptime and registered resource-limit evidence. Native use requires
 //! a Tokio runtime with time and IO enabled.
 //!
 //! SNS migration and NNS governance are outside this package's scope. Canic owns

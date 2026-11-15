@@ -2,6 +2,46 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.106.0] — GitHub delivery 2026-11-15
+
+GitHub-only version; not published to crates.io.
+
+### ⚠️ Breaking
+
+- Switch selected cloud-engine request/response codecs to `ic-platform-protocol`
+  0.1.0, pinned to Git revision `08c72219ad6f261067c00eece9c8c71852e6b561`
+  in `dragginzgame/ic-platform-new`. `EngineError::Encode` and `EngineError::Decode`
+  now carry that crate's error types; Rust consumers matching their payloads must
+  update those matches. Other readers retain Platform 0.33.7. Report schema 1,
+  selected-engine JSON fields and CLI syntax remain unchanged.
+
+### 🔧 Changed
+
+- Apply the replacement decoder's explicit 1,024-element vector ceiling,
+  including skipped vectors, alongside the retained byte, header, type, work,
+  allocation and skipped-work budgets. Query still admits at most one selected
+  engine and 128 nodes per list. Fixture encoding remains with the published
+  Platform codec; production decoding uses the pinned protocol implementation.
+
+### ➕ Added
+
+- Derive shared provider and data-center identities for two-subnet comparisons,
+  retaining per-side node counts and independent unknown coverage. JSON adds
+  `infrastructure_overlap`; a missing distribution remains distinct from an empty
+  observed intersection. No new reads, capacity ranking or independence verdict.
+
+### 📚 Documentation
+
+- Document the diagnostic consumption boundary against the current local Canic
+  checkout, including explicit network selection and partial evidence. Query
+  placement observations do not replace Canic's operation-bound placement checks.
+
+- Define the selected-subnet feature/resource-settings contract for Canic placement
+  screening. Implementation awaits the published decoder requested in
+  [#169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
+  Preserve optional settings and replica-default selections without inferring
+  usable TEE protection or available capacity.
+
 ## [0.105.5] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

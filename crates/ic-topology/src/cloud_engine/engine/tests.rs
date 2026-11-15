@@ -38,6 +38,13 @@ fn view() -> wire::EngineView {
         }),
     }
 }
+// The candidate response projection is decode-only. Keep fixture encoding in
+// the published oracle; this conversion is test setup, not production custody.
+fn encode_views(views: &[wire::EngineView], maximum: usize) -> Vec<u8> {
+    let published: Vec<ic_platform::cloud_engine_types::EngineView> =
+        serde_json::from_value(serde_json::to_value(views).unwrap()).unwrap();
+    encode_one(&published, maximum).unwrap()
+}
 fn read(outcome: EngineOutcome) -> EngineRecord {
     let EngineOutcome::Read { record } = outcome else {
         panic!("expected admitted view")
@@ -115,7 +122,7 @@ async fn one_argument_one_query_and_successful_omission() {
         assert_eq!(argument, hex("4449444c016d7101000108656e67696e652d78"));
         async {
             Ok(Observation {
-                bytes: encode_one(&Vec::<wire::EngineView>::new(), 1024).unwrap(),
+                bytes: encode_views(&[], 1024),
                 observed_at: 12,
             })
         }
@@ -131,10 +138,20 @@ async fn one_argument_one_query_and_successful_omission() {
     let longest: EngineId = "é".repeat(128).parse().unwrap();
     collect(longest.clone(), |argument| async move {
         assert!(argument.len() <= 512);
-        let decoded: Vec<String> = decoder::decode_one(&argument, LIMITS).unwrap();
+        let decoded: Vec<String> = ic_platform::candid_codec::decoder::decode_one(
+            &argument,
+            ic_platform::candid_codec::decoder::Limits {
+                bytes: LIMITS.bytes,
+                header: LIMITS.header,
+                types: LIMITS.types,
+                work: LIMITS.work,
+                allocation: LIMITS.allocation,
+            },
+        )
+        .unwrap();
         assert_eq!(decoded, [longest.as_str()]);
         Ok(Observation {
-            bytes: encode_one(&Vec::<wire::EngineView>::new(), 1024).unwrap(),
+            bytes: encode_views(&[], 1024),
             observed_at: 12,
         })
     })
@@ -325,9 +342,7 @@ async fn published_decode_budgets_and_skipped_fields_remain_bounded() {
     input.node_ids = (0..128).map(id).collect();
     input.subnet.as_mut().unwrap().node_ids = (128..256).map(id).collect();
     input.subnet.as_mut().unwrap().replica_version = "v".repeat(256);
-    let report = literal(encode_one(&vec![input], LIMITS.bytes).unwrap())
-        .await
-        .unwrap();
+    let report = literal(encode_views(&[input], LIMITS.bytes)).await.unwrap();
     assert_eq!(read(report.outcome).record_node_ids.len(), 128);
 }
 

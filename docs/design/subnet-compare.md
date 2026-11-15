@@ -76,10 +76,44 @@ stay visible. Keep every source's version/time/assurance available in JSON and a
 compact text evidence section.
 
 Do not interpret shared provider or location labels as verified common failure
-domains, or claim disjoint placement from incomplete records. The first slice
-does not add cross-subnet relationship joins: the existing per-side concentration
-evidence is sufficient for this comparison. Runnable examples are in the root and
-CLI changelogs.
+domains, or claim disjoint placement from incomplete records. Runnable examples
+are in the root and CLI changelogs.
+
+## Observed infrastructure overlap
+
+`infrastructure_overlap()` derives provider and data-center intersections from
+the two retained distribution summaries, without more reads or stored state.
+JSON adds an `infrastructure_overlap` field; existing report fields, Rust
+construction and schema 1 remain unchanged. Either missing distribution produces
+null, distinct from two acquired distributions with empty intersections.
+
+Each relationship kind retains shared canonical identities in sorted order, node
+counts separately for each side, each side's unknown-node count and an independent
+`coverage_complete` flag. Provider coverage can be complete while location
+coverage is partial. A metrics failure does not prevent this comparison.
+Observed intersections remain available under partial coverage or different
+Registry versions; the original versions and times still qualify their meaning.
+No identity is labelled left-only/right-only, and no absence becomes a disjointness
+verdict. Counts never imply simultaneous assignment or verified failure domains.
+
+Use a linear merge of the existing canonical groups (at most 128 per side/kind).
+Do not duplicate relation resolution, add another inventory or compare raw
+region/owner labels. Data-center groups use successfully read location records,
+not merely operator references to an unavailable record. The derived API accepts
+the admitted reports produced by `fetch`; it does not authenticate or validate
+arbitrary caller-built structs. Keep CLI overlap counts and unknown coverage in
+a bordered summary; raw shared identities and node counts remain in JSON.
+The optional text-only `--overlap-details` adds shared-identity tables in canonical
+order, with per-side node counts and terminal escaping. It uses the already
+derived overlap (at most 128 rows per relationship kind), performs no extra reads
+and leaves exit policy unchanged. It conflicts with `--json`; JSON already
+retains every shared identity. Empty tables say none observed, and a missing
+distribution still makes overlap unavailable.
+The text summary also sums each side's observed node assignments to shared
+identities and displays them over that side's full selected membership, including
+unresolved nodes. These exact fractions are display projections of retained counts,
+not probabilities or estimates of total overlap. Do not use resolved-only counts
+as denominators, combine provider and location fractions, or hide unknown coverage.
 
 ## Regression acceptance and predecessor guidance
 
@@ -111,6 +145,14 @@ maintenance retains its existing type path as a re-export and its JSON shape.
 
 ## Qualification
 
+The subsequent overlap extension passed focused Linux comparison/CLI tests,
+Clippy, rustdoc, formatting and document-link checks on 2026-11-15. A live JSON
+comparison of the same NNS/`brlsh` pair returned complete provider/location
+coverage, seven shared providers and five shared data centers. These are observed
+declarations, not an independence or simultaneity claim. The extension has not
+yet received hosted macOS qualification. Drift review confirmed no extra reads,
+supplier dependency changes, duplicate retained overlap state or changed exit policy.
+
 Local Linux verification on 2026-11-15 passed comparison acquisition/order,
 all 15 component-failure combinations, cancellation at each acquisition and the
 existing maintenance regressions. CLI unit/process tests, Clippy, rustdoc,
@@ -118,7 +160,10 @@ formatting and document-link checks passed. Live text and JSON comparisons of
 the NNS and `brlsh` subnets completed with both distributions and metrics present,
 exit 0 and differing configuration/resource values. Both runs took about 13
 seconds; this observation does not narrow the documented worst-case budget.
-macOS execution has not been qualified for this increment.
+The subsequent [hosted CI run](https://github.com/dragginzgame/ic-query/actions/runs/43704031732)
+passed offline Clippy, rustdoc and tests on Linux x86-64 and macOS ARM64/x86-64
+for delivery commit `263a8e92da873543825c25e7dd6530c4db5ab673`. Hosted checks
+do not establish live-network behavior on those hosts.
 
 The focused drift review found no new transport, global inventory, duplicated
 configuration collection or cross-report assurance claim. Acquisition stays in

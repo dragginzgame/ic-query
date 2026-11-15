@@ -48,6 +48,8 @@ coverage and unknown counts for placement concentration decisions.
 The [two-subnet comparison](docs/design/subnet-compare.md) presents two selected
 placement candidates' configuration, concentration and resources side by side,
 preserving independent versions and partial results without ranking capacity.
+It also derives shared provider/data-center identities from retained distributions,
+keeping unknown coverage explicit without claiming independent failure domains.
 The [cloud-engine price report](docs/design/cloud-engine-marketplace.md) retains
 exact daily marketplace amounts and a separate network markup, preserving prices
 if the fee read fails. The available-node report traverses public eligibility
@@ -77,7 +79,8 @@ toko-cloc -d 0
 make qualify-cli
 cargo run --locked --offline -p ic-query-cli -- --help
 cargo run --locked --offline -p ic-query-cli -- topology subnet list --json
-cargo run --locked --offline -p ic-query-cli -- topology canister show ryjl3-tyaaa-aaaaa-aaaba-cai --json
+cargo run --locked --offline -p ic-query-cli -- topology canister show \
+  ryjl3-tyaaa-aaaaa-aaaba-cai --json
 ```
 
 `make deps-update` explicitly updates dependencies. `make check` is the aggregate
@@ -91,6 +94,7 @@ not establish complete Registry membership, node liveness or capacity.
 
 - [Architecture and open report decisions](docs/design/0.104-restart.md)
 - [Using topology evidence for Canic decisions](docs/usage/topology.md)
+- [Canic integration boundary](docs/design/canic-consumption.md)
 - [Development and qualification](docs/development/setup.md)
 - [Release-group notes](CHANGELOG.md)
 - [CLI release notes and copyable examples](releases/cli/CHANGELOG.md)

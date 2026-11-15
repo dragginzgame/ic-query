@@ -212,3 +212,129 @@ async fn cancellation_at_every_acquisition_starts_no_later_work() {
         assert_eq!(calls.get(), stop);
     }
 }
+
+#[tokio::test]
+async fn overlap_keeps_independent_coverage_versions_and_node_counts() {
+    use crate::subnet::distribution::GroupCount;
+    let report = collect(
+        id(1),
+        id(2),
+        |selected| {
+            let mut d = distribution(selected, false);
+            d.summary.providers = if selected == id(1) {
+                vec![
+                    GroupCount {
+                        value: id(2),
+                        nodes: 3,
+                    },
+                    GroupCount {
+                        value: id(4),
+                        nodes: 1,
+                    },
+                ]
+            } else {
+                vec![
+                    GroupCount {
+                        value: id(1),
+                        nodes: 1,
+                    },
+                    GroupCount {
+                        value: id(2),
+                        nodes: 2,
+                    },
+                    GroupCount {
+                        value: id(5),
+                        nodes: 1,
+                    },
+                ]
+            };
+            d.summary.data_centers = vec![GroupCount {
+                value: "dc-a".into(),
+                nodes: 2,
+            }];
+            d.summary.selected_nodes = 4;
+            d.summary.provider_resolved = 4;
+            d.summary.location_resolved = 2;
+            d.summary.location_unknown = 2;
+            ready(Ok(d))
+        },
+        |_| ready(Err(SubnetMetricsError::Read(ReadError::Deadline))),
+    )
+    .await
+    .unwrap();
+    let overlap = report.infrastructure_overlap().unwrap();
+    assert_eq!(report.registry_versions_agree, Some(false));
+    assert!(!report.collection_complete);
+    assert!(overlap.providers.coverage_complete);
+    assert_eq!(overlap.providers.shared.len(), 1);
+    assert_eq!(overlap.providers.shared[0].identity, id(2));
+    assert_eq!(
+        (
+            overlap.providers.shared[0].left_nodes,
+            overlap.providers.shared[0].right_nodes
+        ),
+        (3, 2)
+    );
+    assert!(!overlap.data_centers.coverage_complete);
+    assert_eq!(overlap.data_centers.left_unknown_nodes, 2);
+    assert_eq!(overlap.data_centers.right_unknown_nodes, 2);
+    assert_eq!(overlap.data_centers.shared[0].identity, "dc-a");
+    let json = serde_json::to_value(&report).unwrap();
+    assert_eq!(
+        json["infrastructure_overlap"]["providers"]["shared"][0]["left_nodes"],
+        3
+    );
+    assert_eq!(
+        json["infrastructure_overlap"]["data_centers"]["coverage_complete"],
+        false
+    );
+}
+
+#[tokio::test]
+async fn overlap_distinguishes_unavailable_partial_empty_and_complete_empty() {
+    let mut report = collect(
+        id(1),
+        id(2),
+        |selected| ready(Ok(distribution(selected, true))),
+        |selected| ready(Ok(metric(selected))),
+    )
+    .await
+    .unwrap();
+    assert!(
+        report
+            .infrastructure_overlap()
+            .unwrap()
+            .providers
+            .shared
+            .is_empty()
+    );
+    assert!(
+        report
+            .infrastructure_overlap()
+            .unwrap()
+            .providers
+            .coverage_complete
+    );
+    if let DistributionOutcome::Read { report: d } = &mut report.right.distribution {
+        d.summary.provider_unknown = 1;
+    }
+    assert!(
+        !report
+            .infrastructure_overlap()
+            .unwrap()
+            .providers
+            .coverage_complete
+    );
+    assert!(
+        report
+            .infrastructure_overlap()
+            .unwrap()
+            .data_centers
+            .coverage_complete
+    );
+    report.right.distribution = DistributionOutcome::Failed {
+        error: DistributionError::InitialDeadline,
+    };
+    assert!(report.infrastructure_overlap().is_none());
+    assert!(serde_json::to_value(&report).unwrap()["infrastructure_overlap"].is_null());
+}

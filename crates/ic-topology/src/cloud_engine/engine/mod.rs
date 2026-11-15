@@ -2,7 +2,7 @@
 
 use super::{CANISTER, Observation};
 use crate::mainnet;
-use ic_platform::{candid_codec::decoder, cloud_engine_types as wire};
+use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
 use ic_platform_types::Principal;
 use std::{collections::BTreeSet, future::Future};
 use tokio::time::Instant;
@@ -18,8 +18,9 @@ const LIMITS: decoder::Limits = decoder::Limits {
     types: 256,
     work: 2_000_000,
     allocation: 4 * 1024 * 1024,
+    vector: 1024,
+    skipping: 128 * 1024,
 };
-const SKIPPING: usize = 128 * 1024;
 
 /// Read one selected engine's public control-plane view.
 ///
@@ -52,12 +53,8 @@ where
     let argument = wire::encode_get_engine_views_args(&[engine_id.as_str().to_owned()], 512)
         .map_err(EngineError::Encode)?;
     let observation = query(argument).await?;
-    let views = wire::decode_get_engine_views_response_with_skip_limit(
-        &observation.bytes,
-        LIMITS,
-        SKIPPING,
-    )
-    .map_err(EngineError::Decode)?;
+    let views = wire::decode_get_engine_views_response(&observation.bytes, LIMITS)
+        .map_err(EngineError::Decode)?;
     let outcome = project(&engine_id, views)?;
     Ok(EngineReport {
         schema: 1,

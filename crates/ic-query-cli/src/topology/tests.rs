@@ -688,7 +688,7 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
     };
     let left = partial_distribution();
     let left_id = left.configuration.subnet_id;
-    let report = SubnetComparisonReport {
+    let mut report = SubnetComparisonReport {
         schema: 1,
         left: Candidate {
             subnet_id: left_id,
@@ -714,13 +714,13 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
         atomic_snapshot: false,
         registry_versions_agree: None,
     };
-    let output = compare_output(&report, false).unwrap();
+    let output = compare_output(&report, false, false).unwrap();
     assert_eq!(output.exit_code, ExitCode::FAILURE);
     assert!(output.text.contains("| LEFT") && output.text.contains("| RIGHT"));
     assert!(output.text.contains("0 known / 1 unknown") && output.text.contains("unavailable"));
     assert!(!output.text.contains('\x1b'));
     let json: serde_json::Value =
-        serde_json::from_str(&compare_output(&report, true).unwrap().text).unwrap();
+        serde_json::from_str(&compare_output(&report, true, false).unwrap().text).unwrap();
     assert_eq!(json["left"]["metrics"]["error"], "read_deadline");
     assert_eq!(
         json["left"]["distribution"]["report"]["configuration"]["replica_version_id"],
@@ -733,4 +733,86 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
             .replica_version_id
     );
     assert_eq!(json["right"]["distribution"]["status"], "failed");
+    assert!(json["infrastructure_overlap"].is_null());
+    assert!(output.text.contains("Infrastructure overlap unavailable"));
+    let mut right = partial_distribution();
+    right.configuration.subnet_id = report.right.subnet_id;
+    report.right.distribution = DistributionOutcome::Read {
+        report: Box::new(right),
+    };
+    let output = compare_output(&report, false, false).unwrap();
+    assert_eq!(output.exit_code, ExitCode::FAILURE);
+    assert!(output.text.contains("Observed infrastructure overlap"));
+    assert!(
+        output.text.contains("| SHARED IDENTITIES") && output.text.contains("| LEFT UNKNOWN NODES")
+    );
+    assert!(
+        output
+            .text
+            .contains("does not prove independent failure domains")
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&compare_output(&report, true, false).unwrap().text).unwrap();
+    assert_eq!(
+        json["infrastructure_overlap"]["providers"]["coverage_complete"],
+        false
+    );
+    assert_eq!(
+        json["infrastructure_overlap"]["providers"]["left_unknown_nodes"],
+        1
+    );
+    assert_eq!(
+        json["infrastructure_overlap"]["providers"]["shared"],
+        serde_json::json!([])
+    );
+    // Fractions use full selected membership, including unresolved nodes.
+    for (side, selected, shared) in [(&mut report.left, 4, 3), (&mut report.right, 6, 2)] {
+        let DistributionOutcome::Read { report: d } = &mut side.distribution else {
+            panic!()
+        };
+        d.summary.selected_nodes = selected;
+        d.summary.provider_resolved = shared;
+        d.summary.provider_unknown = selected - shared;
+        d.summary.providers = vec![ic_topology::subnet::distribution::GroupCount {
+            value: Principal::from_slice(&[9]),
+            nodes: shared,
+        }];
+    }
+    let text = compare_output(&report, false, false).unwrap().text;
+    let provider_row = text
+        .lines()
+        .find(|line| line.starts_with("| Providers "))
+        .unwrap();
+    assert!(provider_row.contains("3 / 4") && provider_row.contains("2 / 6"));
+    assert!(provider_row.contains("partial"));
+    assert!(!text.contains("Shared provider identities"));
+    // Exercise text escaping at the presentation boundary; JSON stays raw.
+    let raw_dc = "dc\n\x1b[31m";
+    for side in [&mut report.left, &mut report.right] {
+        let DistributionOutcome::Read { report: d } = &mut side.distribution else {
+            panic!()
+        };
+        d.summary.data_centers = vec![ic_topology::subnet::distribution::GroupCount {
+            value: raw_dc.into(),
+            nodes: 1,
+        }];
+    }
+    let details = compare_output(&report, false, true).unwrap();
+    assert_eq!(details.exit_code, ExitCode::FAILURE);
+    assert!(
+        details.text.contains("Shared provider identities")
+            && details.text.contains("Shared data-center identities")
+    );
+    assert!(
+        details
+            .text
+            .contains(&Principal::from_slice(&[9]).to_string())
+    );
+    assert!(!details.text.contains('\x1b') && details.text.contains("dc\\n"));
+    let json: serde_json::Value =
+        serde_json::from_str(&compare_output(&report, true, false).unwrap().text).unwrap();
+    assert_eq!(
+        json["infrastructure_overlap"]["data_centers"]["shared"][0]["identity"],
+        raw_dc
+    );
 }

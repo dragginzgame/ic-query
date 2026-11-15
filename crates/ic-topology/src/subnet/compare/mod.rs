@@ -5,13 +5,13 @@ use super::{
 };
 use crate::{ReadError, mainnet};
 use ic_platform_types::Principal;
-use serde::Serialize;
+use serde::{Serialize, Serializer, ser::SerializeStruct};
 use std::{future::Future, time::Duration};
 use thiserror::Error;
 use tokio::time::Instant;
 
 /// Independently acquired evidence for two candidates in argument order.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct SubnetComparisonReport {
     /// Query-owned schema, remaining 1 before 1.0.
     pub schema: u8,
@@ -29,6 +29,120 @@ pub struct SubnetComparisonReport {
     pub atomic_snapshot: bool,
     /// Whether both requested Registry versions match; absent if either unavailable.
     pub registry_versions_agree: Option<bool>,
+}
+
+/// One declared identity observed in both selected subnet distributions.
+#[derive(Debug, Serialize)]
+pub struct SharedGroup<T> {
+    /// Canonical provider principal or admitted lowercase data-center identity.
+    pub identity: T,
+    /// Selected left-subnet nodes assigned to this identity.
+    pub left_nodes: usize,
+    /// Selected right-subnet nodes assigned to this identity.
+    pub right_nodes: usize,
+}
+
+/// Observed intersection with independent missing-relationship coverage.
+#[derive(Debug, Serialize)]
+pub struct RelationshipOverlap<T> {
+    /// Shared identities, in canonical order; empty does not imply independence.
+    pub shared: Vec<SharedGroup<T>>,
+    /// Left selected nodes with unresolved relationships of this kind.
+    pub left_unknown_nodes: usize,
+    /// Right selected nodes with unresolved relationships of this kind.
+    pub right_unknown_nodes: usize,
+    /// Both sides resolved this relationship for all selected nodes.
+    /// This is coverage of declarations, not proof of independent failure domains.
+    pub coverage_complete: bool,
+}
+
+/// Shared registered infrastructure across independently acquired distributions.
+#[derive(Debug, Serialize)]
+pub struct InfrastructureOverlap {
+    /// Provider identities joined through node operators.
+    pub providers: RelationshipOverlap<Principal>,
+    /// Data-center identities with successfully admitted location records.
+    pub data_centers: RelationshipOverlap<String>,
+}
+
+impl SubnetComparisonReport {
+    /// Compare the existing distribution summaries without IO or new claims.
+    ///
+    /// Returns None when either distribution is unavailable. Partial distributions
+    /// still expose observed intersections and unknown counts independently for
+    /// providers and locations. Versions/times remain those of the original inputs;
+    /// shared identities do not establish simultaneous assignment or failure domains.
+    /// Uses admitted summaries from `fetch`; does not revalidate caller-built reports.
+    #[must_use]
+    pub fn infrastructure_overlap(&self) -> Option<InfrastructureOverlap> {
+        let left = &self.left.distribution.report()?.summary;
+        let right = &self.right.distribution.report()?.summary;
+        Some(InfrastructureOverlap {
+            providers: overlap(
+                &left.providers,
+                &right.providers,
+                left.provider_unknown,
+                right.provider_unknown,
+            ),
+            data_centers: overlap(
+                &left.data_centers,
+                &right.data_centers,
+                left.location_unknown,
+                right.location_unknown,
+            ),
+        })
+    }
+}
+
+fn overlap<T: Ord + Clone>(
+    left: &[super::distribution::GroupCount<T>],
+    right: &[super::distribution::GroupCount<T>],
+    left_unknown_nodes: usize,
+    right_unknown_nodes: usize,
+) -> RelationshipOverlap<T> {
+    // Source summaries are canonical. Merge their sorted groups without another
+    // inventory/index, retaining per-side node counts rather than summing them.
+    let mut shared = Vec::new();
+    let (mut a, mut b) = (0, 0);
+    while a < left.len() && b < right.len() {
+        match left[a].value.cmp(&right[b].value) {
+            std::cmp::Ordering::Less => a += 1,
+            std::cmp::Ordering::Greater => b += 1,
+            std::cmp::Ordering::Equal => {
+                shared.push(SharedGroup {
+                    identity: left[a].value.clone(),
+                    left_nodes: left[a].nodes,
+                    right_nodes: right[b].nodes,
+                });
+                a += 1;
+                b += 1;
+            }
+        }
+    }
+    RelationshipOverlap {
+        shared,
+        left_unknown_nodes,
+        right_unknown_nodes,
+        coverage_complete: left_unknown_nodes == 0 && right_unknown_nodes == 0,
+    }
+}
+
+impl Serialize for SubnetComparisonReport {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        // Derive from the retained inputs at output time: no second mutable copy
+        // of overlap evidence and no new required field for Rust constructors.
+        let mut value = serializer.serialize_struct("SubnetComparisonReport", 9)?;
+        value.serialize_field("schema", &self.schema)?;
+        value.serialize_field("left", &self.left)?;
+        value.serialize_field("right", &self.right)?;
+        value.serialize_field("started_at_unix_seconds", &self.started_at_unix_seconds)?;
+        value.serialize_field("elapsed", &self.elapsed)?;
+        value.serialize_field("collection_complete", &self.collection_complete)?;
+        value.serialize_field("atomic_snapshot", &self.atomic_snapshot)?;
+        value.serialize_field("registry_versions_agree", &self.registry_versions_agree)?;
+        value.serialize_field("infrastructure_overlap", &self.infrastructure_overlap())?;
+        value.end()
+    }
 }
 /// One selected candidate, including unavailable or partial evidence.
 #[derive(Debug, Serialize)]

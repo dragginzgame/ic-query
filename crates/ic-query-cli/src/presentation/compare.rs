@@ -1,9 +1,9 @@
 //! Side-by-side placement evidence without scoring candidates.
 use ic_host_text::table::render_bordered;
-use ic_topology::subnet::compare::{Candidate, SubnetComparisonReport};
+use ic_topology::subnet::compare::{Candidate, SharedGroup, SubnetComparisonReport};
 use std::fmt::Write;
 
-pub(crate) fn render(report: &SubnetComparisonReport) -> String {
+pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> String {
     let values = |side: &Candidate| {
         let mut rows = if let Some(d) = side.distribution.report() {
             let c = &d.configuration;
@@ -87,6 +87,68 @@ pub(crate) fn render(report: &SubnetComparisonReport) -> String {
         report.elapsed.as_secs_f64(),
         render_bordered(&["OBSERVATION", "LEFT", "RIGHT"], &rows)
     );
+    if let Some(overlap) = report.infrastructure_overlap() {
+        let coverage = |complete| if complete { "complete" } else { "partial" };
+        let selected =
+            |side: &Candidate| side.distribution.report().map(|d| d.summary.selected_nodes);
+        let left_selected = selected(&report.left);
+        let right_selected = selected(&report.right);
+        let rows = vec![
+            vec![
+                "Providers".into(),
+                overlap.providers.shared.len().to_string(),
+                shared_nodes(&overlap.providers.shared, true, left_selected),
+                shared_nodes(&overlap.providers.shared, false, right_selected),
+                coverage(overlap.providers.coverage_complete).into(),
+                overlap.providers.left_unknown_nodes.to_string(),
+                overlap.providers.right_unknown_nodes.to_string(),
+            ],
+            vec![
+                "Data centers".into(),
+                overlap.data_centers.shared.len().to_string(),
+                shared_nodes(&overlap.data_centers.shared, true, left_selected),
+                shared_nodes(&overlap.data_centers.shared, false, right_selected),
+                coverage(overlap.data_centers.coverage_complete).into(),
+                overlap.data_centers.left_unknown_nodes.to_string(),
+                overlap.data_centers.right_unknown_nodes.to_string(),
+            ],
+        ];
+        writeln!(
+            text,
+            "\nObserved infrastructure overlap\n\n{}\n",
+            render_bordered(
+                &[
+                    "RELATIONSHIP",
+                    "SHARED IDENTITIES",
+                    "LEFT NODES",
+                    "RIGHT NODES",
+                    "COVERAGE",
+                    "LEFT UNKNOWN NODES",
+                    "RIGHT UNKNOWN NODES"
+                ],
+                &rows
+            )
+        )
+        .expect("String write");
+        text.push_str("Node fractions count observed assignments to shared identities out of each subnet's selected membership.\n");
+        text.push_str("Zero shared identities means none observed; it does not prove independent failure domains.\n");
+        if overlap_details {
+            write_shared_groups(
+                &mut text,
+                "Shared provider identities",
+                &overlap.providers.shared,
+            );
+            write_shared_groups(
+                &mut text,
+                "Shared data-center identities",
+                &overlap.data_centers.shared,
+            );
+        }
+    } else {
+        text.push_str(
+            "\nInfrastructure overlap unavailable: both distribution reports are required.\n",
+        );
+    }
     for (label, side) in [("Left", &report.left), ("Right", &report.right)] {
         if let Some(d) = side.distribution.report() {
             writeln!(text, "{label} Registry: {} / {} | version {} observed {} | signature verified: {} | consensus certified: {}", d.endpoint, d.source_canister, d.requested_registry_version, d.version_observed_at_unix_seconds, d.query_signature_verified, d.result_certified).expect("String write");
@@ -105,4 +167,46 @@ pub(crate) fn render(report: &SubnetComparisonReport) -> String {
     }
     text.push_str("Independent observations; no atomic snapshot, capacity ranking or merge-feasibility claim.\nProvider/location counts describe registered declarations, not verified failure domains.\nUse --json for raw evidence, per-record coverage and failure categories.\n");
     text
+}
+
+fn shared_nodes<T>(groups: &[SharedGroup<T>], left: bool, selected: Option<usize>) -> String {
+    let count = groups.iter().try_fold(0usize, |sum, group| {
+        sum.checked_add(if left {
+            group.left_nodes
+        } else {
+            group.right_nodes
+        })
+    });
+    match count.zip(selected) {
+        Some((count, selected)) if count <= selected => format!("{count} / {selected}"),
+        _ => "unavailable".into(),
+    }
+}
+
+fn write_shared_groups<T: std::fmt::Display>(
+    text: &mut String,
+    title: &str,
+    groups: &[SharedGroup<T>],
+) {
+    writeln!(text, "\n{title}").expect("String write");
+    if groups.is_empty() {
+        text.push_str("None observed in the acquired evidence.\n");
+        return;
+    }
+    let rows: Vec<_> = groups
+        .iter()
+        .map(|group| {
+            vec![
+                group.identity.to_string(),
+                group.left_nodes.to_string(),
+                group.right_nodes.to_string(),
+            ]
+        })
+        .collect();
+    writeln!(
+        text,
+        "\n{}\n",
+        render_bordered(&["IDENTITY", "LEFT NODES", "RIGHT NODES"], &rows)
+    )
+    .expect("String write");
 }

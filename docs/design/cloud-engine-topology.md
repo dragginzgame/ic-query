@@ -1,9 +1,16 @@
 # Selected cloud-engine topology
 
-Status: implemented using Platform 0.33.7's published projection from
-[Platform #168](https://github.com/dragginzgame/ic-platform/issues/168).
-Archive SHA-256: `3e07e0565c70df9222016e93d6f488312176ef5e7036ded60db8b4bc3f61c05f`,
-verified against the Cargo registry on 2026-11-15.
+Status: implemented; the selected-engine codec uses `ic-platform-protocol` 0.1.0
+at immutable Git revision
+[`08c72219`](https://github.com/dragginzgame/ic-platform-new/commit/08c72219ad6f261067c00eece9c8c71852e6b561).
+This is a Git dependency, not a crates.io release. Platform 0.33.7 remains the
+transport supplier and test fixture encoder. The original projection was supplied
+by [Platform #168](https://github.com/dragginzgame/ic-platform/issues/168).
+
+The patch changes the public payload types of `EngineError::Encode` and
+`EngineError::Decode`; callers matching those payloads must use the protocol
+crate's types. Query-owned report fields and schema remain unchanged. Existing
+report evidence needs no reset for this codec change.
 
 ## Canic decision and scope
 
@@ -108,7 +115,8 @@ encoded bytes. Reuse Query's fixed mainnet/anonymous/verified-query policy:
 one query, 1 MiB HTTP response, 20-second leaf deadline, no retry or cache.
 
 Decode limits: 512 KiB bytes, 64 KiB header, 256 types, 2,000,000 work units,
-4 MiB logical allocation, and 128 KiB separately bounded skipped work. Query
+4 MiB logical allocation, 1,024 elements per decoded or skipped vector, and
+128 KiB separately bounded skipped work. Query
 admits zero or one view. Reject excess rows, a returned ID differing from the
 exact request, overlong fields and invalid relationships rather than truncating.
 Each node list admits at most 128 distinct nonempty principals. Preserve raw

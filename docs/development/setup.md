@@ -21,6 +21,12 @@ The [cloud-engine prices and availability](../design/cloud-engine-marketplace.md
 0.33.6's published `cloud-engine-types` capability and owned bounded Candid codec.
 Platform 0.33.7 adds the [selected-engine view](../design/cloud-engine-topology.md),
 using the same feature and transport policy with strict optional-field decoding.
+The selected-engine codec now selects `ic-platform-protocol`
+0.1.0 from `ic-platform-new` at Git revision
+`08c72219ad6f261067c00eece9c8c71852e6b561`. Dependency preparation must fetch that
+revision; no sibling checkout is used. Platform 0.33.7 still supplies transport,
+other readers and selected-engine fixture encoding. This Git selection is not a
+claim of crates.io publication.
 The CLI selects published `ic-host-text` 0.76.0 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
 
@@ -107,13 +113,14 @@ single pinned Gitleaks history scan run separately from the host matrix. Every j
 admits snapshot bytes before preparing host tools and Rust, then admits the Cargo
 pin, members and lockfile before validation.
 
-[CI run 43617447033](https://github.com/dragginzgame/ic-query/actions/runs/43617447033)
-passed on 2026-11-14 for commit `51b7d50895327ba8afe6c27d82834a5aae3c07db`:
+[CI run 43704031732](https://github.com/dragginzgame/ic-query/actions/runs/43704031732)
+passed on 2026-11-15 for commit `263a8e92da873543825c25e7dd6530c4db5ab673`:
 Clippy, Rustdoc and tests succeeded on all three hosts; formatting, snapshot and
 documentation admission, and the secret scan also passed. This qualifies the
-implemented offline contracts at that commit, through subnet node collection
-and configuration comparison; it does not qualify the pending distribution
-implementation or its subsequent dependency updates. Broader protocol, retained-data
+implemented offline contracts at that commit, including distribution, cloud-engine
+reports, maintenance and two-subnet comparison, with Toko Tooling 0.44.3.
+It does not qualify the unimplemented subnet-settings report or later changes.
+Broader protocol, retained-data
 migration and publication qualification remain future work tied to implemented contracts.
 Placement fixtures qualify decoding, projection, bounds and failures; they do not
 prove cryptographic verification or live network availability. Run any live smoke

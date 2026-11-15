@@ -15,6 +15,32 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.7 — GitHub delivery 2026-11-15
+
+### ▶️ Try it
+
+After the [setup prerequisites](docs/development/setup.md), compare shared
+registered infrastructure (network access required):
+
+```bash
+make icq
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae \
+  --overlap-details
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+```
+
+The bordered overlap summary shows node fractions over full selected membership,
+separate provider/location coverage and unknown nodes. JSON retains shared identities and per-side node counts. No additional
+reads are made; zero observed overlap does not prove independent failure domains.
+Use `--overlap-details` for shared-identity text tables, or `--json` for raw evidence.
+
 ## CLI 0.105.6 — GitHub delivery 2026-11-15
 
 ### ▶️ Try it
@@ -24,10 +50,18 @@ and compare two subnets or observe one over two rounds (network access required)
 
 ```bash
 make icq
-icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
-icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae --json
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 Optional `--expected-version` checks exact configured text, including explicit
@@ -57,10 +91,16 @@ icq topology cloud-engine available --json
 icq topology cloud-engine available --max-pages 20 --json
 icq topology cloud-engine prices
 icq topology cloud-engine prices --json
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10 --json
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10 --json
 ```
 
 Requires network access for fetching and mainnet reads. Text shows compact
@@ -108,9 +148,13 @@ the Rust/tool prerequisites in [setup](docs/development/setup.md):
 ```bash
 make fetch-dependencies
 make icq
-icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet nodes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet nodes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet changes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
 ```
 
 Fetching and anonymous mainnet reads need network access. Installation refreshes
@@ -149,9 +193,12 @@ Fetching needs network access; installation replaces the local Cargo-installed
 mutations:
 
 ```bash
-icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
+icq topology subnet configuration \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet membership \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology node show \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
 ```
 
 The first prints Registry membership, configured software and halt flags with

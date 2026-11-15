@@ -144,13 +144,17 @@ Exact fields and migration evidence requirements remain to be specified.
   shared helpers only for demonstrated common contracts not supplied by Platform.
 - Query is read-only. No token transfers, neuron management, proposals,
   deployment, signing-key custody or arbitrary method invocation.
-- The main library and separate SNS migration crate have distinct product scope;
-  exact reports and the CLI surface remain to be specified. Retaining a package
-  name does not authorize restoring its old feature set.
+- Implemented topology reports and CLI commands are defined by their linked
+  contracts. Further reports require a concrete Canic decision; SNS selectors
+  and migration fields remain unspecified. Retaining a package name does not
+  authorize restoring its old feature set.
 - The libraries own reports and query policy; the CLI owns
   parsing, process IO, progress and pure human-facing presentation. The library
   must not select process output sinks or depend on CLI presentation.
 - Use Platform's published Agent, external DTO and bounded codec capabilities.
+  The maintainer-requested selected-engine codec patch is scoped to the immutable
+  `ic-platform-protocol` Git revision recorded in Cargo.toml/Cargo.lock; it does
+  not authorize other supplier migrations or sibling-path dependencies.
   Agent owns authentication; Query owns endpoint/root-key admission, limits,
   deadlines and error projection. Do not add direct Agent, Candid or CDK packages.
 - Keep endpoint, provenance, completeness and certification claims explicit.
@@ -198,6 +202,9 @@ public subnet and canister IDs whenever required, not placeholders such as
 beside the relevant release note, identify prerequisites, and show only
 implemented syntax. Apply the same concrete-example convention in user-facing
 handoffs.
+Wrap long shell command examples with `\` line continuations and indent continued
+arguments. Keep each identifier intact and the backslash last on its line so
+examples remain directly copyable.
 
 [Setup](docs/development/setup.md) owns preparation, focused checks and the
 aggregate `make check` gate. CLI process qualification lives beside the CLI;

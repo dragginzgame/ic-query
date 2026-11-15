@@ -39,10 +39,15 @@ Select the actual candidate subnet from the preceding reports for application
 planning; this example is not a placement recommendation.
 
 ```bash
-icq topology subnet configuration tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology subnet membership tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology subnet metrics tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
-icq topology subnet activity tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet configuration \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet membership \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet metrics \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet activity \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 | Planning question | Available evidence | Further input needed |
@@ -61,7 +66,9 @@ not an atomic snapshot.
 ## Compare configuration observations
 
 ```bash
-icq topology subnet changes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
+icq topology subnet changes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
 ```
 
 The second read starts ten seconds after the first completes. The wait accepts
@@ -79,7 +86,8 @@ subnet's membership. Configuration is included, so no separate configuration
 command is needed:
 
 ```bash
-icq topology subnet nodes tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet nodes \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 The collection allows up to 128 members, reads in batches of four and has a
@@ -97,8 +105,10 @@ per-node evidence and timing.
 ## Compare provider and location concentration
 
 ```bash
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
-icq topology subnet distribution tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet distribution \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 ```
 
 This report resolves the global Registry version once and requests subnet,
@@ -128,7 +138,8 @@ joins or resolve running HostOS software. This concrete example reads one public
 node record:
 
 ```bash
-icq topology node show nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
+icq topology node show \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --json
 ```
 
 JSON retains absent, empty and nonempty chip/HostOS values distinctly. A missing
@@ -140,8 +151,12 @@ Any later authentication change requires evidence and policy beyond this report.
 Before maintenance or placement decisions, compare one node's registration twice:
 
 ```bash
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10
-icq topology node changes nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae --interval-seconds 10 --json
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10
+icq topology node changes \
+  nuass-yihti-wszdr-r7qze-32dgz-osovf-pracd-hg5tt-mwlhf-rvuyq-4ae \
+  --interval-seconds 10 --json
 ```
 
 The second read starts after the requested wait following the first completion.
@@ -257,12 +272,21 @@ partial output. There is no automatic restart or cross-command resume claim.
 Read two explicit subnets side by side, preserving argument order:
 
 ```bash
-icq topology subnet compare tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae
 ```
 
 Add `--json` for the complete per-side distribution and metrics evidence. Each
 distribution selects its own Registry version; the table shows both versions
 and independent provider/location coverage. Missing evidence stays unavailable.
+An overlap summary shows provider and data-center identities observed on both
+sides, with separate coverage and unknown-node counts. JSON retains each shared
+identity and its node count on each side; use `--overlap-details` instead of
+`--json` for bordered identity tables. Text node fractions use full membership, including unresolved nodes,
+as the denominator. These are observed assignments, not estimated total overlap.
+Partial coverage and different versions remain visible; no shared identity is a verified failure domain,
+and zero observed overlap is not proof of independent placement.
 Partial results exit 1, while complete observations exit 0 even when values differ.
 The command can take up to 160 asynchronous seconds plus bounded synchronous work.
 Lower state usage or canister count does not establish spare capacity, and this
@@ -274,8 +298,12 @@ comparison does not establish whether a subnet merge is feasible. See the
 Collect configuration and certified metrics before and after one bounded wait:
 
 ```bash
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10
-icq topology subnet maintenance tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --interval-seconds 10 --json
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10
+icq topology subnet maintenance \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
 ```
 
 The interval defaults to 10 seconds and accepts 1–60. Optional

@@ -1,7 +1,7 @@
 //! Selected-engine report semantics, independent of external wire records.
 
 use crate::ReadError;
-use ic_platform::candid_codec::{self, decoder};
+use ic_platform_protocol::{candid as decoder, cloud_engine::EncodeError};
 use ic_platform_types::Principal;
 use serde::Serialize;
 use std::{fmt, str::FromStr, time::Duration};
@@ -181,7 +181,7 @@ pub enum EngineError {
     Read(#[from] ReadError),
     /// Bounded request encoding failure.
     #[error("engine request encoding failed: {0:?}")]
-    Encode(candid_codec::Error),
+    Encode(EncodeError),
     /// Bounded external decoding failure.
     #[error("engine response decoding failed: {0:?}")]
     Decode(decoder::Error),

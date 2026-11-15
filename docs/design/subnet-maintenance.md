@@ -126,8 +126,10 @@ Local Linux verification on 2026-11-15 passed the maintenance acquisition and
 cancellation tests, existing activity/configuration comparison regressions, CLI
 unit/process tests, Clippy and topology rustdoc. Live one-second observations of
 the NNS subnet succeeded in text and JSON; an explicit empty expected version
-produced `differs` with complete evidence and exit 0. These checks do not qualify
-macOS or establish uptime.
+produced `differs` with complete evidence and exit 0. These live checks do not
+establish uptime. The subsequent [hosted CI run](https://github.com/dragginzgame/ic-query/actions/runs/43704031732)
+passed offline Clippy, rustdoc and tests on Linux x86-64 and macOS ARM64/x86-64
+for delivery commit `263a8e92da873543825c25e7dd6530c4db5ab673`.
 
 The focused review of the prior delivery and this increment found no actionable
 drift in the touched acquisition and presentation paths. The new report reuses

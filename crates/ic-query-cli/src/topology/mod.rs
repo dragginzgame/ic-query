@@ -91,6 +91,7 @@ pub(crate) fn command() -> Command {
                     .about("Compare two selected placement candidates; partial evidence exits 1")
                     .arg(Arg::new("left").required(true).value_name("LEFT_SUBNET_ID").value_parser(value_parser!(Principal)))
                     .arg(Arg::new("right").required(true).value_name("RIGHT_SUBNET_ID").value_parser(value_parser!(Principal)))
+                    .arg(Arg::new("overlap-details").long("overlap-details").action(ArgAction::SetTrue).conflicts_with("json").help("Show shared provider/data-center identities and per-side node counts"))
                     .arg(json_argument()))
                 .subcommand(Command::new("maintenance")
                     .about("Observe maintenance configuration and activity; not completion or uptime")
@@ -283,7 +284,11 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                     .expect("required right subnet"),
             )
             .await?;
-            return Ok(compare_output(&report, arguments.get_flag("json"))?);
+            return Ok(compare_output(
+                &report,
+                arguments.get_flag("json"),
+                arguments.get_flag("overlap-details"),
+            )?);
         }
         ("subnet", "maintenance") => {
             let report = ic_topology::subnet::maintenance::fetch(
@@ -552,12 +557,13 @@ mod tests;
 fn compare_output(
     report: &ic_topology::subnet::compare::SubnetComparisonReport,
     json: bool,
+    overlap_details: bool,
 ) -> Result<CommandOutput, serde_json::Error> {
     Ok(CommandOutput {
         text: if json {
             serde_json::to_string_pretty(report)?
         } else {
-            presentation::compare::render(report)
+            presentation::compare::render(report, overlap_details)
         },
         exit_code: if report.collection_complete {
             ExitCode::SUCCESS
