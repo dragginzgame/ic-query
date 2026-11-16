@@ -15,11 +15,11 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
-## CLI 0.105.10 — Unreleased
+## CLI 0.105.10 — 2026-11-16
 
 ### ▶️ Try it
 
-After publication, with Rust 1.100.0 or newer and network access, install from crates.io:
+With Rust 1.100.0 or newer and network access, install from crates.io:
 
 ```bash
 cargo install ic-query-cli --version 0.105.10 --locked

@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.10] - Unreleased
+## [0.105.10] - 2026-11-16
 
 ### 🔧 Changed
 
@@ -21,7 +21,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 - Adopt the topology native-read hard cut to Platform 0.34.7 and Protocol 0.2.6;
   remove legacy Platform and Agent without changing command syntax or JSON schema.
 
-After publication, install with Rust 1.100.0 or newer and network access:
+Install with Rust 1.100.0 or newer and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.10 --locked
