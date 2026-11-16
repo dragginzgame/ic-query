@@ -1,5 +1,5 @@
 //! Compact maintenance evidence; never a completion verdict.
-use ic_host_text::{escape::terminal_text, table::render_bordered};
+use ic_host_text::{bordered_table, escape};
 use ic_topology::subnet::{
     configuration::SubnetConfigurationReport,
     maintenance::{ConfigurationOutcome, MaintenanceReport, VersionMatch},
@@ -58,13 +58,13 @@ pub(crate) fn render(report: &MaintenanceReport) -> String {
         } else {
             "partial"
         },
-        render_bordered(&["OBSERVATION", "BEFORE", "AFTER"], &rows)
+        bordered_table(&["OBSERVATION", "BEFORE", "AFTER"], &rows)
     );
     if let Some(expected) = &report.expected_version {
         writeln!(
             text,
             "Requested configured version: {}",
-            terminal_text(&format!("{expected:?}"))
+            escape(&format!("{expected:?}"))
         )
         .expect("String write");
     }

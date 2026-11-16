@@ -1,11 +1,8 @@
 //! Only the selected public status and new-engine page requests.
 
 use super::{AvailableError, Observation, PAGE_METHOD, PAGE_SIZE, STATUS_METHOD};
-use ic_platform::{
-    agent::Agent,
-    candid_codec::{self, arguments::encode_args},
-    cloud_engine_types as wire,
-};
+use ic_platform::{agent::Agent, candid_codec::arguments::encode_args};
+use ic_platform_protocol::cloud_engine as wire;
 use ic_platform_types::Principal;
 
 pub(super) trait Source {
@@ -15,12 +12,12 @@ pub(super) trait Source {
 
 pub(super) struct MainnetSource(pub Agent);
 
-pub(super) fn page_argument(start: Option<Principal>) -> Result<Vec<u8>, candid_codec::Error> {
+pub(super) fn page_argument(start: Option<Principal>) -> Result<Vec<u8>, wire::EncodeError> {
     wire::encode_list_available_nodes_page_args(
         &wire::ListAvailableNodesPageArgs {
             rejoining: None,
             start,
-            limit: Some(PAGE_SIZE.into()),
+            limit: Some((PAGE_SIZE as u64).into()),
         },
         512,
     )

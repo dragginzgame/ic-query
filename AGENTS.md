@@ -47,7 +47,7 @@ comparison behavior unchanged and settings versions separate from distribution.
 The [maintenance report](docs/design/subnet-maintenance.md) coordinates one
 bounded observation window. Preserve partial evidence and
 keep configured-version agreement distinct from running software or completion.
-The independent [progress report](docs/design/subnet-progress.md) uses the Git-pinned
+The independent [progress report](docs/design/subnet-progress.md) uses the published
 replacement Platform certificate-time projection. Preserve signing and
 delegation times, explicit freshness and root-subnet binding; neither advancement
 nor repeated state is an uptime or maintenance-completion verdict.
@@ -117,12 +117,13 @@ Exact fields and migration evidence requirements remain to be specified.
   Query still selects registry `ic-platform` 0.33.7 for legacy transport and
   several readers. Treat those as remaining migration work, not proof of full
   replacement adoption; remove them only with qualified replacement capabilities.
-  Certified subnet time selects replacement Platform 0.34.0 as `ic-platform-next`
-  at immutable Git revision `126479e64adfc13fa21aa217caa19a298bcdc19e`. The temporary
-  sibling path used for qualification is retired; legacy transport remains separate.
-  The maintainer-requested selected-engine and subnet-settings codec adoption is scoped to the immutable
-  `ic-platform-protocol` Git revision recorded in Cargo.toml/Cargo.lock; it does
-  not authorize other supplier migrations or sibling-path dependencies.
+  Query selects registry Platform 0.34.5, Protocol 0.2.4 and Types 0.21.1.
+  Local sibling paths are development-only; publication must qualify registry
+  suppliers before delivery.
+  Public report principals now use published Types 0.21.1, shared with Protocol and
+  certificate authentication. Legacy transport/Registry DTOs remain separate;
+  convert principal bytes only at those external boundaries. The cloud-engine
+  node-class projection remains until its public DTO migrates.
   Agent owns authentication; Query owns endpoint/root-key admission, limits,
   deadlines and error projection. Do not add direct Agent, Candid or CDK packages.
 - Keep endpoint, provenance, completeness and certification claims explicit.
@@ -135,16 +136,17 @@ Exact fields and migration evidence requirements remain to be specified.
 
 ## Delivery and publication
 
-Publication is deferred until the project is mature and working and the maintainer
-explicitly lifts this hold. Keep all packages `publish = false`. Requests to
-"push" include preparing the next appropriate version for each changed release
-group, updating its manifest/lockfile and release notes, and delivering that version
-to GitHub. Compatible follow-ups normally increment the patch; incompatible
-pre-1.0 contracts require a minor. Delivered versions are not reused just because
-crates.io publication is disabled. Keep unchanged groups at their existing versions.
-These requests never authorize crates.io publication. This local
-restriction takes precedence over Toko Tooling's general delivery defaults;
-release or ship wording alone does not lift the publication hold.
+The maintainer lifted the publication hold on 2026-11-16 and requested the next
+topology and CLI versions on crates.io and GitHub. Workspace packages inherit
+`publish = true`; publish only affected, qualified release groups. The SNS shell
+is unchanged and outside this delivery. Canic is the identified downstream
+consumer; coordinate its Rust type migration without changing that sibling here.
+Requests to "push" include the next appropriate versions, manifests/lockfile,
+release notes, GitHub delivery and crates.io publication under the baseline.
+Compatible follow-ups normally increment the patch; incompatible pre-1.0 contracts
+require a minor. Never reuse delivered versions. Local supplier paths are for
+development only: publication requires available, qualified registry dependencies.
+Supplier publication remains separately authorized work at its owning repository.
 
 ## Local development
 

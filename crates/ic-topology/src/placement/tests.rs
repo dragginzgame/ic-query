@@ -5,8 +5,25 @@ use super::{
 };
 
 fn reply(subnet_id: Option<Principal>) -> Vec<u8> {
-    let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk { subnet_id });
+    let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk {
+        subnet_id: subnet_id.map(|id| ic_platform::Principal::from_slice(id.as_slice())),
+    });
     candid_codec::encode_one(&response, 1024).expect("fixture encodes")
+}
+
+#[test]
+fn replacement_identity_preserves_registry_bytes_and_report_json() {
+    for length in 0..=29 {
+        let bytes: Vec<_> = (0..length).map(|index| index as u8).collect();
+        let identity = Principal::from_slice(&bytes);
+        let legacy = ic_platform::Principal::from_slice(&bytes);
+        assert_eq!(decode_subnet(&reply(Some(identity))).unwrap(), identity);
+        assert_eq!(identity.to_text(), legacy.to_text());
+        assert_eq!(
+            serde_json::to_value(identity).unwrap(),
+            serde_json::to_value(legacy).unwrap()
+        );
+    }
 }
 
 #[test]

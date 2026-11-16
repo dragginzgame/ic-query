@@ -1,5 +1,5 @@
 //! Selected placement rows; no inferred fleet ownership or subnet suitability.
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::placement::collection::{PlacementCollectionReport, PlacementOutcome};
 
 pub(crate) fn render(report: &PlacementCollectionReport) -> String {
@@ -40,7 +40,7 @@ pub(crate) fn render(report: &PlacementCollectionReport) -> String {
         },
         report.canisters.len(),
         report.elapsed.as_secs_f64(),
-        render_bordered(
+        bordered_table(
             &["CANISTER", "SUBNET", "OUTCOME", "OBSERVED (UNIX S)"],
             &rows
         )

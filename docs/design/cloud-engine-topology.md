@@ -1,11 +1,11 @@
 # Selected cloud-engine topology
 
-Status: implemented; the selected-engine codec uses `ic-platform-protocol` 0.1.0
-at immutable Git revision
-[`8ee1e58c`](https://github.com/dragginzgame/ic-platform-new/commit/8ee1e58ce6577054d58fba729546989e8b6fc041).
-The settings adoption advances the earlier `08c72219` pin without changing
-selected-engine codec source; direct Protocol consumers must align identities.
-This is a Git dependency, not a crates.io release. Platform 0.33.7 remains the
+Status: implemented using published `ic-platform-protocol` 0.2.4 under
+the [registry supplier selection](../development/setup.md#certificate-time-supplier).
+Protocol and Query now share published Types 0.21.1, removing the principal-byte
+bridge. Principal JSON and bytes remain unchanged; Rust consumers must align
+their Types source before rebuilding. Direct Protocol error
+consumers must align their dependency source. Platform 0.33.7 remains the
 transport supplier and test fixture encoder. The original projection was supplied
 by [Platform #168](https://github.com/dragginzgame/ic-platform/issues/168).
 

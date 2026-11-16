@@ -1,5 +1,8 @@
 use super::*;
-use ic_platform::candid_codec::encode_one;
+use ic_platform::{
+    candid_codec::{self, encode_one},
+    cloud_engine_types as wire,
+};
 use ic_platform_types::Principal;
 use std::{cell::RefCell, collections::VecDeque};
 
@@ -23,7 +26,7 @@ fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::
         key,
         entry: wire::PriceEntry {
             node_type: class,
-            provider,
+            provider: provider.map(|id| ic_platform::Principal::from_slice(id.as_slice())),
             dc: dc.map(str::to_owned),
             updated_at: i64::MIN,
             price: wire::Price {
@@ -195,6 +198,15 @@ fn bounds_empty_lists_and_worst_case_supported_collection() {
     }))
     .unwrap();
     assert_eq!(json["admission"]["actual"], 1001);
+}
+
+#[test]
+fn protocol_vector_limit_refuses_before_report_admission() {
+    let rows = vec![row(NodeType::Type4, None, None); LIMITS.vector + 1];
+    assert!(matches!(
+        project(&rows),
+        Err(PriceError::Decode(decoder::Error::Limit))
+    ));
 }
 
 #[test]

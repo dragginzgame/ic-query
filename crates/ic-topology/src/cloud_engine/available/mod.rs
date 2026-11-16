@@ -2,7 +2,7 @@
 
 use super::{CANISTER, Observation};
 use crate::mainnet;
-use ic_platform::{candid_codec::decoder, cloud_engine_types as wire};
+use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
 use ic_platform_types::Principal;
 use std::{collections::BTreeSet, time::Duration};
 use tokio::time::Instant;
@@ -26,9 +26,9 @@ const LIMITS: decoder::Limits = decoder::Limits {
     types: 256,
     work: 2_000_000,
     allocation: 4 * 1024 * 1024,
+    vector: 1024,
+    skipping: 128 * 1024,
 };
-// Independent ceiling for unselected wire fields, notably IP-address text.
-const SKIPPED_WORK: usize = 128 * 1024;
 
 /// Read source-copy status and public new-engine eligible nodes, page by page.
 ///
@@ -131,7 +131,7 @@ async fn collect(
                 .into_iter()
                 .map(|node| AvailableNode {
                     node_id: node.node_id,
-                    node_type: node.node_type,
+                    node_type: super::report_class(node.node_type),
                     operator_id: node.operator,
                     provider_id: node.provider,
                     data_center: node.dc,
@@ -186,11 +186,7 @@ fn failed(
 }
 
 fn decode_page(observation: &Observation) -> Result<wire::AvailableNodesPage, AvailableError> {
-    match wire::decode_list_available_nodes_page_response_with_skip_limit(
-        &observation.bytes,
-        LIMITS,
-        SKIPPED_WORK,
-    )? {
+    match wire::decode_list_available_nodes_page_response(&observation.bytes, LIMITS)? {
         wire::AvailableNodesPageResult::Ok(Some(page)) => Ok(page),
         wire::AvailableNodesPageResult::Ok(None) => Err(AvailableError::CopyNotReady),
         wire::AvailableNodesPageResult::Err(error) => Err(AvailableError::Application(error)),

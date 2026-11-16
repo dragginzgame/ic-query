@@ -1,6 +1,6 @@
 //! Compact human presentation of selected membership concentration.
 
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use std::fmt::Write;
 
 use ic_topology::subnet::distribution::{RecordOutcome, SubnetDistributionReport};
@@ -33,7 +33,7 @@ pub(crate) fn subnet_distribution(report: &SubnetDistributionReport) -> String {
         .iter()
         .map(|group| vec![group.value.to_text(), group.nodes.to_string()])
         .collect();
-    text.push_str(&render_bordered(&["PROVIDER", "NODES"], &providers));
+    text.push_str(&bordered_table(&["PROVIDER", "NODES"], &providers));
     text.push('\n');
     if summary.providers.is_empty() {
         text.push_str("  (none resolved)\n");
@@ -58,7 +58,7 @@ pub(crate) fn subnet_distribution(report: &SubnetDistributionReport) -> String {
             ]);
         }
     }
-    text.push_str(&render_bordered(
+    text.push_str(&bordered_table(
         &["NODES", "ID", "REGION", "OWNER"],
         &locations,
     ));

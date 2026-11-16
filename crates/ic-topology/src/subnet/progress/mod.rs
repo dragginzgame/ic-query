@@ -163,10 +163,6 @@ async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTime
         .map_err(ReadError::Clock)?;
     let reference_ns = u64::try_from(now.as_nanos()).map_err(|_| StateTimeError::ClockRange)?;
     let root = PreparedRootKey::from_der(&agent.read_root_key())?;
-    let requested = subnet_id
-        .to_text()
-        .parse()
-        .map_err(|e| StateTimeError::Identity(format!("{e}")))?;
     let root_subnet = ROOT_SUBNET
         .parse()
         .map_err(|e| StateTimeError::Identity(format!("{e}")))?;
@@ -178,7 +174,7 @@ async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTime
     let evidence = authenticate_subnet_time_from_certificate(
         &certificate,
         &root,
-        requested,
+        subnet_id,
         Some(root_subnet),
         TimePolicy {
             certificate: window,

@@ -2,6 +2,40 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.108.0] — Unreleased
+
+### ⚠️ Breaking
+
+- Move all public report/request principals and the CLI to published Types 0.21.1.
+  This is a Rust type-identity change: direct callers must align the Types source
+  and rebuild for the next incompatible topology release. Principal bytes/text,
+  JSON and schema-1 retained evidence are unchanged; no evidence reset is required.
+  Remove the duplicate Types alias, cloud-engine principal bridges and certified
+  progress text conversion. Legacy Registry DTO/transport boundaries remain.
+
+- Migrate available-node status/page decoding and bounded page-request encoding
+  to published Protocol 0.2.4. Keep traversal, partial results and report JSON unchanged;
+  share the cloud-engine class projection. `AvailableError::Decode` and
+  `Application` now retain Protocol payloads, with a new `PageEncode` variant
+  (JSON category remains `encode`). Rust error consumers require migration at
+  the next incompatible topology delivery; retained reports need no reset.
+
+- Migrate marketplace price and network-fee response decoding to published Protocol
+  0.2.4. Preserve daily amounts, public class/principal fields, JSON and partial
+  outcomes; add explicit vector/skipping budgets. `PriceError::Decode` changes
+  its Rust payload to Protocol's error type, requiring caller migration at the
+  next incompatible topology release. Transport and request encoding remain legacy.
+
+- Select published Platform 0.34.5, Protocol 0.2.4 and Types 0.21.1, removing
+  sibling checkout requirements. Legacy Platform 0.33.7 transport remains;
+  selected-engine reports now use the supplier's principal identity directly.
+  Existing JSON and retained reports are unchanged. Public supplier
+  error payload identities change and require consumers to align sources before
+  the next delivery.
+
+  This is partial supplier adoption: the full transport/test hard cut awaits
+  [Platform #10 — Provide portable fixtures for Query's registry-only Platform hard cut](https://github.com/dragginzgame/ic-platform/issues/10).
+
 ## [0.107.0] — GitHub delivery 2026-11-16
 
 GitHub-only version; not published to crates.io.

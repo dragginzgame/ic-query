@@ -1,5 +1,5 @@
 //! Raw configured settings; effective defaults and capacity belong to other contracts.
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::subnet::settings::SubnetSettingsReport;
 
 pub(crate) fn render(report: &SubnetSettingsReport) -> String {
@@ -8,7 +8,7 @@ pub(crate) fn render(report: &SubnetSettingsReport) -> String {
     format!(
         "Subnet: {}\n\nRegistered settings\n\n{}\n\nSource: {} / {} / {}\nKey: {}\nObserved: {} Unix seconds | record mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {} | result consensus-certified: {} | TEE attestation verified: {}\n\nDefault-selected values remain unresolved; absent values are not zero or unlimited.\nConfigured features do not establish running behavior, usable TEE protection or reduced authentication requirements.\nThese declarations do not measure free capacity.\n",
         report.subnet_id,
-        render_bordered(&["SETTING", "RAW VALUE / PRESENCE", "UNIT"], &rows),
+        bordered_table(&["SETTING", "RAW VALUE / PRESENCE", "UNIT"], &rows),
         e.endpoint,
         e.source_canister,
         e.source_method,
@@ -128,7 +128,7 @@ pub(crate) fn comparison(
         .collect();
     let mut text = format!(
         "\nRegistered settings (independent reads)\n\n{}\n",
-        render_bordered(&["SETTING", "LEFT", "RIGHT", "UNIT"], &combined)
+        bordered_table(&["SETTING", "LEFT", "RIGHT", "UNIT"], &combined)
     );
     for (label, observation) in [("Left", left), ("Right", right)] {
         if let Some(r) = observation {

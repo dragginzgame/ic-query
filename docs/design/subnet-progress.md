@@ -1,10 +1,10 @@
 # Authenticated subnet state-time progress
 
-Status: implemented using replacement Platform 0.34.0 pinned to Git commit
-`126479e64adfc13fa21aa217caa19a298bcdc19e`. The supplier capability is delivered in
+Status: implemented using published replacement Platform 0.34.5 under the
+[development supplier selection](../development/setup.md#certificate-time-supplier).
+The supplier capability is delivered in
 [Platform New #1 — Authenticated subnet certificate time](https://github.com/dragginzgame/ic-platform-new/issues/1).
-The temporary local path used during qualification is retired. This adoption
-does not remove legacy Platform transport or resolve the
+This adoption does not remove legacy Platform transport or resolve the
 separate [Agent advisory #4](https://github.com/dragginzgame/ic-platform-new/issues/4).
 
 ## Decision and source

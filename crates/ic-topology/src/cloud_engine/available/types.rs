@@ -1,9 +1,10 @@
 //! Available-node observations, traversal coverage and typed stop reasons.
 
 use crate::ReadError;
-use ic_platform::{
-    candid_codec::{self, decoder},
-    cloud_engine_types::{EngineError, NodeType},
+use ic_platform::{candid_codec, cloud_engine_types::NodeType};
+use ic_platform_protocol::{
+    candid as decoder,
+    cloud_engine::{EncodeError, EngineError},
 };
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer, ser::SerializeStruct};
@@ -189,6 +190,9 @@ pub enum AvailableError {
     /// Bounded request encoding error, preserved as its original typed value.
     #[error("available-node request encoding failed: {0:?}")]
     Encode(candid_codec::Error),
+    /// Bounded page-request encoding failure from the replacement Protocol.
+    #[error("available-node page request encoding failed: {0:?}")]
+    PageEncode(#[from] EncodeError),
     /// Bounded response codec error, preserved as its original typed value.
     #[error("available-node response decoding failed: {0:?}")]
     Decode(decoder::Error),
@@ -223,7 +227,7 @@ impl Serialize for AvailableError {
             Self::Read(ReadError::Transport(_)) => "transport",
             Self::Read(ReadError::Deadline) => "read_deadline",
             Self::Read(ReadError::Clock(_)) => "clock",
-            Self::Encode(_) => "encode",
+            Self::Encode(_) | Self::PageEncode(_) => "encode",
             Self::Decode(_) => "decode",
             Self::Application(_) => "application",
             Self::CopyNotReady => "copy_not_ready",

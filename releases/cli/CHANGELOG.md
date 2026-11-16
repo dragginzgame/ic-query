@@ -2,6 +2,33 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.10] — Unreleased
+
+### 🔧 Changed
+
+- Align CLI principal parsing with published Types 0.21.1 and the topology library;
+  command syntax and serialized principal values remain unchanged.
+
+- Adopt Toko Tooling 0.44.9 through the authenticated updater, retaining the
+  selected tooling entrypoints and refreshing the baseline and receipt.
+
+- Adopt Host Text 0.77.2 and use its `bordered_table` and `escape` APIs directly,
+  retaining CLI-owned rows, values and output sinks.
+
+- Select published Platform dependencies, removing the sibling checkout requirement.
+
+After publication, install with Rust 1.100.0 or newer and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.10 --locked
+icq topology subnet progress \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
+```
+
+The read requires mainnet access and retains both authenticated state times;
+it does not establish uptime or maintenance completion.
+
 ## [0.105.9] — GitHub delivery 2026-11-16
 
 GitHub-only version; not published to crates.io.

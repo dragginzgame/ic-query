@@ -15,6 +15,24 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.10 — Unreleased
+
+### ▶️ Try it
+
+After publication, with Rust 1.100.0 or newer and network access, install from crates.io:
+
+```bash
+cargo install ic-query-cli --version 0.105.10 --locked
+icq topology subnet progress \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
+```
+
+No sibling checkout is required. The command reads mainnet and returns two
+authenticated state-time observations, preserving partial failures. It makes
+no uptime or maintenance-completion claim. Rust library consumers must migrate
+to Types 0.21.1 for [topology 0.108.0](releases/topology/CHANGELOG.md).
+
 ## CLI 0.105.9 — GitHub delivery 2026-11-16
 
 ### ▶️ Observe certified state-time progress

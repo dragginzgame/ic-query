@@ -12,22 +12,21 @@ network calls. Running report commands does access mainnet.
 
 The [configuration integration](../design/subnet-configuration.md) and
 [membership comparison](../design/subnet-membership.md) use published Platform
-0.33.7 and Types 0.20.4, also supplying the
-[node report](../design/node-inventory.md). The temporary sibling-path selections have been removed;
-dependency preparation requires no sibling checkout.
+0.33.7 with published Types 0.21.1 report identities, also supplying the
+[node report](../design/node-inventory.md). These readers remain on the legacy
+supplier during the local migration below.
 The [distribution report](../design/subnet-distribution.md) uses Platform 0.33.5's
 published version, operator and data-center decoders for bounded pinned joins.
-The [cloud-engine prices and availability](../design/cloud-engine-marketplace.md) use Platform
-0.33.6's published `cloud-engine-types` capability and owned bounded Candid codec.
+The [cloud-engine prices and availability](../design/cloud-engine-marketplace.md)
+retain Platform 0.33.7 transport, empty-request encoding and report DTO identities.
+Prices, network-fee, copy-status and availability responses and page-request
+encoding use published Protocol 0.2.4.
 Platform 0.33.7 adds the [selected-engine view](../design/cloud-engine-topology.md),
 using the same feature and transport policy with strict optional-field decoding.
-The selected-engine and registered-settings codecs select `ic-platform-protocol`
-0.1.0 from `ic-platform-new` at Git revision
-`8ee1e58ce6577054d58fba729546989e8b6fc041`. Dependency preparation must fetch that
-revision; no sibling checkout is used. Platform 0.33.7 still supplies transport,
-other readers and selected-engine fixture encoding. This Git selection is not a
-claim of crates.io publication.
-The CLI selects published `ic-host-text` 0.76.0 for bordered tables and terminal-safe
+The selected-engine and registered-settings codecs select published Protocol 0.2.4;
+see [supplier preparation](#certificate-time-supplier). Platform 0.33.7 still
+supplies transport, other readers and selected-engine fixture encoding.
+The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
 
 ## Preparation
@@ -50,13 +49,59 @@ without a launcher, use `bash vendor/toko-tooling/scripts/dev/toko-cloc -d 0`.
 
 ## Certificate-time supplier
 
-The certificate-time projection selects replacement Platform 0.34.0 as
-`ic-platform-next`, pinned to Git revision
-`126479e64adfc13fa21aa217caa19a298bcdc19e`. It selects Types 0.21.0 from that
-same source and requires thiserror 2.0.18. Legacy transport/reader dependencies
-remain separate. The maintainer-authorized local sibling path used for initial
-qualification has been removed; dependency preparation fetches immutable Git
-sources and no sibling checkout is required.
+The selected delivery is topology 0.108.0 and CLI 0.105.10 to crates.io
+and GitHub. Registry inspection on 2026-11-16 confirmed non-yanked Platform
+0.34.5, Protocol 0.2.4 and Types 0.21.1. Query selects these registry versions;
+no sibling checkout is required. The unchanged SNS shell is outside this batch.
+
+Query and the CLI share published Types 0.21.1 with Protocol and certificate
+authentication. Types 0.20.4 remains behind legacy Platform 0.33.7 transport/DTOs;
+the replacement does not yet supply those selected capabilities. The optional
+canister-signature feature is not selected. Thiserror remains 2.0.18.
+
+The registry adoption passed the complete local Linux validation stages on
+2026-11-16: strict all-target Clippy, Rustdoc, 184 tests, formatting, local
+documentation links and snapshot/Cargo admission. This qualifies the registry
+graph and offline report contracts; hosted macOS checks and live network reads
+remain separate evidence. Registry metadata contained no external path suppliers.
+That validation used Host Text 0.76.0 and Toko Tooling 0.44.5. The subsequent
+requested tooling adoption selects Host Text 0.77.2 and Toko Tooling 0.44.8;
+its focused CLI and tooling checks are separate from that earlier release gate.
+The adoption passed all 48 CLI unit/process tests, strict all-target CLI Clippy,
+formatting, documentation links and snapshot/Cargo admission on Linux x86-64.
+The supported updater also admitted the selected host and Rust developer tools.
+
+Prepared topology 0.108.0 and CLI 0.105.10 archives passed a combined
+`cargo publish --dry-run --locked --allow-dirty -p ic-topology -p ic-query-cli`
+on 2026-11-16, including verification of the CLI against the packaged topology
+crate. Final-version CLI process tests and documentation admission also passed.
+No upload or Git delivery occurred. The required release runner has not yet
+been adopted; the current Makefile exposes neither release nor publication
+entrypoints. These versions remain unreleased candidates until that prerequisite
+and final clean-source/provenance admission are satisfied.
+
+The subsequent Platform 0.34.5 / Protocol 0.2.4 hard-cut probe compiled topology
+and the CLI against registry packages on Linux x86-64, with one Types 0.21.1 and
+no Agent or legacy Platform edge. It adapted the supplier's
+[consumer patch and qualification](https://github.com/dragginzgame/ic-platform/blob/1e92703bc803b81dbe1e3d815fd1077d440d62b4/docs/qualification/query-hard-cut.md)
+in disposable validation storage only; the working implementation is not migrated.
+The supplier patch requires its unpublished `engine-view-consumer` fixture crate
+for availability, prices, engine and placement tests. Removing that sibling
+dependency makes test compilation fail with unresolved fixture imports. Completing
+the cut requires portable fixture inputs or a published supplier fixture API,
+tracked in [Platform #10 — Provide portable fixtures for Query's registry-only Platform hard cut](https://github.com/dragginzgame/ic-platform/issues/10),
+then qualification here; the supplier's passing local-path run does not establish
+registry-only consumer qualification. Do not retain the legacy dev dependency,
+import a direct Candid dependency or remove regression coverage to bypass this gap.
+
+The earlier local identity migration passed 184 workspace tests and strict all-target Clippy
+on Linux x86-64. The supplier's subsequent 0.34.1 version alignment is requalified
+through focused progress tests and Rustdoc. This does not qualify the moving
+sibling checkout on macOS or for delivery. Existing report schemas and raw
+principal bytes are preserved; Rust identity consumers must align Types and rebuild.
+Live read-only checks with local Platform 0.34.1 resolved the ICP ledger to the
+NNS subnet and authenticated two advancing NNS state times on 2026-11-16. These
+check the legacy Registry/new certificate boundaries, not all live report sources.
 
 ## Daily commands
 
@@ -80,7 +125,7 @@ directly. Installation is offline; report commands still access mainnet.
 `deps-list` lists local workspace package versions, not transitive dependencies
 or registry publication status. The group column reads the ownership declared in
 [`ci/cargo-release-groups.json`](../../ci/cargo-release-groups.json). Release
-automation remains deferred and publication disabled. `deps-update`
+automation remains deferred; the maintainer has enabled publication. `deps-update`
 runs the shared `cargo update -v`
 workflow; it intentionally changes lockfiles and may access the registry. To select
 one dependency, use `make deps-update DEPENDENCY_PACKAGE=clap`. Review direct
@@ -157,11 +202,11 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.44.4** was verified as the latest stable, non-yanked registry
-release on 2026-11-15. Its authenticated archive SHA-256 is:
+Toko Tooling **0.44.9** was verified as the latest stable, non-yanked registry
+release through Cargo's sparse index on 2026-11-16. Its authenticated archive SHA-256 is:
 
 ```text
-b52bb793b386309b8c4a9e88f32711bb5d1fd11a47bf337c11c63ca2aa22fc97
+bdfd5bc761f55ede02e82f8af36ca82415696209b3ff45e8f080e82cab85c418
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the eight selected roots and
@@ -169,9 +214,21 @@ all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.4 refresh accounts for all 50 installed payload files. The baseline
-retires the special subsystem-replacement workflow and adds a narrow Platform-only
-development-oracle exception; Query's external dependency boundary is unchanged.
+The 0.44.9 refresh accounts for all 50 installed payload files. The reviewed
+preview updates the baseline and keeps the executable payload unchanged; the
+supported updater owns the receipt. The baseline clarifies asynchronous hosted
+CI for delivery, one-tier qualification package layout and independent compatible
+thiserror selection. Query has no separate qualification packages, and its
+thiserror requirement is compatible rather than an exact fleet-wide hold.
+Version 0.44.9 makes named-supplier adoption cover product, dev/build and
+qualification callers by default. Query's maintained manifests and lockfile
+were inventoried; no independent qualification workspace exists. Platform
+adoption remains explicitly partial while the fixture delivery in #10 is pending.
+The working-tree update to Platform 0.34.5, Protocol 0.2.4 and Toko Tooling
+0.44.9 passed 184 topology/CLI tests, strict all-target topology Clippy,
+formatting, documentation links and snapshot/Cargo admission on Linux x86-64.
+It still selects Platform 0.33.7 for transport, remaining readers and fixture
+encoding; the earlier registry-only hard-cut probe is separate evidence.
 The LOC reporter now defaults to repository totals: `toko-cloc` and `toko-cloc -d 0`
 produce the same report; use `toko-cloc -d 1` to expand crates and `-d 2` for
 top-level modules. Named crate/module selections expand immediate children at `-d 1`.

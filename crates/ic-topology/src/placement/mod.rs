@@ -94,7 +94,7 @@ pub enum PlacementError {
 pub async fn fetch(canister_id: Principal) -> Result<PlacementReport, PlacementError> {
     let argument = candid_codec::encode_one(
         &GetSubnetForCanisterRequest {
-            principal: Some(canister_id),
+            principal: Some(ic_platform::Principal::from_slice(canister_id.as_slice())),
         },
         256,
     )
@@ -117,6 +117,7 @@ fn decode_subnet(bytes: &[u8]) -> Result<Principal, PlacementError> {
     response
         .map_err(PlacementError::RegistryRejected)?
         .subnet_id
+        .map(|id| Principal::from_slice(id.as_slice()))
         .ok_or(PlacementError::MissingSubnet)
 }
 

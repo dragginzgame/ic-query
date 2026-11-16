@@ -1,6 +1,6 @@
 //! Compact declaration coverage, without a selected or computed deployment price.
 
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::cloud_engine::{
     candidates::{CandidatePricing, CandidatesReport},
     prices::FeeOutcome,
@@ -70,7 +70,7 @@ pub(crate) fn cloud_engine_candidates(report: &CandidatesReport) -> String {
                 })
                 .collect();
             text.push('\n');
-            text.push_str(&render_bordered(
+            text.push_str(&bordered_table(
                 &[
                     "DECLARATION",
                     "MATCHING NODES",

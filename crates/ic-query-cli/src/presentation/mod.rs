@@ -4,7 +4,7 @@ pub(crate) mod placements;
 pub(crate) mod progress;
 pub(crate) mod settings;
 
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
@@ -192,7 +192,7 @@ pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
         })
         .collect();
     text.push('\n');
-    text.push_str(&render_bordered(
+    text.push_str(&bordered_table(
         &["NODE", "OPERATOR", "HOSTOS", "CHIP ID", "READ"],
         &rows,
     ));

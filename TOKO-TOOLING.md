@@ -256,11 +256,21 @@ file or separate review framework.
   publishing and deployment are separate. State the local/delivery status and
   preserve genuinely issue-specific acceptance under the
   [issue closure policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/agent-maintenance.md#issue-review-and-repair).
-- Run expensive hosted integration/native CI asynchronously for development,
-  PR delivery and separately authorized merges. Report pending runs; do not poll
-  or hold a turn open solely for the matrix. Enforced checks/reviews, known defects,
-  release gates and issue-specific acceptance still apply. Never invent optional
-  GitHub approvals or bypass protections. Synchronous qualification is opt-in.
+- Hosted integration/native CI runs asynchronously for development, PR delivery,
+  separately authorized merges, releases, deployment and registry publication.
+  Routine patches proceed after required local checks and publication admission
+  pass; pending, queued or absent hosted results alone do not block delivery.
+  Report CI separately without polling or holding the turn open for its matrix.
+  Wait only for an enforced branch/release protection or a maintainer-selected,
+  named qualification requirement scoped to the release or changed contract.
+  State that requirement and its source before waiting. A first release, major
+  or significant minor may justify such qualification; the version number alone
+  does not select it, and it must not become a recurring patch-release gate.
+  Known relevant failures still block until resolved or explicitly dispositioned;
+  asynchronous CI is not permission to ignore a discovered defect. Preserve local
+  release gates, archive/source admission and actual protections. A local target
+  named `ci` does not require a successful GitHub Actions run. Do not replace a
+  hosted wait with another local copy of its full matrix or invent approval gates.
 - Toko Tooling owns its general regression matrix. Consumers check snapshot integrity,
   actual caller wiring and their product/native contracts. Do not replay generic
   producer fixtures by default; retain one only for a named missing consumer proof.
@@ -363,6 +373,24 @@ type, protocol and executor boundaries remain valid. A failed optional upgrade
 probe blocks that upgrade, not release of an otherwise qualified existing
 selection. Preserve real incompatibility refusals and required integration tests.
 
+An unqualified request to adopt or update a named supplier (for example,
+"adopt new ic-platform crates") covers that supplier's uses throughout the
+current repository: the product workspace, every maintained qualification
+workspace and native/dev/build callers. No separate qualification command or
+permission is needed. Inventory the relevant manifests and locks, update the
+affected declarations and callers, remove superseded dependencies and temporary
+migration adapters, and run focused checks for the changed boundaries. Do not
+expand this into unrelated dependency upgrades, sibling edits or deployment.
+
+Separate workspaces need not select identical versions when their actual
+integration permits independent selections. Report every retained older selection
+with its concrete reason and remaining work; updating only the product workspace
+while an in-scope qualification migration remains is **partial adoption**.
+Explicitly maintained frozen comparison baselines, such as an old-engine
+measurement matrix, stay frozen unless the user includes them. Identify that
+exception in the result; an ordinary qualification lockfile or stale supplier pin
+is not a frozen comparison baseline. Explicit user scope takes precedence.
+
 - Freshness review is separate from pin consistency and passing tests. During
   dependency maintenance, review every direct supplier in the selected scope,
   including native tools, dev/build dependencies and independent qualification
@@ -406,6 +434,12 @@ selection. Preserve real incompatibility refusals and required integration tests
   effort is not sufficient. An upstream-only older transitive selection needs
   no freshness exception for our independent direct dependency; security
   findings still require remediation.
+
+`thiserror` follows the same independent selection rule: use compatible version
+requirements and let Cargo select the latest compatible release. PocketIC may
+constrain its own graph; do not propagate that constraint into independent
+workspaces or add unused dependencies to impose it. Align versions only for a
+demonstrated integration requirement. This supersedes the 0.44.7 fleet-wide hold.
 
 An unchanged release selection is not a new dependency adoption. The freshness
 review above may defer an optional upgrade to the next dependency-maintenance
@@ -731,11 +765,13 @@ not authorize sibling edits or deployment merely through policy adoption.
 Ordinary unit tests, package integration tests and examples stay beside their
 owning product code. Separate packages used only for qualification, benchmarks,
 fuzzing, test fixtures or test support live under `qualification/`, with
-`qualification/Cargo.toml` and its own `Cargo.lock`. Meaningful grouping such as
-`qualification/<domain>/<package-name>/` is supported too. Do not add a redundant
-`qualification/crates/` level or create an empty qualification
-workspace. This is the standard whenever separate qualification packages exist;
-it does not require first demonstrating a dependency conflict.
+`qualification/Cargo.toml` and its own `Cargo.lock`. Use one package tier:
+`qualification/<package-name>/Cargo.toml`. Do not mix direct packages with nested
+package trees, add domain or `crates/` wrappers, put a package in the qualification
+root, or create an empty qualification workspace. Product grouping under `crates/`
+does not extend to qualification. This is the standard whenever separate
+qualification packages exist; it does not require first demonstrating a
+dependency conflict.
 
 Classify canisters by purpose: standalone product canisters belong under
 `crates/`, product fleet components under `apps/`, and separate test, audit or

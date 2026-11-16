@@ -1,13 +1,13 @@
 //! Selected-engine relationships with compact source and membership evidence.
 
-use ic_host_text::{escape::terminal_text, table::render_bordered};
+use ic_host_text::{bordered_table, escape};
 use ic_topology::cloud_engine::engine::{EngineOutcome, EngineReport, MembershipComparison};
 use std::{collections::BTreeSet, fmt::Write};
 
 pub(crate) fn cloud_engine(report: &EngineReport) -> String {
     let mut text = format!(
         "Cloud-engine topology\n\nEngine: {}\n",
-        terminal_text(&format!("{:?}", report.requested_engine_id.as_str()))
+        escape(&format!("{:?}", report.requested_engine_id.as_str()))
     );
     match &report.outcome {
         EngineOutcome::NotReturned => {
@@ -51,7 +51,7 @@ pub(crate) fn cloud_engine(report: &EngineReport) -> String {
             }
             if let Some(subnet) = copy {
                 let version =
-                    terminal_text(&format!("{:?}", subnet.configured_replica_version)).into_owned();
+                    escape(&format!("{:?}", subnet.configured_replica_version)).into_owned();
                 writeln!(text, "Configured replica version: {version}{}\nRegistered halt flag: {}\nMaximum state size: {}",
                     if subnet.configured_replica_version.is_empty() { " (standard engine version)" } else { "" },
                     subnet.halted,
@@ -76,7 +76,7 @@ pub(crate) fn cloud_engine(report: &EngineReport) -> String {
                 })
                 .collect();
             text.push('\n');
-            text.push_str(&render_bordered(
+            text.push_str(&bordered_table(
                 &["NODE", "ENGINE RECORD", "REGISTRY COPY"],
                 &rows,
             ));

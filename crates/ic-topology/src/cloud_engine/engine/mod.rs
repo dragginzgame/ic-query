@@ -86,28 +86,32 @@ fn project(
     if view.id != request.as_str() {
         return Err(EngineRefusal::WrongEngine);
     }
+    let subnet_id = view.subnet_id;
+    let operator_id = view.engine_operator_id;
+    let node_ids = view.node_ids;
     for (field, value) in [
-        ("subnet_id", view.subnet_id),
-        ("operator_canister_id", view.engine_operator_id),
+        ("subnet_id", subnet_id),
+        ("operator_canister_id", operator_id),
     ] {
         if let Some(id) = value {
             identity(field, id)?;
         }
     }
-    let record_set = nodes("record_node_ids", &view.node_ids)?;
+    let record_set = nodes("record_node_ids", &node_ids)?;
     let mut membership = MembershipComparison::Unavailable;
     let registry_copy_subnet = if let Some(subnet) = view.subnet {
         if view.subnet_id.is_none() {
             return Err(EngineRefusal::MissingSubnetId);
         }
         bound("replica_version_bytes", subnet.replica_version.len(), 256)?;
-        let copy_set = nodes("registry_copy_node_ids", &subnet.node_ids)?;
+        let copy_nodes = subnet.node_ids;
+        let copy_set = nodes("registry_copy_node_ids", &copy_nodes)?;
         membership = MembershipComparison::Compared {
             record_only: record_set.difference(&copy_set).copied().collect(),
             registry_copy_only: copy_set.difference(&record_set).copied().collect(),
         };
         Some(RegistryCopySubnet {
-            node_ids: subnet.node_ids,
+            node_ids: copy_nodes,
             configured_replica_version: subnet.replica_version,
             halted: subnet.halted,
             maximum_state_size_bytes: subnet.maximum_state_size,
@@ -117,9 +121,9 @@ fn project(
     };
     Ok(EngineOutcome::Read {
         record: Box::new(EngineRecord {
-            subnet_id: view.subnet_id,
-            operator_canister_id: view.engine_operator_id,
-            record_node_ids: view.node_ids,
+            subnet_id,
+            operator_canister_id: operator_id,
+            record_node_ids: node_ids,
             deleted_at_unix_nanoseconds: view.deleted_at,
             registry_copy_subnet,
             membership,

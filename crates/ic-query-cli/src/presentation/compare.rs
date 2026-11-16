@@ -1,5 +1,5 @@
 //! Side-by-side placement evidence without scoring candidates.
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::subnet::compare::{Candidate, SharedGroup, SubnetComparisonReport};
 use std::fmt::Write;
 
@@ -85,7 +85,7 @@ pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> 
             "partial"
         },
         report.elapsed.as_secs_f64(),
-        render_bordered(&["OBSERVATION", "LEFT", "RIGHT"], &rows)
+        bordered_table(&["OBSERVATION", "LEFT", "RIGHT"], &rows)
     );
     if let Some(overlap) = report.infrastructure_overlap() {
         let coverage = |complete| if complete { "complete" } else { "partial" };
@@ -116,7 +116,7 @@ pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> 
         writeln!(
             text,
             "\nObserved infrastructure overlap\n\n{}\n",
-            render_bordered(
+            bordered_table(
                 &[
                     "RELATIONSHIP",
                     "SHARED IDENTITIES",
@@ -206,7 +206,7 @@ fn write_shared_groups<T: std::fmt::Display>(
     writeln!(
         text,
         "\n{}\n",
-        render_bordered(&["IDENTITY", "LEFT NODES", "RIGHT NODES"], &rows)
+        bordered_table(&["IDENTITY", "LEFT NODES", "RIGHT NODES"], &rows)
     )
     .expect("String write");
 }

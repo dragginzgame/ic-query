@@ -27,7 +27,7 @@ resource values for one subnet, without inferring spare capacity or uptime.
 The [activity report](docs/design/subnet-activity.md) compares two certified
 message totals with a bounded wait, preserving both observations without a health verdict.
 The [progress report](docs/design/subnet-progress.md) compares authenticated
-subnet state times using the Git-pinned replacement Platform projection.
+subnet state times using the published replacement Platform projection.
 The [maintenance report](docs/design/subnet-maintenance.md) coordinates configuration
 and metrics observations, retaining partial evidence and optional exact configured-version
 expectations without claiming running software, uptime or completed maintenance.
@@ -68,7 +68,8 @@ preserving missing/overlapping scopes without selecting a tariff or quote.
 The [selected-engine report](docs/design/cloud-engine-topology.md) connects an
 opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
-The SNS library remains a shell. All packages have publication disabled. Full SNS
+The SNS library remains a shell. Publication is enabled; the next topology/CLI
+delivery selects published replacement Platform dependencies. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
 

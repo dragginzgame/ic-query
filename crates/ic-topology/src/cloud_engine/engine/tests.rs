@@ -20,6 +20,7 @@ fn hex(raw: &str) -> Vec<u8> {
 fn id(n: u16) -> Principal {
     Principal::from_slice(&n.to_le_bytes())
 }
+
 fn request() -> EngineId {
     "engine-x".parse().unwrap()
 }
@@ -240,7 +241,7 @@ fn identity_count_field_and_relationship_refusals_are_explicit() {
     ));
     for field in ["subnet", "operator", "record", "copy"] {
         let mut input = view();
-        let empty = Principal::from_slice(&[]);
+        let empty = ic_platform_types::Principal::from_slice(&[]);
         match field {
             "subnet" => input.subnet_id = Some(empty),
             "operator" => input.engine_operator_id = Some(empty),

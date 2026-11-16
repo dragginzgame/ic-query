@@ -2,10 +2,8 @@
 
 use std::{collections::BTreeSet, time::Duration};
 
-use ic_platform::{
-    candid_codec::{self, decoder},
-    cloud_engine_types::{self as wire, NodeType},
-};
+use ic_platform::cloud_engine_types::NodeType;
+use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
 use tokio::time::Instant;
 
 mod source;
@@ -14,7 +12,7 @@ use crate::mainnet;
 use source::{Observation, Source};
 pub use types::*;
 
-use super::CANISTER;
+use super::{CANISTER, report_class};
 const PRICES_METHOD: &str = "listMarketplacePrices";
 const FEE_METHOD: &str = "getNetworkFee";
 const OVERALL: Duration = Duration::from_secs(30);
@@ -28,6 +26,8 @@ const LIMITS: decoder::Limits = decoder::Limits {
     types: 256,
     work: 2_000_000,
     allocation: 4 * 1024 * 1024,
+    vector: 1024,
+    skipping: 128 * 1024,
 };
 
 /// Read public daily price declarations, then the separately observed network fee.
@@ -97,7 +97,7 @@ fn project_prices(observation: &Observation) -> Result<PriceObservation, PriceEr
     let mut identities = BTreeSet::new();
     let mut entries = Vec::with_capacity(rows.len());
     // Admit numeric magnitude before any decimal expansion.
-    let maximum = candid_codec::Nat::from(10u32).0.pow(MAX_DIGITS as u32);
+    let maximum = decoder::Nat::from(10u64).0.pow(MAX_DIGITS as u32);
     for row in rows {
         bound("key_bytes", row.key.len(), MAX_KEY_BYTES)?;
         if let Some(dc) = &row.entry.dc {
@@ -107,7 +107,8 @@ fn project_prices(observation: &Observation) -> Result<PriceObservation, PriceEr
             .entry
             .provider
             .map_or_else(String::new, |id| format!("{id},"));
-        expected.push_str(class_key(&row.entry.node_type));
+        let node_type = report_class(row.entry.node_type);
+        expected.push_str(class_key(&node_type));
         if let Some(dc) = &row.entry.dc {
             expected.push(',');
             expected.push_str(dc);
@@ -128,7 +129,7 @@ fn project_prices(observation: &Observation) -> Result<PriceObservation, PriceEr
         }
         entries.push(MarketplacePrice {
             key: row.key,
-            node_type: row.entry.node_type,
+            node_type,
             provider: row.entry.provider,
             data_center: row.entry.dc,
             net_cycles_per_node_per_day: row.entry.price.net_cycles.0.to_str_radix(10),

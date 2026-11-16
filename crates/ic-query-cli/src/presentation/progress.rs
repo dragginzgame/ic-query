@@ -1,5 +1,5 @@
 //! Two state-time observations, retaining source/freshness distinctions.
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::subnet::progress::{LaterObservation, StateTimeChange, SubnetProgressReport};
 use std::fmt::Write;
 pub(crate) fn render(report: &SubnetProgressReport) -> String {
@@ -49,7 +49,7 @@ pub(crate) fn render(report: &SubnetProgressReport) -> String {
         },
         report.interval_seconds,
         report.elapsed.as_secs_f64(),
-        render_bordered(
+        bordered_table(
             &[
                 "READ",
                 "CERTIFIED UNIX NS",

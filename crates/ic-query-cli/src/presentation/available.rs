@@ -1,6 +1,6 @@
 //! Compact availability summaries; full page/node evidence stays in JSON.
 
-use ic_host_text::table::render_bordered;
+use ic_host_text::bordered_table;
 use ic_topology::cloud_engine::available::{AvailableNodesReport, TraversalStop};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -61,7 +61,7 @@ pub(crate) fn cloud_engine_available(report: &AvailableNodesReport) -> String {
         })
         .collect();
     text.push('\n');
-    text.push_str(&render_bordered(
+    text.push_str(&bordered_table(
         &["RAW CLASS", "NODES", "PROVIDERS", "CHIP ID", "DATA CENTER"],
         &rows,
     ));

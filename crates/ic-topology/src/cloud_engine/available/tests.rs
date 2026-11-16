@@ -5,8 +5,11 @@ use std::{cell::RefCell, collections::VecDeque};
 fn id(n: u16) -> Principal {
     Principal::from_slice(&n.to_le_bytes())
 }
-fn encoded<T: ic_platform::candid_codec::Encode>(value: &T) -> Vec<u8> {
-    encode_one(value, 1024 * 1024).unwrap()
+fn encoded(value: &wire::AvailableNodesPageResult) -> Vec<u8> {
+    // Keep the published encoder as an independent oracle for decode-only DTOs.
+    let fixture: ic_platform::cloud_engine_types::AvailableNodesPageResult =
+        serde_json::from_value(serde_json::to_value(value).unwrap()).unwrap();
+    encode_one(&fixture, 1024 * 1024).unwrap()
 }
 fn hex(raw: &str) -> Vec<u8> {
     raw.as_bytes()
@@ -80,6 +83,33 @@ fn independent_literal_preserves_full_version_raw_flags_and_skips_ip() {
     ));
 }
 
+#[tokio::test(start_paused = true)]
+async fn protocol_refusals_preserve_prior_pages() {
+    let frame = hex(PAGE_HEX);
+    for end in 0..frame.len() {
+        assert!(matches!(
+            decode_page(&observation(frame[..end].to_vec())),
+            Err(AvailableError::Decode(_))
+        ));
+    }
+    let source = Fake::new(vec![
+        good(vec![node(1)], Some(id(2)), 5),
+        good(vec![node(2); LIMITS.vector + 1], None, 5),
+    ]);
+    let report = collect(&source, DEFAULT_PAGE_LIMIT).await.unwrap();
+    assert_eq!(report.pages.len(), 1);
+    assert_eq!(report.pages[0].nodes[0].node_id, id(1));
+    assert!(!report.pagination_exhausted);
+    assert!(matches!(
+        report.stop,
+        TraversalStop::Failed {
+            error: AvailableError::Decode(decoder::Error::Limit),
+            observed_registry_version: None,
+            ..
+        }
+    ));
+}
+
 #[test]
 fn request_is_exactly_public_rejoining_none_with_100_node_limit_and_cursor() {
     assert_eq!(
@@ -88,10 +118,23 @@ fn request_is_exactly_public_rejoining_none_with_100_node_limit_and_cursor() {
     );
     for cursor in [None, Some(id(1)), Some(Principal::from_slice(&[255; 29]))] {
         let bytes = source::page_argument(cursor).unwrap();
-        let decoded: wire::ListAvailableNodesPageArgs =
-            decoder::decode_one(&bytes, LIMITS).unwrap();
+        let decoded: ic_platform::cloud_engine_types::ListAvailableNodesPageArgs =
+            ic_platform::candid_codec::decoder::decode_one(
+                &bytes,
+                ic_platform::candid_codec::decoder::Limits {
+                    bytes: LIMITS.bytes,
+                    header: LIMITS.header,
+                    types: LIMITS.types,
+                    work: LIMITS.work,
+                    allocation: LIMITS.allocation,
+                },
+            )
+            .unwrap();
         assert!(decoded.rejoining.is_none());
-        assert_eq!(decoded.start, cursor);
+        assert_eq!(
+            decoded.start.map(|id| Principal::from_slice(id.as_slice())),
+            cursor
+        );
         assert_eq!(decoded.limit, Some(100u64.into()));
     }
 }
@@ -134,11 +177,15 @@ impl Fake {
         Self {
             status: RefCell::new(Some(Step {
                 wait: 0,
-                result: Ok(encoded(&wire::RegistryCopyStatus {
-                    version: 10,
-                    latest: 20,
-                    caught_up: false,
-                })),
+                result: Ok(encode_one(
+                    &ic_platform::cloud_engine_types::RegistryCopyStatus {
+                        version: 10,
+                        latest: 20,
+                        caught_up: false,
+                    },
+                    1024,
+                )
+                .unwrap()),
             })),
             steps: RefCell::new(steps.into()),
             calls: RefCell::new(vec![]),
@@ -248,7 +295,10 @@ async fn unready_and_application_errors_are_not_empty_successes() {
             ..
         } = report.stop
         {
-            assert_eq!(got, error);
+            assert_eq!(
+                serde_json::to_value(&got).unwrap(),
+                serde_json::to_value(&error).unwrap()
+            );
             let wrapped = AvailableError::Application(got);
             assert!(!wrapped.to_string().contains('\x1b'));
             assert_eq!(

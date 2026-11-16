@@ -151,7 +151,7 @@ No legacy source, cache or generic metric catalog is imported.
 ## State-time source assessment
 
 The independent [progress report](subnet-progress.md) now compares two authenticated
-state times using the Git-pinned replacement Platform projection. It adds no
+state times using the published replacement Platform projection. It adds no
 reads to maintenance. Generic endpoint status is not selected-subnet evidence;
 management subnet_info remains canister-only, as documented in the
 [IC interface](https://docs.internetcomputer.org/references/ic-interface-spec/management-canister/#ic-method-subnet_info).

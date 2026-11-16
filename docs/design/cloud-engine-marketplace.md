@@ -2,8 +2,11 @@
 
 Status: daily prices, separate fee evidence, bounded available-node traversal and
 candidate-to-declaration matching
-are implemented using published Platform 0.33.7 (the marketplace/availability
-capabilities were introduced in 0.33.6).
+are implemented. Price, fee, Registry-copy status and available-page response
+decoding and page-request encoding use published Protocol 0.2.4
+(`cloud-engine-marketplace`). Empty-request encoding, transport and public
+report class identities still use published Platform 0.33.7. Public principals
+now share published Types 0.21.1 with Protocol.
 
 ## Canic decisions and scope
 
@@ -138,7 +141,8 @@ and the whole two-query collection to 30 seconds. No added retry, cache or scan.
 
 Platform owns the external Candid projection and bounded codec. Selected decode
 budgets are 512 KiB response bytes, 64 KiB header, 256 types, 2,000,000 work units
-and 4 MiB logical allocation. These aggregate bounds apply even when each field
+and 4 MiB logical allocation, plus 1,024 elements per wire vector and 128 KiB
+of skipped-value work. These aggregate bounds apply even when each field
 independently fits its limit. Query admits at most 1,000 rows, 512 UTF-8 bytes
 per key and 256 per optional data-center reference. Preserve optional presence
 and raw text; do not apply Registry data-center lowercase/trim policy to this
@@ -167,6 +171,30 @@ consensus-certified view. A price-read/admission failure produces no report.
 If prices succeed but the fee fails or the shared deadline expires, retain the
 prices with an explicit fee failure, incomplete status and CLI exit 1. Empty
 successful price lists mean no returned declarations, not free engines.
+
+### Local replacement decoder adoption
+
+The registry supplier selection is documented in [setup](../development/setup.md#certificate-time-supplier).
+Protocol owns both price and fee response decoding. Query shares its published Types
+0.21.1 principals and preserves the public node class through explicit projection.
+Candidate matching, report JSON and retained schema-1 evidence remain unchanged.
+`PriceError::Decode` now carries Protocol's typed error; Rust consumers matching
+that payload must migrate with the next incompatible topology release. No fallback
+decoder is retained. Empty-request encoding and its error remain with old Platform.
+
+Rechecked frozen legacy admission and report tests at `5b4951b23c2adfcd3c615961f131e766c4b50283`:
+retain key binding, uniqueness, exact amounts and gross/net checks. Do not restore
+its monthly labels, positive-timestamp requirement or restrictive DC normalization.
+Existing independent literal frames and published-DTO fixture encoding qualify
+the new response decoder without deriving fixture bytes from it. All six classes,
+optional scopes, signed extrema, 256-digit amounts, 1,000-row collections, partial
+fee failures and candidate matching retain their regression coverage.
+
+Local Linux qualification passed 37 cloud-engine tests, 26 CLI process tests and
+strict workspace all-target Clippy. A read-only mainnet price report on 2026-11-16
+at Unix second 1794830664 exited 0 with 20 declarations and a separate 0.25 markup,
+both signature-verified and not consensus-certified. This validates the selected
+decoder against one live response, not freshness, billing policy or macOS behavior.
 
 ## Available-node report contract
 
@@ -197,6 +225,33 @@ text within the bound. Decode under the price report's codec budgets plus a
 128 KiB skipped-work budget for unselected fields, including IP text. Encode
 page arguments within 512 bytes. Preserve raw application-error payloads in
 Rust/JSON without rendering them as terminal diagnostics.
+
+### Local pagination codec adoption
+
+The replacement Protocol owns status and page decoding and bounded page-argument
+encoding. Query retains the existing traversal and whole-page admission logic;
+Public principals now share published Types 0.21.1 with Protocol; the node-class
+projection preserves the existing class DTO. Pages use Protocol DTOs directly,
+with no intermediate legacy page or principal conversions.
+All wire vectors have a 1,024-element ceiling before Query's 100-node page limit.
+The independent 128 KiB skipped-work ceiling remains, including discarded IP text.
+
+`AvailableError::Decode` and `Application` now carry Protocol types. `PageEncode`
+retains the new bounded encoder's typed failure; existing `Encode` remains for
+the status query's empty arguments. Both encode failures serialize as category
+`encode`. Application payload JSON, reports, cursor behavior and partial-output
+semantics are unchanged. Rust callers matching error payloads must migrate with
+the next incompatible topology delivery; retained report evidence needs no reset.
+The published encoder/DTOs remain test oracles for selected request bytes and
+response fixtures. Existing cursor, duplicate, deadline, version and all-nine-error
+regressions apply, with added truncated-frame and vector-refusal partial coverage.
+
+Local Linux qualification passed 38 cloud-engine tests, 26 CLI process tests and
+strict workspace all-target Clippy. A bounded live traversal on 2026-11-16 at Unix
+second 1794831793 exited 0 with 1,440 unique nodes across 15 pages, Registry-copy
+version 65746 and exhausted pagination. Cursor continuity and the null final cursor
+were checked. This is one sequential observation, not an atomic inventory or
+macOS qualification.
 
 Even equal Registry versions do not create a snapshot: the canister declaration
 says eligibility can change between pages as nodes become held. Report whether
