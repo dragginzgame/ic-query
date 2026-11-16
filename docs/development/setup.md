@@ -235,12 +235,12 @@ the supported updater. Its authenticated archive SHA-256 is:
 7d16b815ae322ae3f88580ee6af1611bdafde08b77592cd886bfa0eece0f1be8
 ```
 
-The [receipt](../../.toko-tooling.snapshot) records the fourteen selected roots and
+The [receipt](../../.toko-tooling.snapshot) records the thirteen selected roots and
 all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.11 release-tooling selection accounts for all 78 installed payload files.
+The 0.44.11 release-tooling selection accounts for all 77 installed payload files.
 Release/publication runners, source/receipt admission and package provenance
 checks were added through the supported exporter for the authorized delivery.
 The earlier reviewed
