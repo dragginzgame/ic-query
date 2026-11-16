@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.11] - Unreleased
+## [0.105.11] - 2026-11-16
 
 ### 🔧 Changed
 
