@@ -147,3 +147,19 @@ Retain explicit windows, raw values, source identity and separate assurance.
 Legacy REST time series, cache freshness and global version-pinned catalogs do
 not make these independent live reads atomic or prove maintenance completion.
 No legacy source, cache or generic metric catalog is imported.
+
+## State-time source assessment
+
+The independent [progress report](subnet-progress.md) now compares two authenticated
+state times using the Git-pinned replacement Platform projection. It adds no
+reads to maintenance. Generic endpoint status is not selected-subnet evidence;
+management subnet_info remains canister-only, as documented in the
+[IC interface](https://docs.internetcomputer.org/references/ic-interface-spec/management-canister/#ic-method-subnet_info).
+
+Legacy node-status source admission, validation and live fixtures at frozen
+`5b4951b23c2adfcd3c615961f131e766c4b50283` were reviewed in
+[ic/node_status](https://github.com/dragginzgame/ic-query-legacy/tree/5b4951b23c2adfcd3c615961f131e766c4b50283/crates/ic-query/src/ic/node_status).
+They preserve raw labels, reject false certification/atomicity claims and separate
+default-mainnet coverage from cloud-engine inclusion. The progress report retains
+those authority lessons while selecting authenticated state rather than Dashboard
+labels. No REST transport, global snapshot or cache was imported.

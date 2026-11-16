@@ -338,3 +338,155 @@ async fn overlap_distinguishes_unavailable_partial_empty_and_complete_empty() {
     assert!(report.infrastructure_overlap().is_none());
     assert!(serde_json::to_value(&report).unwrap()["infrastructure_overlap"].is_null());
 }
+
+fn settings_report(subnet_id: Principal) -> super::super::settings::SubnetSettingsReport {
+    use crate::subnet::settings::*;
+    SubnetSettingsReport {
+        schema: 1,
+        subnet_id,
+        settings: SubnetSettings {
+            max_number_of_canisters: u64::MAX,
+            ..SubnetSettings::default()
+        },
+        evidence: SubnetSettingsEvidence {
+            endpoint: "https://ic0.app",
+            source_canister: mainnet::REGISTRY,
+            source_method: "get_value",
+            source_key: format!("subnet_record_{subnet_id}"),
+            observed_at_unix_seconds: 200,
+            record_version: 999,
+            record_timestamp_nanoseconds: u64::MAX,
+            query_signature_verified: true,
+            result_certified: false,
+            tee_attestation_verified: false,
+        },
+    }
+}
+
+#[tokio::test]
+async fn settings_comparison_order_partial_outcomes_and_independent_versions() {
+    use crate::subnet::settings::SubnetSettingsError;
+    for mask in 0..8 {
+        let events = RefCell::new(vec![]);
+        let report = collect_with_settings(
+            id(1),
+            id(2),
+            |a, b| {
+                collect(
+                    a,
+                    b,
+                    |id| {
+                        events.borrow_mut().push(("distribution", id));
+                        ready(Ok(distribution(id, mask & 1 == 0)))
+                    },
+                    |id| {
+                        events.borrow_mut().push(("metrics", id));
+                        ready(Ok(metric(id)))
+                    },
+                )
+            },
+            |selected| {
+                events.borrow_mut().push(("settings", selected));
+                ready(if mask & (if selected == id(1) { 2 } else { 4 }) == 0 {
+                    Ok(settings_report(selected))
+                } else {
+                    Err(SubnetSettingsError::MissingContent)
+                })
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            *events.borrow(),
+            vec![
+                ("distribution", id(1)),
+                ("metrics", id(1)),
+                ("distribution", id(2)),
+                ("metrics", id(2)),
+                ("settings", id(1)),
+                ("settings", id(2))
+            ]
+        );
+        assert_eq!(report.collection_complete, mask == 0);
+        assert_eq!(report.comparison.collection_complete, mask & 1 == 0);
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(
+            json["comparison"]["left"]["distribution"]["report"]["requested_registry_version"],
+            1
+        );
+        if mask & 2 == 0 {
+            assert_eq!(
+                json["left_settings"]["report"]["evidence"]["record_version"],
+                999
+            );
+            assert_eq!(
+                json["left_settings"]["report"]["settings"]["max_number_of_canisters"],
+                u64::MAX
+            );
+        } else {
+            assert_eq!(json["left_settings"]["error"]["kind"], "missing_content");
+        }
+    }
+}
+
+#[tokio::test(start_paused = true)]
+async fn settings_comparison_admission_failure_and_cancellation_stop_later_reads() {
+    let calls = Cell::new(0);
+    let duplicate = collect_with_settings(
+        id(1),
+        id(1),
+        |_, _| {
+            calls.set(99);
+            ready(Err(ComparisonError::SameSubnet))
+        },
+        |_| {
+            calls.set(99);
+            ready(Ok(settings_report(id(1))))
+        },
+    )
+    .await;
+    assert!(matches!(duplicate, Err(ComparisonError::SameSubnet)));
+    assert_eq!(calls.get(), 0);
+    let failed = collect_with_settings(
+        id(1),
+        id(2),
+        |_, _| ready(Err(ComparisonError::Read(ReadError::Deadline))),
+        |_| {
+            calls.set(99);
+            ready(Ok(settings_report(id(1))))
+        },
+    )
+    .await;
+    assert!(failed.is_err());
+    assert_eq!(calls.get(), 0);
+    for stop in 1..=2 {
+        calls.set(0);
+        let work = collect_with_settings(
+            id(1),
+            id(2),
+            |a, b| {
+                collect(
+                    a,
+                    b,
+                    |id| ready(Ok(distribution(id, true))),
+                    |id| ready(Ok(metric(id))),
+                )
+            },
+            |selected| {
+                calls.set(calls.get() + 1);
+                async move {
+                    tokio::time::sleep(Duration::from_secs(10)).await;
+                    Ok(settings_report(selected))
+                }
+            },
+        );
+        assert!(
+            tokio::time::timeout(Duration::from_secs(stop * 10 - 1), work)
+                .await
+                .is_err()
+        );
+        assert_eq!(calls.get(), stop);
+        tokio::time::sleep(Duration::from_secs(50)).await;
+        assert_eq!(calls.get(), stop);
+    }
+}

@@ -1,6 +1,8 @@
 # Consuming topology evidence in Canic
 
-Status: integration boundary reviewed; no Canic adapter or dependency added.
+Status: Query collection delivered in topology 0.106.1 and the placement adapter
+delivered in Canic 0.210.0. The explicit two-subnet adapter was delivered in
+Canic 0.211.0. Canic consumes Query; Query has no dependency on Canic.
 
 ## What the current consumer owns
 
@@ -95,14 +97,15 @@ because its fields resemble a live result. A retained-report adapter needs its
 own bounded input, schema/identity checks, age policy and retirement contract.
 Query adds no storage or background watcher for this integration.
 
-## Proposed first Canic adapter
+## First Canic adapter
 
 A follow-up read-only inspection of the local sibling at HEAD
 `e3e7be86301c377db8b064d2ef914f5cde936265` found `fleet show` already owns optional
 live observations, HTML output and watching, while `fleet status` explicitly owns
 local retained operation progress. Start with a separate, one-shot
 `canic fleet placements` diagnostic rather than silently extending either budget.
-This is proposed syntax, not an implemented command.
+The local Canic implementation now provides this command and selects Query at
+Git revision `0a3eca919f05d777798406087049cc51ab7ae2a8`.
 
 Use Canic's existing configuration resolution and app/fleet selection. Require
 one configured mainnet fleet; do not offer a journal-only fallback. Select its
@@ -127,17 +130,32 @@ should cover local-network refusal, ambiguous selection, unbound slots, bad IDs,
 duplicate/over-limit bindings, partial collection and preservation of source
 evidence. Keep these with the Host adapter and CLI callers, not Query's wire tests.
 
-Query packages remain unpublished. Before Canic can take this dependency, the
-collection must be delivered to GitHub and Canic must select that immutable
-revision under its own dependency policy. No local path override or release is
-implied by this design. Implementation requires scope to edit the local Canic
-checkout, which remains read-only in the current Query task.
+Query packages remain unpublished. The collection was delivered to GitHub before
+the authorized Canic adapter selected its immutable revision. No local path
+override is used. The placement adapter was included in Canic 0.210.0 by its
+owning release session; no crates.io publication was performed.
+
+## Explicit two-subnet diagnostic
+
+The `canic fleet compare-subnets LEFT RIGHT` diagnostic, delivered in Canic
+0.211.0, uses the same configured app/fleet selection and mainnet admission. The operator selects both
+candidates explicitly; Canic neither derives them from fleet bindings nor claims
+that either belongs to the fleet. Its Host wrapper retains the complete Query
+comparison report under `observation`, alongside app and fleet labels.
+
+The CLI shows resources, configuration, independent coverage/version/time and
+observed provider/data-center overlap in bordered tables. `--json` retains the
+original evidence, failures and shared identities. Partial or all-failed collection
+emits evidence with exit 1; complete collection exits 0 without suitability or
+capacity ranking. Query's existing 160-second asynchronous bound and 774-logical-call
+maximum are reused, without extra reads or new supplier dependencies. No journal,
+signer, automatic candidate selection, watch mode or deployment action is involved.
 
 ## Later integration choices
 
-Before implementing a consumer adapter, identify the exact Canic diagnostic
-command/view, how operators select candidate subnets, and whether its refresh
-budget accommodates the existing pair comparison (up to 160 asynchronous seconds).
+Before adding automatic refresh or broader candidate selection, define its
+consumer inputs and whether its refresh budget accommodates the existing pair
+comparison (up to 160 asynchronous seconds).
 The [selected placement collection](placement-collection.md) now admits 1–32
 explicit IDs with per-canister outcomes and a shared 60-second deadline. Canic
 must still select bound mainnet identities; Query does not discover the fleet.
@@ -145,6 +163,8 @@ Do not hide unbounded fanout inside a fleet refresh or use a universal query plu
 
 Platform's rewrite does not require a speculative bridge in Query. Keep the
 existing published reader boundary until the replacement's API and trust contract
-are available. Registered settings still await the supplier prerequisite in the
-[settings contract](subnet-settings.md); this does not prevent using the existing
-[comparison](subnet-compare.md) and [maintenance](subnet-maintenance.md) reports.
+are available. The independent [settings report](subnet-settings.md) now uses the
+pinned Platform Protocol decoder. Default [comparison](subnet-compare.md) and
+[maintenance](subnet-maintenance.md) reads are unchanged. Query's opt-in settings
+comparison has its own 200-second budget and wrapper; this does not imply Canic
+has adopted it or alter the existing Canic diagnostic.

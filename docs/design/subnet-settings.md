@@ -1,7 +1,10 @@
 # Registered subnet features and resource limits
 
-Status: source contract prepared; implementation awaits a published Platform decoder.
-Supplier prerequisite:
+Status: implemented using the immutable Platform Protocol revision
+`8ee1e58ce6577054d58fba729546989e8b6fc041` from `ic-platform-new`, under the
+maintainer-authorized Git adoption. The `registry-settings` decoder owns the wire
+projection; Platform 0.33.7 still owns transport and the Registry envelope.
+Original supplier request:
 [#169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
 
 ## Canic decision and source
@@ -51,20 +54,23 @@ The latest non-yanked Platform release observed in the Cargo index on 2026-11-15
 was 0.33.7, checksum
 `3e07e0565c70df9222016e93d6f488312176ef5e7036ded60db8b4bc3f61c05f`.
 Its selected `SubnetRecord` decoder exposes membership, version, type and halt
-flags only. Add the selected projection at Platform, not a Query protobuf decoder,
-direct dependency or sibling-path workaround. Prefer a separate projection so
-the existing borrowed record and its public construction contract need not change.
+flags only. The adopted Protocol decoder supplies a separate settings projection;
+the existing borrowed record and its public construction contract stay unchanged.
+Query adds no protobuf decoder or sibling-path dependency.
 
-Planned library surface: `subnet::settings::fetch(subnet_id)`. Planned CLI:
-`icq topology subnet settings SUBNET_ID [--json]`. Neither exists yet. Keep this
-report independent from configuration/maintenance/compare until an explicit
-composition contract accounts for extra reads and independently observed versions.
+Library surface: `subnet::settings::fetch(subnet_id)`. CLI:
+`icq topology subnet settings SUBNET_ID [--json]`. Keep this
+report independent from configuration and maintenance. The opt-in
+[comparison composition](subnet-compare.md#optional-registered-settings) accounts
+for two extra reads and independently observed versions; default comparison
+behavior remains unchanged.
 
 Schema 1 retains the subnet ID, raw selected settings and source evidence:
 endpoint, Registry canister/method/key, record mutation version/timestamp and local
 completion time. Use the existing 20-second read deadline, 1 MiB HTTP ceiling and
 64 KiB protobuf input/4096-field/128 KiB allocation budgets. Nested selected
-messages share the field/allocation budget; they must not reset it recursively.
+messages share the selected decoder's field budget. That decoder returns fixed-size
+values without allocations; the envelope retains its separate allocation budget.
 One logical query, no fanout, pagination, retries or persistence. Query signatures
 remain distinct from consensus certification; explicitly retain attestation as
 unverified. The report does not measure running software or uptime.
@@ -74,7 +80,7 @@ reads return typed errors with no success report; valid zero and absent settings
 are successful evidence. JSON preserves raw values and presence. The CLI owns a
 compact bordered table with units and distinct absent/default-selected labels,
 exit 0 for admitted evidence, exit 1 for read/admission failure and exit 2 for
-syntax errors. Add runnable changelog examples only once implemented.
+syntax errors. Runnable examples are in the CLI ledger and root quick starts.
 
 ## Regression requirements and legacy guidance
 
@@ -82,7 +88,7 @@ Platform owns independent wire fixtures for omitted/present-empty nested message
 optional false/true/zero/full-width values, malformed booleans/varints/lengths,
 duplicate selected fields, wrong wire types and shared exact/exceeded budgets.
 Skip unselected fields within bounds; retain existing Registry decoder behavior.
-Query will test raw-presence projection, zero/default labels, source evidence,
+Query tests raw-presence projection, zero/default labels, source evidence,
 typed failure behavior and unchanged configuration reports, with no derived
 capacity subtraction or authentication verdict.
 

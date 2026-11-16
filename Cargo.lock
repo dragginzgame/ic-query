@@ -308,7 +308,7 @@ dependencies = [
  "ahash",
  "hashbrown",
  "once_cell",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "web-time",
 ]
 
@@ -1073,7 +1073,7 @@ dependencies = [
  "p256",
  "pem",
  "pkcs8",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rangemap",
  "reqwest",
  "sec1",
@@ -1083,7 +1083,7 @@ dependencies = [
  "serde_repr",
  "sha2 0.10.9",
  "stop-token",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "time",
  "tokio",
  "tower-service",
@@ -1115,7 +1115,7 @@ dependencies = [
  "ic_principal",
  "pem",
  "rand 0.8.8",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "zeroize",
 ]
 
@@ -1135,18 +1135,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e07e0565c70df9222016e93d6f488312176ef5e7036ded60db8b4bc3f61c05f"
 dependencies = [
  "ic-agent",
- "ic-platform-types",
+ "ic-platform-types 0.20.4",
  "num-bigint 0.5.1",
  "serde",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "ic-platform"
+version = "0.34.0"
+source = "git+https://github.com/dragginzgame/ic-platform-new?rev=126479e64adfc13fa21aa217caa19a298bcdc19e#126479e64adfc13fa21aa217caa19a298bcdc19e"
+dependencies = [
+ "ic-certification",
+ "ic-platform-types 0.21.0",
+ "ic-verify-bls-signature",
+ "serde",
+ "serde_cbor",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "ic-platform-protocol"
 version = "0.1.0"
-source = "git+https://github.com/dragginzgame/ic-platform-new?rev=08c72219ad6f261067c00eece9c8c71852e6b561#08c72219ad6f261067c00eece9c8c71852e6b561"
+source = "git+https://github.com/dragginzgame/ic-platform-new?rev=8ee1e58ce6577054d58fba729546989e8b6fc041#8ee1e58ce6577054d58fba729546989e8b6fc041"
 dependencies = [
- "ic-platform-types",
+ "ic-platform-types 0.20.4",
  "serde",
 ]
 
@@ -1160,16 +1173,28 @@ dependencies = [
  "data-encoding",
  "serde",
  "serde_bytes",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "ic-platform-types"
+version = "0.21.0"
+source = "git+https://github.com/dragginzgame/ic-platform-new?rev=126479e64adfc13fa21aa217caa19a298bcdc19e#126479e64adfc13fa21aa217caa19a298bcdc19e"
+dependencies = [
+ "crc32fast",
+ "data-encoding",
+ "serde",
+ "serde_bytes",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.8"
+version = "0.105.9"
 dependencies = [
  "clap",
  "ic-host-text",
- "ic-platform-types",
+ "ic-platform-types 0.20.4",
  "ic-topology",
  "serde_json",
  "tokio",
@@ -1185,14 +1210,15 @@ dependencies = [
 
 [[package]]
 name = "ic-topology"
-version = "0.106.1"
+version = "0.107.0"
 dependencies = [
- "ic-platform",
+ "ic-platform 0.33.7",
+ "ic-platform 0.34.0",
  "ic-platform-protocol",
- "ic-platform-types",
+ "ic-platform-types 0.20.4",
  "serde",
  "serde_json",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "tokio",
  "toko-tooling",
 ]
@@ -1212,7 +1238,7 @@ dependencies = [
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -1391,7 +1417,7 @@ dependencies = [
  "jni-sys",
  "log",
  "simd_cesu8",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "walkdir",
  "windows-link",
 ]
@@ -1773,7 +1799,7 @@ dependencies = [
  "rustc-hash",
  "rustls",
  "socket2",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "web-time",
@@ -1789,14 +1815,14 @@ dependencies = [
  "bytes",
  "getrandom 0.4.3",
  "lru-slab",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_pcg",
  "ring",
  "rustc-hash",
  "rustls",
  "rustls-pki-types",
  "slab",
- "thiserror 2.0.21",
+ "thiserror 2.0.18",
  "tinyvec",
  "tracing",
  "web-time",
@@ -1844,9 +1870,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
+checksum = "8f6fa277c67e6ea590466f04c3fe82cb509f0864fe470643e5570de9514a9b11"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -2379,11 +2405,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.21"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
+checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
 dependencies = [
- "thiserror-impl 2.0.21",
+ "thiserror-impl 2.0.18",
 ]
 
 [[package]]
@@ -2399,13 +2425,13 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.21"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
+checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.10",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2494,9 +2520,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.44.3"
+version = "0.44.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9bc7b6827044baac8134cada7ee6bc31f86c70beec9608d1d39d911eba15e1"
+checksum = "b52bb793b386309b8c4a9e88f32711bb5d1fd11a47bf337c11c63ca2aa22fc97"
 
 [[package]]
 name = "tower"

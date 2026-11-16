@@ -2,7 +2,9 @@
 
 Status: implemented; the selected-engine codec uses `ic-platform-protocol` 0.1.0
 at immutable Git revision
-[`08c72219`](https://github.com/dragginzgame/ic-platform-new/commit/08c72219ad6f261067c00eece9c8c71852e6b561).
+[`8ee1e58c`](https://github.com/dragginzgame/ic-platform-new/commit/8ee1e58ce6577054d58fba729546989e8b6fc041).
+The settings adoption advances the earlier `08c72219` pin without changing
+selected-engine codec source; direct Protocol consumers must align identities.
 This is a Git dependency, not a crates.io release. Platform 0.33.7 remains the
 transport supplier and test fixture encoder. The original projection was supplied
 by [Platform #168](https://github.com/dragginzgame/ic-platform/issues/168).

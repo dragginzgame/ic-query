@@ -55,6 +55,8 @@ planning; this example is not a placement recommendation.
 ```bash
 icq topology subnet configuration \
   tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+icq topology subnet settings \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 icq topology subnet membership \
   tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
 icq topology subnet metrics \
@@ -67,6 +69,7 @@ icq topology subnet activity \
 | Planning question | Available evidence | Further input needed |
 | --- | --- | --- |
 | What configuration is registered? | Membership, configured replica version, raw subnet type and halt flags | Running version and maintenance completion; an empty version may use a separate cloud-engine record |
+| What features and limits are declared? | Settings preserve nested absence, explicit false/zero and raw resource limits | Effective replica defaults, workload requirements and usable capacity; configured SEV is not attestation |
 | Do registered members match the returned node keys? | Membership comparison retains both reads and their set differences | Transition history, source age and live-node observations; neither equality nor a difference is a health verdict |
 | How much state and activity is observed? | Certified canister count, state bytes, nominal cycles and message total | Applicable limits, workload demand and measured headroom before sizing or consolidation |
 | Did the message counter change across two reads? | Activity retains both certified samples and the direction of change | Sustained observations, failure classification and coverage before estimating uptime |
@@ -143,6 +146,23 @@ coverage before comparing candidates. Initial version/configuration failure
 produces no report. A common version is not consensus certification. Registered
 region and owner text is not verified geography or proof of independent failure
 domains, usable capacity, uptime or TEE protection.
+
+## Include registered settings in a comparison
+
+Use `--settings` when screening feature/resource declarations as well as placement
+evidence. Each settings read has its own version and timestamp; it is not joined
+to the distribution's Registry version. Partial evidence stays on stdout with
+exit 1. This opt-in report can take up to 200 asynchronous seconds. JSON wraps
+the original comparison under `comparison` and retains `left_settings` and
+`right_settings`; default comparison JSON is unchanged. No capacity ranking or
+effective-default resolution is implied.
+
+```bash
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae \
+  --settings --json
+```
 
 ## Inspect one node's registered configuration
 

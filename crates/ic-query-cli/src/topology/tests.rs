@@ -876,3 +876,136 @@ fn placements_output_preserves_partial_json_and_escapes_rejections() {
         ExitCode::SUCCESS
     );
 }
+
+#[test]
+fn settings_output_preserves_raw_values_and_labels_defaults() {
+    use ic_topology::subnet::settings::*;
+    let mut report = SubnetSettingsReport {
+        schema: 1,
+        subnet_id: Principal::from_slice(&[10]),
+        settings: SubnetSettings::default(),
+        evidence: SubnetSettingsEvidence {
+            endpoint: "https://ic0.app",
+            source_canister: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
+            source_method: "get_value",
+            source_key: "subnet_record_test".into(),
+            observed_at_unix_seconds: 1,
+            record_version: 2,
+            record_timestamp_nanoseconds: u64::MAX,
+            query_signature_verified: true,
+            result_certified: false,
+            tee_attestation_verified: false,
+        },
+    };
+    let text = settings_output(&report, false).unwrap().text;
+    assert!(text.contains("absent"));
+    assert!(text.contains("0 (replica default selected)"));
+    report.settings.features = Some(SubnetFeatures {
+        http_requests: false,
+        sev_enabled: Some(false),
+    });
+    report.settings.resource_limits = Some(ResourceLimits {
+        maximum_state_size: Some(u64::MAX),
+        maximum_query_instructions: Some(0),
+        ..ResourceLimits::default()
+    });
+    let output = settings_output(&report, false).unwrap();
+    assert_eq!(output.exit_code, ExitCode::SUCCESS);
+    assert!(output.text.contains("18446744073709551615"));
+    assert!(output.text.contains("false"));
+    assert!(output.text.contains("present"));
+    let json: serde_json::Value =
+        serde_json::from_str(&settings_output(&report, true).unwrap().text).unwrap();
+    assert_eq!(json["settings"]["features"]["sev_enabled"], false);
+    assert_eq!(
+        json["settings"]["resource_limits"]["maximum_state_size"],
+        u64::MAX
+    );
+    assert_eq!(
+        json["settings"]["resource_limits"]["maximum_query_instructions"],
+        0
+    );
+    assert!(json["settings"]["resource_limits"]["maximum_state_delta"].is_null());
+    use ic_topology::subnet::{compare::*, distribution::DistributionError, metrics::*};
+    let candidate = |id| Candidate {
+        subnet_id: Principal::from_slice(&[id]),
+        distribution: DistributionOutcome::Failed {
+            error: DistributionError::InitialDeadline,
+        },
+        metrics: MetricsOutcome::Failed {
+            error: SubnetMetricsError::Read(ic_topology::ReadError::Deadline),
+        },
+    };
+    let combined = SettingsComparisonReport {
+        schema: 1,
+        comparison: SubnetComparisonReport {
+            schema: 1,
+            left: candidate(10),
+            right: candidate(11),
+            started_at_unix_seconds: 0,
+            elapsed: Duration::ZERO,
+            collection_complete: false,
+            atomic_snapshot: false,
+            registry_versions_agree: None,
+        },
+        left_settings: SettingsOutcome::Read { report },
+        right_settings: SettingsOutcome::Failed {
+            error: SubnetSettingsError::MissingContent,
+        },
+        elapsed: Duration::ZERO,
+        collection_complete: false,
+    };
+    let text = settings_comparison_output(&combined, false, true).unwrap();
+    assert_eq!(text.exit_code, ExitCode::FAILURE);
+    assert!(text.text.contains("Combined collection: partial"));
+    assert!(text.text.contains("| LEFT") && text.text.contains("| RIGHT"));
+    assert!(text.text.contains("unavailable") && text.text.contains("18446744073709551615"));
+    let json: serde_json::Value = serde_json::from_str(
+        &settings_comparison_output(&combined, true, false)
+            .unwrap()
+            .text,
+    )
+    .unwrap();
+    assert_eq!(json["right_settings"]["error"]["kind"], "missing_content");
+    assert_eq!(
+        json["left_settings"]["report"]["settings"]["features"]["sev_enabled"],
+        false
+    );
+    assert!(json["comparison"]["left"].is_object());
+}
+
+#[test]
+fn progress_output_retains_partial_evidence_and_raw_times() {
+    use ic_topology::subnet::progress::*;
+    let id = Principal::from_slice(&[1]);
+    let report = SubnetProgressReport {
+        schema: 1,
+        subnet_id: id,
+        interval_seconds: 1,
+        elapsed: Duration::from_secs(2),
+        collection_complete: false,
+        before: StateTimeObservation {
+            subnet_id: id,
+            certified_time_nanoseconds: u64::MAX,
+            delegation_time_nanoseconds: None,
+            observed_at_unix_nanoseconds: 9,
+            endpoint: "https://ic0.app",
+            source_path: format!("/api/v3/subnet/{id}/read_state"),
+            state_tree_path: "/time",
+            maximum_age_nanoseconds: 300_000_000_000,
+            maximum_future_skew_nanoseconds: 60_000_000_000,
+            state_certificate_verified: true,
+            original_certificate_bytes_retained: false,
+        },
+        after: LaterObservation::Failed {
+            error: StateTimeError::Read(ic_topology::ReadError::Deadline),
+        },
+    };
+    let text = progress_output(&report, false).unwrap();
+    assert_eq!(text.exit_code, ExitCode::FAILURE);
+    assert!(text.text.contains("unavailable") && text.text.contains("18446744073709551615"));
+    let json: serde_json::Value =
+        serde_json::from_str(&progress_output(&report, true).unwrap().text).unwrap();
+    assert_eq!(json["before"]["certified_time_nanoseconds"], u64::MAX);
+    assert_eq!(json["after"]["error"], "read_deadline");
+}

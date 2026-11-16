@@ -21,9 +21,9 @@ The [cloud-engine prices and availability](../design/cloud-engine-marketplace.md
 0.33.6's published `cloud-engine-types` capability and owned bounded Candid codec.
 Platform 0.33.7 adds the [selected-engine view](../design/cloud-engine-topology.md),
 using the same feature and transport policy with strict optional-field decoding.
-The selected-engine codec now selects `ic-platform-protocol`
+The selected-engine and registered-settings codecs select `ic-platform-protocol`
 0.1.0 from `ic-platform-new` at Git revision
-`08c72219ad6f261067c00eece9c8c71852e6b561`. Dependency preparation must fetch that
+`8ee1e58ce6577054d58fba729546989e8b6fc041`. Dependency preparation must fetch that
 revision; no sibling checkout is used. Platform 0.33.7 still supplies transport,
 other readers and selected-engine fixture encoding. This Git selection is not a
 claim of crates.io publication.
@@ -47,6 +47,16 @@ and offline; it does not install tools or activate hooks. `make install-host-too
 prepares the smaller host-tool set, including `cloc`, when only LOC reporting is
 needed. Existing global `toko-cloc` launchers select this checkout's reporter;
 without a launcher, use `bash vendor/toko-tooling/scripts/dev/toko-cloc -d 0`.
+
+## Certificate-time supplier
+
+The certificate-time projection selects replacement Platform 0.34.0 as
+`ic-platform-next`, pinned to Git revision
+`126479e64adfc13fa21aa217caa19a298bcdc19e`. It selects Types 0.21.0 from that
+same source and requires thiserror 2.0.18. Legacy transport/reader dependencies
+remain separate. The maintainer-authorized local sibling path used for initial
+qualification has been removed; dependency preparation fetches immutable Git
+sources and no sibling checkout is required.
 
 ## Daily commands
 
@@ -119,7 +129,18 @@ Clippy, Rustdoc and tests succeeded on all three hosts; formatting, snapshot and
 documentation admission, and the secret scan also passed. This qualifies the
 implemented offline contracts at that commit, including distribution, cloud-engine
 reports, maintenance and two-subnet comparison, with Toko Tooling 0.44.3.
-It does not qualify the unimplemented subnet-settings report or later changes.
+It does not qualify the subsequently implemented subnet-settings report or later changes.
+The local Linux working tree subsequently passed the full `make check` gate on
+2026-11-15 for registered settings and optional comparison settings: 175 tests,
+Clippy, Rustdoc, formatting, snapshot admission and local links. This used the
+Protocol pin recorded above and existing package versions, with pending topology
+0.107.0 / CLI 0.105.9 notes. It is neither hosted macOS qualification nor GitHub
+delivery of those candidate versions.
+For the 2026-11-16 delivery, the full local Linux gate passed with the immutable
+Platform selections: 181 tests, Clippy, Rustdoc, formatting, snapshot admission
+and documentation links. Final topology 0.107.0 / CLI 0.105.9 metadata then passed
+CLI process qualification and dependency/format/link admission. Cargo metadata
+contains no external path dependency. Native macOS CI remains a separate result.
 Broader protocol, retained-data
 migration and publication qualification remain future work tied to implemented contracts.
 Placement fixtures qualify decoding, projection, bounds and failures; they do not
@@ -136,11 +157,11 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.44.3** was verified as the latest stable, non-yanked registry
+Toko Tooling **0.44.4** was verified as the latest stable, non-yanked registry
 release on 2026-11-15. Its authenticated archive SHA-256 is:
 
 ```text
-8a9bc7b6827044baac8134cada7ee6bc31f86c70beec9608d1d39d911eba15e1
+b52bb793b386309b8c4a9e88f32711bb5d1fd11a47bf337c11c63ca2aa22fc97
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the eight selected roots and
@@ -148,7 +169,7 @@ all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.3 refresh accounts for all 50 installed payload files. The baseline
+The 0.44.4 refresh accounts for all 50 installed payload files. The baseline
 retires the special subsystem-replacement workflow and adds a narrow Platform-only
 development-oracle exception; Query's external dependency boundary is unchanged.
 The LOC reporter now defaults to repository totals: `toko-cloc` and `toko-cloc -d 0`
@@ -165,6 +186,12 @@ existing validation evidence and record actionable findings in existing owning
 records. It adds no separate audit framework or automatic follow-up push.
 Version 0.44.3 changes only the selected LOC reporter and classifier; the baseline
 is unchanged from 0.44.2. Its depth correction leaves JSON counts unchanged.
+Version 0.44.4 adds package-directory/name alignment and copyable long-command
+continuations to the baseline; executable payload files are unchanged. All three
+maintained packages already match their directories, the root is virtual, and
+the CLI examples follow the continuation convention. No package moves or product
+API changes were required. The supported updater refreshed the authenticated
+snapshot and admitted the installed host and Rust tools.
 
 See the release-pinned
 [consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/69ea17e551f33254d87de9824c30f2e74536eb10/docs/adoption/consuming-snapshots.md)

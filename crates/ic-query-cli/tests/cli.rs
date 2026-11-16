@@ -625,3 +625,58 @@ fn placements_help_and_invalid_selections_are_offline() {
     assert_eq!(result.status.code(), Some(2));
     assert!(result.stdout.is_empty());
 }
+
+#[test]
+fn settings_help_and_invalid_selection_are_local() {
+    let output = run(&["topology", "subnet", "settings", "--help"]);
+    assert!(output.status.success());
+    let text = String::from_utf8_lossy(&output.stdout);
+    assert!(text.contains("SUBNET_ID") && text.contains("--json"));
+    for args in [
+        vec!["topology", "subnet", "settings"],
+        vec!["topology", "subnet", "settings", "invalid"],
+    ] {
+        let output = run(&args);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn settings_comparison_flag_is_local_and_duplicate_selection_reads_nothing() {
+    let help = run(&["topology", "subnet", "compare", "--help"]);
+    assert!(String::from_utf8_lossy(&help.stdout).contains("--settings"));
+    for format in ["--json", "--overlap-details"] {
+        let output = run(&[
+            "topology",
+            "subnet",
+            "compare",
+            "aaaaa-aa",
+            "aaaaa-aa",
+            "--settings",
+            format,
+        ]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("two different"));
+    }
+}
+
+#[test]
+fn progress_help_and_admission_are_offline() {
+    let help = run(&["topology", "subnet", "progress", "--help"]);
+    assert!(help.status.success());
+    assert!(String::from_utf8_lossy(&help.stdout).contains("--interval-seconds"));
+    for interval in ["0", "61"] {
+        let result = run(&[
+            "topology",
+            "subnet",
+            "progress",
+            "aaaaa-aa",
+            "--interval-seconds",
+            interval,
+        ]);
+        assert!(!result.status.success());
+        assert!(result.stdout.is_empty());
+    }
+}

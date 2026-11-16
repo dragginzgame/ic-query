@@ -5,43 +5,17 @@ revision-bound references. [.toko-tooling.snapshot](.toko-tooling.snapshot)
 records the adopted payload; never hand-edit it or managed files under
 `vendor/toko-tooling/`. Common engineering rules belong to that baseline.
 
-## Current handoff
+## Task entrypoints
 
-Read [README.md](README.md), [CHANGELOG.md](CHANGELOG.md) and the
-[restart design](docs/design/0.104-restart.md) at session start. This is an
-initial topology phase: the [placement](docs/design/canister-placement.md),
-[subnet observation](docs/design/subnet-observation.md),
-[Registry inventory](docs/design/subnet-list.md) and
-[resource metrics](docs/design/subnet-metrics.md) and
-[two-sample activity](docs/design/subnet-activity.md) contracts own the selected
-mainnet reports and their limits. The
-[selected placement collection](docs/design/placement-collection.md) accepts only
-caller-selected IDs, not fleet discovery or inferred ownership.
-The [configuration report](docs/design/subnet-configuration.md)
-and [membership comparison](docs/design/subnet-membership.md), plus the
-[node inventory](docs/design/node-inventory.md) and
-[selected-subnet node collection](docs/design/subnet-nodes.md), use published
-Platform capabilities. Further report implementation
-requires a concrete Canic decision and source contract.
-The [provider/location distribution](docs/design/subnet-distribution.md) joins
-selected membership at one Registry version using capabilities published in Platform 0.33.5;
-keep provider and location coverage independent and explicit.
-The independent [configuration comparison](docs/design/subnet-changes.md) uses
-the existing readers; it does not establish maintenance completion or uptime.
-The [node registration comparison](docs/design/node-changes.md) retains raw
-chip/HostOS presence and evidence without inferring TEE readiness or node liveness.
-The [cloud-engine marketplace slice](docs/design/cloud-engine-marketplace.md)
-uses published Platform 0.33.7 for daily prices and a separate network-fee read.
-Preserve exact daily units and partial outcomes. Available-node traversal retains
-per-page cursors and Registry versions, with bounded collection and explicit stop
-reasons. Exhausted pagination does not establish an atomic inventory or usable capacity.
-Availability defaults to ten pages; an explicit 1–100 page budget retains the
-same 60-second deadline and source checks.
-Candidate price matching composes those reports and retains every matching scope;
-do not infer tariff precedence, customer discounts or deployment quotes.
-The [selected-engine topology contract](docs/design/cloud-engine-topology.md)
-uses Platform's published selected-view decoder. Keep engine-record nodes separate
-from Registry-copy membership; omitted/hidden results are not proof of nonexistence.
+Read [README.md](README.md) and the opening status of the
+[restart design](docs/design/0.104-restart.md). That design indexes the implemented
+report contracts; read the affected contract before changing a report. Use
+[the root changelog](CHANGELOG.md) for the latest delivered CLI examples. Do not
+load every report or historical release at session start.
+
+Further reports need a concrete Canic decision and source contract. Preserve
+explicit source, coverage, units and partial outcomes; registered hardware is not
+attestation, failed reads are not downtime, and inventory is not usable capacity.
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
 
@@ -67,44 +41,27 @@ backlog, caches, build outputs or release state wholesale.
 The [two-subnet comparison](docs/design/subnet-compare.md) reuses distribution and
 metrics observations. Keep independent versions and partial coverage visible;
 comparison is not a capacity ranking or a merge-feasibility decision.
+Its explicit `--settings` composition adds two independent reads; keep default
+comparison behavior unchanged and settings versions separate from distribution.
 
 The [maintenance report](docs/design/subnet-maintenance.md) coordinates one
 bounded observation window. Preserve partial evidence and
 keep configured-version agreement distinct from running software or completion.
+The independent [progress report](docs/design/subnet-progress.md) uses the Git-pinned
+replacement Platform certificate-time projection. Preserve signing and
+delegation times, explicit freshness and root-subnet binding; neither advancement
+nor repeated state is an uptime or maintenance-completion verdict.
 
 IC Query supports Canic application topology planning, uptime assessment and
 subnet maintenance decisions. It is not a general-purpose IC querying library.
 Select reports for the placement, capacity, performance, cost, availability and
 trust decisions that Canic applications need to make.
 
-Representative questions include:
-
-- Does an application need ten cloud engines, or would another topology serve
-  its workload better?
-- Should application workloads be consolidated across subnets, or should a
-  subnet merge or other topology change be considered where supported?
-- Have new TEE-enabled machines become available that could support a different
-  placement or authentication strategy and reduce authentication overhead?
-- Are selected subnets making progress, and what observed configuration or
-  software changes matter to application uptime and maintenance?
-
-Reports should expose relevant topology, machine capabilities, availability and
-resource evidence for comparing those choices. Distinguish registered hardware
-capabilities from verified attestation and usable capacity. State feasibility,
-workload and trust assumptions; TEE presence alone does not establish that
-authentication checks can be removed or that performance costs will fall.
-
-Canic is the primary intended consumer. Add a report only for an identified Canic
-infrastructure decision or the narrow SNS migration purpose below; broad IC API coverage
-and the legacy feature set are not product goals. Query supplies read-only evidence
-and comparisons; topology changes and deployment remain outside its execution
-authority.
-
-Merge node, operator, provider, data-center, subnet and cloud-engine inventory
-views under topology. Keep capability, resource, cost and change reports focused
-on Canic decisions. Uptime evidence must identify its observation window, source,
-coverage and failures; a failed endpoint read alone does not prove subnet downtime.
-Query observes maintenance state and changes; Canic owns planning and execution.
+Keep node, operator, provider, data-center, subnet and cloud-engine views under
+topology. Reports must identify workload/trust assumptions, observation window,
+source, coverage and failures. TEE presence does not justify removing authentication
+or claiming lower costs. Query provides read-only comparisons; Canic owns topology
+changes, deployment and maintenance execution.
 
 Exclude NNS voting, proposals, neurons, governance analytics and Node Rewards
 reports/adapters, including using Node Rewards as an indirect performance source.
@@ -155,7 +112,15 @@ Exact fields and migration evidence requirements remain to be specified.
   parsing, process IO, progress and pure human-facing presentation. The library
   must not select process output sinks or depend on CLI presentation.
 - Use Platform's published Agent, external DTO and bounded codec capabilities.
-  The maintainer-requested selected-engine codec patch is scoped to the immutable
+  The replacement supplier is `dragginzgame/ic-platform-new`; direct new
+  capability requests there, not to the retired `ic-platform` repository.
+  Query still selects registry `ic-platform` 0.33.7 for legacy transport and
+  several readers. Treat those as remaining migration work, not proof of full
+  replacement adoption; remove them only with qualified replacement capabilities.
+  Certified subnet time selects replacement Platform 0.34.0 as `ic-platform-next`
+  at immutable Git revision `126479e64adfc13fa21aa217caa19a298bcdc19e`. The temporary
+  sibling path used for qualification is retired; legacy transport remains separate.
+  The maintainer-requested selected-engine and subnet-settings codec adoption is scoped to the immutable
   `ic-platform-protocol` Git revision recorded in Cargo.toml/Cargo.lock; it does
   not authorize other supplier migrations or sibling-path dependencies.
   Agent owns authentication; Query owns endpoint/root-key admission, limits,

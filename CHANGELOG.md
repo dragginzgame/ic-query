@@ -15,6 +15,43 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.9 — GitHub delivery 2026-11-16
+
+### ▶️ Observe certified state-time progress
+
+From this repository, run `make fetch-dependencies` and `make icq`. Dependency
+preparation fetches the pinned Platform revisions; mainnet reads need network access.
+The command retains two state times; it does not pronounce uptime or maintenance completion.
+
+```bash
+icq topology subnet progress \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
+```
+
+### ▶️ Compare registered settings
+
+After `make icq`, include independent settings evidence for both candidates.
+Mainnet access is required; omit `--json` for bordered tables.
+
+```bash
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae \
+  --settings --json
+```
+
+### ▶️ Inspect registered settings
+
+After setup, run `make icq`; these reads require mainnet network access.
+
+```bash
+icq topology subnet settings \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet settings \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
 ## CLI 0.105.8 — GitHub delivery 2026-11-15
 
 ### ▶️ Try it

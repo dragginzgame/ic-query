@@ -7,6 +7,8 @@
 //! [`subnet::metrics`] supplies certified raw resource values for one subnet.
 //! [`subnet::configuration`] reads registered membership, version and halt flags;
 //! configuration is distinct from observed running state or availability.
+//! [`subnet::settings`] preserves registered features and resource declarations,
+//! including absent values and unresolved replica-default selections.
 //! [`subnet::membership`] compares registered members and observed node keys
 //! while retaining their separate evidence and non-atomic acquisition.
 //! [`node`] reads registered operator, chip and HostOS data without attestation.
@@ -16,6 +18,7 @@
 //! requested Registry version, retaining independent relationship coverage.
 //! [`subnet::changes`] compares registered configurations without inferring events.
 //! [`subnet::maintenance`] coordinates configuration and metrics observations.
+//! [`subnet::progress`] compares authenticated state times without an uptime verdict.
 //! [`subnet::compare`] places two selected candidates' evidence side by side.
 //! [`cloud_engine::prices`] reads daily marketplace prices and separate fee evidence.
 //! [`cloud_engine::available`] traverses public candidate nodes with page evidence

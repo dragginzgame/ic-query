@@ -2,6 +2,51 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.107.0] — GitHub delivery 2026-11-16
+
+GitHub-only version; not published to crates.io.
+
+### ⚠️ Breaking
+
+- Advance Protocol 0.1.0 to immutable Git revision
+  `8ee1e58ce6577054d58fba729546989e8b6fc041` with `registry-settings`.
+  Selected-engine code is unchanged, but publicly exposed Protocol payload types
+  now have this dependency identity; direct consumers must align their Git pin.
+  Consumers exchanging Protocol types must use the new pin and rebuild. No
+  retained Query report reset is required; schemas remain 1.
+
+### ➕ Added
+
+- Add `subnet::progress::fetch` using Git-pinned Platform 0.34.0 certificate-time
+  projection from [Platform New #1 — Authenticated subnet certificate time](https://github.com/dragginzgame/ic-platform-new/issues/1).
+  Retain both time sources, explicit freshness limits and partial outcomes without
+  implying uptime or maintenance completion. Retire the temporary sibling path
+  in favor of immutable revision `126479e64adfc13fa21aa217caa19a298bcdc19e`; legacy
+  transport remains.
+  Align thiserror to the supplier's 2.0.18 selection.
+
+
+- Add `subnet::compare::fetch_with_settings`: retain the original comparison and
+  two independent settings outcomes, continuing after component failures with
+  a 200-second asynchronous bound and 776-call maximum. Existing `fetch`, public
+  constructors and JSON remain unchanged. No inferred capacity or common version.
+
+- Add `subnet::settings::fetch` for registered features and resource declarations,
+  preserving optional presence, explicit zero/false and original Registry evidence.
+  One bounded query; no effective-default, capacity or attestation inference.
+  Adopts the decoder requested in [Platform #169 — Add bounded Registry subnet settings](https://github.com/dragginzgame/ic-platform/issues/169).
+
+### 🧪 Tests
+
+- Verify exact/exceeded Registry envelope byte limits and preserve source rejection
+  even when inline settings are present. Retain nested shared-field budget tests.
+
+### 📚 Documentation
+
+- Document the authenticated state-time contract, immutable supplier
+  selection and remaining transport migration. Dashboard status, generic endpoint
+  status and canister-only version metadata do not become uptime or completion claims.
+
 ## [0.106.1] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

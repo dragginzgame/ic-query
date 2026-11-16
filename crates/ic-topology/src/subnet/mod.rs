@@ -20,6 +20,8 @@ pub mod maintenance;
 pub mod membership;
 pub mod metrics;
 pub mod nodes;
+pub mod progress;
+pub mod settings;
 
 const MAX_NODES: usize = 1024;
 const MAX_SUBNET_TYPE_BYTES: usize = 128;

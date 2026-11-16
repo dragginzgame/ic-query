@@ -271,3 +271,73 @@ where
 }
 #[cfg(test)]
 mod tests;
+
+/// Optional settings composition; the original comparison remains intact once.
+#[derive(Debug, Serialize)]
+pub struct SettingsComparisonReport {
+    /// Query-owned schema, remaining 1 before 1.0.
+    pub schema: u8,
+    /// Original comparison and its independent evidence.
+    pub comparison: SubnetComparisonReport,
+    /// Left settings, read after the comparison at an independent Registry version.
+    pub left_settings: super::settings::SettingsOutcome,
+    /// Right settings, attempted even when left settings failed.
+    pub right_settings: super::settings::SettingsOutcome,
+    /// Total monotonic duration including the original comparison.
+    pub elapsed: Duration,
+    /// Original comparison complete and both settings reads successful.
+    pub collection_complete: bool,
+}
+
+/// Compare candidates and then read each candidate's registered settings.
+///
+/// Keeps the original comparison contract, followed by two 20-second settings
+/// reads. At most 200 asynchronous seconds and 776 logical calls, plus bounded
+/// processing/scheduling. Retains partial evidence, without retries or tasks.
+/// Settings versions are independent of distribution versions; no snapshot,
+/// effective defaults, capacity or attestation claim follows. Requires Tokio IO/time.
+///
+/// # Errors
+/// Duplicate subnet IDs or failure to establish the initial comparison time.
+pub async fn fetch_with_settings(
+    left: Principal,
+    right: Principal,
+) -> Result<SettingsComparisonReport, ComparisonError> {
+    collect_with_settings(left, right, fetch, super::settings::fetch).await
+}
+
+async fn collect_with_settings<C, CF, S, SF>(
+    left: Principal,
+    right: Principal,
+    comparison: C,
+    mut settings: S,
+) -> Result<SettingsComparisonReport, ComparisonError>
+where
+    C: FnOnce(Principal, Principal) -> CF,
+    CF: Future<Output = Result<SubnetComparisonReport, ComparisonError>>,
+    S: FnMut(Principal) -> SF,
+    SF: Future<
+        Output = Result<
+            super::settings::SubnetSettingsReport,
+            super::settings::SubnetSettingsError,
+        >,
+    >,
+{
+    if left == right {
+        return Err(ComparisonError::SameSubnet);
+    }
+    let started = Instant::now();
+    let comparison = comparison(left, right).await?;
+    let left_settings: super::settings::SettingsOutcome = settings(left).await.into();
+    let right_settings: super::settings::SettingsOutcome = settings(right).await.into();
+    Ok(SettingsComparisonReport {
+        schema: 1,
+        collection_complete: comparison.collection_complete
+            && left_settings.report().is_some()
+            && right_settings.report().is_some(),
+        comparison,
+        left_settings,
+        right_settings,
+        elapsed: started.elapsed(),
+    })
+}

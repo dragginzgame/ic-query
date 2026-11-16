@@ -26,11 +26,15 @@ The [subnet metrics report](docs/design/subnet-metrics.md) adds certified raw
 resource values for one subnet, without inferring spare capacity or uptime.
 The [activity report](docs/design/subnet-activity.md) compares two certified
 message totals with a bounded wait, preserving both observations without a health verdict.
+The [progress report](docs/design/subnet-progress.md) compares authenticated
+subnet state times using the Git-pinned replacement Platform projection.
 The [maintenance report](docs/design/subnet-maintenance.md) coordinates configuration
 and metrics observations, retaining partial evidence and optional exact configured-version
 expectations without claiming running software, uptime or completed maintenance.
 The [configuration report](docs/design/subnet-configuration.md) adds registered
 membership, configured replica version and halt flags using published Platform.
+The [settings report](docs/design/subnet-settings.md) reads registered feature flags
+and resource limits, preserving absent values and unresolved replica defaults.
 The [membership comparison](docs/design/subnet-membership.md) retains that
 configuration and a separate certified node-key observation, exposing differences
 without treating matching sets as proof of live nodes or an atomic snapshot.
@@ -50,6 +54,8 @@ coverage and unknown counts for placement concentration decisions.
 The [two-subnet comparison](docs/design/subnet-compare.md) presents two selected
 placement candidates' configuration, concentration and resources side by side,
 preserving independent versions and partial results without ranking capacity.
+Opt-in `compare --settings` adds both candidates' registered feature/resource
+declarations and retains independent failures; default comparison reads stay unchanged.
 It also derives shared provider/data-center identities from retained distributions,
 keeping unknown coverage explicit without claiming independent failure domains.
 The [cloud-engine price report](docs/design/cloud-engine-marketplace.md) retains

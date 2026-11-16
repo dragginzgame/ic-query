@@ -2,6 +2,59 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.9] — GitHub delivery 2026-11-16
+
+GitHub-only version; not published to crates.io.
+
+### 🔧 Changed
+
+- Adopt Toko Tooling 0.44.4 for development, including package-directory naming
+  and copyable shell-example conventions. Existing package locations already comply.
+
+### ➕ Added
+
+- Add `topology subnet progress`: two authenticated state times with explicit
+  ordering, freshness limits and retained partial evidence. Partial reads exit 1;
+  unchanged/regressed times remain successful observations. Uses the immutable
+  replacement Platform selection; no sibling checkout is required.
+
+From this repository, run `make fetch-dependencies` and `make icq`, then:
+
+```bash
+icq topology subnet progress \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  --interval-seconds 10 --json
+```
+
+
+- Add opt-in `topology subnet compare --settings`, retaining separate source
+  versions and per-side failures. Combined partial output exits 1. Default reads
+  and JSON remain unchanged; opt-in JSON wraps the original `comparison` with
+  `left_settings`, `right_settings` and overall completion/duration.
+  The maximum asynchronous budget with settings is 200 seconds.
+
+After `make icq`, with network access (omit `--json` for text):
+
+```bash
+icq topology subnet compare \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe \
+  brlsh-zidhj-3yy3e-6vqbz-7xnih-xeq2l-as5oc-g32c4-i5pdn-2wwof-oae \
+  --settings --json
+```
+
+- Add `topology subnet settings` with bordered raw-value/unit columns and explicit
+  absent/default-selected labels. JSON preserves raw values and source evidence.
+  Success exits 0, read/admission failure 1, invalid arguments 2.
+
+Install this checkout with `make icq`; mainnet reads require network access.
+
+```bash
+icq topology subnet settings \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe
+icq topology subnet settings \
+  tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe --json
+```
+
 ## [0.105.8] — GitHub delivery 2026-11-15
 
 GitHub-only version; not published to crates.io.

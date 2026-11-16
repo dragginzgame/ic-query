@@ -169,3 +169,43 @@ The focused drift review found no new transport, global inventory, duplicated
 configuration collection or cross-report assurance claim. Acquisition stays in
 the library and human projection stays in the CLI. The shared metrics outcome
 now has one owner, and existing maintenance behavior remains covered.
+
+## Optional registered settings
+
+`fetch_with_settings(left, right)` and CLI `compare --settings` compose the
+existing comparison followed by left and right settings reads. The original
+`fetch` API, constructors, JSON and default CLI reads remain unchanged. The opt-in
+schema-1 wrapper owns the original `comparison` once, plus `left_settings` and
+`right_settings`, total elapsed duration and overall `collection_complete`.
+No settings declaration is aligned to the distribution's Registry version;
+retain each settings record's mutation version, timestamp and signature evidence.
+
+The acquisition order is the original four components, then two independent
+settings reads. Even if the comparison is partial or the first settings read
+fails, attempt the remaining settings read. Duplicate selection or failure to
+establish initial comparison time stops before settings. Total bounds are 200
+asynchronous seconds and 776 logical source calls, with unchanged leaf limits.
+Cancellation drops the pending acquisition without starting later work.
+
+Each settings outcome retains its report or typed error; JSON failures use stable
+categories and Registry rejection codes, never unescaped diagnostics. Overall
+completion requires the original comparison and both settings reads to succeed.
+Partial output exits 1; differences, absent declarations and explicit false/zero
+remain valid evidence. Text adds a bordered left/right settings table with units
+and independently retained evidence. No inferred defaults, headroom subtraction,
+TEE readiness, requirement matching or candidate score is introduced.
+
+Regression coverage must retain default comparison behavior and verify settings
+read order, continuation after failures, cancellation at both added reads,
+duplicate selection before IO, raw optional values, partial JSON/exit status and
+separate source versions. This composition uses the settings contract's reviewed
+legacy authority/provenance lessons and adds no supplier codec or transport.
+
+Focused Linux verification on 2026-11-15 passed comparison/settings regressions,
+all CLI unit/process tests, Clippy, topology Rustdoc, formatting and document links.
+The installed CLI's live NNS/`brlsh` comparison completed with both settings reads
+and exit 0 in 15.67 seconds. Settings mutation versions differed from each other
+and from the distributions' requested version, as retained in the output. This
+does not narrow the worst-case bound or qualify native macOS behavior. Drift
+review confirmed reuse of leaf readers and one shared settings row formatter,
+without a generic collection framework, extra default reads or sibling changes.

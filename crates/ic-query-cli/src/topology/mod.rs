@@ -95,11 +95,16 @@ pub(crate) fn command() -> Command {
         .subcommand(
             Command::new("subnet")
                 .about("Inspect subnet topology")
+                .subcommand(Command::new("progress")
+                    .about("Compare two authenticated state times; not uptime or maintenance completion")
+                    .arg(Arg::new("subnet").required(true).value_name("SUBNET_ID").value_parser(value_parser!(Principal)))
+                    .arg(interval_argument()).arg(json_argument()))
                 .subcommand(Command::new("compare")
                     .about("Compare two selected placement candidates; partial evidence exits 1")
                     .arg(Arg::new("left").required(true).value_name("LEFT_SUBNET_ID").value_parser(value_parser!(Principal)))
                     .arg(Arg::new("right").required(true).value_name("RIGHT_SUBNET_ID").value_parser(value_parser!(Principal)))
                     .arg(Arg::new("overlap-details").long("overlap-details").action(ArgAction::SetTrue).conflicts_with("json").help("Show shared provider/data-center identities and per-side node counts"))
+                    .arg(Arg::new("settings").long("settings").action(ArgAction::SetTrue).help("Add two independent Registry settings reads; total bound 200 seconds"))
                     .arg(json_argument()))
                 .subcommand(Command::new("maintenance")
                     .about("Observe maintenance configuration and activity; not completion or uptime")
@@ -129,6 +134,12 @@ pub(crate) fn command() -> Command {
                                 .value_parser(value_parser!(Principal)),
                         )
                         .arg(interval_argument())
+                        .arg(json_argument()),
+                )
+                .subcommand(
+                    Command::new("settings")
+                        .about("Read registered features and resource limits; not effective capacity")
+                        .arg(Arg::new("subnet").value_name("SUBNET_ID").required(true).value_parser(value_parser!(Principal)))
                         .arg(json_argument()),
                 )
                 .subcommand(
@@ -240,6 +251,13 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
     let (action, arguments) = scope
         .subcommand()
         .expect("entrypoint handles namespace help");
+    if (entity, action) == ("subnet", "settings") {
+        let id = *arguments
+            .get_one::<Principal>("subnet")
+            .expect("required subnet");
+        let report = ic_topology::subnet::settings::fetch(id).await?;
+        return Ok(settings_output(&report, arguments.get_flag("json"))?);
+    }
     if (entity, action) == ("canister", "placements") {
         let ids: Vec<_> = arguments
             .get_many::<Principal>("canisters")
@@ -292,6 +310,22 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
     }
     let text: Result<String, Box<dyn std::error::Error>> = match (entity, action) {
         ("subnet", "compare") => {
+            if arguments.get_flag("settings") {
+                let report = ic_topology::subnet::compare::fetch_with_settings(
+                    *arguments
+                        .get_one::<Principal>("left")
+                        .expect("required left subnet"),
+                    *arguments
+                        .get_one::<Principal>("right")
+                        .expect("required right subnet"),
+                )
+                .await?;
+                return Ok(settings_comparison_output(
+                    &report,
+                    arguments.get_flag("json"),
+                    arguments.get_flag("overlap-details"),
+                )?);
+            }
             let report = ic_topology::subnet::compare::fetch(
                 *arguments
                     .get_one::<Principal>("left")
@@ -306,6 +340,18 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 arguments.get_flag("json"),
                 arguments.get_flag("overlap-details"),
             )?);
+        }
+        ("subnet", "progress") => {
+            let report = ic_topology::subnet::progress::fetch(
+                *arguments
+                    .get_one::<Principal>("subnet")
+                    .expect("required subnet"),
+                *arguments
+                    .get_one::<u64>("interval-seconds")
+                    .expect("default interval"),
+            )
+            .await?;
+            return Ok(progress_output(&report, arguments.get_flag("json"))?);
         }
         ("subnet", "maintenance") => {
             let report = ic_topology::subnet::maintenance::fetch(
@@ -599,6 +645,67 @@ fn placements_output(
             serde_json::to_string_pretty(report)?
         } else {
             presentation::placements::render(report)
+        },
+        exit_code: if report.collection_complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn settings_output(
+    report: &ic_topology::subnet::settings::SubnetSettingsReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::settings::render(report)
+        },
+        exit_code: ExitCode::SUCCESS,
+    })
+}
+
+fn progress_output(
+    report: &ic_topology::subnet::progress::SubnetProgressReport,
+    json: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            presentation::progress::render(report)
+        },
+        exit_code: if report.collection_complete {
+            ExitCode::SUCCESS
+        } else {
+            ExitCode::FAILURE
+        },
+    })
+}
+
+fn settings_comparison_output(
+    report: &ic_topology::subnet::compare::SettingsComparisonReport,
+    json: bool,
+    overlap_details: bool,
+) -> Result<CommandOutput, serde_json::Error> {
+    Ok(CommandOutput {
+        text: if json {
+            serde_json::to_string_pretty(report)?
+        } else {
+            format!(
+                "Combined collection: {} | total elapsed: {:.2}s\n\nBase comparison\n{}{}",
+                if report.collection_complete {
+                    "complete"
+                } else {
+                    "partial"
+                },
+                report.elapsed.as_secs_f64(),
+                presentation::compare::render(&report.comparison, overlap_details),
+                presentation::settings::comparison(report)
+            )
         },
         exit_code: if report.collection_complete {
             ExitCode::SUCCESS
