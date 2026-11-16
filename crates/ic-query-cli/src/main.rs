@@ -14,7 +14,7 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
         .about("Read-only IC infrastructure evidence for Canic")
         .subcommand(topology::command());
     root.build();
-    let mut root = alphabetical(root);
+    let mut root = help_style(root);
     let matches = root.get_matches_mut();
     // Walk Clap's parsed tree so every namespace has the same local help behavior.
     let mut selected_command = &mut root;
@@ -39,8 +39,15 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
 }
 
 // Apply one presentation policy after Clap has generated its help commands.
-fn alphabetical(command: Command) -> Command {
-    command.display_order(0).mut_subcommands(alphabetical)
+fn help_style(command: Command) -> Command {
+    command
+        .display_order(0)
+        .help_template(concat!(
+            "IC Query ",
+            env!("CARGO_PKG_VERSION"),
+            " : {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}"
+        ))
+        .mut_subcommands(help_style)
 }
 
 fn main() -> ExitCode {

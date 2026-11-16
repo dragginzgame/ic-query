@@ -2,6 +2,21 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.11] - Unreleased
+
+### 🔧 Changed
+
+- Show `IC Query` and the build's version in every help header, including bare
+  namespaces and nested commands, matching Canic and Blob. Report output and
+  `--version` remain unchanged.
+
+From a prepared checkout, inspect the versioned help without network reads:
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- --help
+cargo run --locked --offline -p ic-query-cli -- topology subnet --help
+```
+
 ## [0.105.10] - 2026-11-16
 
 ### 🔧 Changed

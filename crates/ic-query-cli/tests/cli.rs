@@ -16,11 +16,12 @@ fn bare_invocation_and_explicit_help_match() {
     assert!(expected.status.success());
     assert!(expected.stderr.is_empty());
     let text = String::from_utf8_lossy(&expected.stdout);
+    assert!(text.starts_with(concat!("IC Query ", env!("CARGO_PKG_VERSION"), " : ")));
     assert!(text.contains("Usage: icq"));
     assert!(text.contains("topology"));
     assert!(text.find("  help ").unwrap() < text.find("  topology ").unwrap());
 
-    for arguments in [&[][..], &["help"][..]] {
+    for arguments in [&[][..], &["help"][..], &["-h"][..]] {
         let output = run(arguments);
         assert!(output.status.success());
         assert!(output.stderr.is_empty());
@@ -59,6 +60,7 @@ fn topology_namespace_help_is_local_and_consistent() {
     assert!(expected.status.success());
     assert!(expected.stderr.is_empty());
     let text = String::from_utf8_lossy(&expected.stdout);
+    assert!(text.starts_with(concat!("IC Query ", env!("CARGO_PKG_VERSION"), " : ")));
     assert!(text.find("  canister ").unwrap() < text.find("  help ").unwrap());
     assert!(text.find("  help ").unwrap() < text.find("  node ").unwrap());
     assert!(text.find("  node ").unwrap() < text.find("  subnet ").unwrap());
@@ -94,6 +96,7 @@ fn report_commands_require_valid_principals_before_network_access() {
         assert!(help.status.success());
         assert!(help.stderr.is_empty());
         let text = String::from_utf8_lossy(&help.stdout);
+        assert!(text.starts_with(concat!("IC Query ", env!("CARGO_PKG_VERSION"), " : ")));
         assert!(text.contains("--json"));
         assert!(text.contains(placeholder));
         if command == "node" {
@@ -109,6 +112,7 @@ fn entity_namespace_help_is_local_and_consistent() {
         assert!(expected.status.success());
         assert!(expected.stderr.is_empty());
         let text = String::from_utf8_lossy(&expected.stdout);
+        assert!(text.starts_with(concat!("IC Query ", env!("CARGO_PKG_VERSION"), " : ")));
         assert!(text.find("  help ").unwrap() < text.find("  show ").unwrap());
         if entity == "node" {
             assert!(text.find("  changes ").unwrap() < text.find("  help ").unwrap());

@@ -15,6 +15,20 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.11 — Unreleased
+
+### ▶️ Try it
+
+From a prepared checkout, help now identifies IC Query and the build's version
+at every command depth. These commands make no network reads:
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- --help
+cargo run --locked --offline -p ic-query-cli -- topology subnet --help
+```
+
+See the [CLI ledger](releases/cli/CHANGELOG.md) for the change.
+
 ## CLI 0.105.10 — 2026-11-16
 
 ### ▶️ Try it
