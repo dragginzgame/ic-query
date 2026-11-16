@@ -2,39 +2,51 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
-## [0.108.0] — Unreleased
+## [0.108.0] - Unreleased
 
 ### ⚠️ Breaking
 
-- Move all public report/request principals and the CLI to published Types 0.21.1.
+- Move all public report/request principals and the CLI to published Types 0.21.2.
   This is a Rust type-identity change: direct callers must align the Types source
   and rebuild for the next incompatible topology release. Principal bytes/text,
   JSON and schema-1 retained evidence are unchanged; no evidence reset is required.
   Remove the duplicate Types alias, cloud-engine principal bridges and certified
-  progress text conversion. Legacy Registry DTO/transport boundaries remain.
+  progress text conversion. Retire the legacy Registry DTO/transport boundaries.
 
 - Migrate available-node status/page decoding and bounded page-request encoding
-  to published Protocol 0.2.4. Keep traversal, partial results and report JSON unchanged;
-  share the cloud-engine class projection. `AvailableError::Decode` and
-  `Application` now retain Protocol payloads, with a new `PageEncode` variant
-  (JSON category remains `encode`). Rust error consumers require migration at
+  to published Protocol 0.2.6. Keep traversal, partial results and report JSON unchanged;
+  use Protocol's cloud-engine classes directly. `AvailableError::Decode` and
+  `Application` now retain Protocol payloads; request failures share `Encode`,
+  retiring the temporary `PageEncode` variant (JSON category stays `encode`).
+  Rust error consumers require migration at
   the next incompatible topology delivery; retained reports need no reset.
 
 - Migrate marketplace price and network-fee response decoding to published Protocol
-  0.2.4. Preserve daily amounts, public class/principal fields, JSON and partial
+  0.2.6. Preserve daily amounts, class/principal JSON fields and partial
   outcomes; add explicit vector/skipping budgets. `PriceError::Decode` changes
   its Rust payload to Protocol's error type, requiring caller migration at the
-  next incompatible topology release. Transport and request encoding remain legacy.
+  next incompatible topology release. Platform supplies native transport and
+  Protocol supplies request encoding.
 
-- Select published Platform 0.34.5, Protocol 0.2.4 and Types 0.21.1, removing
-  sibling checkout requirements. Legacy Platform 0.33.7 transport remains;
-  selected-engine reports now use the supplier's principal identity directly.
+- Select published Platform 0.34.7, Protocol 0.2.6 and Types 0.21.2, removing
+  legacy Platform 0.33.7, Agent, temporary aliases and sibling requirements from
+  product and test graphs. Selected-engine reports use the supplier identity directly.
   Existing JSON and retained reports are unchanged. Public supplier
   error payload identities change and require consumers to align sources before
   the next delivery.
 
-  This is partial supplier adoption: the full transport/test hard cut awaits
-  [Platform #10 — Provide portable fixtures for Query's registry-only Platform hard cut](https://github.com/dragginzgame/ic-platform/issues/10).
+  Adopt the delivered 313-frame corpus from
+  [Platform #10 — Portable Query fixtures](https://github.com/dragginzgame/ic-platform/issues/10).
+  Tests replay independent data without a private fixture crate or direct Candid.
+  `ReadError::Transport` now carries Platform's native error; Registry/placement
+  errors and public cloud-engine classes use Protocol. Retire unreachable
+  subnet/metrics identity-conversion errors. Add `ReadError::ClockRange` while
+  preserving the JSON `clock` category. Canic must rebuild and update Rust matches;
+  schema-1 evidence requires no reset.
+
+  Native reads use the pinned mainnet root/subnet and explicit signing/delegation
+  freshness (300 seconds past, 60 future), with no redirects, proxies or retries.
+  Progress keeps separate times and its stricter final verification budget.
 
 ## [0.107.0] — GitHub delivery 2026-11-16
 
@@ -128,7 +140,7 @@ GitHub-only version; not published to crates.io.
 
 - Define the selected-subnet feature/resource-settings contract for Canic placement
   screening. Implementation awaits the published decoder requested in
-  [#169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
+  [Platform #169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
   Preserve optional settings and replica-default selections without inferring
   usable TEE protection or available capacity.
 
@@ -254,7 +266,7 @@ GitHub-only version; not published to crates.io.
   and Agent module sources match 0.33.3; the existing compatible manifest range
   remains valid. Platform 0.33.4, Types 0.20.4 and Toko Tooling 0.43.1 were verified
   as the latest stable, non-yanked first-party selections at delivery review.
-  Platform's pending [#165](https://github.com/dragginzgame/ic-platform/issues/165)
+  Platform's pending [Platform #165](https://github.com/dragginzgame/ic-platform/issues/165)
   operator/data-center/version codecs remain a separate prerequisite.
 
 ### 📚 Documentation
@@ -285,7 +297,7 @@ GitHub-only version; not published to crates.io.
 
 - Read a selected node's registered operator, optional raw chip ID and configured
   HostOS through published Platform 0.33.3
-  ([#160 — Add bounded Registry NodeRecord decoding](https://github.com/dragginzgame/ic-platform/issues/160)).
+  ([Platform #160 — Add bounded Registry NodeRecord decoding](https://github.com/dragginzgame/ic-platform/issues/160)).
   Retain optional presence, bounded values and mutation evidence without
   inferring attestation, usable hardware, liveness or provider relations.
 - Compare registered members with separately observed certified node keys.
@@ -295,7 +307,7 @@ GitHub-only version; not published to crates.io.
   replica version and subnet type, and halt flags. Preserve schema defaults and
   unknown values; distinguish configuration from running software or downtime.
 - Use published Platform for bounded Registry subnet-record decoding
-  ([#159 — Add bounded Registry SubnetRecord decoding](https://github.com/dragginzgame/ic-platform/issues/159)).
+  ([Platform #159 — Add bounded Registry SubnetRecord decoding](https://github.com/dragginzgame/ic-platform/issues/159)).
   Remove the temporary Platform and Types sibling paths. Platform 0.33.3 requires
   Types 0.20.4; retain one shared registry identity and the existing Registry limits.
   Platform 0.33.3, Types 0.20.4 and Toko Tooling 0.43.1 were verified as the latest

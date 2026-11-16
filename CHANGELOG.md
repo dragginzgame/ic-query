@@ -31,7 +31,7 @@ icq topology subnet progress \
 No sibling checkout is required. The command reads mainnet and returns two
 authenticated state-time observations, preserving partial failures. It makes
 no uptime or maintenance-completion claim. Rust library consumers must migrate
-to Types 0.21.1 for [topology 0.108.0](releases/topology/CHANGELOG.md).
+to Types 0.21.2 for [topology 0.108.0](releases/topology/CHANGELOG.md).
 
 ## CLI 0.105.9 — GitHub delivery 2026-11-16
 

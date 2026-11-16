@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use ic_platform::nns_registry_types::protobuf;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 use thiserror::Error;
@@ -30,7 +30,7 @@ pub struct SubnetDistributionReport {
     pub started_at_unix_seconds: u64,
     /// Monotonic duration of collection.
     pub elapsed: Duration,
-    /// Agent verified query signatures; this is not consensus certification.
+    /// Platform verified query signatures; this is not consensus certification.
     pub query_signature_verified: bool,
     /// False: query results are not consensus-certified.
     pub result_certified: bool,
@@ -302,7 +302,7 @@ impl Serialize for DistributionError {
         let kind = match self {
             Self::Read(ReadError::Transport(_)) => "transport_or_verification",
             Self::Read(ReadError::Deadline) => "read_deadline",
-            Self::Read(ReadError::Clock(_)) => "clock",
+            Self::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
             Self::Codec(_) => "codec",
             Self::SourceIdentity(_) => "source_identity",
             Self::Configuration(_) => "configuration_admission",

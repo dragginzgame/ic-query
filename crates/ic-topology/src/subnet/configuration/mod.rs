@@ -1,6 +1,6 @@
 //! Selected Registry subnet configuration, not observed running state or availability.
 
-use ic_platform::nns_registry_types::protobuf;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::{Principal, PrincipalError};
 use serde::Serialize;
 use thiserror::Error;
@@ -49,7 +49,7 @@ pub struct SubnetConfigurationEvidence {
     pub record_version: u64,
     /// Raw mutation timestamp supplied by the Registry.
     pub record_timestamp_nanoseconds: u64,
-    /// Agent authenticated the query signature with verified node keys.
+    /// Platform authenticated the query signature with verified node keys.
     pub query_signature_verified: bool,
     /// False: a query signature does not consensus-certify the returned value.
     pub result_certified: bool,
@@ -64,7 +64,7 @@ pub enum SubnetConfigurationError {
     /// Mainnet transport, verification, timeout or clock failure.
     #[error(transparent)]
     Read(#[from] ReadError),
-    /// The fixed Registry identity could not cross the Agent boundary.
+    /// The fixed Registry identity could not cross the Platform boundary.
     #[error("invalid Registry identity: {0}")]
     SourceIdentity(String),
     /// Platform refused malformed, unsupported or excessive protocol content.
@@ -116,11 +116,11 @@ pub async fn fetch(
 ) -> Result<SubnetConfigurationReport, SubnetConfigurationError> {
     let key = source_key(subnet_id);
     let argument = protobuf::encode_get_value_request(key.as_bytes(), None, 256)?;
-    let agent = mainnet::agent()?;
+    let client = mainnet::client()?;
     let registry = mainnet::REGISTRY
         .parse()
         .map_err(|error| SubnetConfigurationError::SourceIdentity(format!("{error}")))?;
-    let bytes = mainnet::read(agent.query(&registry, METHOD).with_arg(argument).call()).await?;
+    let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
     project(subnet_id, &bytes, mainnet::observed_at()?)
 }
 

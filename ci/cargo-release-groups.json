@@ -23,7 +23,8 @@
       "version": "package",
       "members": ["ic-query-cli"],
       "changelog": "releases/cli/CHANGELOG.md",
-      "dependencies": []
+      "dependencies": [],
+      "metadata_files": ["CHANGELOG.md"]
     }
   ]
 }

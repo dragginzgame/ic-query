@@ -3,7 +3,7 @@
 //! The complete selected record is returned or the operation fails. Registration
 //! establishes neither liveness, available capacity nor permission to deploy.
 
-use ic_platform::nns_registry_types::protobuf;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::{Principal, PrincipalError};
 use serde::Serialize;
 use thiserror::Error;
@@ -41,7 +41,7 @@ pub struct SubnetListEvidence {
     pub record_version: u64,
     /// Raw record mutation timestamp supplied by the Registry.
     pub record_timestamp_nanoseconds: u64,
-    /// Agent authenticated the query signature using verified node keys.
+    /// Platform authenticated the query signature using verified node keys.
     pub query_signature_verified: bool,
     /// False: query signatures do not certify the returned Registry value.
     pub result_certified: bool,
@@ -55,7 +55,7 @@ pub enum SubnetListError {
     /// Shared bounded transport, verification or observation-time failure.
     #[error(transparent)]
     Read(#[from] ReadError),
-    /// The fixed Registry identity could not cross the Agent boundary.
+    /// The fixed Registry identity could not cross the Platform boundary.
     #[error("invalid Registry identity: {0}")]
     SourceIdentity(String),
     /// Platform refused malformed, chunked or over-budget protocol data.
@@ -102,11 +102,11 @@ pub enum SubnetListError {
 /// are refused explicitly. Completeness applies to the returned record only.
 pub async fn fetch() -> Result<SubnetListReport, SubnetListError> {
     let argument = protobuf::encode_get_value_request(KEY.as_bytes(), None, 256)?;
-    let agent = mainnet::agent()?;
+    let client = mainnet::client()?;
     let registry = mainnet::REGISTRY
         .parse()
         .map_err(|error| SubnetListError::SourceIdentity(format!("{error}")))?;
-    let bytes = mainnet::read(agent.query(&registry, METHOD).with_arg(argument).call()).await?;
+    let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
     project(&bytes, mainnet::observed_at()?)
 }
 

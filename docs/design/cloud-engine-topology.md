@@ -1,12 +1,12 @@
 # Selected cloud-engine topology
 
-Status: implemented using published `ic-platform-protocol` 0.2.4 under
+Status: implemented using published `ic-platform-protocol` 0.2.6 under
 the [registry supplier selection](../development/setup.md#certificate-time-supplier).
-Protocol and Query now share published Types 0.21.1, removing the principal-byte
+Protocol and Query now share published Types 0.21.2, removing the principal-byte
 bridge. Principal JSON and bytes remain unchanged; Rust consumers must align
 their Types source before rebuilding. Direct Protocol error
-consumers must align their dependency source. Platform 0.33.7 remains the
-transport supplier and test fixture encoder. The original projection was supplied
+consumers must align their dependency source. Platform 0.34.7 supplies native
+transport; tests replay the portable supplier corpus. The original projection was supplied
 by [Platform #168](https://github.com/dragginzgame/ic-platform/issues/168).
 
 The patch changes the public payload types of `EngineError::Encode` and

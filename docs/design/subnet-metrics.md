@@ -8,8 +8,8 @@ recommendation. It does not measure uptime, rates or a maintenance interval.
 ## Source and meaning
 
 Read `/subnet/<id>/metrics` from the subnet-scoped mainnet read-state endpoint.
-The published Platform 0.33.0 Agent already exposes `read_state_subnet_metrics`;
-locked Agent 0.49.3 verifies subnet authority and decodes the external CBOR.
+Platform 0.34.7's native `read_subnet` verifies subnet authority and decodes
+the external CBOR; Query selects its optional metrics projection.
 Query adds no external protocol types, codec or new supplier dependency.
 The [IC state-tree specification](https://docs.internetcomputer.org/references/ic-interface-spec/#subnet-information),
 checked 2026-11-14, defines the four selected fields:
@@ -33,11 +33,12 @@ The library keeps cycles as `u128`; JSON encodes that value as an exact decimal
 string. Counts and bytes remain raw `u64` JSON numbers. Text rendering is owned
 by the CLI and labels units and limitations without floating-point conversion.
 
-Reuse the mainnet owner's anonymous Agent, built-in root, 1 MiB HTTP ceiling,
-20-second asynchronous deadline, 300-second certificate-age policy and zero TCP
-retries. Agent owns synchronous certificate/CBOR work; the deadline does not
-preempt that work. Local completion time is not a certificate timestamp. The
-Agent's timestamp policy does not independently reject future certificates.
+Reuse the mainnet owner's anonymous native client, pinned root/subnet, 1 MiB
+message ceiling, 20-second asynchronous deadline and no transport retries.
+Signing and delegation timestamps must be within 300 seconds past/60 seconds
+future of the local reference. Platform owns synchronous certificate/CBOR work;
+the deadline does not preempt that work. Local completion time is not a
+certificate timestamp.
 An unavailable observation is an error, not zero resource use or subnet downtime.
 No Registry version, current free capacity, multi-source atomic snapshot or
 historical coverage is implied. No polling or persistence is added.

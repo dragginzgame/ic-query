@@ -54,7 +54,7 @@ pub async fn fetch() -> Result<AvailableNodesReport, AvailableError> {
 /// [`fetch`] remain unchanged. This starts a fresh traversal, not a resumed snapshot.
 ///
 /// # Errors
-/// Refuses an invalid page budget before Agent construction or network IO.
+/// Refuses an invalid page budget before Platform construction or network IO.
 /// Initial status failures are returned; subsequent page failures retain a report.
 pub async fn fetch_with_page_limit(
     page_limit: u16,
@@ -64,7 +64,7 @@ pub async fn fetch_with_page_limit(
             requested: page_limit,
         });
     }
-    collect(&source::MainnetSource(mainnet::agent()?), page_limit).await
+    collect(&source::MainnetSource(mainnet::client()?), page_limit).await
 }
 
 async fn collect(
@@ -131,7 +131,7 @@ async fn collect(
                 .into_iter()
                 .map(|node| AvailableNode {
                     node_id: node.node_id,
-                    node_type: super::report_class(node.node_type),
+                    node_type: node.node_type,
                     operator_id: node.operator,
                     provider_id: node.provider,
                     data_center: node.dc,

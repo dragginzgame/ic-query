@@ -1,4 +1,5 @@
 use super::*;
+use ic_platform::certificate::PreparedRootKey;
 use std::{cell::Cell, future::ready};
 fn id() -> Principal {
     Principal::from_slice(&[1])
@@ -133,7 +134,7 @@ async fn progress_cancellation_starts_no_later_work() {
 
 #[test]
 fn local_supplier_accepts_agent_certificate_identity_and_rejects_wrong_authority() {
-    use ic_platform_next::certificate::{CertificateDecodeLimits, decode_certificate};
+    use ic_platform::certificate::{CertificateDecodeLimits, decode_certificate};
     let root = PreparedRootKey::from_der(include_bytes!("fixtures/root.der")).unwrap();
     for (bytes, time, subnet, root_binding) in [
         (
@@ -151,7 +152,7 @@ fn local_supplier_accepts_agent_certificate_identity_and_rejects_wrong_authority
     ] {
         let decoded =
             decode_certificate(bytes, CertificateDecodeLimits { bytes: 1024 * 1024 }).unwrap();
-        let certificate: &ic_platform::agent::ExternalCertificate = decoded.unverified();
+        let certificate = decoded.unverified();
         let subnet = subnet.parse().unwrap();
         let binding = root_binding.then_some(subnet);
         let window = TimeWindow {

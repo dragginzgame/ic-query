@@ -1,13 +1,13 @@
 use super::*;
-use ic_platform::candid_codec::encode_one;
+use crate::tests::{self as fixtures, encode_fixture as encode_one};
 use std::{cell::RefCell, collections::VecDeque};
 
 fn id(n: u16) -> Principal {
     Principal::from_slice(&n.to_le_bytes())
 }
 fn encoded(value: &wire::AvailableNodesPageResult) -> Vec<u8> {
-    // Keep the published encoder as an independent oracle for decode-only DTOs.
-    let fixture: ic_platform::cloud_engine_types::AvailableNodesPageResult =
+    // Encode through an independently authored upstream schema.
+    let fixture: fixtures::PageResult =
         serde_json::from_value(serde_json::to_value(value).unwrap()).unwrap();
     encode_one(&fixture, 1024 * 1024).unwrap()
 }
@@ -118,24 +118,13 @@ fn request_is_exactly_public_rejoining_none_with_100_node_limit_and_cursor() {
     );
     for cursor in [None, Some(id(1)), Some(Principal::from_slice(&[255; 29]))] {
         let bytes = source::page_argument(cursor).unwrap();
-        let decoded: ic_platform::cloud_engine_types::ListAvailableNodesPageArgs =
-            ic_platform::candid_codec::decoder::decode_one(
-                &bytes,
-                ic_platform::candid_codec::decoder::Limits {
-                    bytes: LIMITS.bytes,
-                    header: LIMITS.header,
-                    types: LIMITS.types,
-                    work: LIMITS.work,
-                    allocation: LIMITS.allocation,
-                },
-            )
-            .unwrap();
-        assert!(decoded.rejoining.is_none());
         assert_eq!(
-            decoded.start.map(|id| Principal::from_slice(id.as_slice())),
-            cursor
+            bytes,
+            fixtures::frame(
+                "page-argument",
+                &serde_json::to_value(cursor.map(|id| id.as_slice().to_vec())).unwrap()
+            )
         );
-        assert_eq!(decoded.limit, Some(100u64.into()));
     }
 }
 
@@ -178,7 +167,7 @@ impl Fake {
             status: RefCell::new(Some(Step {
                 wait: 0,
                 result: Ok(encode_one(
-                    &ic_platform::cloud_engine_types::RegistryCopyStatus {
+                    &fixtures::RegistryCopyStatus {
                         version: 10,
                         latest: 20,
                         caught_up: false,

@@ -242,7 +242,7 @@ fn serialize_node_error<S: Serializer>(
     let kind = match error {
         NodeError::Read(ReadError::Transport(_)) => "transport_or_verification",
         NodeError::Read(ReadError::Deadline) => "read_deadline",
-        NodeError::Read(ReadError::Clock(_)) => "clock",
+        NodeError::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
         NodeError::SourceIdentity(_) => "source_identity",
         NodeError::Codec(_) => "codec",
         NodeError::RegistryRejected { .. } => "registry_rejected",

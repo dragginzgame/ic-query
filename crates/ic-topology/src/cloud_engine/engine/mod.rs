@@ -34,9 +34,9 @@ const LIMITS: decoder::Limits = decoder::Limits {
 /// Returns original transport/codec errors or typed record-admission refusals.
 /// A read failure never becomes a successful empty result.
 pub async fn fetch(engine_id: EngineId) -> Result<EngineReport, EngineError> {
-    let agent = mainnet::agent()?;
+    let client = mainnet::client()?;
     collect(engine_id, |argument| async move {
-        super::query(&agent, METHOD, argument)
+        super::query(&client, METHOD, argument)
             .await
             .map_err(EngineError::Read)
     })

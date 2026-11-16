@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 use std::time::Duration;
 
-use ic_platform::nns_registry_types::protobuf;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::Principal;
 use tokio::time::{Instant, sleep_until};
 
@@ -47,7 +47,7 @@ pub const DEADLINE: Duration = Duration::from_secs(60);
 /// no report. Later record failures are retained in the returned partial report.
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetDistributionReport, DistributionError> {
     let started_at = mainnet::observed_at()?;
-    let source = source::MainnetSource(mainnet::agent()?);
+    let source = source::MainnetSource(mainnet::client()?);
     collect(subnet_id, started_at, &source).await
 }
 

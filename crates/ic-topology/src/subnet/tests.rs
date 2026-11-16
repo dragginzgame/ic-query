@@ -1,4 +1,3 @@
-use ic_platform::agent::SubnetType;
 use ic_platform_types::Principal;
 
 use super::{MAX_NODES, MAX_SUBNET_TYPE_BYTES, SubnetError, project};
@@ -75,20 +74,20 @@ fn subnet_types_preserve_known_unknown_and_absent_values() {
     let id = Principal::from_slice(&[1]);
     for (source, expected) in [
         (None, None),
-        (Some(SubnetType::System), Some("system")),
-        (Some(SubnetType::Application), Some("application")),
+        (Some("system".to_owned()), Some("system")),
+        (Some("application".to_owned()), Some("application")),
         (
-            Some(SubnetType::VerifiedApplication),
+            Some("verified_application".to_owned()),
             Some("verified_application"),
         ),
-        (Some(SubnetType::CloudEngine), Some("cloud_engine")),
-        (Some(SubnetType::Unknown(String::new())), Some("")),
+        (Some("cloud_engine".to_owned()), Some("cloud_engine")),
+        (Some(String::new()), Some("")),
         (
-            Some(SubnetType::Unknown("Future\n\u{1b}[31m型".into())),
+            Some("Future\n\u{1b}[31m型".to_owned()),
             Some("Future\n\u{1b}[31m型"),
         ),
     ] {
-        let report = project(id, id, [id], 0, source.as_ref()).unwrap();
+        let report = project(id, id, [id], 0, source.as_deref()).unwrap();
         assert_eq!(report.observed_subnet_type.as_deref(), expected);
         let json = serde_json::to_value(report).unwrap();
         assert_eq!(
@@ -102,10 +101,10 @@ fn subnet_types_preserve_known_unknown_and_absent_values() {
 fn subnet_type_budget_counts_utf8_bytes_and_never_truncates() {
     let id = Principal::from_slice(&[1]);
     let exact = "é".repeat(MAX_SUBNET_TYPE_BYTES / 2);
-    let source = SubnetType::Unknown(exact.clone());
+    let source = exact.clone();
     let report = project(id, id, [id], 0, Some(&source)).unwrap();
     assert_eq!(report.observed_subnet_type, Some(exact.clone()));
-    let excess = SubnetType::Unknown(format!("{exact}x"));
+    let excess = format!("{exact}x");
     assert!(matches!(
         project(id, id, [id], 0, Some(&excess)),
         Err(SubnetError::SubnetTypeLimit)

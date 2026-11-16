@@ -2,7 +2,7 @@
 
 use std::{collections::BTreeSet, time::Duration};
 
-use ic_platform::cloud_engine_types::NodeType;
+use ic_platform_protocol::cloud_engine::NodeType;
 use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
 use tokio::time::Instant;
 
@@ -12,7 +12,7 @@ use crate::mainnet;
 use source::{Observation, Source};
 pub use types::*;
 
-use super::{CANISTER, report_class};
+use super::CANISTER;
 const PRICES_METHOD: &str = "listMarketplacePrices";
 const FEE_METHOD: &str = "getNetworkFee";
 const OVERALL: Duration = Duration::from_secs(30);
@@ -42,8 +42,8 @@ const LIMITS: decoder::Limits = decoder::Limits {
 /// Returns a typed error if the first price read or admission fails. Later errors
 /// are retained in the report's `network_fee` outcome, with `complete = false`.
 pub async fn fetch() -> Result<CloudEnginePricesReport, PriceError> {
-    let agent = mainnet::agent()?;
-    collect(&source::MainnetSource(agent)).await
+    let client = mainnet::client()?;
+    collect(&source::MainnetSource(client)).await
 }
 
 async fn collect(source: &impl Source) -> Result<CloudEnginePricesReport, PriceError> {
@@ -107,7 +107,7 @@ fn project_prices(observation: &Observation) -> Result<PriceObservation, PriceEr
             .entry
             .provider
             .map_or_else(String::new, |id| format!("{id},"));
-        let node_type = report_class(row.entry.node_type);
+        let node_type = row.entry.node_type;
         expected.push_str(class_key(&node_type));
         if let Some(dc) = &row.entry.dc {
             expected.push(',');

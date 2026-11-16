@@ -34,7 +34,7 @@ readers retain their 20-second deadlines, 1 MiB HTTP ceiling and protobuf budget
 (64 KiB, 4096 fields, 128 KiB allocation, 1024 items); node chip and HostOS fields
 remain limited to 256 bytes each. These bound each retained result; retained
 typed failures can also hold bounded supplier diagnostics. Query adds no retries.
-Agent's own bounded discovery/transport work remains inside the leaf deadline;
+Platform's bounded discovery/transport work remains inside the leaf deadline;
 the operation count is not a promise about individual HTTP exchanges.
 
 The timer takes precedence when simultaneously ready with node work. Pending

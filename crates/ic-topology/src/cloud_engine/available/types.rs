@@ -1,7 +1,7 @@
 //! Available-node observations, traversal coverage and typed stop reasons.
 
 use crate::ReadError;
-use ic_platform::{candid_codec, cloud_engine_types::NodeType};
+use ic_platform_protocol::cloud_engine::NodeType;
 use ic_platform_protocol::{
     candid as decoder,
     cloud_engine::{EncodeError, EngineError},
@@ -32,7 +32,7 @@ pub struct AvailableNodesReport {
     pub source_method: &'static str,
     /// Always absent: only public new-engine eligibility is requested.
     pub rejoining: Option<String>,
-    /// Agent verified signatures for every successfully received observation.
+    /// Platform verified signatures for every successfully received observation.
     pub query_signature_verified: bool,
     /// Always false: verified queries do not establish consensus-certified results.
     pub result_certified: bool,
@@ -189,10 +189,7 @@ pub enum AvailableError {
     Read(#[from] ReadError),
     /// Bounded request encoding error, preserved as its original typed value.
     #[error("available-node request encoding failed: {0:?}")]
-    Encode(candid_codec::Error),
-    /// Bounded page-request encoding failure from the replacement Protocol.
-    #[error("available-node page request encoding failed: {0:?}")]
-    PageEncode(#[from] EncodeError),
+    Encode(EncodeError),
     /// Bounded response codec error, preserved as its original typed value.
     #[error("available-node response decoding failed: {0:?}")]
     Decode(decoder::Error),
@@ -210,8 +207,8 @@ pub enum AvailableError {
     OverallDeadline,
 }
 
-impl From<candid_codec::Error> for AvailableError {
-    fn from(error: candid_codec::Error) -> Self {
+impl From<EncodeError> for AvailableError {
+    fn from(error: EncodeError) -> Self {
         Self::Encode(error)
     }
 }
@@ -226,8 +223,8 @@ impl Serialize for AvailableError {
             Self::InvalidPageLimit { .. } => "invalid_page_limit",
             Self::Read(ReadError::Transport(_)) => "transport",
             Self::Read(ReadError::Deadline) => "read_deadline",
-            Self::Read(ReadError::Clock(_)) => "clock",
-            Self::Encode(_) | Self::PageEncode(_) => "encode",
+            Self::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
+            Self::Encode(_) => "encode",
             Self::Decode(_) => "decode",
             Self::Application(_) => "application",
             Self::CopyNotReady => "copy_not_ready",

@@ -181,7 +181,7 @@ fn serialize_error<S: Serializer>(
         PlacementError::SourceIdentity(_) => "source_identity",
         PlacementError::Read(ReadError::Transport(_)) => "transport_or_verification",
         PlacementError::Read(ReadError::Deadline) => "read_deadline",
-        PlacementError::Read(ReadError::Clock(_)) => "clock",
+        PlacementError::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
         PlacementError::Encode(_) => "encode",
         PlacementError::Decode(_) => "decode",
         PlacementError::RegistryRejected(_) => "registry_rejected",

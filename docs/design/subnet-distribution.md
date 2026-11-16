@@ -41,7 +41,7 @@ Use the existing fixed endpoint/root-key policy and leaf byte/field/time limits.
 Cap membership, distinct operators and distinct data centers at 128 each; read
 in batches of at most four under one 60-second overall asynchronous deadline.
 The maximum is 386 logical queries: one version, one subnet, 128 nodes,
-128 operators and 128 data centers. Agent discovery/transport exchanges are not logical queries.
+128 operators and 128 data centers. Platform discovery/transport exchanges are not logical queries.
 Excess membership fails before fan-out; no silently truncated successful report.
 
 Keep successful observations and explicit failed, cancelled, not-started and

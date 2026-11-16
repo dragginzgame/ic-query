@@ -48,10 +48,10 @@ The stable, non-yanked release was verified on 2026-11-14. Its archive SHA-256 i
 `74c6e194ce3a80487320edef0041e286fd89d6d96e8a9f641811c7e38b856e51`, with packaged
 revision `9035c3f73a9bd8e866737418daa3b741f14e3fad`. It requires Types 0.20.4;
 that release is non-yanked and its source matches 0.20.3 byte-for-byte. Query
-selects the same registry Types identity for its report and Agent boundaries.
+selected that registry Types identity for its original report and Agent boundaries.
 
 Supplier wire qualification remains with
-[#160 — Add bounded Registry NodeRecord decoding](https://github.com/dragginzgame/ic-platform/issues/160).
+[Platform #160 — Add bounded Registry NodeRecord decoding](https://github.com/dragginzgame/ic-platform/issues/160).
 Query adds consumer projection regressions, no protobuf implementation, external
 DTO mirror or legacy Host Tools protocol owner. No sibling dependency or supplier
 source change is introduced. The borrowed decoder allocates no collections;

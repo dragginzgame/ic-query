@@ -9,8 +9,8 @@ has capacity or should be moved. It is not a complete subnet/node inventory.
 
 ## Source and boundary
 
-Use Platform's `agent` and `nns-registry-types` capabilities, including its bounded
-owned codec. This report originally adopted published Platform 0.32.3's
+Use Platform 0.34.7's `native-read` and Protocol 0.2.6's `registry-placement`
+capabilities. This report originally adopted published Platform 0.32.3's
 `GetSubnetForCanisterRequest` and `GetSubnetForCanisterResponse`; their source
 contract remains unchanged. The workspace also uses published Platform's
 [decoder integration](subnet-configuration.md) for additional subnet
@@ -43,12 +43,12 @@ preserves canonical principal text and raw numeric values. Do not add persistenc
 collection, SNS or NNS governance to this operation.
 
 Use a 20-second overall asynchronous query deadline, a 1 MiB HTTP response-body
-ceiling (including Agent verification reads), a 64 KiB decoded reply-byte ceiling,
-and explicit codec header/type/work/allocation budgets. No Query retry loop;
-disable Agent TCP retries. The shared internal mainnet module owns these settings
-for the implemented reports, with an explicit 300-second Agent ingress expiry.
-Agent may perform its own bounded-by-deadline HTTP
-retry or signature-key discovery work. Bound synchronous decoding separately.
+ceiling (including Platform verification reads), a 64 KiB decoded reply-byte ceiling,
+and explicit codec header/type/work/allocation/vector/skipping budgets. No retry
+loop, redirects or proxies are enabled. The shared mainnet module owns these
+settings with an explicit 300-second ingress expiry and certificate/delegation
+windows of 300 seconds past and 60 seconds future. Signature-key discovery work
+shares the overall deadline. Bound synchronous decoding separately.
 
 Fail with distinct transport, deadline, codec, Registry rejection, missing subnet
 or clock errors. Preserve supplier errors and Registry text; do not infer

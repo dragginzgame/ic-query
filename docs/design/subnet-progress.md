@@ -1,11 +1,12 @@
 # Authenticated subnet state-time progress
 
-Status: implemented using published replacement Platform 0.34.5 under the
+Status: implemented using published replacement Platform 0.34.7 under the
 [development supplier selection](../development/setup.md#certificate-time-supplier).
 The supplier capability is delivered in
 [Platform New #1 — Authenticated subnet certificate time](https://github.com/dragginzgame/ic-platform-new/issues/1).
-This adoption does not remove legacy Platform transport or resolve the
-separate [Agent advisory #4](https://github.com/dragginzgame/ic-platform-new/issues/4).
+The hard cut removes legacy Platform and Agent from Query; the supplier's
+separate [Platform #4 — Agent advisory](https://github.com/dragginzgame/ic-platform/issues/4)
+still has obligations for other consumers.
 
 ## Decision and source
 
@@ -16,20 +17,19 @@ Advanced, unchanged and regressed are exact orderings, not healthy/stalled/reset
 labels. They do not establish continuous uptime, running version or maintenance
 completion. Existing activity and maintenance commands are unchanged.
 
-Use the fixed mainnet Agent and `/api/v3/subnet/<id>/read_state`, requesting `/time`.
-Agent returns a parsed certificate. Local Platform's borrowed projection
-rechecks signatures, keys, exact subnet authority, tree limits and freshness
-without copying/re-encoding the object. No original certificate-byte retention
-or strict outer-CBOR/preallocation guarantee is claimed. Agent owns outer decoding
-under the existing 1 MiB HTTP ceiling; Platform bounds subsequent traversal and
-embedded delegation decoding. Query adds no CBOR, LEB128 or cryptographic codec.
+Use fixed mainnet Platform native reads and `/api/v3/subnet/<id>/read_state`.
+The request selects `/subnet/<id>` and `/time`. Platform returns authenticated
+original certificate bytes; its strict decoder and borrowed projection recheck
+signatures, keys, exact subnet authority, tree limits and freshness at completion.
+The report does not retain those bytes. Platform owns outer decoding under the
+1 MiB message ceiling and bounds subsequent traversal and delegation decoding.
+Query adds no CBOR, LEB128 or cryptographic codec.
 
 The built-in mainnet root key is paired with the fixed NNS root subnet
 `tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe`.
 This trust input is independent of request and response. Root/no-delegation
-certificates for any other selected subnet are refused. Canonical Query identities
-cross to replacement Types through checked text parsing, with no type alias that
-pretends the old and replacement Rust identities are interchangeable.
+certificates for any other selected subnet are refused. Query, Protocol and
+Platform share one Types identity, without a conversion bridge.
 
 ## Bounds and freshness
 
@@ -63,7 +63,7 @@ promoting them to evidence. Invalid CLI syntax exits 2.
 
 ## Qualification and legacy guidance
 
-Consumer tests cover actual Agent certificate type compatibility using supplier
+Consumer tests cover the published certificate projection using supplier
 PocketIC frames, exact borrowing, separate time retention, wrong authority and
 corrupted signatures. Controlled-clock tests cover interval boundaries, acquisition
 order, cancellation during reads/wait, failures, partial JSON, full-width arithmetic

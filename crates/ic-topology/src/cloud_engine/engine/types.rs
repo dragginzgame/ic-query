@@ -36,7 +36,7 @@ impl fmt::Display for EngineId {
     }
 }
 
-/// Invalid IDs are rejected before any Agent construction or network IO.
+/// Invalid IDs are rejected before any Platform construction or network IO.
 #[derive(Debug, Error)]
 #[error("engine ID must contain 1–256 UTF-8 bytes (received {bytes})")]
 pub struct InvalidEngineId {
@@ -132,7 +132,7 @@ pub struct EngineEvidence {
     pub source_method: &'static str,
     /// Local response-completion time, not the Registry copy's timestamp.
     pub observed_at_unix_seconds: u64,
-    /// Agent verified the query signature.
+    /// Platform verified the query signature.
     pub query_signature_verified: bool,
     /// False: query signatures do not certify result consensus.
     pub result_certified: bool,

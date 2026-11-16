@@ -2,20 +2,24 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.10] — Unreleased
+## [0.105.10] - Unreleased
 
 ### 🔧 Changed
 
-- Align CLI principal parsing with published Types 0.21.1 and the topology library;
+- Align CLI principal parsing with published Types 0.21.2 and the topology library;
   command syntax and serialized principal values remain unchanged.
 
-- Adopt Toko Tooling 0.44.9 through the authenticated updater, retaining the
+- Adopt Toko Tooling 0.44.11 through the authenticated updater, retaining the
   selected tooling entrypoints and refreshing the baseline and receipt.
+
+- Add standard group release and publication commands with frozen source capture,
+  complete local validation and exact source/tag admission.
 
 - Adopt Host Text 0.77.2 and use its `bordered_table` and `escape` APIs directly,
   retaining CLI-owned rows, values and output sinks.
 
-- Select published Platform dependencies, removing the sibling checkout requirement.
+- Adopt the topology native-read hard cut to Platform 0.34.7 and Protocol 0.2.6;
+  remove legacy Platform and Agent without changing command syntax or JSON schema.
 
 After publication, install with Rust 1.100.0 or newer and network access:
 

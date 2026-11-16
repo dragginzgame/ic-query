@@ -3,10 +3,10 @@
 Status: daily prices, separate fee evidence, bounded available-node traversal and
 candidate-to-declaration matching
 are implemented. Price, fee, Registry-copy status and available-page response
-decoding and page-request encoding use published Protocol 0.2.4
-(`cloud-engine-marketplace`). Empty-request encoding, transport and public
-report class identities still use published Platform 0.33.7. Public principals
-now share published Types 0.21.1 with Protocol.
+decoding and page-request encoding use published Protocol 0.2.6
+(`cloud-engine-marketplace`). Protocol also supplies empty-request encoding and
+public node classes; Platform 0.34.7 supplies native transport. Public principals
+now share published Types 0.21.2 with Protocol.
 
 ## Canic decisions and scope
 
@@ -176,7 +176,7 @@ successful price lists mean no returned declarations, not free engines.
 
 The registry supplier selection is documented in [setup](../development/setup.md#certificate-time-supplier).
 Protocol owns both price and fee response decoding. Query shares its published Types
-0.21.1 principals and preserves the public node class through explicit projection.
+0.21.2 principals and uses Protocol's node class directly, preserving JSON values.
 Candidate matching, report JSON and retained schema-1 evidence remain unchanged.
 `PriceError::Decode` now carries Protocol's typed error; Rust consumers matching
 that payload must migrate with the next incompatible topology release. No fallback
@@ -230,20 +230,20 @@ Rust/JSON without rendering them as terminal diagnostics.
 
 The replacement Protocol owns status and page decoding and bounded page-argument
 encoding. Query retains the existing traversal and whole-page admission logic;
-Public principals now share published Types 0.21.1 with Protocol; the node-class
-projection preserves the existing class DTO. Pages use Protocol DTOs directly,
+Public principals now share published Types 0.21.2 with Protocol; node classes
+also use Protocol directly. Pages use Protocol DTOs directly,
 with no intermediate legacy page or principal conversions.
 All wire vectors have a 1,024-element ceiling before Query's 100-node page limit.
 The independent 128 KiB skipped-work ceiling remains, including discarded IP text.
 
-`AvailableError::Decode` and `Application` now carry Protocol types. `PageEncode`
-retains the new bounded encoder's typed failure; existing `Encode` remains for
-the status query's empty arguments. Both encode failures serialize as category
+`AvailableError::Decode` and `Application` now carry Protocol types. `Encode`
+retains Protocol's typed failure for both page and empty status arguments;
+the temporary `PageEncode` variant is retired. Encode failures serialize as category
 `encode`. Application payload JSON, reports, cursor behavior and partial-output
 semantics are unchanged. Rust callers matching error payloads must migrate with
 the next incompatible topology delivery; retained report evidence needs no reset.
-The published encoder/DTOs remain test oracles for selected request bytes and
-response fixtures. Existing cursor, duplicate, deadline, version and all-nine-error
+The portable independent corpus supplies selected request bytes and response
+fixtures. Existing cursor, duplicate, deadline, version and all-nine-error
 regressions apply, with added truncated-frame and vector-refusal partial coverage.
 
 Local Linux qualification passed 38 cloud-engine tests, 26 CLI process tests and

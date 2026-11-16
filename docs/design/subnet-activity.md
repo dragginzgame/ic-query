@@ -11,7 +11,7 @@ The schema-1 report retains both complete metrics observations and the requested
 wait in seconds. Each read retains its own source, local completion time and
 verification evidence. The requested wait is neither the actual total runtime nor
 a certified-state time interval: each read has its existing 20-second asynchronous
-deadline, and the second read starts after the wait. Synchronous Agent work and
+deadline, and the second read starts after the wait. Synchronous Platform work and
 runtime scheduling retain the limitations in the [metrics contract](subnet-metrics.md).
 
 The report classifies the second replicated-message counter as increased (with

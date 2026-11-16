@@ -1,6 +1,7 @@
 //! Fixed-mainnet source and bounded relationship admission.
 
-use ic_platform::{agent::Agent, nns_registry_types::protobuf};
+use ic_platform::native::ReadClient;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::Principal;
 
 use super::{
@@ -19,7 +20,7 @@ pub(super) trait Source {
     async fn value(&self, key: &str, version: u64) -> Result<Observation, DistributionError>;
 }
 
-pub(super) struct MainnetSource(pub Agent);
+pub(super) struct MainnetSource(pub ReadClient);
 
 impl MainnetSource {
     async fn query(
@@ -30,8 +31,7 @@ impl MainnetSource {
         let registry = mainnet::REGISTRY
             .parse()
             .map_err(|error| DistributionError::SourceIdentity(format!("{error}")))?;
-        let bytes =
-            mainnet::read(self.0.query(&registry, method).with_arg(argument).call()).await?;
+        let bytes = mainnet::query(&self.0, registry, method, &argument).await?;
         Ok(Observation {
             bytes,
             observed_at: mainnet::observed_at()?,

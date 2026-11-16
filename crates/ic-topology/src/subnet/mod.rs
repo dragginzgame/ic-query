@@ -3,7 +3,6 @@
 //! These observations do not establish complete Registry membership, node
 //! liveness, allocatable capacity, hardware capabilities or authoritative routing.
 
-use ic_platform::agent::SubnetType;
 use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
@@ -51,9 +50,9 @@ pub struct SubnetEvidence {
     pub source_path: String,
     /// Local completion time, in raw Unix seconds; not the certificate timestamp.
     pub observed_at_unix_seconds: u64,
-    /// Agent verified the state certificate, subnet delegation and timestamp policy.
+    /// Platform verified the state certificate, subnet delegation and timestamp policy.
     pub state_certificate_verified: bool,
-    /// False: Agent's projected node-key list does not establish complete membership.
+    /// False: Platform's projected node-key list does not establish complete membership.
     pub membership_complete: bool,
     /// None: this source supplies no Registry version.
     pub registry_version: Option<u64>,
@@ -65,9 +64,6 @@ pub enum SubnetError {
     /// Mainnet transport, verification, deadline or observation-clock failure.
     #[error(transparent)]
     Read(#[from] ReadError),
-    /// The selected principal could not cross the Agent identity boundary.
-    #[error("invalid subnet identity: {0}")]
-    SourceIdentity(String),
     /// The source returned a different subnet than requested.
     #[error("source subnet {returned} differs from requested subnet {requested}")]
     IdentityMismatch {
@@ -92,7 +88,7 @@ pub enum SubnetError {
 
 /// Observe type and node-key identities in one subnet's mainnet certified state.
 ///
-/// Requires a Tokio runtime with IO and time enabled. Uses a fresh Agent fetch,
+/// Requires a Tokio runtime with IO and time enabled. Uses a fresh Platform fetch,
 /// the shared 20-second deadline and 1 MiB HTTP ceiling. Retains at most 1024
 /// node identities and 128 UTF-8 bytes of subnet type. An absent type remains None;
 /// unknown values are preserved. Returned canister ranges and subnet keys are
@@ -102,18 +98,14 @@ pub enum SubnetError {
 /// Returns typed read failures, identity mismatch, missing/duplicate node evidence
 /// or a node-count/type-byte limit refusal. A failure does not prove subnet downtime.
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetReport, SubnetError> {
-    let agent = mainnet::agent()?;
-    let external_id = subnet_id
-        .as_slice()
-        .try_into()
-        .map_err(|error| SubnetError::SourceIdentity(format!("{error}")))?;
-    let observation = mainnet::read(agent.fetch_subnet_by_id(&external_id)).await?;
+    let client = mainnet::client()?;
+    let observation = mainnet::subnet(&client, subnet_id).await?;
     project(
         subnet_id,
-        Principal::from_slice(observation.id().as_slice()),
+        observation.subnet(),
         observation
-            .iter_nodes()
-            .map(|node| Principal::from_slice(node.as_slice())),
+            .node_keys()
+            .map(|(id, _)| Principal::from_slice(id)),
         mainnet::observed_at()?,
         observation.subnet_type(),
     )
@@ -124,7 +116,7 @@ fn project(
     returned: Principal,
     nodes: impl IntoIterator<Item = Principal>,
     observed_at: u64,
-    subnet_type: Option<&SubnetType>,
+    subnet_type: Option<&str>,
 ) -> Result<SubnetReport, SubnetError> {
     if returned != requested {
         return Err(SubnetError::IdentityMismatch {
@@ -143,13 +135,6 @@ fn project(
     if nodes.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(SubnetError::DuplicateNode);
     }
-    let subnet_type = subnet_type.map(|value| match value {
-        SubnetType::System => "system",
-        SubnetType::Application => "application",
-        SubnetType::VerifiedApplication => "verified_application",
-        SubnetType::CloudEngine => "cloud_engine",
-        SubnetType::Unknown(raw) => raw.as_str(),
-    });
     if subnet_type.is_some_and(|value| value.len() > MAX_SUBNET_TYPE_BYTES) {
         return Err(SubnetError::SubnetTypeLimit);
     }

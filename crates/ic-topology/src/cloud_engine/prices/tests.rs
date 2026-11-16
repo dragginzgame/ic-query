@@ -1,8 +1,5 @@
 use super::*;
-use ic_platform::{
-    candid_codec::{self, encode_one},
-    cloud_engine_types as wire,
-};
+use crate::tests::{self as wire, Fixture, encode_fixture as encode_one};
 use ic_platform_types::Principal;
 use std::{cell::RefCell, collections::VecDeque};
 
@@ -12,7 +9,7 @@ fn observation(bytes: Vec<u8>) -> Observation {
         observed_at: 123,
     }
 }
-fn encoded<T: candid_codec::Encode>(value: &T) -> Vec<u8> {
+fn encoded<T: Fixture>(value: &T) -> Vec<u8> {
     encode_one(value, 2 * 1024 * 1024).unwrap()
 }
 fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::MarketplaceEntry {
@@ -25,8 +22,8 @@ fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::
     wire::MarketplaceEntry {
         key,
         entry: wire::PriceEntry {
-            node_type: class,
-            provider: provider.map(|id| ic_platform::Principal::from_slice(id.as_slice())),
+            node_type: serde_json::from_value(serde_json::to_value(class).unwrap()).unwrap(),
+            provider,
             dc: dc.map(str::to_owned),
             updated_at: i64::MIN,
             price: wire::Price {
@@ -92,7 +89,7 @@ fn classes_scopes_raw_text_and_exact_numeric_extremes() {
     ] {
         for provider in [None, provider] {
             for dc in [None, Some(""), Some(" MiXeD\nDC ")] {
-                let mut entry = row(class.clone(), provider, dc);
+                let mut entry = row(class, provider, dc);
                 entry.entry.price.net_cycles = "9".repeat(256).parse().unwrap();
                 entry.entry.price.gross_cycles = entry.entry.price.net_cycles.clone();
                 let report = project(&[entry.clone()]).unwrap();
@@ -108,7 +105,7 @@ fn classes_scopes_raw_text_and_exact_numeric_extremes() {
                     "9".repeat(256)
                 );
                 entry.entry.updated_at = i64::MAX;
-                entry.entry.price.net_cycles = 0u8.into();
+                entry.entry.price.net_cycles = 0u64.into();
                 assert_eq!(
                     project(&[entry]).unwrap().entries[0].updated_at_unix_nanoseconds,
                     i64::MAX

@@ -111,20 +111,18 @@ Exact fields and migration evidence requirements remain to be specified.
 - The libraries own reports and query policy; the CLI owns
   parsing, process IO, progress and pure human-facing presentation. The library
   must not select process output sinks or depend on CLI presentation.
-- Use Platform's published Agent, external DTO and bounded codec capabilities.
-  The replacement supplier is `dragginzgame/ic-platform-new`; direct new
-  capability requests there, not to the retired `ic-platform` repository.
-  Query still selects registry `ic-platform` 0.33.7 for legacy transport and
-  several readers. Treat those as remaining migration work, not proof of full
-  replacement adoption; remove them only with qualified replacement capabilities.
-  Query selects registry Platform 0.34.5, Protocol 0.2.4 and Types 0.21.1.
+- Use Platform's published native read, external DTO and bounded codec capabilities.
+  The replacement supplier is now `dragginzgame/ic-platform` (formerly
+  `ic-platform-new`); direct capability requests to that owner.
+  Query selects registry Platform 0.34.7, Protocol 0.2.6 and Types 0.21.2.
+  The hard cut removes Platform 0.33.7 and Agent from product and test graphs.
   Local sibling paths are development-only; publication must qualify registry
   suppliers before delivery.
-  Public report principals now use published Types 0.21.1, shared with Protocol and
-  certificate authentication. Legacy transport/Registry DTOs remain separate;
-  convert principal bytes only at those external boundaries. The cloud-engine
-  node-class projection remains until its public DTO migrates.
-  Agent owns authentication; Query owns endpoint/root-key admission, limits,
+  Public report principals now use published Types 0.21.2, shared with Protocol and
+  certificate authentication. Cloud-engine classes use Protocol directly;
+  no legacy identity/class bridge remains. Portable test frames and their
+  provenance live beside the topology tests; no private fixture crate is needed.
+  Platform owns authentication; Query owns endpoint/root-key admission, limits,
   deadlines and error projection. Do not add direct Agent, Candid or CDK packages.
 - Keep endpoint, provenance, completeness and certification claims explicit.
   JSON preserves raw values; presentation owns display conversions.

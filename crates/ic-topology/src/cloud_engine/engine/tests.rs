@@ -1,6 +1,6 @@
 use super::*;
 use crate::ReadError;
-use ic_platform::candid_codec::encode_one;
+use crate::tests::{self as fixtures, encode_fixture as encode_one};
 use std::{cell::Cell, time::Duration};
 
 // Independently assembled from the selected IDL and Candid binary specification,
@@ -40,9 +40,9 @@ fn view() -> wire::EngineView {
     }
 }
 // The candidate response projection is decode-only. Keep fixture encoding in
-// the published oracle; this conversion is test setup, not production custody.
+// an independent upstream schema; conversion is fixture setup only.
 fn encode_views(views: &[wire::EngineView], maximum: usize) -> Vec<u8> {
-    let published: Vec<ic_platform::cloud_engine_types::EngineView> =
+    let published: Vec<fixtures::FullViewFrame> =
         serde_json::from_value(serde_json::to_value(views).unwrap()).unwrap();
     encode_one(&published, maximum).unwrap()
 }
@@ -139,18 +139,10 @@ async fn one_argument_one_query_and_successful_omission() {
     let longest: EngineId = "é".repeat(128).parse().unwrap();
     collect(longest.clone(), |argument| async move {
         assert!(argument.len() <= 512);
-        let decoded: Vec<String> = ic_platform::candid_codec::decoder::decode_one(
-            &argument,
-            ic_platform::candid_codec::decoder::Limits {
-                bytes: LIMITS.bytes,
-                header: LIMITS.header,
-                types: LIMITS.types,
-                work: LIMITS.work,
-                allocation: LIMITS.allocation,
-            },
-        )
-        .unwrap();
-        assert_eq!(decoded, [longest.as_str()]);
+        assert_eq!(
+            argument,
+            fixtures::frame("view-argument", &longest.as_str().into())
+        );
         Ok(Observation {
             bytes: encode_views(&[], 1024),
             observed_at: 12,
@@ -384,7 +376,7 @@ async fn shared_deadline_errors_and_cancellation_do_not_retry() {
     assert!(result.is_err() && dropped.get());
     let result = collect(request(), |_| async {
         Err(EngineError::Read(ReadError::Transport(Box::new(
-            ic_platform::agent::AgentError::MessageError("fixture".into()),
+            ic_platform::native::ReadError::Packet,
         ))))
     })
     .await;

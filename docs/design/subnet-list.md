@@ -39,7 +39,7 @@ is when this key last changed, not necessarily the Registry's latest global
 version; label it `record_version`. Query-signature verification does not make
 the value consensus-certified.
 
-Use the established anonymous mainnet Agent policy, 20-second overall deadline
+Use the established anonymous mainnet Platform native policy, 20-second overall deadline
 and 1 MiB HTTP response ceiling. Bound protobuf decoding to 64 KiB of reply bytes,
 4096 fields per decoding pass, 128 KiB of codec allocation, and at most 1024 subnet
 entries. Platform borrows response blobs and counts entries before allocating

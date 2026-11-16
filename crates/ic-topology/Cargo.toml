@@ -1,6 +1,6 @@
 [package]
 name = "ic-topology"
-version = "0.108.0"
+version = "0.107.0"
 description = "Read-only IC infrastructure evidence for Canic topology decisions"
 edition.workspace = true
 rust-version.workspace = true
@@ -15,8 +15,7 @@ toko-tooling.workspace = true
 ignored = ["toko-tooling"]
 
 [dependencies]
-ic-platform = { workspace = true, features = ["agent", "nns-registry-types", "cloud-engine-types"] }
-ic-platform-next.workspace = true
+ic-platform = { workspace = true, features = ["native-read"] }
 ic-platform-protocol.workspace = true
 ic-platform-types.workspace = true
 serde.workspace = true

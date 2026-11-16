@@ -8,21 +8,21 @@ an uptime measurement.
 
 ## Source and claims
 
-Use Platform's published Agent surface, backed by locked Agent 0.49.3's
-`fetch_subnet_by_id`. This performs a fresh subnet-scoped read-state request and
+Use Platform 0.34.7's native `ReadClient::read_subnet`. This performs a fresh
+subnet-scoped read-state request and
 verifies its certificate against the built-in mainnet root, including delegation
 authority for the selected subnet. No generic CBOR decoder, external type mirror
 or new cryptographic implementation belongs in Query.
 
-The Agent requests `/subnet/<id>` and `/canister_ranges/<id>` through
+Platform requests `/subnet/<id>` and `/time` through
 `https://ic0.app/api/v3/subnet/<id>/read_state`. Query projects only the returned
 subnet ID, optional subnet type and node-key identities. It excludes subnet keys and
 canister ranges: a subnet's own attestation is not NNS authorization to route a
 canister to that subnet. The existing Registry placement report remains separate.
 See the supplier's
-[fetch contract](https://docs.rs/ic-agent/0.49.3/ic_agent/struct.Agent.html#method.fetch_subnet_by_id).
+[native contract](https://docs.rs/ic-platform/0.34.7/ic_platform/native/struct.ReadClient.html#method.read_subnet).
 
-The Agent projection does not expose a proof that its enumerated nodes constitute
+The native projection does not expose a proof that its enumerated nodes constitute
 complete Registry membership. The report therefore sets `membership_complete`
 to false and leaves `registry_version` null. Certificate verification establishes
 the authenticated source observation, not node liveness, health, geographic
@@ -32,11 +32,11 @@ those claims implicitly through the word "subnet".
 ## Bounds and report
 
 The implemented reports share one internal mainnet transport policy: anonymous
-Agent, fixed HTTPS endpoint, built-in trust root, no root-key replacement,
-query-signature verification enabled, no TCP retries, a 1 MiB HTTP response-body
-ceiling and a 20-second asynchronous deadline. Agent-internal HTTP work shares
-that deadline. Its ingress-expiry/certificate-age setting is explicitly 300
-seconds; the Agent rejects older certificates but permits future timestamps.
+Platform reads, fixed HTTPS endpoint, pinned trust root/subnet, no root-key replacement,
+query-signature verification enabled, no retries, a 1 MiB message
+ceiling and a 20-second asynchronous deadline. Platform HTTP work shares
+that deadline. Ingress expiry is 300 seconds; signing and delegation times
+must fall within 300 seconds past/60 seconds future of the local reference.
 Local observation time is not a certificate timestamp or an independent freshness
 proof. Query does not add a retry engine or persistent cache.
 
@@ -47,9 +47,9 @@ duplicate identities and missing node-key evidence. Transport, verification,
 deadline and clock failures use the shared typed `ReadError`; subnet-specific
 failures remain in `SubnetError`. A failed read does not establish downtime.
 
-These bounds limit transport bytes and Query's projection. Agent owns certificate
+These bounds limit transport bytes and Query's projection. Platform owns certificate
 decoding and cryptography; an async deadline does not preempt synchronous work.
-The node bound applies after the byte-bounded Agent response has been decoded.
+The node bound applies after the byte-bounded Platform response has been decoded.
 
 ## Ownership and qualification
 
@@ -79,23 +79,25 @@ compatibility adapter is introduced by this internal ownership cleanup.
 
 Canic needs to distinguish subnet classes when comparing application placement
 and cloud-engine options. The report extends the existing observation using the
-optional `/subnet/<id>/type` leaf already decoded by the same Agent fetch. This adds no
+optional `/subnet/<id>/type` leaf already decoded by the same native read. This adds no
 request or Registry join. The certificate authenticates the selected subnet's
 statement; it does not establish independent Registry agreement, deployment
 permission, pricing, available capacity or TEE capability.
 
 The schema-1 field is `observed_subnet_type: Option<String>`. Preserve
 `application`, `verified_application`, `system` and `cloud_engine` distinctly;
-retain unrecognized source strings without normalization. `null` means the Agent
+retain unrecognized source strings without normalization. `null` means Platform
 proved the leaf absent, not that the subnet has an unknown type. Pruned, malformed
 or unverifiable evidence remains a read failure. Limit a retained type to 128
 UTF-8 bytes and reject excess with a typed subnet error; do not truncate it.
 Text presentation quotes and escapes the string so unknown values cannot emit
 terminal control characters; JSON retains the raw string.
 
-Published Platform 0.33.1 supplies `ic_platform::agent::SubnetType`, preserving
-the upstream identity. Query matches its variants directly, including
+The original Platform 0.33.1 adoption supplied `ic_platform::agent::SubnetType`, preserving
+the upstream identity. Query matched its variants directly, including
 `Unknown(String)`; it adds no external type mirror or direct Agent dependency.
+The current native supplier returns an optional raw string directly, preserving
+the same known, unknown and absent distinctions without the old enum bridge.
 The adopted non-yanked registry archive has SHA-256
 `4d780999e8b7e89cf9f3f78c979daaaf0299127451d904636867c61b56cd233c`
 and identifies release commit `512063b53dd30647ae1887372f8507ae31bfdd79`.

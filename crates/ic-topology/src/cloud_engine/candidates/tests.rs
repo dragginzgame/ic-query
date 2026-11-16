@@ -3,7 +3,7 @@ use available::{
     AvailableError, AvailableNode, AvailableNodesReport, AvailablePage, RegistryCopyObservation,
     TraversalStop,
 };
-use ic_platform::cloud_engine_types::NodeType;
+use ic_platform_protocol::cloud_engine::NodeType;
 use prices::{
     CloudEnginePricesReport, FeeOutcome, MarketplacePrice, PriceError, PriceEvidence,
     PriceObservation,
@@ -129,7 +129,7 @@ fn exact_scopes_retain_all_overlaps_without_selecting_precedence() {
         NodeType::Type4_5,
     ] {
         let mut candidate = node(None);
-        candidate.node_type = class.clone();
+        candidate.node_type = class;
         assert_eq!(
             matching_indices(&candidate, &[price(class, None, None)]),
             [0]

@@ -10,22 +10,11 @@ The root virtual workspace contains `ic-topology`, `ic-sns-migration` and
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-The [configuration integration](../design/subnet-configuration.md) and
-[membership comparison](../design/subnet-membership.md) use published Platform
-0.33.7 with published Types 0.21.1 report identities, also supplying the
-[node report](../design/node-inventory.md). These readers remain on the legacy
-supplier during the local migration below.
-The [distribution report](../design/subnet-distribution.md) uses Platform 0.33.5's
-published version, operator and data-center decoders for bounded pinned joins.
-The [cloud-engine prices and availability](../design/cloud-engine-marketplace.md)
-retain Platform 0.33.7 transport, empty-request encoding and report DTO identities.
-Prices, network-fee, copy-status and availability responses and page-request
-encoding use published Protocol 0.2.4.
-Platform 0.33.7 adds the [selected-engine view](../design/cloud-engine-topology.md),
-using the same feature and transport policy with strict optional-field decoding.
-The selected-engine and registered-settings codecs select published Protocol 0.2.4;
-see [supplier preparation](#certificate-time-supplier). Platform 0.33.7 still
-supplies transport, other readers and selected-engine fixture encoding.
+All topology reads select published Platform 0.34.7 `native-read`, Protocol 0.2.6
+for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
+graphs no longer select legacy Platform or Agent. The topology tests replay a
+[portable corpus](../../crates/ic-topology/src/tests/README.md), packaged with
+the library; they do not need a sibling checkout or direct Candid dependency.
 The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
 
@@ -51,13 +40,44 @@ without a launcher, use `bash vendor/toko-tooling/scripts/dev/toko-cloc -d 0`.
 
 The selected delivery is topology 0.108.0 and CLI 0.105.10 to crates.io
 and GitHub. Registry inspection on 2026-11-16 confirmed non-yanked Platform
-0.34.5, Protocol 0.2.4 and Types 0.21.1. Query selects these registry versions;
+0.34.7, Protocol 0.2.6 and Types 0.21.2. Query selects these registry versions;
 no sibling checkout is required. The unchanged SNS shell is outside this batch.
 
-Query and the CLI share published Types 0.21.1 with Protocol and certificate
-authentication. Types 0.20.4 remains behind legacy Platform 0.33.7 transport/DTOs;
-the replacement does not yet supply those selected capabilities. The optional
-canister-signature feature is not selected. Thiserror remains 2.0.18.
+Query and the CLI share published Types 0.21.2 with Protocol and certificate
+authentication. Legacy Types 0.20.4, Platform 0.33.7, Agent and their identity/class
+bridges are retired. The optional canister-signature and native-signed features
+are not selected. The thiserror requirement remains compatible at 2.0.18.
+
+The current hard cut adapts the supplier's delivered patch and 313-frame corpus
+at revision `53efb18ccd31f4ed7ec6f611488fe27820fbd0ef`, resolving the fixture gap
+in [Platform #10](https://github.com/dragginzgame/ic-platform/issues/10).
+Query owns the fixed endpoint, pinned mainnet root/subnet, 20-second whole-read
+deadline, 1 MiB message limit and 300-second ingress expiry. Platform authenticates
+under explicit 300-second past/60-second future windows for certificate and
+delegation timestamps. Redirects, proxies and transport retries are disabled.
+Progress retains its stricter 4096-node final verification budget and distinct
+signing/delegation times. Other native reads allow 16384 tree nodes, depth 64,
+128 KiB delegation bytes and 4096 canister ranges. Retained reports stay schema 1;
+public Rust supplier/error identities require consumer migration at topology 0.108.0.
+
+On 2026-11-16 the hard cut passed 187 topology/CLI tests (139 topology, 22 CLI
+unit and 26 process), strict all-target Clippy and Rustdoc with denied warnings
+on Linux x86-64. Both package archives were created with `cargo package --locked
+--offline --allow-dirty --no-verify`; inspection confirmed the topology archive
+includes the corpus, replay helper and pinned root. Archive creation is not
+archive build verification or publication. The product graph selects exactly
+one Platform/Protocol/Types cohort and no Agent; no private fixture or direct
+Query Candid dependency remains. Upstream transport dependencies remain owned
+by Platform. The pinned root was byte-compared with the previous transport's
+mainnet trust key. A live node-signature-verified query resolved the ICP ledger to
+the NNS subnet at Unix second 1794861868, without claiming result certification.
+Two live root-subnet progress observations advanced by 873878127 nanoseconds;
+both passed certificate-time admission. These are bounded smoke observations,
+not uptime evidence. Formatting, local links and tooling admission also passed.
+macOS and publication qualification remain separate.
+
+The following validation and probe records describe earlier selections, not the
+current hard-cut qualification.
 
 The registry adoption passed the complete local Linux validation stages on
 2026-11-16: strict all-target Clippy, Rustdoc, 184 tests, formatting, local
@@ -75,12 +95,18 @@ Prepared topology 0.108.0 and CLI 0.105.10 archives passed a combined
 `cargo publish --dry-run --locked --allow-dirty -p ic-topology -p ic-query-cli`
 on 2026-11-16, including verification of the CLI against the packaged topology
 crate. Final-version CLI process tests and documentation admission also passed.
-No upload or Git delivery occurred. The required release runner has not yet
-been adopted; the current Makefile exposes neither release nor publication
-entrypoints. These versions remain unreleased candidates until that prerequisite
-and final clean-source/provenance admission are satisfied.
+No upload or Git delivery occurred in that earlier preparation. The current
+[release adapter](releases.md) now exposes the required shared release and
+publication entrypoints; final source and archive admission occur during delivery.
 
-The subsequent Platform 0.34.5 / Protocol 0.2.4 hard-cut probe compiled topology
+The subsequent registry update to Platform 0.34.6, Protocol 0.2.5 and Types
+0.21.2 passed all 184 topology/CLI tests, strict all-target Clippy, formatting,
+documentation links and snapshot/Cargo admission on Linux x86-64 on 2026-11-16.
+Only these three supplier packages changed in the lockfile. Adoption remains
+partial: legacy Platform 0.33.7 still supplies transport, remaining readers and
+fixture encoding, and the portable-fixture issue below remains open.
+
+The earlier Platform 0.34.5 / Protocol 0.2.4 hard-cut probe compiled topology
 and the CLI against registry packages on Linux x86-64, with one Types 0.21.1 and
 no Agent or legacy Platform edge. It adapted the supplier's
 [consumer patch and qualification](https://github.com/dragginzgame/ic-platform/blob/1e92703bc803b81dbe1e3d815fd1077d440d62b4/docs/qualification/query-hard-cut.md)
@@ -202,28 +228,37 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.44.9** was verified as the latest stable, non-yanked registry
-release through Cargo's sparse index on 2026-11-16. Its authenticated archive SHA-256 is:
+Toko Tooling **0.44.11** was selected from crates.io on 2026-11-16 through
+the supported updater. Its authenticated archive SHA-256 is:
 
 ```text
-bdfd5bc761f55ede02e82f8af36ca82415696209b3ff45e8f080e82cab85c418
+7d16b815ae322ae3f88580ee6af1611bdafde08b77592cd886bfa0eece0f1be8
 ```
 
-The [receipt](../../.toko-tooling.snapshot) records the eight selected roots and
+The [receipt](../../.toko-tooling.snapshot) records the fourteen selected roots and
 all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.9 refresh accounts for all 50 installed payload files. The reviewed
+The 0.44.11 release-tooling selection accounts for all 78 installed payload files.
+Release/publication runners, source/receipt admission and package provenance
+checks were added through the supported exporter for the authorized delivery.
+The earlier reviewed
 preview updates the baseline and keeps the executable payload unchanged; the
-supported updater owns the receipt. The baseline clarifies asynchronous hosted
+supported updater owns the receipt. Versions 0.44.10–0.44.11 add setup-failure
+diagnostic requirements and repository-qualified issue references. Local issue
+labels now identify their owning repositories. The existing CI workflow still
+needs bounded, sanitized setup-failure artifact collection; installing this
+baseline does not establish that hosted evidence-retention behavior.
+The baseline also clarifies asynchronous hosted
 CI for delivery, one-tier qualification package layout and independent compatible
 thiserror selection. Query has no separate qualification packages, and its
 thiserror requirement is compatible rather than an exact fleet-wide hold.
 Version 0.44.9 makes named-supplier adoption cover product, dev/build and
 qualification callers by default. Query's maintained manifests and lockfile
 were inventoried; no independent qualification workspace exists. Platform
-adoption remains explicitly partial while the fixture delivery in #10 is pending.
+adoption was partial at that revision; the current hard cut above adopts the
+fixture delivery from Platform #10.
 The working-tree update to Platform 0.34.5, Protocol 0.2.4 and Toko Tooling
 0.44.9 passed 184 topology/CLI tests, strict all-target topology Clippy,
 formatting, documentation links and snapshot/Cargo admission on Linux x86-64.

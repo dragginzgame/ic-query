@@ -1,6 +1,15 @@
 .DEFAULT_GOAL := help
 REPO_ROOT := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 TOKO_TOOLING_ROOT := $(REPO_ROOT)vendor/toko-tooling
+TOKO_TOOLING_RELEASE := 1
+export RELEASE_DELIVERY := direct
+export PATH := $(CURDIR)/.tools/host/bin:$(CURDIR)/.tools/rust/common/bin:$(PATH)
+RELEASE_DELIVERY_POLICY := ci/release-delivery.txt
+RELEASE_SETUP_TARGET := release-setup
+RELEASE_PUBLISH_TARGET := publish
+CARGO_PUBLISH_PACKAGES = $(if $(filter topology,$(RELEASE_GROUP)),ic-topology,$(if $(filter cli,$(RELEASE_GROUP)),ic-query-cli,ic-topology ic-query-cli))
+CARGO_PUBLISH_REGISTRY := crates-io
+CARGO_PUBLISH_VERIFY_TARGETS := publication-admission
 include $(TOKO_TOOLING_ROOT)/make/consumer.mk
 include $(TOKO_TOOLING_ROOT)/make/cargo-dependencies.mk
 
@@ -22,8 +31,10 @@ help:
 	  'doc-links-check     Check local documentation file links' \
 	  'toko-tooling-check  Admit Cargo pin, members, lockfile and snapshot' \
 	  'install-tools       Prepare shared host and Rust developer tools'
+	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
 
-check: toko-tooling-check doc-links-check fmt-check clippy rustdoc test
+check:
+	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(TOKO_TOOLING_ROOT)/scripts/ci/run-validation-targets.sh" --fail-fast toko-tooling-check tools-check doc-links-check fmt-check clippy rustdoc test
 ci: check
 
 icq: toko-tooling-check | toko-execution-check
@@ -50,3 +61,25 @@ qualify-cli: toko-tooling-check
 doc-links-check: toko-tooling-check
 	@perl "$(TOKO_TOOLING_ROOT)/scripts/ci/check-documentation-links.pl" \
 	  --root "$(REPO_ROOT)" README.md AGENTS.md CHANGELOG.md docs releases
+
+.PHONY: release-setup release-version release-preflight release-verify release-prepare-version release-prepared-check release-files release-commit-check release-committed-check release-tagged-check release-push-check publication-admission
+release-setup:
+	+@bash scripts/release.sh setup
+release-version:
+	@bash scripts/release.sh version
+release-preflight:
+	+@bash scripts/release.sh preflight
+release-verify:
+	+@bash scripts/release.sh verify
+release-prepare-version:
+	@bash scripts/release.sh prepare
+release-prepared-check:
+	@bash scripts/release.sh prepared
+release-files:
+	@bash scripts/release.sh files
+release-commit-check:
+	@bash scripts/release.sh commit
+release-committed-check release-tagged-check release-push-check:
+	@bash scripts/release.sh committed
+publication-admission:
+	@bash scripts/release.sh publication

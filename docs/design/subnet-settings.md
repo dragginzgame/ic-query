@@ -1,11 +1,11 @@
 # Registered subnet features and resource limits
 
-Status: implemented using published Platform Protocol 0.2.4,
+Status: implemented using published Platform Protocol 0.2.6,
 under the [registry supplier selection](../development/setup.md#certificate-time-supplier).
 The `registry-settings` decoder owns the wire
-projection; Platform 0.33.7 still owns transport and the Registry envelope.
+projection; Platform 0.34.7 owns native transport and Protocol owns the Registry envelope.
 Original supplier request:
-[#169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
+[Platform #169 — Add bounded Registry subnet feature and resource-limit projection for Query](https://github.com/dragginzgame/ic-platform/issues/169).
 
 ## Canic decision and source
 

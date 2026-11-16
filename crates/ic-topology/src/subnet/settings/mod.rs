@@ -1,6 +1,6 @@
 //! Registered feature and resource declarations, without resolving replica defaults.
 use crate::{ReadError, mainnet};
-use ic_platform::nns_registry_types::protobuf;
+use ic_platform_protocol::registry as protobuf;
 use ic_platform_protocol::registry_settings as wire;
 use ic_platform_types::Principal;
 use serde::Serialize;
@@ -44,7 +44,7 @@ pub struct SubnetSettingsEvidence {
     pub record_version: u64,
     /// Raw record mutation timestamp, in Unix nanoseconds.
     pub record_timestamp_nanoseconds: u64,
-    /// Agent verified the query response signature using authenticated node keys.
+    /// Platform verified the query response signature using authenticated node keys.
     pub query_signature_verified: bool,
     /// False: signatures do not consensus-certify the Registry value.
     pub result_certified: bool,
@@ -58,7 +58,7 @@ pub enum SubnetSettingsError {
     /// Mainnet transport, verification, deadline or local clock failure.
     #[error(transparent)]
     Read(#[from] ReadError),
-    /// The fixed Registry identity could not cross the Agent boundary.
+    /// The fixed Registry identity could not cross the Platform boundary.
     #[error("invalid Registry identity: {0}")]
     SourceIdentity(String),
     /// Existing bounded Registry request/envelope codec refusal.
@@ -97,17 +97,11 @@ pub enum SubnetSettingsError {
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetSettingsReport, SubnetSettingsError> {
     let key = source_key(subnet_id);
     let argument = protobuf::encode_get_value_request(key.as_bytes(), None, 256)?;
-    let agent = mainnet::agent()?;
+    let client = mainnet::client()?;
     let registry = mainnet::REGISTRY
         .parse()
         .map_err(|error| SubnetSettingsError::SourceIdentity(format!("{error}")))?;
-    let bytes = mainnet::read(
-        agent
-            .query(&registry, mainnet::REGISTRY_METHOD)
-            .with_arg(argument)
-            .call(),
-    )
-    .await?;
+    let bytes = mainnet::query(&client, registry, mainnet::REGISTRY_METHOD, &argument).await?;
     project(subnet_id, &bytes, mainnet::observed_at()?)
 }
 
@@ -197,7 +191,7 @@ fn settings_error<S: serde::Serializer>(
     let kind = match error {
         SubnetSettingsError::Read(ReadError::Transport(_)) => "transport",
         SubnetSettingsError::Read(ReadError::Deadline) => "read_deadline",
-        SubnetSettingsError::Read(ReadError::Clock(_)) => "clock",
+        SubnetSettingsError::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
         SubnetSettingsError::SourceIdentity(_) => "source_identity",
         SubnetSettingsError::Envelope(_) => "envelope",
         SubnetSettingsError::Settings(_) => "settings_decode",

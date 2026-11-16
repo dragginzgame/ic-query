@@ -1,8 +1,8 @@
 //! Query-owned daily price reports and typed partial failures.
 
 use crate::ReadError;
-use ic_platform::{candid_codec, cloud_engine_types::NodeType};
 use ic_platform_protocol::candid as decoder;
+use ic_platform_protocol::cloud_engine::{EncodeError, NodeType};
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 use std::time::Duration;
@@ -66,7 +66,7 @@ pub struct PriceEvidence {
     pub source_method: &'static str,
     /// Local response-completion time in Unix seconds.
     pub observed_at_unix_seconds: u64,
-    /// Agent verified the query signature.
+    /// Platform verified the query signature.
     pub query_signature_verified: bool,
     /// False: query signatures do not certify result consensus.
     pub result_certified: bool,
@@ -126,12 +126,12 @@ pub enum AdmissionError {
 /// Source, codec and report failures with original typed causes retained.
 #[derive(Debug, Error)]
 pub enum PriceError {
-    /// Agent query, leaf deadline or local clock failure.
+    /// Platform query, leaf deadline or local clock failure.
     #[error(transparent)]
     Read(#[from] ReadError),
     /// Bounded empty-request encoding failed.
     #[error("cloud-engine request encoding failed: {0:?}")]
-    Encode(candid_codec::Error),
+    Encode(EncodeError),
     /// Bounded external response decoding failed.
     #[error("cloud-engine response decoding failed: {0:?}")]
     Decode(decoder::Error),
@@ -143,8 +143,8 @@ pub enum PriceError {
     OverallDeadline,
 }
 
-impl From<candid_codec::Error> for PriceError {
-    fn from(error: candid_codec::Error) -> Self {
+impl From<EncodeError> for PriceError {
+    fn from(error: EncodeError) -> Self {
         Self::Encode(error)
     }
 }
@@ -160,7 +160,7 @@ impl Serialize for PriceError {
         let category = match self {
             Self::Read(ReadError::Transport(_)) => "transport",
             Self::Read(ReadError::Deadline) => "read_deadline",
-            Self::Read(ReadError::Clock(_)) => "clock",
+            Self::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
             Self::Encode(_) => "encode",
             Self::Decode(_) => "decode",
             Self::Admission(_) => "admission",

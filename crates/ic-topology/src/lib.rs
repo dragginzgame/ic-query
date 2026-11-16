@@ -40,3 +40,6 @@ pub use mainnet::ReadError;
 pub mod node;
 pub mod placement;
 pub mod subnet;
+
+#[cfg(test)]
+mod tests;

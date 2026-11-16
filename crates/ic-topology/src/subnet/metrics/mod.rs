@@ -11,7 +11,7 @@ use crate::{ReadError, mainnet};
 pub struct SubnetMetricsReport {
     /// Query-owned schema; remains 1 before 1.0.
     pub schema: u8,
-    /// Subnet whose authority and metrics path the Agent verified.
+    /// Subnet whose authority and metrics path Platform verified.
     pub subnet_id: Principal,
     /// Current canister count; this may decrease.
     pub num_canisters: u64,
@@ -34,11 +34,11 @@ pub struct SubnetMetricsEvidence {
     pub endpoint: &'static str,
     /// Subnet-scoped HTTP read-state path.
     pub source_path: String,
-    /// Exact certified tree leaf selected by the Agent.
+    /// Exact certified tree leaf selected by Platform.
     pub state_tree_path: String,
     /// Local completion time in Unix seconds; not the certificate timestamp.
     pub observed_at_unix_seconds: u64,
-    /// Agent verified the certificate, subnet authority and its timestamp policy.
+    /// Platform verified the certificate, subnet authority and its timestamp policy.
     pub state_certificate_verified: bool,
 }
 
@@ -48,12 +48,9 @@ pub enum SubnetMetricsError {
     /// Transport, certificate, decoding, missing-leaf, deadline or clock failure.
     #[error(transparent)]
     Read(#[from] ReadError),
-    /// Selected identity could not cross the Agent boundary.
-    #[error("invalid subnet identity: {0}")]
-    SourceIdentity(String),
 }
 
-/// Read one subnet's certified metrics using the published Platform Agent.
+/// Read one subnet's certified metrics using the published Platform native client.
 ///
 /// Uses the shared mainnet trust policy, 20-second deadline and 1 MiB HTTP ceiling.
 /// Requires a Tokio runtime with IO and time. No polling, retries, caches, rates
@@ -62,14 +59,13 @@ pub enum SubnetMetricsError {
 /// # Errors
 /// Refuses an invalid identity, failed read or verification, absent/malformed
 /// metrics, deadline expiry or unavailable local observation time. Missing values
-/// never become zero defaults. Agent owns external decoding and verification.
+/// never become zero defaults. Platform owns external decoding and verification.
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetMetricsReport, SubnetMetricsError> {
-    let agent = mainnet::agent()?;
-    let external_id = subnet_id
-        .as_slice()
-        .try_into()
-        .map_err(|error| SubnetMetricsError::SourceIdentity(format!("{error}")))?;
-    let metrics = mainnet::read(agent.read_state_subnet_metrics(external_id)).await?;
+    let client = mainnet::client()?;
+    let observation = mainnet::subnet(&client, subnet_id).await?;
+    let metrics = observation.metrics().ok_or_else(|| {
+        ReadError::Transport(Box::new(ic_platform::native::ReadError::MissingPath))
+    })?;
     Ok(SubnetMetricsReport {
         schema: 1,
         subnet_id,
@@ -129,8 +125,7 @@ fn metrics_error<S: Serializer>(error: &SubnetMetricsError, s: S) -> Result<S::O
     s.serialize_str(match error {
         SubnetMetricsError::Read(ReadError::Transport(_)) => "transport",
         SubnetMetricsError::Read(ReadError::Deadline) => "read_deadline",
-        SubnetMetricsError::Read(ReadError::Clock(_)) => "clock",
-        SubnetMetricsError::SourceIdentity(_) => "source_identity",
+        SubnetMetricsError::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
     })
 }
 

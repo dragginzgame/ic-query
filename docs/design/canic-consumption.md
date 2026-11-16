@@ -4,13 +4,16 @@ Status: Query collection delivered in topology 0.106.1 and the placement adapter
 delivered in Canic 0.210.0. The explicit two-subnet adapter was delivered in
 Canic 0.211.0. Canic consumes Query; Query has no dependency on Canic.
 
-Pending Query migration moves public principals to published Types 0.21.1. A read-only
+Pending Query migration moves public principals to published Types 0.21.2. A read-only
 check of the sibling Canic manifest on 2026-11-16 still selects Query revision
 `0a3eca919f05d777798406087049cc51ab7ae2a8` / topology 0.106.1. Its current pin is
 unaffected by local changes here. Before adopting the next incompatible topology
 release, its adapter must align principal types with the selected Types source
-and requalify calls. Principal JSON is unchanged and needs no retained-evidence
-reset. No Canic source or dependency was changed in this migration.
+and requalify calls. The hard cut also changes native transport/codec error
+payloads and cloud-engine class identities, removes unreachable subnet/metrics
+identity errors and adds `ReadError::ClockRange`. Update exhaustive Rust matches
+against topology 0.108.0. JSON is unchanged and needs no retained-evidence reset.
+No Canic source or dependency was changed in this migration.
 
 ## What the current consumer owns
 

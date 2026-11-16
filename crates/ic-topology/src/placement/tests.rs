@@ -1,14 +1,10 @@
-use ic_platform::nns_registry_types::GetSubnetForCanisterResponseOk;
+use crate::tests::{Placement as GetSubnetForCanisterResponseOk, encode_fixture, frame};
 
-use super::{
-    PlacementError, Principal, REPLY_LIMITS, candid_codec, decode_subnet, decoder, report,
-};
+use super::{PlacementError, Principal, REPLY_LIMITS, decode_subnet, decoder, report};
 
 fn reply(subnet_id: Option<Principal>) -> Vec<u8> {
-    let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk {
-        subnet_id: subnet_id.map(|id| ic_platform::Principal::from_slice(id.as_slice())),
-    });
-    candid_codec::encode_one(&response, 1024).expect("fixture encodes")
+    let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk { subnet_id });
+    encode_fixture(&response, 1024).expect("fixture encodes")
 }
 
 #[test]
@@ -16,12 +12,16 @@ fn replacement_identity_preserves_registry_bytes_and_report_json() {
     for length in 0..=29 {
         let bytes: Vec<_> = (0..length).map(|index| index as u8).collect();
         let identity = Principal::from_slice(&bytes);
-        let legacy = ic_platform::Principal::from_slice(&bytes);
+        let independent = String::from_utf8(frame(
+            "principal-text",
+            &serde_json::to_value(&bytes).unwrap(),
+        ))
+        .unwrap();
         assert_eq!(decode_subnet(&reply(Some(identity))).unwrap(), identity);
-        assert_eq!(identity.to_text(), legacy.to_text());
+        assert_eq!(identity.to_text(), independent);
         assert_eq!(
             serde_json::to_value(identity).unwrap(),
-            serde_json::to_value(legacy).unwrap()
+            serde_json::to_value(independent).unwrap()
         );
     }
 }
@@ -57,7 +57,7 @@ fn registry_rejection_and_missing_subnet_are_distinct_failures() {
         Err(PlacementError::MissingSubnet)
     ));
     let response: Result<GetSubnetForCanisterResponseOk, _> = Err("unmapped 🌍".to_owned());
-    let bytes = candid_codec::encode_one(&response, 1024).unwrap();
+    let bytes = encode_fixture(&response, 1024).unwrap();
     assert!(
         matches!(decode_subnet(&bytes), Err(PlacementError::RegistryRejected(message)) if message == "unmapped 🌍")
     );
@@ -75,8 +75,7 @@ fn malformed_trailing_surplus_and_oversized_replies_are_refused() {
         decode_subnet(&trailing),
         Err(PlacementError::Decode(decoder::Error::Trailing))
     ));
-    let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk { subnet_id: None });
-    let surplus = candid_codec::arguments::encode_args(&(response, 1u8), 1024).unwrap();
+    let surplus = frame("placement-surplus", &serde_json::Value::Null);
     assert!(matches!(
         decode_subnet(&surplus),
         Err(PlacementError::Decode(decoder::Error::Arity))

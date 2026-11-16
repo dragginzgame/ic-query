@@ -69,7 +69,8 @@ The [selected-engine report](docs/design/cloud-engine-topology.md) connects an
 opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The SNS library remains a shell. Publication is enabled; the next topology/CLI
-delivery selects published replacement Platform dependencies. Full SNS
+delivery selects Platform 0.34.7 native reads, Protocol 0.2.6 and Types 0.21.2,
+with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
 

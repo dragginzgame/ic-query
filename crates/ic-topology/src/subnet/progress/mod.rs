@@ -1,7 +1,7 @@
 //! Two authenticated subnet state times, without an uptime or completion verdict.
 use crate::{ReadError, mainnet};
-use ic_platform_next::certificate::{
-    PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits, VerifyError,
+use ic_platform::certificate::{
+    TimePolicy, TimeWindow, VerificationLimits, VerifyError,
     authenticate_subnet_time_from_certificate,
 };
 use ic_platform_types::Principal;
@@ -13,8 +13,6 @@ use std::{
 use thiserror::Error;
 use tokio::time::Instant;
 
-// Fixed mainnet root/subnet binding, never derived from the requested ID or reply.
-const ROOT_SUBNET: &str = "tdb26-jop6k-aogll-7ltgs-eruif-6kk7m-qpktf-gdiqx-mxtrf-vb5e6-eqe";
 const MAX_AGE_NS: u64 = 300_000_000_000;
 const FUTURE_SKEW_NS: u64 = 60_000_000_000;
 const LIMITS: VerificationLimits = VerificationLimits {
@@ -47,7 +45,7 @@ pub struct StateTimeObservation {
     pub maximum_future_skew_nanoseconds: u64,
     /// Platform authenticated time, signatures and exact subnet authority.
     pub state_certificate_verified: bool,
-    /// False: Agent returns a parsed certificate, not original encoding bytes.
+    /// False: this report does not retain the authenticated certificate bytes.
     pub original_certificate_bytes_retained: bool,
 }
 
@@ -136,8 +134,8 @@ pub enum ProgressError {
 ///
 /// Uses mainnet admission, 20 seconds per read and a 1 MiB HTTP ceiling. Both
 /// certificate times must be within 300 seconds past/60 seconds future of local
-/// verification time. Agent outer decoding precedes Platform's bounded traversal;
-/// original encoding bytes are unavailable. No retries, tasks or persistence.
+/// verification time. Platform strictly decodes the original certificate bytes;
+/// this report does not retain them. No retries, tasks or persistence.
 /// At most 100 asynchronous seconds plus bounded verification and scheduling.
 /// Requires Tokio IO/time. Cancellation starts no subsequent acquisition.
 ///
@@ -151,19 +149,19 @@ pub async fn fetch(
 }
 
 async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTimeError> {
-    let agent = mainnet::agent()?;
-    let external = subnet_id
-        .as_slice()
-        .try_into()
-        .map_err(|e| StateTimeError::Identity(format!("{e}")))?;
-    let certificate =
-        mainnet::read(agent.read_subnet_state_raw(vec![vec!["time".into()]], external)).await?;
+    let client = mainnet::client()?;
+    let observation = mainnet::subnet(&client, subnet_id).await?;
+    let certificate = ic_platform::certificate::decode_certificate(
+        observation.certificate_bytes(),
+        ic_platform::certificate::CertificateDecodeLimits { bytes: 1024 * 1024 },
+    )
+    .map_err(|e| ReadError::Transport(Box::new(ic_platform::native::ReadError::Decode(e))))?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(ReadError::Clock)?;
     let reference_ns = u64::try_from(now.as_nanos()).map_err(|_| StateTimeError::ClockRange)?;
-    let root = PreparedRootKey::from_der(&agent.read_root_key())?;
-    let root_subnet = ROOT_SUBNET
+    let root = client.root();
+    let root_subnet = mainnet::ROOT_SUBNET
         .parse()
         .map_err(|e| StateTimeError::Identity(format!("{e}")))?;
     let window = TimeWindow {
@@ -172,8 +170,8 @@ async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTime
         max_future_skew_ns: FUTURE_SKEW_NS,
     };
     let evidence = authenticate_subnet_time_from_certificate(
-        &certificate,
-        &root,
+        certificate.unverified(),
+        root,
         subnet_id,
         Some(root_subnet),
         TimePolicy {
@@ -257,7 +255,8 @@ fn read_error<S: Serializer>(error: &StateTimeError, s: S) -> Result<S::Ok, S::E
     s.serialize_str(match error {
         StateTimeError::Read(ReadError::Deadline) => "read_deadline",
         StateTimeError::Read(ReadError::Transport(_)) => "transport",
-        StateTimeError::Read(ReadError::Clock(_)) | StateTimeError::ClockRange => "clock",
+        StateTimeError::Read(ReadError::Clock(_) | ReadError::ClockRange)
+        | StateTimeError::ClockRange => "clock",
         StateTimeError::Authentication(_) => "authentication",
         StateTimeError::Identity(_) | StateTimeError::SourceMismatch => "source_identity",
     })

@@ -239,7 +239,7 @@ fn read_category(error: &ReadError) -> &'static str {
     match error {
         ReadError::Transport(_) => "transport",
         ReadError::Deadline => "read_deadline",
-        ReadError::Clock(_) => "clock",
+        ReadError::Clock(_) | ReadError::ClockRange => "clock",
     }
 }
 fn configuration_error<S: Serializer>(
