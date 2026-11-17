@@ -15,6 +15,23 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.12 — Unreleased
+
+### ▶️ Read migration evidence
+
+From a prepared checkout with network access, read one Dragginz ICRC account or
+one bounded SNS neuron page. A full page exits 1 with useful partial output:
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- icrc balance \
+  zfcdd-tqaaa-aaaaq-aaaga-cai 2vxsx-fae --json
+cargo run --locked --offline -p ic-query-cli -- sns neuron list \
+  zqfso-syaaa-aaaaq-aaafq-cai --json
+```
+
+See the [CLI ledger](releases/cli/CHANGELOG.md) for exact-neuron and
+principal-filter examples, limits and exit statuses.
+
 ## CLI 0.105.11 — 2026-11-16
 
 ### ▶️ Try it

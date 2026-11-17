@@ -1,7 +1,7 @@
 [package]
 name = "ic-sns-migration"
 version = "0.104.0"
-description = "Selected SNS balance and neuron evidence for user migration"
+description = "Selected ICRC balances and SNS neuron evidence for user migration"
 edition.workspace = true
 rust-version.workspace = true
 license-file.workspace = true
@@ -13,6 +13,18 @@ toko-tooling.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["toko-tooling"]
+
+[dependencies]
+ic-platform = { workspace = true, features = ["native-read"] }
+ic-platform-protocol = { workspace = true, features = ["ledger", "sns-neurons"] }
+ic-platform-types.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
 
 [lints]
 workspace = true

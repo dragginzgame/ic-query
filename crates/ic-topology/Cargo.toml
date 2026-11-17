@@ -16,7 +16,7 @@ ignored = ["toko-tooling"]
 
 [dependencies]
 ic-platform = { workspace = true, features = ["native-read"] }
-ic-platform-protocol.workspace = true
+ic-platform-protocol = { workspace = true, features = ["cloud-engine-marketplace", "registry-settings", "registry", "registry-placement"] }
 ic-platform-types.workspace = true
 serde.workspace = true
 thiserror.workspace = true

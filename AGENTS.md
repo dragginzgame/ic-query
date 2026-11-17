@@ -76,8 +76,9 @@ repository. The `ic-topology` crate must contain no SNS module, feature or
 dependency on that crate. Each library selects its own Platform capabilities;
 neither depends on the other. A CLI may explicitly compose both.
 
-Support is limited to reading balances and neuron information for an explicitly
-selected SNS. Its sole purpose is to support migration of users of Motoko, Toko,
+Support is limited to reading balances from any explicitly selected ICRC ledger
+and neuron information from any explicitly selected compatible SNS Governance
+canister. Dragginz and Toko are examples, not deployment restrictions. Its sole purpose is to support migration of users of Motoko, Toko,
 Dragginz and similar applications to our new platform. This is an exception to
 the topology focus, not a commitment to full SNS support.
 
@@ -90,7 +91,8 @@ bounded pagination must serve the selected balance or neuron report.
 Preserve exact balances, neuron fields, source identities, observation times and
 coverage needed by migration consumers. Reading these records does not execute
 a migration, transfer tokens, manage neurons or decide destination entitlements.
-Exact fields and migration evidence requirements remain to be specified.
+The implemented selectors, fields, bounds and limitations are defined in the
+[migration evidence contract](docs/design/migration-evidence.md).
 
 ## Product boundaries
 
@@ -105,8 +107,8 @@ Exact fields and migration evidence requirements remain to be specified.
 - Query is read-only. No token transfers, neuron management, proposals,
   deployment, signing-key custody or arbitrary method invocation.
 - Implemented topology reports and CLI commands are defined by their linked
-  contracts. Further reports require a concrete Canic decision; SNS selectors
-  and migration fields remain unspecified. Retaining a package name does not
+  contracts. Further reports require a concrete Canic decision; migration
+  evidence follows its scoped contract. Retaining a package name does not
   authorize restoring its old feature set.
 - The libraries own reports and query policy; the CLI owns
   parsing, process IO, progress and pure human-facing presentation. The library
@@ -114,7 +116,7 @@ Exact fields and migration evidence requirements remain to be specified.
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query selects registry Platform 0.34.7, Protocol 0.2.6 and Types 0.21.2.
+  Query selects registry Platform 0.34.10, Protocol 0.3.0 and Types 0.21.2.
   The hard cut removes Platform 0.33.7 and Agent from product and test graphs.
   Local sibling paths are development-only; publication must qualify registry
   suppliers before delivery.
@@ -136,8 +138,8 @@ Exact fields and migration evidence requirements remain to be specified.
 
 The maintainer lifted the publication hold on 2026-11-16 and requested the next
 topology and CLI versions on crates.io and GitHub. Workspace packages inherit
-`publish = true`; publish only affected, qualified release groups. The SNS shell
-is unchanged and outside this delivery. Canic is the identified downstream
+`publish = true`; publish only affected, qualified release groups. Migration
+reports own the independent `sns-migration` release group. Canic is the identified downstream
 consumer; coordinate its Rust type migration without changing that sibling here.
 Requests to "push" include the next appropriate versions, manifests/lockfile,
 release notes, GitHub delivery and crates.io publication under the baseline.

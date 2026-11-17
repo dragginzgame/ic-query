@@ -2,6 +2,18 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.109.0] - Unreleased
+
+### ⚠️ Breaking
+
+- Adopt published Platform 0.34.10 and Protocol 0.3.0 at the maintainer's request.
+  Public cloud-engine fields and error payloads now carry Protocol 0.3 types:
+  callers exchanging these values must align their Protocol dependency and
+  rebuild. This Rust type-identity change requires topology 0.109.0. Types 0.21.2,
+  report JSON, schema 1 and retained evidence remain unchanged; no data reset is
+  required. Topology does not enable SNS or ledger features, and does not use
+  Protocol's changed management request/status contracts.
+
 ## [0.108.0] - 2026-11-16
 
 ### ⚠️ Breaking

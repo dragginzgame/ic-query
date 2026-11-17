@@ -684,3 +684,60 @@ fn progress_help_and_admission_are_offline() {
         assert!(result.stdout.is_empty());
     }
 }
+
+#[test]
+fn migration_namespaces_and_leaf_help_are_local_and_versioned() {
+    for path in [&["icrc"][..], &["sns"][..], &["sns", "neuron"][..]] {
+        let bare = run(path);
+        let mut explicit = path.to_vec();
+        explicit.push("--help");
+        let help = run(&explicit);
+        assert!(bare.status.success());
+        assert_eq!(bare.stdout, help.stdout);
+        assert!(String::from_utf8_lossy(&help.stdout).starts_with(concat!(
+            "IC Query ",
+            env!("CARGO_PKG_VERSION"),
+            " : "
+        )));
+    }
+    for path in [
+        &["icrc", "balance", "--help"][..],
+        &["sns", "neuron", "show", "--help"][..],
+        &["sns", "neuron", "list", "--help"][..],
+    ] {
+        let output = run(path);
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        assert!(String::from_utf8_lossy(&output.stdout).contains("--json"));
+    }
+}
+
+#[test]
+fn migration_selectors_and_budgets_are_admitted_before_network() {
+    let gov = "zqfso-syaaa-aaaaq-aaafq-cai";
+    for args in [
+        vec!["icrc", "balance"],
+        vec!["icrc", "balance", "invalid", "2vxsx-fae"],
+        vec!["icrc", "balance", gov, "2vxsx-fae", "--subaccount", "00"],
+        vec!["sns", "neuron", "show", gov, "ab"],
+        vec!["sns", "neuron", "show", "invalid", &"00".repeat(32)],
+        vec!["sns", "neuron", "list", gov, "--max-pages", "0"],
+        vec!["sns", "neuron", "list", gov, "--max-pages", "21"],
+        vec!["sns", "neuron", "list", gov, "--principal", "invalid"],
+        vec![
+            "sns",
+            "neuron",
+            "list",
+            gov,
+            "--principal",
+            "2vxsx-fae",
+            "--max-pages",
+            "2",
+        ],
+        vec!["sns", "neuron", "list", gov, "--transfer"],
+    ] {
+        let output = run(&args);
+        assert_eq!(output.status.code(), Some(2), "{args:?}");
+        assert!(output.stdout.is_empty());
+    }
+}

@@ -5,14 +5,22 @@ use std::process::ExitCode;
 
 use clap::Command;
 
+mod migration;
 mod presentation;
 mod topology;
+
+pub(crate) struct CommandOutput {
+    pub(crate) text: String,
+    pub(crate) exit_code: ExitCode,
+}
 
 fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let mut root = Command::new("icq")
         .version(env!("CARGO_PKG_VERSION"))
-        .about("Read-only IC infrastructure evidence for Canic")
-        .subcommand(topology::command());
+        .about("Read-only IC topology and migration evidence")
+        .subcommand(topology::command())
+        .subcommand(migration::icrc_command())
+        .subcommand(migration::sns_command());
     root.build();
     let mut root = help_style(root);
     let matches = root.get_matches_mut();
@@ -29,11 +37,15 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
         selected_command.print_help()?;
         return Ok(ExitCode::SUCCESS);
     }
-    let (_, topology) = matches.subcommand().expect("declared specialist namespace");
+    let (namespace, selected) = matches.subcommand().expect("declared specialist namespace");
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
-    let output = runtime.block_on(topology::run(topology))?;
+    let output = if namespace == "topology" {
+        runtime.block_on(topology::run(selected))?
+    } else {
+        runtime.block_on(migration::run(namespace, selected))?
+    };
     writeln!(io::stdout().lock(), "{}", output.text)?;
     Ok(output.exit_code)
 }

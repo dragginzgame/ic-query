@@ -6,10 +6,7 @@ use std::process::ExitCode;
 
 use crate::presentation;
 
-pub(crate) struct CommandOutput {
-    pub(crate) text: String,
-    pub(crate) exit_code: ExitCode,
-}
+use crate::CommandOutput;
 
 pub(crate) fn command() -> Command {
     Command::new("topology")

@@ -15,7 +15,7 @@
       "version": "package",
       "members": ["ic-sns-migration"],
       "changelog": "releases/sns-migration/CHANGELOG.md",
-      "dependencies": []
+      "dependencies": ["ic-sns-migration"]
     },
     {
       "name": "cli",

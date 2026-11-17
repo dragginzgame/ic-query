@@ -2,6 +2,64 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.12] - Unreleased
+
+### 🔧 Changed
+
+- Qualify the existing CLI against published Platform 0.34.10 and Protocol 0.3.0.
+  Existing commands, report JSON and Types 0.21.2 identities remain unchanged.
+- Qualify the retained lockfile's Clap 4.6.8 / clap_lex 1.1.2 patches with the
+  existing help, parsing and process-exit contracts before delivery.
+
+### ➕ Added
+
+- Add `icrc balance` for any explicitly selected ICRC ledger/account, and
+  `sns neuron show` / `sns neuron list` for any compatible SNS Governance source.
+  Retain exact base units, independent metadata, selected raw neuron fields,
+  observation times and partial failures. These are evidence reads, not migration
+  execution or entitlement decisions. See the
+  [migration contract](../../docs/design/migration-evidence.md).
+- Add bounded listing with an explicit page budget, optional exclusive
+  `--start-after` continuation and one-page principal
+  filtering. Full limited pages exit 1 and preserve data; only exhausted
+  traversal exits 0. A principal filter is not an ownership claim.
+
+From a prepared checkout with network access, read Dragginz's ledger using the
+public anonymous account as an example (not a user identity):
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- icrc balance \
+  zfcdd-tqaaa-aaaaq-aaaga-cai 2vxsx-fae --json
+```
+
+Inspect selected neuron fields from Dragginz Governance. The exact ID below was
+observed in the live listing; later removal is a reported Governance outcome.
+The two-page example intentionally exits 1 if more records may exist:
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- sns neuron list \
+  zqfso-syaaa-aaaaq-aaafq-cai --max-pages 2 --json
+cargo run --locked --offline -p ic-query-cli -- sns neuron show \
+  zqfso-syaaa-aaaaq-aaafq-cai \
+  0000aee89cb1db1d60e8480c7e324cfa8b4e16f46c55d197092f1472bb997a11 --json
+cargo run --locked --offline -p ic-query-cli -- sns neuron list \
+  zqfso-syaaa-aaaaq-aaafq-cai --principal 2vxsx-fae --json
+```
+
+Continue after the last ID observed in the initial 100-record example page;
+this is another live observation, not a snapshot continuation:
+
+```bash
+cargo run --locked --offline -p ic-query-cli -- sns neuron list \
+  zqfso-syaaa-aaaaq-aaafq-cai \
+  --start-after 020e6a2de649f082807613f83d681037dc92fa741a51a2bfdfee7a0cc5c6a279 \
+  --json
+```
+
+The principal-filtered example can return no matching neurons. Remove `--json`
+for escaped bordered tables. `icrc balance --subaccount` accepts exactly 64 hex
+digits; omitting it preserves an absent subaccount selecting the ICRC default.
+
 ## [0.105.11] - 2026-11-16
 
 ### 🔧 Changed

@@ -6,17 +6,48 @@ The root virtual workspace contains `ic-topology`, `ic-sns-migration` and
 [subnet observation](../design/subnet-observation.md) reports, plus
 [registered subnet inventory](../design/subnet-list.md) and
 [certified resource metrics](../design/subnet-metrics.md) and
-[two-sample activity](../design/subnet-activity.md); SNS remains an API-free shell.
+[two-sample activity](../design/subnet-activity.md). The independent
+[migration library](../design/migration-evidence.md) reads ICRC balances and
+selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-All topology reads select published Platform 0.34.7 `native-read`, Protocol 0.2.6
+All topology reads select published Platform 0.34.10 `native-read`, Protocol 0.3.0
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
 The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
+
+The requested Platform 0.34.10 / Protocol 0.3.0 adoption passed all 204 workspace
+tests, strict Clippy for each affected package, Rustdoc, formatting, local links
+and tooling admission on Linux x86-64 on 2026-11-17. Each library's independent
+feature graph retains one Platform/Protocol/Types cohort. Protocol's management
+contract changes are unused here; public topology Protocol payload identities
+nevertheless require the pending topology 0.109.0 release and caller dependency
+alignment. CLI syntax and report JSON are unchanged. This adoption did not rerun
+live reads or establish new macOS qualification; the earlier live evidence below
+used Platform 0.34.9 and Protocol 0.2.8.
+
+The migration implementation passed `make check` on Linux x86-64 on 2026-11-16:
+204 tests (139 topology, 24 CLI unit, 28 CLI process, 13 migration), strict Clippy,
+Rustdoc, formatting, local links and tooling admission. This evidence describes
+the working-tree implementation based on `ca8f66c202c053d686f1cab0ec1d159b778485d7`,
+not a delivered release or new hosted macOS qualification. Separate feature-graph
+checks confirm topology selects no SNS/ledger capability and migration selects
+no topology/Registry capability. Cargo's package file list includes the migration
+root key and six frozen consumer fixtures; this is not archive build verification.
+
+Bounded live Dragginz checks read the selected anonymous ICRC account (1000 base
+units, 8 decimals, symbol DKP), one exact neuron from the returned list, 200 neurons
+across two pages, a separate explicit-cursor continuation and an empty exhausted
+anonymous-principal filter. Successful responses carried verified query signatures;
+full page budgets returned partial status as specified. These November 16 observations
+do not establish current balances, atomic snapshots or complete migration coverage.
+Toko-specific live checks and migration-contract macOS execution remain unqualified.
+See the [migration contract](../design/migration-evidence.md) for field omissions,
+deadlines and the distinction between query authentication and application certification.
 
 ## Preparation
 
@@ -40,7 +71,7 @@ without a launcher, use `bash vendor/toko-tooling/scripts/dev/toko-cloc -d 0`.
 
 The selected delivery is topology 0.108.0 and CLI 0.105.10 to crates.io
 and GitHub. Registry inspection on 2026-11-16 confirmed non-yanked Platform
-0.34.7, Protocol 0.2.6 and Types 0.21.2. Query selects these registry versions;
+0.34.7, Protocol 0.2.6 and Types 0.21.2. That delivery selected these registry versions;
 no sibling checkout is required. The unchanged SNS shell is outside this batch.
 
 Query and the CLI share published Types 0.21.2 with Protocol and certificate

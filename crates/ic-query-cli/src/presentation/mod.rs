@@ -1,5 +1,6 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 pub(crate) mod compare;
+pub(crate) mod migration;
 pub(crate) mod placements;
 pub(crate) mod progress;
 pub(crate) mod settings;

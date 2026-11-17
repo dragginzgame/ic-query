@@ -3,7 +3,8 @@
 The shared Toko Tooling runners own frozen source capture, version transactions,
 commits, annotated tags, atomic pushes and publication attempt records. Query's
 `scripts/release.sh` owns group selection, the complete local gate, source-bound
-receipts and its fixed direct-delivery policy. SNS is not selected by this adapter.
+receipts and its fixed direct-delivery policy. Each of topology, sns-migration
+and cli must be selected explicitly; an absent group cannot publish all packages.
 
 Commit the reviewed implementation and pending notes first. Manifests retain the
 last delivered group versions until the runner advances them. From a clean `main`
@@ -12,13 +13,15 @@ checkout with GitHub push and crates.io credentials available, use:
 ```bash
 make release-minor RELEASE_GROUP=topology
 make release-batch-reconcile BATCH=batch-XXXXXXXX
-make release-patch RELEASE_GROUP=cli
+make release-patch RELEASE_GROUPS=sns-migration,cli
 make release-batch-reconcile BATCH=batch-YYYYYYYY
 ```
 
 The batch identifiers are printed by the runner; use the actual identifiers from
 the run. These commands push to `origin/main` and publish the selected group.
-Topology precedes CLI so its exact dependency is available. Choose patch/minor/
+Topology and migration precede CLI so its dependencies are available. The initial
+migration publication advances the unpublished 0.104.0 baseline to 0.104.1 using
+the standard patch runner. Choose patch/minor/
 major from the selected package's compatibility impact; all use the same gate.
 Mixed increments use separate reconciled batches. Independent groups with the
 same increment can use an explicit supplier-first `RELEASE_GROUPS` roster.
@@ -35,7 +38,7 @@ uses Cargo's normal package verification. Hosted CI remains asynchronous.
 The authenticated editor is selected through the shared installer, with no
 per-shell path setup. Release metadata includes the group ledger, owned Cargo
 manifests and lockfile; the CLI also finalizes the root quick-start heading.
-The unchanged SNS shell and unrelated dependency updates are excluded.
+Unrelated dependency updates are excluded.
 
 Use `make release-batch-status BATCH=...` to inspect an attempt and
 `make release-batch-resume BATCH=...` for its explicit recovery. Never start a new

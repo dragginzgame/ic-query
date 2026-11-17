@@ -6,7 +6,7 @@ uptime and subnet maintenance, with a separately scoped SNS migration library.
 | Package | Responsibility |
 | --- | --- |
 | `ic-topology` | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
-| `ic-sns-migration` | Balances and neuron information for an explicitly selected SNS, supporting migration of Motoko, Toko, Dragginz and similar users |
+| `ic-sns-migration` | Selected ICRC account balances and SNS neuron evidence for migration consumers |
 | `ic-query-cli` (`icq`) | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
 
 `ic-query` is the workspace name; there is no umbrella library. The libraries
@@ -68,8 +68,9 @@ preserving missing/overlapping scopes without selecting a tariff or quote.
 The [selected-engine report](docs/design/cloud-engine-topology.md) connects an
 opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
-The SNS library remains a shell. Publication is enabled; the next topology/CLI
-delivery selects Platform 0.34.7 native reads, Protocol 0.2.6 and Types 0.21.2,
+The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
+account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
+0.34.10 native reads, Protocol 0.3.0 and Types 0.21.2,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

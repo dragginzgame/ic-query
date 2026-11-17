@@ -7,7 +7,7 @@ export PATH := $(CURDIR)/.tools/host/bin:$(CURDIR)/.tools/rust/common/bin:$(PATH
 RELEASE_DELIVERY_POLICY := ci/release-delivery.txt
 RELEASE_SETUP_TARGET := release-setup
 RELEASE_PUBLISH_TARGET := publish
-CARGO_PUBLISH_PACKAGES = $(if $(filter topology,$(RELEASE_GROUP)),ic-topology,$(if $(filter cli,$(RELEASE_GROUP)),ic-query-cli,ic-topology ic-query-cli))
+CARGO_PUBLISH_PACKAGES = $(if $(filter topology,$(RELEASE_GROUP)),ic-topology,$(if $(filter sns-migration,$(RELEASE_GROUP)),ic-sns-migration,$(if $(filter cli,$(RELEASE_GROUP)),ic-query-cli,)))
 CARGO_PUBLISH_REGISTRY := crates-io
 CARGO_PUBLISH_VERIFY_TARGETS := publication-admission
 include $(TOKO_TOOLING_ROOT)/make/consumer.mk
@@ -31,7 +31,7 @@ help:
 	  'doc-links-check     Check local documentation file links' \
 	  'toko-tooling-check  Admit Cargo pin, members, lockfile and snapshot' \
 	  'install-tools       Prepare shared host and Rust developer tools'
-	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
+	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-patch RELEASE_GROUP=sns-migration  Release and publish migration evidence' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
 
 check:
 	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(TOKO_TOOLING_ROOT)/scripts/ci/run-validation-targets.sh" --fail-fast toko-tooling-check tools-check doc-links-check fmt-check clippy rustdoc test

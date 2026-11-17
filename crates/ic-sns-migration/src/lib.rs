@@ -1,8 +1,15 @@
-//! Balance and neuron evidence for an explicitly selected SNS.
+//! Read-only ICRC balances and selected SNS neuron evidence for migration consumers.
 //!
-//! This independently owned package will support migration consumers for Motoko,
-//! Toko, Dragginz and similar applications. Report contracts are still being
-//! designed; this package exposes no query API yet.
-//!
-//! It will neither execute migrations nor determine destination entitlements.
-//! Full SNS governance support is outside its scope.
+//! Explicit ledger/governance targets work independently of topology. Reports
+//! preserve partial observations; they neither execute migrations nor determine
+//! destination entitlements. Query signatures do not certify application state.
+
+pub mod balance;
+mod mainnet;
+pub mod neuron;
+mod observation;
+
+pub use observation::{Failure, FailureKind, Observation, Outcome};
+
+#[cfg(test)]
+mod tests;
