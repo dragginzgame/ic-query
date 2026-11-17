@@ -2,7 +2,7 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
-## [0.109.2] - Unreleased
+## [0.109.2] - 2026-11-17
 
 ### 🐛 Fixed
 
