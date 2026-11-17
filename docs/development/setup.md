@@ -13,7 +13,7 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-The pending family-name cutover moves the libraries from `ic-topology` and
+The family-name cutover moves the libraries from `ic-topology` and
 `ic-sns-migration` to `ic-query-topology` and `ic-query-sns`, with matching crate
 directories and Rust imports. CLI commands and report contracts are unchanged.
 On 2026-11-17 the renamed workspace passed `make check` on Linux: all 204 tests,
@@ -26,6 +26,22 @@ The new umbrella also passed empty-default, topology-only, SNS-only and combined
 feature checks, strict all-feature Clippy/Rustdoc and two re-export identity
 doctests. Its empty normal dependency graph was inspected separately; workspace
 feature unification alone is not evidence of an empty-default consumer build.
+
+The four-crate delivery published `ic-query-topology` 0.110.0, `ic-query-sns`
+0.105.0 and `ic-query` 0.104.0 in reconciled batch `batch-7tJD0iOR`, followed by
+`ic-query-cli` 0.105.15 in reconciled batch `batch-b8WtoUdP`. Each group ran the
+complete gate, including the feature matrix, and Cargo package verification.
+A separate registry-only consumer passed empty-default, topology-only, SNS-only
+and combined builds, including re-export/direct-import type identity checks.
+Its empty-default normal dependency graph contained only the umbrella. These
+are Linux consumer compilation checks, not restored legacy API compatibility.
+All four registry package source identities match their release tags. The
+installed CLI reports 0.105.15 in both version and nested help output.
+[Release CI run 44067644439](https://github.com/dragginzgame/ic-query/actions/runs/44067644439)
+passed for `62f79584be5a0f903780fa926db9a1ee6a7c8b40` on Linux x86-64 and
+macOS ARM64/x86-64: 204 existing tests, two re-export doctests, the umbrella
+feature matrix, strict Clippy/Rustdoc and scaffold checks. This qualifies the
+released contracts and locked suppliers, not the retired legacy surface.
 
 All topology reads select published Platform 0.34.12 `native-read`, Protocol 0.3.4
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test

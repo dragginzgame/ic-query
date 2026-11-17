@@ -3,32 +3,32 @@
 A Cargo workspace for read-only IC evidence supporting Canic application topology,
 uptime and subnet maintenance, with a separately scoped SNS migration library.
 
-The next library releases adopt the family names `ic-query-topology` and
-`ic-query-sns`. Rust imports become `ic_query_topology` and `ic_query_sns`;
+The libraries use the family names `ic-query-topology` and
+`ic-query-sns`. Rust imports are `ic_query_topology` and `ic_query_sns`;
 `ic-query-cli` and the `icq` binary keep their names. This is a hard cut with no
 old-name aliases. The SNS name permits future expansion; its current reports
 remain selected ICRC balances and SNS neuron evidence for migration.
 
-The 2026-11-17 delivery is ready to park: topology 0.109.2, SNS migration 0.104.3
-and CLI 0.105.14 are published. [Qualification and setup](docs/development/setup.md)
+The four-crate delivery is published as of 2026-11-17.
+[Qualification and setup](docs/development/setup.md)
 records the hosted checks and installed CLI smoke observations. Resume product
 work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
-These patch releases allow compatible supplier patches independently of Query's
-lockfile (Platform 0.34.11 / Protocol 0.3.3). A registry-only consumer also compiled
-with Platform 0.34.12 / Protocol 0.3.4. Commands and report contracts are unchanged.
+Compatible supplier patches remain independent of Query's lockfile
+(Platform 0.34.12 / Protocol 0.3.4). CLI commands and specialist report contracts
+are unchanged; the umbrella deliberately replaces the legacy library API.
 
-| Package | Responsibility |
-| --- | --- |
-| `ic-query` | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
-| `ic-query-topology` | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
-| `ic-query-sns` | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
-| `ic-query-cli` (`icq`) | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
+| Package | Version | Responsibility |
+| --- | --- | --- |
+| `ic-query` | 0.104.0 | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
+| `ic-query-topology` | 0.110.0 | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
+| `ic-query-sns` | 0.105.0 | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
+| `ic-query-cli` (`icq`) | 0.105.15 | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
 
 The four-crate workspace keeps the specialist libraries independent. The umbrella
 is an optional convenience; direct specialist dependencies remain supported.
-The next `ic-query` release is 0.104.0, replacing the legacy 0.103.1 API with
+`ic-query` 0.104.0 replaces the legacy 0.103.1 API with
 an explicit breaking cut. See the [migration notes](releases/query/CHANGELOG.md).
 
 ```toml

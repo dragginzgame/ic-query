@@ -6,17 +6,17 @@ commits, annotated tags, atomic pushes and publication attempt records. Query's
 receipts and its fixed direct-delivery policy. Each of topology, sns-migration,
 query and cli must be selected explicitly; an absent group cannot publish all packages.
 
-The pending family-name cutover maps `topology` to `ic-query-topology` and
+The family-name cutover maps `topology` to `ic-query-topology` and
 `sns-migration` to `ic-query-sns`. The group names, ledger paths and prior tags
 remain stable; old registry packages are not aliases and will not be republished
-under the new names. The first renamed library releases require minors
-(topology 0.110.0, SNS 0.105.0); the unchanged CLI contract advances to 0.105.15.
+under the new names. The first renamed library releases used minors
+(topology 0.110.0, SNS 0.105.0); the unchanged CLI contract advanced to 0.105.15.
 Release both renamed libraries before the CLI, then update downstream package
 names and Rust imports. Retained report evidence requires no reset.
 The new umbrella follows the specialist libraries: `query` advances the published
-legacy 0.103.1 baseline to 0.104.0 with an explicit minor release. For this cutover,
-release `topology,sns-migration,query` with the minor runner, reconcile, then
-release `cli` with the patch runner. The umbrella's own ledger defines legacy
+legacy 0.103.1 baseline to 0.104.0 with an explicit minor release. That cutover
+used `topology,sns-migration,query` with the minor runner, reconciliation, then
+`cli` with the patch runner. The umbrella's own ledger defines legacy
 feature/module retirement; no automatic legacy-data migration is claimed.
 
 Commit the reviewed implementation and pending notes first. Manifests retain the
@@ -24,10 +24,8 @@ last delivered group versions until the runner advances them. From a clean `main
 checkout with GitHub push and crates.io credentials available, use:
 
 ```bash
-make release-minor RELEASE_GROUPS=topology,sns-migration,query
+make release-patch RELEASE_GROUPS=topology,sns-migration,query,cli
 make release-batch-reconcile BATCH=batch-XXXXXXXX
-make release-patch RELEASE_GROUP=cli
-make release-batch-reconcile BATCH=batch-YYYYYYYY
 ```
 
 The batch identifiers are printed by the runner; use the actual identifiers from
