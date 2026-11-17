@@ -3,14 +3,14 @@
 A Cargo workspace for read-only IC evidence supporting Canic application topology,
 uptime and subnet maintenance, with a separately scoped SNS migration library.
 
-The 2026-11-17 delivery is ready to park: topology 0.109.0, SNS migration 0.104.1
-and CLI 0.105.12 are published. [Qualification and setup](docs/development/setup.md)
+The 2026-11-17 delivery is ready to park: topology 0.109.1, SNS migration 0.104.2
+and CLI 0.105.13 are published. [Qualification and setup](docs/development/setup.md)
 records the hosted checks and installed CLI smoke observations. Resume product
 work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
-The subsequent Platform 0.34.11 / Protocol 0.3.2 adoption is pending the next
-patch releases; the published versions above used Platform 0.34.10 / Protocol 0.3.0.
+These patch releases adopt Platform 0.34.11 / Protocol 0.3.2 with unchanged
+commands and report contracts.
 
 | Package | Responsibility |
 | --- | --- |

@@ -32,6 +32,20 @@ required. This is local adoption qualification, not publication, new hosted macO
 qualification or a new live-network observation. The release evidence below
 remains bound to the previously delivered supplier versions.
 
+The adoption was subsequently published as topology 0.109.1, migration 0.104.2
+and CLI 0.105.13 on 2026-11-17. Each release group passed the complete local gate
+and Cargo package verification; registry package provenance matches its release
+tag. Batch `batch-dQ3FjJC1` completed and was reconciled to CLI release commit
+`6892717bb33e895478ce18636c39bf3a96edfee3`. The registry-installed CLI reports
+`icq 0.105.13`, including nested help. A live Dragginz balance read returned
+1000 base units, 8 decimals and DKP with all three query signatures verified;
+this remains a bounded observation, not consensus-certified application state.
+Hosted [release CI run 44058445311](https://github.com/dragginzgame/ic-query/actions/runs/44058445311)
+passed for that exact release commit on Linux x86-64 and macOS ARM64/x86-64,
+including all 204 tests, Clippy, Rustdoc, setup-diagnostics fixtures and the
+scaffold checks. This qualifies the released offline contracts on those hosts;
+the live CLI observation above was performed on Linux only.
+
 The requested Platform 0.34.10 / Protocol 0.3.0 adoption passed all 204 workspace
 tests, strict Clippy for each affected package, Rustdoc, formatting, local links
 and tooling admission on Linux x86-64 on 2026-11-17. Each library's independent
