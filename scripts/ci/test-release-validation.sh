@@ -88,6 +88,19 @@ for group in cli query topology sns-migration; do
 done
 [[ -z "$(git status --porcelain)" ]]
 ok 'sequential group selection preserves all versions and ledgers'
+# Native candidate selection projects the same obligations into one admission.
+for group in cli query topology sns-migration; do
+    mkdir -p "target/combined-$group"
+    printf '{}\n' > "target/combined-$group/projection.json"
+    printf '{}\n' > "target/combined-$group/reuse-environment.json"
+    select_plan "$group" "combined-$group"
+    cmp <(jq -c '.stages' "target/$group/plan.json") <(jq -c '.stages' "target/combined-$group/obligations.json")
+    expected='validate-common validate-products validate-current-cli'
+    [[ "$group" != query ]] || expected='validate-common validate-products'
+    expect_targets "combined-$group" "$expected"
+    jq -e --arg path "target/combined-$group/obligations.json" '.inputs | index($path) != null' "target/combined-$group/plan.json" >/dev/null
+done
+ok 'combined admissions preserve and checkpoint original product obligations'
 # A specialist implementation change broadens even a selected CLI release.
 printf '\n// fixture change\n' >> crates/ic-query-topology/src/lib.rs
 git add crates/ic-query-topology/src/lib.rs

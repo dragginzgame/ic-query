@@ -25,6 +25,8 @@ admit_source() {
 state="$(git rev-parse --git-path release-state)"
 [[ "$state" == /* ]] || state="$root/$state"
 source "$shared/release-receipts.sh"
+source "$shared/release-timing.sh"
+trap 'release_timing_end "$?"' EXIT
 validation="$state/$group-${RELEASE_VERSION:-unset}.query-validated"
 payload="$state/$group-${RELEASE_VERSION:-unset}.query-payload"
 selection="$state/$group-${RELEASE_VERSION:-unset}.query-selection"
@@ -41,6 +43,9 @@ validation_identity() {
         paths+=("$selection" "$proof" "$attempt/completed" "$attempt/plan.json" "$attempt/context.json" "$attempt/baseline.json" "$attempt/inventory.json")
         if [[ -f "$attempt/projection.json" ]]; then
             paths+=("$attempt/projection.json" "$attempt/reuse-environment.json")
+            if [[ -f "$attempt/obligations.json" ]]; then
+                paths+=("$attempt/obligations.json" "$attempt/execution-policy.json")
+            fi
             paths+=("$attempt/products.seal.json")
             listed="$(jq -er '.files | keys[]' "$attempt/products.seal.json")" || return
             while IFS= read -r path; do paths+=("$path"); done <<< "$listed"
@@ -74,15 +79,26 @@ payload_identity() {
 case "$1" in
     setup)
         bash "$shared/check-release-source.sh"
+        release_timing_begin query-setup-dependencies
         if [[ "${RELEASE_SETUP_MODE:-check}" == prepare ]]; then
-            cargo fetch --locked
-            "$make_bin" --no-print-directory install-tools
-            editor >/dev/null
+            cargo fetch --locked --offline || cargo fetch --locked
         else
             cargo fetch --locked --offline
         fi
-        "$make_bin" --no-print-directory tools-check toko-tooling-check
-        editor --check >/dev/null
+        release_timing_end 0
+        release_timing_begin query-setup-tools
+        if ! "$make_bin" --no-print-directory tools-check; then
+            [[ "${RELEASE_SETUP_MODE:-check}" == prepare ]] || exit 1
+            "$make_bin" --no-print-directory install-tools
+            "$make_bin" --no-print-directory tools-check
+        fi
+        if ! editor --check >/dev/null; then
+            [[ "${RELEASE_SETUP_MODE:-check}" == prepare ]] || exit 1
+            editor >/dev/null
+            editor --check >/dev/null
+        fi
+        "$make_bin" --no-print-directory toko-tooling-check
+        release_timing_end 0
         ;;
     version) group_metadata version ;;
     files) group_metadata files ;;
@@ -113,8 +129,8 @@ case "$1" in
         if [[ -z "$attempt" || ! -f "$attempt/completed" ]]; then
             release_receipt_archive "$state/selection-archive.XXXXXX" "$selection" "$validation"
             attempt="$(mktemp -d target/validation/release.XXXXXX)"
-            bash scripts/ci/reuse-validation.sh prepare "$attempt"
-            bash scripts/ci/validation.sh plan "$attempt"
+            perl "$shared/release-timing.pl" run query-candidate-prepare executed bash scripts/ci/reuse-validation.sh prepare "$attempt"
+            perl "$shared/release-timing.pl" run query-plan-selection executed bash scripts/ci/validation.sh plan "$attempt"
             release_receipt_write "$selection" printf '%s\n' "$attempt"
             QUERY_VALIDATION_ATTEMPT="$root/$attempt" \
                 VALIDATION_REPOSITORY_ROOT="$root" VALIDATION_LOG_DIR="$attempt/logs" \
@@ -122,6 +138,7 @@ case "$1" in
                 bash "$shared/run-validation-targets.sh" --plan "$attempt/plan.json"
             release_receipt_write "$attempt/completed" printf '%s\n' "$RELEASE_SOURCE"
         fi
+        release_timing_begin query-plan-finalization
         jq -e --arg host "$(uname -sm)" --arg rust "$(rustc -Vv)" --arg cargo "$(cargo -V)" \
             '.host == $host and .rust == $rust and .cargo == $cargo' "$attempt/context.json" >/dev/null
         runs=("$attempt"/logs/validation.*)
@@ -133,8 +150,11 @@ case "$1" in
             release_receipt_write "$attempt/proof.json" perl "$shared/validation-evidence.pl" verify \
                 "$root" "$attempt/plan.json" "$RELEASE_SOURCE" "$group" "${runs[0]}" "$attempt/context.json"
         fi
+        release_timing_end 0
+        release_timing_begin query-receipt-finalization
         bash "$shared/check-release-source.sh"
         release_receipt_write "$validation" validation_identity
+        release_timing_end 0
         ;;
     prepare)
         release_receipt_check "$validation" validation_identity

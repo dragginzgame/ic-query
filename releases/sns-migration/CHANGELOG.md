@@ -3,6 +3,14 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.3] - Unreleased
+
+### 🔧 Tooling
+
+- Admit the combined product proof once per group while preserving SNS and
+  reverse-consumer selection. Check prepared tools before installation and
+  expose admission phase timings. [Query #4](https://github.com/dragginzgame/ic-query/issues/4).
+
 ## [0.105.2] - 2026-11-17
 
 ### 🔧 Tooling

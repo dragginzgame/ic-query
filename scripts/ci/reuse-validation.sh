@@ -6,7 +6,9 @@ shared="$root/vendor/toko-tooling/scripts/ci"
 tools_root="${QUERY_VALIDATION_TOOLS_ROOT:-$root}"
 export PATH="$tools_root/.tools/host/bin:$tools_root/.tools/rust/common/bin:$PATH"
 source "$shared/release-receipts.sh"
-mode="${1:?prepare or stage}"
+source "$shared/release-timing.sh"
+trap 'release_timing_end "$?"' EXIT
+mode="${1:?prepare, products or stage}"
 case "$mode" in
     prepare)
         attempt="${2:?attempt directory}"
@@ -50,14 +52,19 @@ case "$mode" in
                 echo 'Incomplete native tool closure; executing current-source checks.' >&2; exit 0
             fi
         done
+        release_timing_begin query-candidate-editor
         editor="$(bash "$root/vendor/toko-tooling/scripts/dev/install-rust-tools.sh" --consumer "$tools_root" \
             --package ic-build --version 0.73.0 --bin ic-build-release-metadata --profile debug --features cli --check)"
+        release_timing_end 0
+        release_timing_begin query-candidate-projection
         release_receipt_write "$attempt/projection.json" perl "$shared/prepare-cargo-stage-source.pl" \
             --root "$root" --state target/validation/candidates --source "${RELEASE_SOURCE:?}" --editor "$editor"
         jq -e --arg group "${RELEASE_GROUP:?}" --arg version "${RELEASE_VERSION:?}" \
             '.versions[$group].version == $version' "$attempt/projection.json" >/dev/null
         candidate="$(jq -er .directory "$attempt/projection.json")"
         identity="$(jq -er .identity "$attempt/projection.json")"
+        release_timing_end 0
+        release_timing_begin query-tool-inventory
         mkdir -p "$candidate/target/query-reuse"
         # A recursive Make invocation must not change the stage identity merely
         # by prepending the same tool directories again. Select this bounded
@@ -96,6 +103,7 @@ case "$mode" in
             '{PATH:$path,HOME:$home,CARGO_HOME:$cargo_home,RUSTUP_HOME:$rustup_home,
               CARGO_NET_OFFLINE:"true",RUSTUP_AUTO_INSTALL:"0",LC_ALL:"C.UTF-8",TZ:"UTC",
               CARGO_STAGE_TOOLS:$tools,CARGO_STAGE_IDENTITY:$identity}' > "$attempt/reuse-environment.json"
+        release_timing_end 0
         ;;
     stage)
         stage="${2:?stage}"
@@ -106,45 +114,44 @@ case "$mode" in
             qualify-umbrella) command=(make --no-print-directory qualify-umbrella-current) ;;
             *) exit 2 ;;
         esac
-        attempt="${QUERY_VALIDATION_ATTEMPT:-}"
-        if [[ -z "$attempt" || ! -f "$attempt/projection.json" ]]; then exec "${command[@]}"; fi
+        exec "${command[@]}"
+        ;;
+    products)
+        attempt="${QUERY_VALIDATION_ATTEMPT:?}"
         candidate="$(jq -er .directory "$attempt/projection.json")"
         identity="$(jq -er .identity "$attempt/projection.json")"
         jq -e --arg source "${RELEASE_SOURCE:?}" '.source == $source' "$attempt/projection.json" >/dev/null
         targets=()
-        selected="$(jq -er '.stages[] | select(.required and .target != "validate-common") | .target' "$attempt/plan.json")"
-        admitted=false
+        selected="$(jq -er '.stages[] | select(.required and .target != "validate-common") | .target' "$attempt/obligations.json")"
         while IFS= read -r target; do
             case "$target" in validate-topology|validate-sns|validate-cli|qualify-umbrella) ;; *) exit 1 ;; esac
             targets+=("$target")
-            [[ "$target" != "$stage" ]] || admitted=true
         done <<< "$selected"
-        [[ "$admitted" == true ]] || exit 1
         if [[ -e "$attempt/products.seal.json" || -L "$attempt/products.seal.json" ]]; then
+            release_timing_begin query-product-seal-check
             release_receipt_check "$attempt/products.seal.json" perl "$shared/seal-validation-stage.pl" \
                 "$attempt/products.admission.json" "$RELEASE_SOURCE" "$RELEASE_GROUP" "$identity"
         else
             (
                 cd "$candidate"
-                perl "$shared/run-validation-stage.pl" --state "$root/target/validation/stage-proofs" \
+                perl "$shared/release-timing.pl" run query-product-admission executed \
+                    perl "$shared/run-validation-stage.pl" --state "$root/target/validation/stage-proofs" \
                     --stage query-products --contract query-final-candidate/2 --source "$RELEASE_SOURCE" --group "${RELEASE_GROUP:?}" \
                     --observe "$shared/observe-cargo-stage.pl" --environment "$attempt/reuse-environment.json" \
                     --max-bytes 536870912 --admission-output "$attempt/products.admission.json" \
                     -- make --no-print-directory "${targets[@]}"
             )
+            release_timing_begin query-product-seal-write
             release_receipt_write "$attempt/products.seal.json" perl "$shared/seal-validation-stage.pl" \
                 "$attempt/products.admission.json" "$RELEASE_SOURCE" "$RELEASE_GROUP" "$identity"
         fi
+        release_timing_end 0
         stage_path="$(jq -er .PATH "$attempt/reuse-environment.json")"
         stage_make="$(env -i PATH="$stage_path" /bin/sh -c 'command -v make')"
         expected_command="$(printf '%s\n' "$stage_make" --no-print-directory "${targets[@]}" | jq -Rsc 'split("\n")[:-1]')"
         jq -e --argjson command "$expected_command" --arg cwd "$candidate" \
             '.command == $command and .cwd == $cwd and .admission.stage == "query-products"' "$attempt/products.seal.json" >/dev/null
-        printf '%s covered by admitted product checks (%s).\n' "$stage" "$(jq -r .admission.mode "$attempt/products.seal.json")"
-        if [[ "$stage" == validate-cli ]]; then
-            # Candidate tests cannot establish the actual intermediate CLI version.
-            make --no-print-directory qualify-cli
-        fi
+        printf 'Selected product obligations covered by admitted checks (%s).\n' "$(jq -r .admission.mode "$attempt/products.seal.json")"
         ;;
     *) exit 2 ;;
 esac

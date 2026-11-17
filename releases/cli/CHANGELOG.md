@@ -2,6 +2,22 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.19] - Unreleased
+
+### 🔧 Tooling
+
+- Admit the combined product proof once per group and run actual-version CLI
+  tests as a separate stage. Preserve original evidence and final source/archive
+  admission. Check prepared tools before installation and record detailed timings.
+  [Query #4](https://github.com/dragginzgame/ic-query/issues/4).
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.19 --locked
+icq --version
+```
+
 ## [0.105.18] - 2026-11-17
 
 ### 🔧 Tooling

@@ -40,7 +40,7 @@ check:
 	+@$(if $(strip $(PACKAGE)),$(MAKE) --no-print-directory validate-common clippy rustdoc test,bash scripts/ci/validation.sh full)
 ci: check
 
-.PHONY: validate-common validate-native validate-topology validate-sns validate-cli qualify-release-validation qualify-release-reuse
+.PHONY: validate-common validate-native validate-topology validate-sns validate-cli validate-products validate-current-cli qualify-release-validation qualify-release-reuse
 validate-common: toko-tooling-check tools-check doc-links-check fmt-check
 
 validate-native:
@@ -54,6 +54,12 @@ validate-sns:
 
 validate-cli:
 	+@bash scripts/ci/reuse-validation.sh stage $@
+
+validate-products:
+	+@bash scripts/ci/reuse-validation.sh products
+
+validate-current-cli:
+	+@perl "$(TOKO_TOOLING_ROOT)/scripts/ci/release-timing.pl" run query-current-cli executed $(MAKE) --no-print-directory qualify-cli
 
 qualify-release-validation:
 	@bash scripts/ci/test-release-validation.sh

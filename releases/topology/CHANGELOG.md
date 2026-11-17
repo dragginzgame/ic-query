@@ -2,6 +2,15 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.3] - Unreleased
+
+### 🔧 Tooling
+
+- Admit the selected combined product proof once per release group, retaining
+  topology's reverse-consumer obligations and fresh source/archive checks.
+  Check existing tools before preparation and record detailed admission timings.
+  [Query #4](https://github.com/dragginzgame/ic-query/issues/4).
+
 ## [0.110.2] - 2026-11-17
 
 ### 🔧 Tooling

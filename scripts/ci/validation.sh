@@ -45,6 +45,24 @@ case "$mode" in
             --slurpfile baseline "$destination/baseline.json" \
             --slurpfile policy ci/release-validation.json --slurpfile inputs "$work/inputs.json" \
             -f scripts/ci/select-validation.jq > "$destination/plan.json"
+        if [[ -f "$destination/projection.json" ]]; then
+            # Preserve the canonical product obligations as checked inputs. The
+            # shared runner dispatches their combined proof once, then the
+            # distinct current-version CLI contract, rather than sealing the
+            # same proof once per logical product target.
+            mv "$destination/plan.json" "$destination/obligations.json"
+            jq -cS '{schema,groups,stages:["validate-common","validate-products","validate-current-cli"]}' \
+                ci/release-validation.json > "$destination/execution-policy.json"
+            jq -cS --arg directory "$destination" '
+                .policy = ($directory+"/execution-policy.json") |
+                .inputs += [$directory+"/obligations.json"] |
+                (.stages | any(.target == "validate-cli" and .required)) as $cli |
+                .stages = [
+                    {target:"validate-common",required:true,reason:"Fresh repository admission"},
+                    {target:"validate-products",required:true,reason:"Combined execution of selected product obligations"},
+                    {target:"validate-current-cli",required:$cli,reason:"Actual-source CLI version contract when CLI is selected"}]' \
+                "$destination/obligations.json" > "$destination/plan.json"
+        fi
         jq -r '.scope, (.stages[] | "\(.target): \(.required) — \(.reason)")' "$destination/plan.json" >&2
         ;;
     *) exit 2 ;;

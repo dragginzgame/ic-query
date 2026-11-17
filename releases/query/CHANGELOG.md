@@ -2,6 +2,15 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.3] - Unreleased
+
+### 🔧 Tooling
+
+- Preserve the umbrella feature obligations in a single combined release-proof
+  admission, removing repeated sealing of the same proof. Record admission
+  phases and check prepared tools before installation.
+  [Query #4](https://github.com/dragginzgame/ic-query/issues/4).
+
 ## [0.104.2] - 2026-11-17
 
 ### 🔧 Tooling

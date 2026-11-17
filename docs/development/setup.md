@@ -427,6 +427,54 @@ Different selections execute separately; a full-set proof is not relabelled as
 an independently executed subset. This avoids repeated native-input observation
 for each small package stage without adding a local proof cache or version editor.
 
+The candidate release plan now retains that selection in `obligations.json` and
+projects it into `validate-common`, one `validate-products` admission and, when
+selected, `validate-current-cli`. Tooling checkpoints both the obligation map and
+the projected execution policy. The combined product proof is sealed once per
+group; it is not resealed for each specialist/umbrella label. Full development,
+native CI and non-candidate fallback still use the original complete stage roster.
+Existing completed release evidence retains its original meaning.
+
+Setup first admits locked dependencies offline and checks the selected tool
+payloads. Fresh preparation fetches or installs only after a failed availability
+check; recovery remains check-only. Group boundaries still recheck tools, source
+and metadata: no batch marker or cached success bypasses those admissions.
+The shared timing journal now separates candidate/editor preparation, native tool
+inventory, product admission, seal write/check, current-version CLI tests, plan
+finalization and receipt finalization. Parent spans include their children and
+must not be added to them. This addresses the repeated work tracked in
+[Query #4](https://github.com/dragginzgame/ic-query/issues/4).
+
+The local Linux four-group comparison on 2026-11-17 used baseline `8f62960`
+and the pending Query #4 implementation, with cached dependencies and fresh
+candidate build directories in each fixture. Both ran the same product versions
+and locked Platform 0.34.14 graph; metadata delivery was simulated. Validation
+times were 145/72/70/66s before and 126/53/50/46s after (topology/SNS/umbrella/CLI):
+353s to 275s across the sequence, a 78s reduction in this single local comparison.
+This excludes metadata preparation, Git delivery, publication and hosted CI;
+it is not a measured reduction of the earlier 692s real deployment.
+Each new group wrote one seal, with no repeated per-product seal checks.
+
+On the reused SNS group, candidate preparation took approximately 11s, combined
+product admission 20s (including the shared runner's 8s interval), sealing 3s,
+current-source CLI tests 4s, and plan finalization 1s. Common checks and dispatch
+account for the remaining interval. Native tool inventory and receipt finalization
+were each below one second. Canonical source projection and shared proof admission
+remain significant; these observations do not classify their work as removable.
+The 31 focused wiring assertions also pass, including preservation of all four
+group mappings under the combined plan. Raw fixtures, phase journals and logs stay
+under `target/reuse-qualification/` and `target/validation-fixtures/`.
+The native qualifier passed missing/tampered proof, log and admission refusal,
+changed obligation/input refusal, failed seal-output recovery, corrupted-proof
+re-execution, environment invalidation and failed-product recovery. Its final
+full-selection admission reused the original proof in 45s. Prepared-tool checks,
+missing-tool preparation and check-only recovery passed with installation effects
+simulated. Workflow lint and all 32 setup-diagnostic assertions passed as well.
+Optional hosted qualification retains compact `phases.tsv` fields alongside
+group timings; it does not upload tool inventories or environment values.
+These are local qualification results; actual deployment timing awaits the next
+separately authorized delivery.
+
 Receipts retain `executed` or `reused`, original execution source/group, logs and
 shared custody bindings. Missing/stale product proof takes ordinary execution;
 corruption keeps its diagnostic and damaged proof while the shared runner seeks
@@ -450,6 +498,9 @@ make qualify-release-validation
 make check
 # Explicit, slower native sequence and adversarial recovery qualification:
 make qualify-release-reuse
+# Four-group baseline with fresh candidate artifacts and cached dependencies:
+bash scripts/ci/test-release-reuse.sh --baseline \
+  8f62960
 ```
 
 The rewritten full gate passed locally on Linux on 2026-11-17: 204 tests, two
