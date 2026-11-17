@@ -12,13 +12,32 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-All topology reads select published Platform 0.34.11 `native-read`, Protocol 0.3.2
+All topology reads select published Platform 0.34.11 `native-read`, Protocol 0.3.3
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
 The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
+
+Product manifests use compatible requirements: Platform `0.34.11` permits
+`>=0.34.11, <0.35.0`, Protocol `0.3.2` permits `>=0.3.2, <0.4.0`, and Types
+`0.21.2` permits `>=0.21.2, <0.22.0`. Cargo.lock retains the exact versions above
+for Query's locked validation and releases. Downstream consumers resolve within
+these ranges and the suppliers' own constraints; the manifest does not certify
+every future patch. Published Query versions cannot be edited retroactively;
+the relaxed requirements are pending the next patch releases.
+
+On 2026-11-17 a temporary downstream consumer selecting Protocol `=0.3.3`
+alongside both Query libraries reproduced the old resolution failure, then passed
+`cargo check --locked --offline` after relaxing the requirements. Its graph
+resolved one Protocol 0.3.3 shared by both libraries and the consumer. This proves
+that concrete patch composition, not arbitrary future compatibility. Query's
+unchanged lockfile separately passed `make check`, including all 204 tests,
+strict Clippy, Rustdoc, formatting, tools and documentation admission on Linux.
+The subsequent release candidate preserves the working-tree update to Protocol
+0.3.3 and qualifies it through each release group's full gate. Its capture-status
+fix is unused by Query; the manifest floor remains 0.3.2.
 
 The subsequent Platform 0.34.11 / Protocol 0.3.2 adoption passed `make check`
 on Linux x86-64 on 2026-11-17: all 204 tests, strict Clippy, Rustdoc, formatting,

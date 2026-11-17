@@ -2,6 +2,19 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.109.2] - Unreleased
+
+### 🐛 Fixed
+
+- Replace exact Platform, Protocol and Types requirements with compatible caret
+  ranges at 0.34.11, 0.3.2 and 0.21.2. Consumers can select later compatible
+  patches without conflicting with Query's own locked supplier versions.
+  Public report contracts and schemas remain unchanged. Previously
+  published versions retain their original requirements; consumers need this
+  patch release to receive the fix.
+- Qualify the lockfile's Protocol 0.3.3 patch. Its capture-status fix is not used
+  by Query; the compatible manifest requirement remains 0.3.2.
+
 ## [0.109.1] - 2026-11-17
 
 ### 🔧 Changed

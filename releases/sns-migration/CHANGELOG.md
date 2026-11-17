@@ -2,6 +2,15 @@
 
 Release group: `sns-migration`. Package: `ic-sns-migration`.
 
+## [0.104.3] - Unreleased
+
+### 🐛 Fixed
+
+- Allow compatible Platform, Protocol and Types patches through caret requirements
+  at 0.34.11, 0.3.2 and 0.21.2 instead of exact pins. Balance/neuron contracts
+  are unchanged; upstream requirements still apply. Qualify Protocol 0.3.3 in
+  the lockfile without raising its compatible manifest floor.
+
 ## [0.104.2] - 2026-11-17
 
 ### 🔧 Changed

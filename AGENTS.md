@@ -116,7 +116,12 @@ The implemented selectors, fields, bounds and limitations are defined in the
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query selects registry Platform 0.34.11, Protocol 0.3.2 and Types 0.21.2.
+  Query's lockfile selects registry Platform 0.34.11, Protocol 0.3.3 and Types
+  0.21.2. Product manifests use compatible caret requirements with floors
+  0.34.11, 0.3.2 and 0.21.2 respectively,
+  so downstream consumers may select compatible patches independently. Keep
+  reproducible builds in Cargo.lock; do not restore exact product supplier pins
+  without a documented compatibility constraint. Tooling retains its exact pin.
   The hard cut removes Platform 0.33.7 and Agent from product and test graphs.
   Local sibling paths are development-only; publication must qualify registry
   suppliers before delivery.
