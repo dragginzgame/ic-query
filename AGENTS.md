@@ -19,38 +19,24 @@ attestation, failed reads are not downtime, and inventory is not usable capacity
 The legacy repository is read-only reference material. Do not import its source,
 backlog, caches, build outputs or release state wholesale.
 
-## Learn from IC Query's predecessor
+## Predecessor research
 
-- Before substantive report or subsystem work, inspect the relevant implementation,
-  regression tests and explanatory history in
-  [ic-query-legacy](https://github.com/dragginzgame/ic-query-legacy). Use the local
-  legacy checkout when available, otherwise inspect a pinned GitHub revision.
-  Keep this targeted to the selected report and its Canic or SNS migration need.
-- Identify the problem the old solution addressed and which assumptions have
-  changed. Reuse or adapt sound first-party solutions where they fit the current
-  ownership and published Platform boundaries; explain replacements or exclusions.
-  Legacy breadth does not authorize restoring excluded reports or infrastructure.
-- Carry applicable failure and regression cases into the owning implementation's
-  tests and verify them here. Cite the inspected revision and distinguish reused
-  code from retained invariants; historical passing tests do not qualify new code.
-- Keep legacy research read-only. Work in this task is scoped to IC Query;
-  guidance from another project does not authorize changes to that project.
+Before substantive report/subsystem work, inspect the relevant predecessor
+implementation, regressions and explanatory history read-only, at a pinned
+[ic-query-legacy](https://github.com/dragginzgame/ic-query-legacy) revision. Identify
+the solved invariant and changed assumptions; reuse sound solutions within current
+Canic/SNS scope and published Platform boundaries. Carry applicable regressions
+into their new owner, cite provenance and explain exclusions. Historical breadth
+and passing tests neither authorize restored features nor qualify new code.
 
 ## Product purpose
 
-The [two-subnet comparison](docs/design/subnet-compare.md) reuses distribution and
-metrics observations. Keep independent versions and partial coverage visible;
-comparison is not a capacity ranking or a merge-feasibility decision.
-Its explicit `--settings` composition adds two independent reads; keep default
-comparison behavior unchanged and settings versions separate from distribution.
-
-The [maintenance report](docs/design/subnet-maintenance.md) coordinates one
-bounded observation window. Preserve partial evidence and
-keep configured-version agreement distinct from running software or completion.
-The independent [progress report](docs/design/subnet-progress.md) uses the published
-replacement Platform certificate-time projection. Preserve signing and
-delegation times, explicit freshness and root-subnet binding; neither advancement
-nor repeated state is an uptime or maintenance-completion verdict.
+Read the affected [comparison](docs/design/subnet-compare.md),
+[maintenance](docs/design/subnet-maintenance.md) or
+[progress](docs/design/subnet-progress.md) contract before changes. Preserve
+independent sources, coverage, observation windows, signing/delegation times and
+root-subnet binding. Comparisons do not establish capacity/merge feasibility;
+configuration agreement or repeated state is not uptime or maintenance completion.
 
 IC Query supports Canic application topology planning, uptime assessment and
 subnet maintenance decisions. It is not a general-purpose IC querying library.
@@ -76,27 +62,15 @@ repository. The `ic-query-topology` crate must contain no SNS module, feature or
 dependency on that crate. Each library selects its own Platform capabilities;
 neither depends on the other. A CLI may explicitly compose both.
 
-Support is limited to reading balances from any explicitly selected ICRC ledger
-and neuron information from any explicitly selected compatible SNS Governance
-canister. Dragginz and Toko are examples, not deployment restrictions. Its current
-purpose is to support migration of users of Motoko, Toko,
-Dragginz and similar applications to our new platform. This is an exception to
-the topology focus. Broader SNS support is a possible future direction, not
-implemented functionality.
-
-The `ic-query-sns` name leaves room for future SNS capabilities; each expansion
-requires an explicit report contract. The rename itself adds no functionality.
-The scope reflects the maintainers' concern about SNS longevity; do not present
-possible Foundation replacement or removal as an established external fact.
-Current scope excludes SNS proposals, voting, swaps, treasury analytics,
-framework upgrades and a general SNS explorer. Supporting source resolution and
-bounded pagination must serve the selected balance or neuron report.
-
-Preserve exact balances, neuron fields, source identities, observation times and
-coverage needed by migration consumers. Reading these records does not execute
-a migration, transfer tokens, manage neurons or decide destination entitlements.
-The implemented selectors, fields, bounds and limitations are defined in the
-[migration evidence contract](docs/design/migration-evidence.md).
+Read only balances from explicitly selected ICRC ledgers and neuron information
+from compatible SNS Governance canisters. This supports application migration
+research, not token transfers, neuron management or destination entitlements.
+Dragginz and Toko are examples, not deployment restrictions. Broader SNS proposals,
+voting, swaps, treasury analytics, framework upgrades and explorer functionality
+remain excluded. Further capabilities need an explicit report contract.
+Preserve exact values, identities, observation times and coverage under the
+[migration evidence contract](docs/design/migration-evidence.md). Speculation about
+SNS longevity or Foundation changes is not an established external fact.
 
 ## Product boundaries
 
@@ -123,19 +97,12 @@ The implemented selectors, fields, bounds and limitations are defined in the
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query's lockfile selects registry Platform 0.34.15, Protocol 0.3.5 and Types
-  0.21.2. Product manifests use compatible caret requirements with floors
-  0.34.11, 0.3.2 and 0.21.2 respectively,
-  so downstream consumers may select compatible patches independently. Keep
-  reproducible builds in Cargo.lock; do not restore exact product supplier pins
-  without a documented compatibility constraint. Tooling retains its exact pin.
-  The hard cut removes Platform 0.33.7 and Agent from product and test graphs.
-  Local sibling paths are development-only; publication must qualify registry
-  suppliers before delivery.
-  Public report principals now use published Types 0.21.2, shared with Protocol and
-  certificate authentication. Cloud-engine classes use Protocol directly;
-  no legacy identity/class bridge remains. Portable test frames and their
-  provenance live beside the topology tests; no private fixture crate is needed.
+  Manifests own compatible supplier floors and locks own qualified selections.
+  Keep exact pins only for documented constraints, including the tooling bundle.
+  Public principals share canonical Types with Protocol and authentication; do
+  not restore Agent or legacy identity/class bridges. Published suppliers must
+  be qualified before delivery; local sibling paths are development-only.
+  Portable test frames and provenance stay beside their owners.
   Platform owns authentication; Query owns endpoint/root-key admission, limits,
   deadlines and error projection. Do not add direct Agent, Candid or CDK packages.
 - Keep endpoint, provenance, completeness and certification claims explicit.
@@ -162,13 +129,10 @@ Supplier publication remains separately authorized work at its owning repository
 
 ## Local development
 
-After every coherent patch, review the changed code, callers, tests and docs for
-architectural drift or accumulated scaffolding. Remove obsolete paths, duplicated
-policy, unused abstractions and misleading claims in the same patch; keep report,
-transport and CLI responsibilities with their owners. Do not let architectural
-sediment accumulate. Report any boundary that cannot be resolved within authorized
-scope instead of concealing it behind a workaround. This is a focused review of
-the patch, not an instruction to rerun unrelated suites or audit other repositories.
+After each coherent patch, review the changed responsibility and its callers for conflicting
+contracts, duplicated owners, unused mechanisms and misleading claims. Repair
+within the authorized scope or report the boundary; do not broaden tests or
+sibling work merely for this review.
 
 CLI tables use published `ic-host-text` bordered rendering for visible column
 delimiters, terminal escaping and Unicode-width alignment. Keep row selection
@@ -191,7 +155,8 @@ examples remain directly copyable.
 [Setup](docs/development/setup.md) owns preparation, focused checks and the
 aggregate `make check` gate. CLI process qualification lives beside the CLI;
 add a separate `qualification/` workspace only when real test-only packages need
-it. Broader protocol and publication qualification remain deferred.
+it. Current release and archive qualification are owned by the setup/release
+guides; do not revive the initial blanket publication deferral.
 
 Keep the local overlay small. Add implementation-specific commands and ownership
 rules when their corresponding product surface exists. The initial native support
