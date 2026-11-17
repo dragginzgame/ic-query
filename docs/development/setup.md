@@ -26,7 +26,8 @@ Product manifests use compatible requirements: Platform `0.34.11` permits
 for Query's locked validation and releases. Downstream consumers resolve within
 these ranges and the suppliers' own constraints; the manifest does not certify
 every future patch. Published Query versions cannot be edited retroactively;
-the relaxed requirements are pending the next patch releases.
+the relaxed requirements are delivered in topology 0.109.2, migration 0.104.3
+and CLI 0.105.14.
 
 On 2026-11-17 a temporary downstream consumer selecting Protocol `=0.3.3`
 alongside both Query libraries reproduced the old resolution failure, then passed
@@ -38,6 +39,25 @@ strict Clippy, Rustdoc, formatting, tools and documentation admission on Linux.
 The subsequent release candidate preserves the working-tree update to Protocol
 0.3.3 and qualifies it through each release group's full gate. Its capture-status
 fix is unused by Query; the manifest floor remains 0.3.2.
+
+Batch `batch-iuZZhSVo` published those releases and reconciled to commit
+`29d1e41f3f8f9498232e2183c16ca534e5596a19` on 2026-11-17. Each group passed
+the full local gate and Cargo package verification. Registry metadata confirms
+the compatible requirements, and all three package source identities match their
+release tags. The registry-installed CLI reports 0.105.14 in version and nested
+help output. A registry-only consumer compiled both released libraries with
+Platform 0.34.11 and Protocol 0.3.2, then 0.3.3, and finally Platform 0.34.12 /
+Protocol 0.3.4, always retaining one Types 0.21.2 identity. These are Linux
+resolution/compile checks, not new live-network or future-patch guarantees.
+[Query #1](https://github.com/dragginzgame/ic-query/issues/1) (hook adoption) and
+[Query #2](https://github.com/dragginzgame/ic-query/issues/2) (supplier constraints)
+are complete. Toko-specific live checks and broader neuron export remain deferred;
+new work requires a concrete migration evidence or Canic decision contract.
+[Release CI run 44063613925](https://github.com/dragginzgame/ic-query/actions/runs/44063613925)
+passed for commit `29d1e41f3f8f9498232e2183c16ca534e5596a19`: all 204 tests,
+strict Clippy and Rustdoc on Linux x86-64 and macOS ARM64/x86-64, plus scaffold
+and diagnostic-fixture checks. This hosted result uses the release lockfile;
+the alternative supplier combinations above were checked on Linux separately.
 
 The subsequent Platform 0.34.11 / Protocol 0.3.2 adoption passed `make check`
 on Linux x86-64 on 2026-11-17: all 204 tests, strict Clippy, Rustdoc, formatting,
