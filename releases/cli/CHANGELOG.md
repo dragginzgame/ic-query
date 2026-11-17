@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.17] - Unreleased
+## [0.105.17] - 2026-11-17
 
 ### 🔧 Tooling
 
@@ -12,7 +12,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   conditional test-module declarations. CLI behavior is unchanged.
 - Qualify the retained lockfile update to zeroize 1.9.2 alongside the CLI checks.
 
-After publication, install with Cargo and network access:
+Install with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.17 --locked
