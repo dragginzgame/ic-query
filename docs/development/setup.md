@@ -27,7 +27,10 @@ Initial hosted CI passed the scaffold but exposed a setup-diagnostics test that
 counted every artifact upload, including the new optional timing artifact.
 The correction scopes its assertions to the two setup-artifact steps; all 32
 diagnostic checks pass locally. This repository-only test correction does not
-change the published crate sources. Hosted confirmation follows separately.
+change the published crate sources. [Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44160061478)
+passed scaffold and native Linux x86-64, macOS ARM64 and macOS x86-64 checks for
+`6d8ad9e2d616694cfffe3d14e9956cce74ab6cfa`, including the corrected diagnostics
+fixtures and the full product roster. The packaged CLI reports `icq 0.105.18`.
 
 CLI 0.105.17 moves the migration command and presentation unit tests into sibling
 `tests.rs` files under directory modules. The test bodies and production logic
