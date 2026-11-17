@@ -24,7 +24,7 @@ necessarily its owner or sole beneficiary.
 
 The native adapter queries `https://ic0.app` with the mainnet root key and root
 subnet pinned in this package. The key bytes match topology's existing mainnet
-key, but the libraries do not depend on one another. Platform 0.34.10 owns
+key, but the libraries do not depend on one another. Platform 0.34.11 owns
 transport, certificates and query-signature verification. Query owns endpoint
 admission, 300-second ingress expiry, certificate/delegation freshness (300-second
 maximum age and 60-second future skew), and collection deadlines. Transport
@@ -91,7 +91,7 @@ The exact pagination behavior is pinned to
 [SNS Governance implementation fe5a15be](https://github.com/dfinity/ic/blob/fe5a15bebf3490ef8f0cec5b5704422ee683c660/rs/sns/governance/src/governance.rs):
 unfiltered pagination excludes the supplied cursor; filtered selection ignores it.
 
-Protocol 0.3.0's selected neuron projection preserves ID bytes, ordered permission
+Protocol 0.3.2's selected neuron projection preserves ID bytes, ordered permission
 entries (including absent principals and unknown signed codes), cached stake,
 fees, maturity, optional staked maturity, creation/aging times, optional dissolve
 state, auto-stake flag, vesting period, source NNS reference and raw voting-power

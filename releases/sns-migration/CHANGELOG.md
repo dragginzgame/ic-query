@@ -2,6 +2,15 @@
 
 Release group: `sns-migration`. Package: `ic-sns-migration`.
 
+## [0.104.2] - Unreleased
+
+### 🔧 Changed
+
+- Adopt published Platform 0.34.11 and Protocol 0.3.2, retaining Types 0.21.2.
+  Balance and neuron projections, bounds and partial outcomes are unchanged.
+  The library does not call the added management APIs or enable the new fixture
+  feature; ledger retains its supplier-owned management feature dependencies.
+
 ## [0.104.1] - 2026-11-17
 
 ### 🔧 Tooling

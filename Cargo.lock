@@ -730,9 +730,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.34.10"
+version = "0.34.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7798e7684a2e857355408f2c4252d1187589380609b5f2ef259482e6e1a34571"
+checksum = "6269645258c22c1cccbaaf62ec710b7a30fbbcfe879aff6a53ba53b8526c9c84"
 dependencies = [
  "curve25519-dalek",
  "ed25519-dalek",
@@ -748,9 +748,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-protocol"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86ff8ba66bf3212d37cc5d5120f4cae5f1e968cb5c98c9d92bdfa980d53cc628"
+checksum = "b2b1db444c839e816c1f2b6edec5ef8966a3f022a73a12819cc0db8477e5b560"
 dependencies = [
  "crc32fast",
  "ic-platform-types",

@@ -116,7 +116,7 @@ The implemented selectors, fields, bounds and limitations are defined in the
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query selects registry Platform 0.34.10, Protocol 0.3.0 and Types 0.21.2.
+  Query selects registry Platform 0.34.11, Protocol 0.3.2 and Types 0.21.2.
   The hard cut removes Platform 0.33.7 and Agent from product and test graphs.
   Local sibling paths are development-only; publication must qualify registry
   suppliers before delivery.

@@ -12,13 +12,25 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-All topology reads select published Platform 0.34.10 `native-read`, Protocol 0.3.0
+All topology reads select published Platform 0.34.11 `native-read`, Protocol 0.3.2
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
 The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
+
+The subsequent Platform 0.34.11 / Protocol 0.3.2 adoption passed `make check`
+on Linux x86-64 on 2026-11-17: all 204 tests, strict Clippy, Rustdoc, formatting,
+tool admission and documentation links. Only those two supplier lockfile entries
+changed; Types remains 0.21.2. Supplier changes were reviewed at
+[`527fe363`](https://github.com/dragginzgame/ic-platform/commit/527fe363c300ebf123d3665af813e93511a3ccd8):
+module moves preserve public paths, and Query does not call the added management
+APIs or select `management-snapshot-fixtures`. Each library retains its independent
+feature selection. No report code, JSON schema or retained evidence changes are
+required. This is local adoption qualification, not publication, new hosted macOS
+qualification or a new live-network observation. The release evidence below
+remains bound to the previously delivered supplier versions.
 
 The requested Platform 0.34.10 / Protocol 0.3.0 adoption passed all 204 workspace
 tests, strict Clippy for each affected package, Rustdoc, formatting, local links

@@ -9,6 +9,8 @@ records the hosted checks and installed CLI smoke observations. Resume product
 work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
+The subsequent Platform 0.34.11 / Protocol 0.3.2 adoption is pending the next
+patch releases; the published versions above used Platform 0.34.10 / Protocol 0.3.0.
 
 | Package | Responsibility |
 | --- | --- |
@@ -77,7 +79,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.34.10 native reads, Protocol 0.3.0 and Types 0.21.2,
+0.34.11 native reads, Protocol 0.3.2 and Types 0.21.2,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

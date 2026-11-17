@@ -2,6 +2,14 @@
 
 Release group: `topology`. Package: `ic-topology`.
 
+## [0.109.1] - Unreleased
+
+### 🔧 Changed
+
+- Adopt published Platform 0.34.11 and Protocol 0.3.2, retaining Types 0.21.2.
+  Supplier module-layout changes preserve public paths; the added management
+  capabilities are not selected here. Report contracts and schema 1 are unchanged.
+
 ## [0.109.0] - 2026-11-17
 
 ### ⚠️ Breaking
