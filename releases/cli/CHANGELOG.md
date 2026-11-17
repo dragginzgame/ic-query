@@ -2,6 +2,23 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.17] - Unreleased
+
+### 🔧 Tooling
+
+- Move migration command and presentation unit tests into adjacent `tests.rs`
+  files, with their owning modules in `mod.rs`. Preserve assertions, private
+  visibility and ordinary module discovery; production files retain only
+  conditional test-module declarations. CLI behavior is unchanged.
+- Qualify the retained lockfile update to zeroize 1.9.2 alongside the CLI checks.
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.17 --locked
+icq --version
+```
+
 ## [0.105.16] - 2026-11-17
 
 ### 🔧 Changed
