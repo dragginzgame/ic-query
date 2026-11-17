@@ -67,7 +67,13 @@ exact Rust 1.100.0 toolchain with rustfmt and Clippy from
 rustup toolchain install 1.100.0 --profile minimal --component rustfmt --component clippy
 make install-tools
 make fetch-dependencies
+make install-hooks
 ```
+
+Run `make install-hooks` once in each new clone. It sets repository-local
+`core.hooksPath` to the reviewed `vendor/toko-tooling/.githooks` directory.
+The pre-commit hook formats selected files and rejects partial staging; the
+installer refuses to replace an existing different hook installation.
 
 Preparation may use the network and shared user tool store. Validation is locked
 and offline; it does not install tools or activate hooks. `make install-host-tools`
@@ -308,12 +314,12 @@ the supported updater. Its authenticated archive SHA-256 is:
 7d16b815ae322ae3f88580ee6af1611bdafde08b77592cd886bfa0eece0f1be8
 ```
 
-The [receipt](../../.toko-tooling.snapshot) records the thirteen selected roots and
+The [receipt](../../.toko-tooling.snapshot) records the fourteen selected roots and
 all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.11 release-tooling selection accounts for all 77 installed payload files.
+The 0.44.11 selection includes the pre-commit hook and all 78 installed payload files.
 Release/publication runners, source/receipt admission and package provenance
 checks were added through the supported exporter for the authorized delivery.
 The earlier reviewed
