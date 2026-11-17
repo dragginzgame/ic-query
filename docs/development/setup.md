@@ -13,6 +13,18 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-JQkLIRLe` published topology 0.110.3, SNS 0.105.3, umbrella 0.104.3
+and CLI 0.105.19 on 2026-11-17, ending at
+`2860ff74fe44d10c1f634a1cfb9db90d3e5b4880`. Its actual batch time was 601s,
+versus 692s in the preceding delivery: 91s shorter (about 13%). Validation took
+277s versus 340s, setup 44s versus 65s, metadata preparation 81s versus 86s,
+and publication 53s versus 54s. These are observed sequential deliveries, not
+a controlled benchmark; hosted CI and subsequent documentation delivery are
+outside the batch interval. One product execution supplied all four groups,
+with one seal per group and fresh current-version CLI/source/archive checks.
+The packaged CLI reports `icq 0.105.19`. Hosted CI runs asynchronously; earlier
+hosted qualification below does not establish the result for this release.
+
 Batch `batch-xEsmsSI5` published topology 0.110.2, SNS 0.105.2, umbrella 0.104.2
 and CLI 0.105.18 on 2026-11-17, ending at
 `61e25445a3fec94111205157921fcee955c1e33d`. The locked Platform 0.34.14 graph
@@ -472,8 +484,8 @@ missing-tool preparation and check-only recovery passed with installation effect
 simulated. Workflow lint and all 32 setup-diagnostic assertions passed as well.
 Optional hosted qualification retains compact `phases.tsv` fields alongside
 group timings; it does not upload tool inventories or environment values.
-These are local qualification results; actual deployment timing awaits the next
-separately authorized delivery.
+These are local qualification results; the subsequent actual delivery timings
+are recorded at the beginning of this guide.
 
 Receipts retain `executed` or `reused`, original execution source/group, logs and
 shared custody bindings. Missing/stale product proof takes ordinary execution;
