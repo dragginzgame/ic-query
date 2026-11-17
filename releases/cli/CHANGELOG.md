@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.13] - Unreleased
+## [0.105.13] - 2026-11-17
 
 ### 🔧 Changed
 
@@ -10,7 +10,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   report libraries. Commands, presentation, report JSON and exit statuses are
   unchanged; the existing copyable examples below still apply.
 
-After publication, install with Cargo and network access, then check the version:
+Install with Cargo and network access, then check the version:
 
 ```bash
 cargo install ic-query-cli --version 0.105.13 --locked

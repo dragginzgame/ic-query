@@ -774,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-cli"
-version = "0.105.12"
+version = "0.105.13"
 dependencies = [
  "clap",
  "ic-host-text",
