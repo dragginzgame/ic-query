@@ -3,6 +3,15 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.4] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.0 for migration candidate preparation and proof admission.
+  Preserve fresh graph checks, original proof custody and migration qualification.
+  [Tooling #390](https://github.com/dragginzgame/toko-tooling/issues/390),
+  [Tooling #391](https://github.com/dragginzgame/toko-tooling/issues/391).
+
 ## [0.105.3] - 2026-11-17
 
 ### 🔧 Tooling

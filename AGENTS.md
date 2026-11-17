@@ -123,7 +123,7 @@ The implemented selectors, fields, bounds and limitations are defined in the
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query's lockfile selects registry Platform 0.34.14, Protocol 0.3.5 and Types
+  Query's lockfile selects registry Platform 0.34.15, Protocol 0.3.5 and Types
   0.21.2. Product manifests use compatible caret requirements with floors
   0.34.11, 0.3.2 and 0.21.2 respectively,
   so downstream consumers may select compatible patches independently. Keep

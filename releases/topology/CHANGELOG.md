@@ -2,6 +2,15 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.4] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.0 for topology candidate preparation and proof admission.
+  Preserve fresh graph checks, original proof custody and report qualification.
+  [Tooling #390](https://github.com/dragginzgame/toko-tooling/issues/390),
+  [Tooling #391](https://github.com/dragginzgame/toko-tooling/issues/391).
+
 ## [0.110.3] - 2026-11-17
 
 ### 🔧 Tooling

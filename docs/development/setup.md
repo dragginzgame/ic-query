@@ -495,6 +495,52 @@ The source renderer and admission helper never publish from the candidate.
 Actual group metadata, selected package archives, registry availability and
 upload/readback recovery retain their existing fresh checks.
 
+Focused shared-operation profiling on 2026-11-17 used installed Tooling 0.44.11
+and an isolated archive of `faf907b2c73aa1e007ddc1224a5dd202a2c65896`, retaining
+the delivered Platform 0.34.14 lockfile. The canonical renderer produced candidate
+`7b40a0d9812caa0668925884ca3ef31682d98422ba59bfa32798416a037e3b8f`.
+Transparent child-command timers and temporary Perl function wrappers measured
+the unchanged shared helpers; controls omitted both forms of instrumentation.
+
+| Operation | Instrumented wall time | Uninstrumented control |
+| --- | ---: | ---: |
+| Four-group candidate preparation | 10.02s | 9.53s |
+| Initial synthetic native proof | 25.38s | 25.64s |
+| Reused synthetic native proof admission | 20.21s | 20.28s |
+
+Candidate preparation made 12 full graph admissions: four group plans and
+before/after admission for four prepares. Twelve `yq` lockfile decodes consumed
+5.33s; twelve Cargo metadata calls consumed 1.46s; 140 `jq` calls consumed 0.87s.
+Sixty manifest decodes were individually below the timer's 0.01s resolution.
+The control produced byte-identical projection output. Shared batch admission
+and parsing improvements are tracked in
+[Tooling #390](https://github.com/dragginzgame/toko-tooling/issues/390).
+The actual delivery's 81s aggregate `release-prepare` interval also includes
+preflight, version reads, receipt checks and prepared checks; it is not a measure
+of metadata editing alone.
+
+The native probe used `/usr/bin/true`, contract `profile-only/1`, separate new
+proof namespaces and the real 26,359-path native input observation. It did not
+run or qualify product tests. Instrumentation changes verifier runtime identity,
+so profiled and control runs each created their own original proof, then reused
+that proof. Delivered evidence remained untouched. In the instrumented reused
+run, initial and final observations took 8.07s and 8.05s. Across the parent
+process, SHA-256 calls consumed 8.64s, byte reads 2.77s, JSON decoding 4.36s and
+encoding 1.36s; log checks took less than 1ms. These inclusive function times
+overlap the observation intervals and must not be added to them. Observer child
+time is included in observation totals, without separate attribution.
+The shared runner starts its existing stage interval after initial observation
+and proof lookup, explaining much of the outer/inner timing difference.
+[Tooling #391](https://github.com/dragginzgame/toko-tooling/issues/391) tracks
+finer shared timing and qualified serialization/hashing improvements.
+
+These are single-host Linux samples with warm dependencies, not measured future
+deployment savings. Hashing cost does not establish that integrity checks can
+be skipped. No local cache or supplier implementation change was introduced.
+Raw profiles and disposable fixtures remain under
+`target/evidence/query-admission-profile/run.brYM8z/`; the table above retains
+the compact results without tool inventories or environment values.
+
 Common source/tool/format/document admission still runs on every actual group.
 When CLI checks are selected, its 28 process tests also run against the actual
 intermediate versions. Candidate tests alone cannot establish that installed
@@ -629,28 +675,47 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.44.11** was selected from crates.io on 2026-11-16 through
+Toko Tooling **0.45.0** was selected from crates.io on 2026-11-17 through
 the supported updater. Its authenticated archive SHA-256 is:
 
 ```text
-7d16b815ae322ae3f88580ee6af1611bdafde08b77592cd886bfa0eece0f1be8
+3789a925c1165317eff84cc80436195b66c0478b0c2b441bc2f1a755caf6a23a
 ```
 
-The [receipt](../../.toko-tooling.snapshot) records the fourteen selected roots and
+The [receipt](../../.toko-tooling.snapshot) records the selected roots and
 all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The 0.44.11 selection includes the pre-commit hook and all 78 installed payload files.
+The current selection includes the pre-commit hook and 83 installed payload files.
 Release/publication runners, source/receipt admission and package provenance
 checks were added through the supported exporter for the authorized delivery.
-The earlier reviewed
-preview updates the baseline and keeps the executable payload unchanged; the
-supported updater owns the receipt. Versions 0.44.10–0.44.11 add setup-failure
-diagnostic requirements and repository-qualified issue references. Local issue
-labels now identify their owning repositories. The existing CI workflow still
-needs bounded, sanitized setup-failure artifact collection; installing this
-baseline does not establish that hosted evidence-retention behavior.
+The 0.45.0 exporter updates grouped candidate preparation, Cargo metadata
+admission and the shared proof runner. Invocation-local TOML reuse compares full
+input bytes; fresh graph checks remain around mutations. Streaming input hashes
+and reduced canonical serialization preserve proof custody. Detailed runner
+spans now separate observation, lookup and custody work. These are the supplier
+changes requested in Tooling #390 and Tooling #391 above; Query adds no local
+cache or alternate metadata/proof implementation.
+Local adoption checks passed snapshot/member/lock admission, installed tool
+checks, documentation links and all 31 release-wiring assertions. The native
+four-group fixture at `target/reuse-qualification/sequence.6Mr23i/` passed with
+126/55/52/50s validation intervals (topology/SNS/umbrella/CLI): topology executed
+the product checks and the other groups reused its proof with unchanged candidate
+identity. This run used the working lockfile's Platform 0.34.15 and bytes 1.12.2;
+it is not a controlled comparison with the earlier Platform 0.34.14 profile or
+an actual deployment measurement. Metadata delivery was simulated locally.
+The setup/recovery portion resumed in the same fixture after the sandbox refused
+the shared tool-store installation lock; broader filesystem access admitted that
+setup without repeating the completed group sequence. It passed prepared-tool
+and check-only recovery, isolated CLI selection, missing/tampered evidence
+refusal, seal-output recovery, corrupted-proof re-execution, environment
+invalidation and failed-product refusal/recovery. Final complete admission reused
+the original product proof in 46s. No tag, push or registry upload ran.
+The new flow guidance matches the development, CI, release, publication and
+recovery ownership table above. Versions 0.44.10–0.44.11 introduced setup-failure
+diagnostics and repository-qualified issue references; Query's implemented
+diagnostic coverage and its limits are recorded in the setup failure section.
 The baseline also clarifies asynchronous hosted
 CI for delivery, one-tier qualification package layout and independent compatible
 thiserror selection. Query has no separate qualification packages, and its

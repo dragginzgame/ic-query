@@ -2,6 +2,23 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.20] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.0 for grouped candidate preparation and streaming proof
+  admission with finer timing spans. Preserve fresh graph checks and original
+  proof custody; CLI commands and report contracts are unchanged.
+  [Tooling #390](https://github.com/dragginzgame/toko-tooling/issues/390),
+  [Tooling #391](https://github.com/dragginzgame/toko-tooling/issues/391).
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.20 --locked
+icq --version
+```
+
 ## [0.105.19] - 2026-11-17
 
 ### 🔧 Tooling

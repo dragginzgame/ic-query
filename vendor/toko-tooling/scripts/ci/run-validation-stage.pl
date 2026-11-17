@@ -42,25 +42,30 @@ my $json = JSON::PP->new->canonical->utf8;
 my $root = getcwd();
 "$root$state$observer$environment" !~ /[\x00\r\n]/ or die "invalid stage path\n";
 
-sub bytes {
-    my ($path) = @_;
+sub read_input {
+    my ($path,$digest) = @_;
     -f $path && -r $path && -s $path <= $limit or die "missing, unreadable or oversized stage input: $path\n";
     sysopen my $in, $path, O_RDONLY|O_NONBLOCK or die "read $path: $!\n";
     binmode $in;
     my @metadata = stat($in);
     @metadata && S_ISREG($metadata[2]) or die "stage input is no longer a regular file: $path\n";
     my $value = '';
+    my $size = 0;
+    my $hash = $digest ? Digest::SHA->new(256) : undef;
     while (1) {
-        my $remaining = $limit - length($value);
+        my $remaining = $limit - $size;
         my $count = read($in, my $chunk, $remaining < 65536 ? $remaining + 1 : 65536);
         defined($count) or die "read stage input $path: $!\n";
         last unless $count;
         $count <= $remaining or die "stage input grew beyond allowance: $path\n";
-        $value .= $chunk;
+        $size += $count;
+        if ($digest) { $hash->add($chunk); } else { $value .= $chunk; }
     }
     close $in or die "close $path: $!\n";
-    return $value;
+    return $digest ? $hash->hexdigest : $value;
 }
+sub bytes { return read_input($_[0],0); }
+sub file_digest { return read_input($_[0],1); }
 sub exact_keys {
     my ($object, @keys) = @_;
     ref($object) eq 'HASH' && join(',',sort keys %$object) eq join(',',sort @keys)
@@ -71,7 +76,7 @@ sub canonical_record {
     my $raw = bytes($path);
     my $value = $json->decode($raw);
     $raw eq $json->encode($value)."\n" or die "stage JSON must be canonical (duplicate keys and ambiguous encodings refuse): $path\n";
-    return $value;
+    return wantarray ? ($value,$raw) : $value;
 }
 sub safe_route {
     my ($path) = @_;
@@ -84,11 +89,13 @@ sub safe_route {
     }
 }
 sub publish {
-    my ($path,$value) = @_;
+    my ($path,$value,$raw) = @_;
+    $raw //= $json->encode($value)."\n";
     sysopen my $out, $path, O_WRONLY|O_CREAT|O_EXCL, 0600 or die "create immutable evidence $path: $!\n";
     binmode $out;
-    print {$out} $json->encode($value),"\n" or die "write stage evidence: $!\n";
+    print {$out} $raw or die "write stage evidence: $!\n";
     close $out or die "close stage evidence: $!\n";
+    return $raw;
 }
 if (defined $admission_output) {
     safe_route($admission_output);
@@ -116,7 +123,9 @@ for my $candidate ($command[0] =~ m{/} ? $command[0] : map { "$_/$command[0]" } 
 defined($program) or die "stage executable absent from bounded environment\n";
 $command[0] = $selected_program; # Preserve argv[0] for dispatchers such as rustup's cargo proxy.
 my $start = clock_gettime(CLOCK_MONOTONIC);
-my $runner_digest = sha256_hex(bytes(abs_path($0)));
+local $ENV{RELEASE_GROUP}=$group;
+local $ENV{RELEASE_SOURCE}=$source;
+my $runner_digest = file_digest(abs_path($0));
 
 sub run_child {
     my ($out,$err,@argv) = @_;
@@ -134,7 +143,7 @@ sub run_child {
 }
 sub observe {
     my ($phase) = @_;
-    my $observer_digest = sha256_hex(bytes($observer));
+    my $observer_digest = file_digest($observer);
     my $status = run_child("$attempt/$phase-observation.json", "$attempt/$phase-observation.stderr", $observer);
     if ($status) {
         my $diagnostic = eval { bytes("$attempt/$phase-observation.stderr") };
@@ -142,7 +151,7 @@ sub observe {
         print STDERR "stage observation failed ($status); no stage admitted\n";
         exit $status;
     }
-    $observer_digest eq sha256_hex(bytes($observer)) && $runner_digest eq sha256_hex(bytes(abs_path($0)))
+    $observer_digest eq file_digest($observer) && $runner_digest eq file_digest(abs_path($0))
         or die "stage observer/runner changed during observation\n";
     -x $selected_program && abs_path($selected_program) eq $program && -x $observer or die "stage executable admission changed during observation\n";
     my $observation = canonical_record("$attempt/$phase-observation.json");
@@ -155,21 +164,26 @@ sub observe {
         safe_route($path) unless $path =~ m{^/}; # Absolute tool routes may use managed selectors.
         $path !~ /[\x00\r\n]/ or die "invalid stage input path\n";
         my $resolved = abs_path($path) // die "missing stage input: $path\n";
-        push @files, {path=>$path,resolved=>$resolved,sha256=>sha256_hex(bytes($resolved))};
+        push @files, {path=>$path,resolved=>$resolved,sha256=>file_digest($resolved)};
     }
     return {schema=>1,stage=>$stage,contract=>$contract,cwd=>$root,command=>\@command,
         observer=>{path=>$observer,sha256=>$observer_digest},
-        runner=>{sha256=>$runner_digest,perl=>sha256_hex(bytes($^X)),
+        runner=>{sha256=>$runner_digest,perl=>file_digest($^X),
             modules=>{map { my $path=abs_path($_) // die "missing verifier runtime input\n";
-                $path=>sha256_hex(bytes($path)) }
+                $path=>file_digest($path) }
                 (values(%INC), @DynaLoader::dl_shared_objects)},
             json=>$JSON::PP::VERSION,digest=>$Digest::SHA::VERSION},
-        program=>sha256_hex(bytes($program)),environment=>$env,host=>[uname()],
+        program=>file_digest($program),environment=>$env,host=>[uname()],
         observation=>{configuration=>$observation->{configuration},files=>[sort {$a->{path} cmp $b->{path}} @files]}};
 }
-my $context = observe('before');
-my $key = sha256_hex($json->encode($context));
-publish("$attempt/context.json",$context);
+sub timed {
+    my ($phase,$code)=@_;
+    return ReleaseTiming::measure("validation-stage:$stage:$phase",'executed',$attempt,$code);
+}
+my $context = timed('initial-observation',sub { observe('before') });
+my $context_raw = timed('context-serialization',sub { $json->encode($context) });
+my $key = sha256_hex($context_raw);
+publish("$attempt/context.json",$context,$context_raw."\n");
 my ($proof_path,$proof,$proof_digest,$mode);
 sub check_logs {
     my ($record) = @_;
@@ -179,19 +193,21 @@ sub check_logs {
         exact_keys($log,qw(path sha256));
         $log->{path} eq "$record->{origin}{attempt}/command.$stream" or die "invalid stage log provenance\n";
         safe_route($log->{path});
-        sha256_hex(bytes($log->{path})) eq $log->{sha256} or die "original stage log drift\n";
+        file_digest($log->{path}) eq $log->{sha256} or die "original stage log drift\n";
     }
 }
+my @candidates;
+timed('proof-lookup',sub {
 opendir my $proofs, "$state/proofs" or die "read stage proofs: $!\n";
-my @candidates = sort map { "$state/proofs/$_" } grep { /^\Q$key\E\.[A-Za-z0-9_-]+\.json\z/ } readdir $proofs;
+@candidates = sort map { "$state/proofs/$_" } grep { /^\Q$key\E\.[A-Za-z0-9_-]+\.json\z/ } readdir $proofs;
 closedir $proofs or die "close stage proofs: $!\n";
 for my $candidate (@candidates) {
     safe_route($candidate);
     my $admitted = eval {
-        my $record = canonical_record($candidate);
+        my ($record,$record_raw) = canonical_record($candidate);
         exact_keys($record,qw(schema kind context origin result logs elapsed_seconds));
         $json->encode($record->{schema}) eq '1' && $record->{kind} eq 'release-stage-execution'
-            && $json->encode($record->{result}) eq '0' && $json->encode($record->{context}) eq $json->encode($context)
+            && $json->encode($record->{result}) eq '0' && $json->encode($record->{context}) eq $context_raw
             && $json->encode($record->{elapsed_seconds}) =~ /\A(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?\z/i
             or die "ineligible original stage proof\n";
         exact_keys($record->{origin},qw(source group attempt));
@@ -201,14 +217,14 @@ for my $candidate (@candidates) {
             or die "invalid original stage provenance\n";
         check_logs($record);
         $proof = $record;
-        $proof_digest = sha256_hex($json->encode($record)."\n");
+        $proof_digest = sha256_hex($record_raw);
         1;
     };
     if ($admitted) { $proof_path=$candidate; $mode='reused'; last; }
     print STDERR "Prior proof retained; executing ordinarily if no valid match remains: $@";
 }
-local $ENV{RELEASE_GROUP}=$group;
-local $ENV{RELEASE_SOURCE}=$source;
+return 1;
+});
 $timing_span=ReleaseTiming::begin("validation-stage:$stage",
     defined($proof_path)?'reused':@candidates?'fallback':'executed',
     defined($proof_path)?$proof->{origin}{attempt}:$attempt);
@@ -228,21 +244,23 @@ if (!defined $proof_path) {
         exit $status;
     }
     die $output_error if length $output_error;
-    my $after = observe('after-execution');
-    $json->encode($context) eq $json->encode($after) or die "stage inputs changed during execution; no proof admitted\n";
+    my $after = timed('post-execution-observation',sub { observe('after-execution') });
+    $context_raw eq $json->encode($after) or die "stage inputs changed during execution; no proof admitted\n";
     $proof = {schema=>1,kind=>'release-stage-execution',context=>$context,
         origin=>{source=>$source,group=>$group,attempt=>$attempt},result=>0,
-        logs=>{map { $_=>{path=>"$attempt/command.$_",sha256=>sha256_hex(bytes("$attempt/command.$_"))} } qw(stdout stderr)},
+        logs=>{map { $_=>{path=>"$attempt/command.$_",sha256=>file_digest("$attempt/command.$_")} } qw(stdout stderr)},
         elapsed_seconds=>clock_gettime(CLOCK_MONOTONIC)-$execution_start};
     $proof_path = "$state/proofs/$key.".substr($attempt,-6).".json";
-    publish($proof_path,$proof);
-    $proof_digest = sha256_hex($json->encode($proof)."\n");
+    $proof_digest = sha256_hex(publish($proof_path,$proof));
     $mode='executed';
 }
-my $final = observe('admission');
-$json->encode($context) eq $json->encode($final) or die "stage inputs drifted before admission\n";
-sha256_hex(bytes($proof_path)) eq $proof_digest or die "stage execution proof changed before admission\n";
+my $final = timed('final-observation',sub { observe('admission') });
+timed('custody-checks',sub {
+$context_raw eq $json->encode($final) or die "stage inputs drifted before admission\n";
+file_digest($proof_path) eq $proof_digest or die "stage execution proof changed before admission\n";
 check_logs($proof);
+return 1;
+});
 my $admission = {schema=>1,kind=>'release-stage-admission',mode=>$mode,
     source=>$source,group=>$group,stage=>$stage,contract=>$contract,context_sha256=>$key,
     execution_proof=>$proof_path,execution_proof_sha256=>$proof_digest,

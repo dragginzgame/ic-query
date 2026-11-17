@@ -53,10 +53,19 @@ sub observe {
 }
 sub run {
     my ($log,@command) = @_;
+    run_logged($log,undef,@command);
+}
+sub run_logged {
+    my ($log,$output,@command) = @_;
     my $pid=fork(); defined $pid or die $!;
     if (!$pid) {
-        open STDOUT,'>>:raw',$log or exit 125;
-        open STDERR,'>&',\*STDOUT or exit 125;
+        if (defined $output) {
+            open STDOUT,'>:raw',$output or exit 125;
+            open STDERR,'>>:raw',$log or exit 125;
+        } else {
+            open STDOUT,'>>:raw',$log or exit 125;
+            open STDERR,'>&',\*STDOUT or exit 125;
+        }
         exec {$command[0]} @command or exit 127;
     }
     waitpid($pid,0)==$pid or die $!;
@@ -142,7 +151,7 @@ ref($policy->{groups}) eq 'ARRAY' && @{$policy->{groups}} or die "missing candid
 if (-e "$tree/qualification/Cargo.toml" && !exists $policy->{qualification_workspace}) {
     die "qualification workspace requires declared multi-lock admission; use fresh execution\n";
 }
-my %versions;
+my (%versions,@requests);
 chdir $tree or die $!;
 local $ENV{CARGO_TARGET_DIR}="$tree/target";
 local $ENV{CARGO_NET_OFFLINE}='true';
@@ -152,8 +161,6 @@ delete @ENV{qw(RELEASE_COMMIT RELEASE_GROUP RELEASE_PREVIOUS RELEASE_VERSION REL
 for my $group (@{$policy->{groups}}) {
     my $name=$group->{name};
     $name =~ /\A[A-Za-z0-9][A-Za-z0-9_-]*\z/ or die "invalid candidate group\n";
-    my $plan=$json->decode(observe('bash',"$tooling_root/scripts/ci/cargo-release-group.sh",'plan',$name));
-    my $previous=$plan->{previous};
     my $notes=bytes("$tree/$group->{changelog}");
     # Never search past the first release heading for an older usable version.
     my ($heading) = $notes =~ /^(##[ \t]+[^\n]*)/m;
@@ -163,18 +170,16 @@ for my $group (@{$policy->{groups}}) {
     $heading =~ /\A## \[(\d+\.\d+\.\d+)\](?: - (Unreleased|\d{4}-\d{2}-\d{2}))?\z/
         or die "candidate group needs its exact latest release heading\n";
     my ($version,$date)=($1,$2 // 'Unreleased');
-    if ($date eq 'Unreleased') {
-        $version ne $previous or die "pending candidate must advance its group\n";
-        local @ENV{qw(RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE)}=($previous,$version,'2000-01-01');
-        run("$attempt/preparation.log",'bash',"$tooling_root/scripts/ci/cargo-release-group.sh",'prepare',$name);
-    } else {
-        $version eq $previous or die "finalized group and package version differ\n";
-        run("$attempt/preparation.log",'awk','-v',"version=$version",'-v',"previous=$previous",
-            '-v',"date=$date",'-v','allow_finalized=1','-v','verify_current=1',
-            '-f',"$tooling_root/scripts/ci/finalize-release-changelog.awk","$tree/$group->{changelog}");
-    }
-    $versions{$name}={version=>$version,primary=>$plan->{primary},members=>$plan->{members}};
+    push @requests,{name=>$name,version=>$version,date=>$date};
 }
+write_file("$attempt/requests.json",$json->encode(\@requests)."\n");
+# One invocation owns parsing and preparation; fresh graph checks remain on both
+# sides of each mutation. The original repository is never edited.
+run_logged("$attempt/preparation.log","$attempt/versions.json",
+    'bash',"$tooling_root/scripts/ci/cargo-release-group.sh",
+    'project-candidate',"$attempt/requests.json");
+%versions=%{$json->decode(bytes("$attempt/versions.json"))};
+
 # These are stage-only inputs, not replacement release records. The consumer
 # must separately qualify actual ledgers/receipts and never cache their admission.
 for my $group (@{$policy->{groups}}) {

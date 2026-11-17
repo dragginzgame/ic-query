@@ -2,6 +2,15 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.4] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.0 for the umbrella's candidate preparation and proof
+  admission. Preserve feature qualification and original proof custody.
+  [Tooling #390](https://github.com/dragginzgame/toko-tooling/issues/390),
+  [Tooling #391](https://github.com/dragginzgame/toko-tooling/issues/391).
+
 ## [0.104.3] - 2026-11-17
 
 ### 🔧 Tooling
