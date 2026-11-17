@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.14] - Unreleased
+## [0.105.14] - 2026-11-17
 
 ### 🐛 Fixed
 
@@ -10,7 +10,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   dependency resolution can select compatible patches. Qualify Protocol 0.3.3
   in the lockfile. Commands and output are unchanged.
 
-After publication, install with Cargo and network access:
+Install with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.14 --locked
