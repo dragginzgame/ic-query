@@ -2,6 +2,14 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.1] - Unreleased
+
+### 🔧 Changed
+
+- Qualify locked Platform 0.34.13 and Protocol 0.3.5. Their new update and
+  management-cycle APIs are not used by Query. Compatible requirements, public
+  report contracts, JSON schema 1 and read-only behavior remain unchanged.
+
 ## [0.110.0] - 2026-11-17
 
 ### ⚠️ Breaking

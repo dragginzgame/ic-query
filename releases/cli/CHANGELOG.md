@@ -2,6 +2,20 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.16] - Unreleased
+
+### 🔧 Changed
+
+- Compose topology 0.110.1 and SNS 0.105.1, qualifying locked Platform 0.34.13
+  and Protocol 0.3.5. Existing commands, output and exit statuses are unchanged.
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.16 --locked
+icq --version
+```
+
 ## [0.105.15] - 2026-11-17
 
 ### 🔧 Changed

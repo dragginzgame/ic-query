@@ -2,6 +2,14 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.1] - Unreleased
+
+### 🔧 Changed
+
+- Compose topology 0.110.1 and SNS 0.105.1, qualified with locked Platform
+  0.34.13 and Protocol 0.3.5. Empty defaults, optional `topology`/`sns` features
+  and direct re-export type identities remain unchanged.
+
 ## [0.104.0] - 2026-11-17
 
 ### ⚠️ Breaking

@@ -16,6 +16,19 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
+## CLI 0.105.16 — Unreleased
+
+### ▶️ Try it
+
+After publication, with Cargo and network access, install the qualified supplier update:
+
+```bash
+cargo install ic-query-cli --version 0.105.16 --locked
+icq --version
+```
+
+Commands and reports are unchanged. See the [CLI ledger](releases/cli/CHANGELOG.md).
+
 ## CLI 0.105.15 — 2026-11-17
 
 ### ▶️ Try it

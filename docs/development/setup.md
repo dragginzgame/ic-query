@@ -43,7 +43,7 @@ macOS ARM64/x86-64: 204 existing tests, two re-export doctests, the umbrella
 feature matrix, strict Clippy/Rustdoc and scaffold checks. This qualifies the
 released contracts and locked suppliers, not the retired legacy surface.
 
-All topology reads select published Platform 0.34.12 `native-read`, Protocol 0.3.4
+All topology reads select published Platform 0.34.13 `native-read`, Protocol 0.3.5
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-query-topology/src/tests/README.md), packaged with

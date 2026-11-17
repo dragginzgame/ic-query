@@ -3,6 +3,14 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.1] - Unreleased
+
+### 🔧 Changed
+
+- Qualify locked Platform 0.34.13 and Protocol 0.3.5 without changing compatible
+  requirements, ICRC balance or SNS neuron evidence contracts. Query does not
+  call the new update or management-cycle APIs.
+
 ## [0.105.0] - 2026-11-17
 
 ### ⚠️ Breaking
