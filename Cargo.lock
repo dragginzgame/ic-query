@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-sns"
-version = "0.105.1"
+version = "0.105.2"
 dependencies = [
  "ic-platform",
  "ic-platform-protocol",
