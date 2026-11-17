@@ -774,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query"
-version = "0.103.1"
+version = "0.104.0"
 dependencies = [
  "ic-query-sns",
  "ic-query-topology",
