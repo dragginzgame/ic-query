@@ -72,5 +72,5 @@ subnet and Registry rejection, exact JSON values and CLI argument/help contracts
 Fixtures do not prove live availability or cryptographic verification. Keep a
 live mainnet smoke observation separate from repeatable offline tests.
 
-This is a new `ic-topology` API and new `icq topology` command. It does not restore
+This is a new `ic-query-topology` API and new `icq topology` command. It does not restore
 legacy `icq nns ...` syntax or retire legacy caller and retained-data obligations.

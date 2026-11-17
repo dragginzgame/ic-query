@@ -1,7 +1,7 @@
 //! Compact daily prices; raw report values remain available through JSON.
 
 use ic_host_text::bordered_table;
-use ic_topology::cloud_engine::prices::{CloudEnginePricesReport, FeeOutcome};
+use ic_query_topology::cloud_engine::prices::{CloudEnginePricesReport, FeeOutcome};
 use std::fmt::Write;
 
 pub(crate) fn cloud_engine_prices(report: &CloudEnginePricesReport) -> String {

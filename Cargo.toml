@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["crates/ic-query-cli", "crates/ic-sns-migration", "crates/ic-topology"]
+members = [
+    "crates/ic-query",
+    "crates/ic-query-cli",
+    "crates/ic-query-sns",
+    "crates/ic-query-topology",
+]
 
 [workspace.package]
 edition = "2024"
@@ -15,8 +20,8 @@ ic-host-text = "0.77.2"
 ic-platform = { version = "0.34.11", default-features = false }
 ic-platform-protocol = { version = "0.3.2", default-features = false }
 ic-platform-types = { version = "0.21.2", default-features = false }
-ic-sns-migration = { path = "crates/ic-sns-migration", version = "0.104.3" }
-ic-topology = { path = "crates/ic-topology", version = "0.109.2" }
+ic-query-sns = { path = "crates/ic-query-sns", version = "0.104.3" }
+ic-query-topology = { path = "crates/ic-query-topology", version = "0.109.2" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 thiserror = "2.0.18"

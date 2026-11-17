@@ -1,12 +1,14 @@
 use ic_platform_types::Principal;
-use ic_topology::node::{NodeEvidence, NodeReport};
-use ic_topology::placement::{PlacementEvidence, PlacementReport};
-use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
-use ic_topology::subnet::configuration::{SubnetConfigurationEvidence, SubnetConfigurationReport};
-use ic_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
-use ic_topology::subnet::membership::SubnetMembershipReport;
-use ic_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
-use ic_topology::subnet::{SubnetEvidence, SubnetReport};
+use ic_query_topology::node::{NodeEvidence, NodeReport};
+use ic_query_topology::placement::{PlacementEvidence, PlacementReport};
+use ic_query_topology::subnet::activity::{MessageChange, SubnetActivityReport};
+use ic_query_topology::subnet::configuration::{
+    SubnetConfigurationEvidence, SubnetConfigurationReport,
+};
+use ic_query_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
+use ic_query_topology::subnet::membership::SubnetMembershipReport;
+use ic_query_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
+use ic_query_topology::subnet::{SubnetEvidence, SubnetReport};
 
 use super::{
     node, placement, subnet, subnet_activity, subnet_configuration, subnet_list, subnet_membership,
@@ -20,7 +22,7 @@ fn changes_text_is_compact_escapes_values_and_keeps_observation_limits() {
     after.evidence.record_version += 1;
     after.replica_version_id = "new\n\u{1b}[31m".into();
     after.registered_node_ids = vec![Principal::from_slice(&[3])];
-    let report = ic_topology::subnet::changes::compare(before, after).unwrap();
+    let report = ic_query_topology::subnet::changes::compare(before, after).unwrap();
     let text = super::subnet_changes(&report);
     assert!(text.contains("Selected configuration changed"));
     assert!(text.contains("300 -> 301"));
@@ -29,9 +31,11 @@ fn changes_text_is_compact_escapes_values_and_keeps_observation_limits() {
     assert!(text.contains("new\\n\\u{1b}[31m"));
     assert!(!text.contains('\u{1b}') && !text.contains('\u{202e}'));
     assert!(text.contains("not a complete change history"));
-    let report =
-        ic_topology::subnet::changes::compare(configuration_fixture(), configuration_fixture())
-            .unwrap();
+    let report = ic_query_topology::subnet::changes::compare(
+        configuration_fixture(),
+        configuration_fixture(),
+    )
+    .unwrap();
     let text = super::subnet_changes(&report);
     assert!(text.contains("No selected configuration changes observed"));
     assert!(!text.contains("Configured replica:"));
@@ -82,7 +86,7 @@ fn node_changes_text_distinguishes_presence_and_same_length_byte_changes() {
         after.hostos_version_id = Some("next\n\u{1b}[31m\u{202e}".into());
         after.node_operator_id = Principal::from_slice(&[3]);
         after.evidence.record_version = 301;
-        let report = ic_topology::node::changes::compare(before, after).unwrap();
+        let report = ic_query_topology::node::changes::compare(before, after).unwrap();
         let text = super::node_changes(&report);
         assert!(text.contains("Selected registration changed"));
         assert!(text.contains(&format!("Registered chip ID changed: {expected}")));
@@ -93,7 +97,7 @@ fn node_changes_text_distinguishes_presence_and_same_length_byte_changes() {
         assert!(!text.contains("0x00ff") && !text.contains("Some("));
         assert!(text.contains("do not establish event history"));
     }
-    let report = ic_topology::node::changes::compare(fixture(), fixture()).unwrap();
+    let report = ic_query_topology::node::changes::compare(fixture(), fixture()).unwrap();
     let text = super::node_changes(&report);
     assert!(text.contains("No selected registration changes observed"));
     assert!(!text.contains("Configured HostOS:") && !text.contains("Registered chip ID changed:"));

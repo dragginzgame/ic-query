@@ -1,7 +1,7 @@
 //! Selected-engine relationships with compact source and membership evidence.
 
 use ic_host_text::{bordered_table, escape};
-use ic_topology::cloud_engine::engine::{EngineOutcome, EngineReport, MembershipComparison};
+use ic_query_topology::cloud_engine::engine::{EngineOutcome, EngineReport, MembershipComparison};
 use std::{collections::BTreeSet, fmt::Write};
 
 pub(crate) fn cloud_engine(report: &EngineReport) -> String {

@@ -1,7 +1,8 @@
 # Development setup
 
-The root virtual workspace contains `ic-topology`, `ic-sns-migration` and
-`ic-query-cli` (`icq`). The topology library supplies bounded mainnet
+The root virtual workspace contains four crates: `ic-query`, `ic-query-topology`,
+`ic-query-sns` and `ic-query-cli` (`icq`). The umbrella has empty defaults and
+optional direct `topology`/`sns` re-exports. The topology library supplies bounded mainnet
 [placement](../design/canister-placement.md) and
 [subnet observation](../design/subnet-observation.md) reports, plus
 [registered subnet inventory](../design/subnet-list.md) and
@@ -12,10 +13,24 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
-All topology reads select published Platform 0.34.11 `native-read`, Protocol 0.3.3
+The pending family-name cutover moves the libraries from `ic-topology` and
+`ic-sns-migration` to `ic-query-topology` and `ic-query-sns`, with matching crate
+directories and Rust imports. CLI commands and report contracts are unchanged.
+On 2026-11-17 the renamed workspace passed `make check` on Linux: all 204 tests,
+strict Clippy, Rustdoc, formatting, tools and documentation admission. Library
+source and fixture bytes match the pre-rename files; package file-list inspection
+retains the frozen fixtures and root keys. This is local qualification, not
+publication or a new hosted macOS result. Existing published names remain
+historical; consumers must change package names/imports for the new releases.
+The new umbrella also passed empty-default, topology-only, SNS-only and combined
+feature checks, strict all-feature Clippy/Rustdoc and two re-export identity
+doctests. Its empty normal dependency graph was inspected separately; workspace
+feature unification alone is not evidence of an empty-default consumer build.
+
+All topology reads select published Platform 0.34.12 `native-read`, Protocol 0.3.4
 for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
-[portable corpus](../../crates/ic-topology/src/tests/README.md), packaged with
+[portable corpus](../../crates/ic-query-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
 The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
@@ -248,7 +263,8 @@ make deps-list
 make deps-update
 toko-cloc -d 0
 make qualify-cli
-make test PACKAGE=ic-topology
+make qualify-umbrella
+make test PACKAGE=ic-query-topology
 ```
 
 `make icq` builds and installs this checkout's CLI in Cargo's installation bin
@@ -276,8 +292,8 @@ then run `make toko-tooling-update`; it refreshes the authenticated snapshot.
 
 ```bash
 make qualify-cli
-make clippy PACKAGE=ic-topology
-make rustdoc PACKAGE=ic-topology
+make clippy PACKAGE=ic-query-topology
+make rustdoc PACKAGE=ic-query-topology
 make test PACKAGE=ic-query-cli
 make fmt-check
 make doc-links-check
@@ -288,7 +304,8 @@ Use the affected package or CLI test target during ordinary development.
 `make check` / `make ci` are aggregate gates: snapshot/Cargo admission, local links,
 formatting, Clippy, Rustdoc and tests. `PACKAGE=name` narrows Cargo compilation,
 documentation and test selection; formatting and documentation-link checks remain
-repository-wide. All three initial packages are covered by the default aggregate.
+repository-wide. All four packages are covered by the default aggregate, including
+the umbrella's empty, topology-only, SNS-only and combined feature configurations.
 Warnings are errors in the Rust gates. `make fmt` applies the shared formatter.
 
 CLI integration tests belong in `crates/ic-query-cli/tests/`. Add source fixtures

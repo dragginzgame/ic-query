@@ -9,7 +9,7 @@ export PATH="$root/.tools/host/bin:$root/.tools/rust/common/bin:$PATH"
 mkdir -p "$root/target/tmp"
 export TMPDIR="$root/target/tmp"
 group="${RELEASE_GROUP:-}"
-case "$group" in topology|sns-migration|cli) ;; *) echo 'Select RELEASE_GROUP=topology, sns-migration or cli.' >&2; exit 2 ;; esac
+case "$group" in topology|sns-migration|query|cli) ;; *) echo 'Select RELEASE_GROUP=topology, sns-migration, query or cli.' >&2; exit 2 ;; esac
 make_bin="${RELEASE_MAKE:-make}"
 group_metadata() { bash "$shared/cargo-release-group.sh" "$1" "$group"; }
 editor() {

@@ -9,16 +9,16 @@ use ic_host_text::bordered_table;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
-use ic_topology::node::NodeReport;
-use ic_topology::placement::PlacementReport;
-use ic_topology::subnet::SubnetReport;
-use ic_topology::subnet::activity::{MessageChange, SubnetActivityReport};
-use ic_topology::subnet::changes::SubnetChangesReport;
-use ic_topology::subnet::configuration::SubnetConfigurationReport;
-use ic_topology::subnet::list::SubnetListReport;
-use ic_topology::subnet::membership::SubnetMembershipReport;
-use ic_topology::subnet::metrics::SubnetMetricsReport;
-use ic_topology::subnet::nodes::{NodeReadOutcome, SubnetNodesReport};
+use ic_query_topology::node::NodeReport;
+use ic_query_topology::placement::PlacementReport;
+use ic_query_topology::subnet::SubnetReport;
+use ic_query_topology::subnet::activity::{MessageChange, SubnetActivityReport};
+use ic_query_topology::subnet::changes::SubnetChangesReport;
+use ic_query_topology::subnet::configuration::SubnetConfigurationReport;
+use ic_query_topology::subnet::list::SubnetListReport;
+use ic_query_topology::subnet::membership::SubnetMembershipReport;
+use ic_query_topology::subnet::metrics::SubnetMetricsReport;
+use ic_query_topology::subnet::nodes::{NodeReadOutcome, SubnetNodesReport};
 
 mod available;
 mod candidates;

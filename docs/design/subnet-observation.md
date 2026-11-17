@@ -53,7 +53,7 @@ The node bound applies after the byte-bounded Platform response has been decoded
 
 ## Ownership and qualification
 
-`ic-topology` owns report semantics, admission and evidence. Its private `mainnet`
+`ic-query-topology` owns report semantics, admission and evidence. Its private `mainnet`
 module shares only transport policy used by actual reports. Evidence types
 remain distinct because query signatures and certified state support different
 claims. No generic query framework or cross-crate helper is needed.

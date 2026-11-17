@@ -7,7 +7,7 @@ export PATH := $(CURDIR)/.tools/host/bin:$(CURDIR)/.tools/rust/common/bin:$(PATH
 RELEASE_DELIVERY_POLICY := ci/release-delivery.txt
 RELEASE_SETUP_TARGET := release-setup
 RELEASE_PUBLISH_TARGET := publish
-CARGO_PUBLISH_PACKAGES = $(if $(filter topology,$(RELEASE_GROUP)),ic-topology,$(if $(filter sns-migration,$(RELEASE_GROUP)),ic-sns-migration,$(if $(filter cli,$(RELEASE_GROUP)),ic-query-cli,)))
+CARGO_PUBLISH_PACKAGES = $(if $(filter topology,$(RELEASE_GROUP)),ic-query-topology,$(if $(filter sns-migration,$(RELEASE_GROUP)),ic-query-sns,$(if $(filter query,$(RELEASE_GROUP)),ic-query,$(if $(filter cli,$(RELEASE_GROUP)),ic-query-cli,))))
 CARGO_PUBLISH_REGISTRY := crates-io
 CARGO_PUBLISH_VERIFY_TARGETS := publication-admission
 include $(TOKO_TOOLING_ROOT)/make/consumer.mk
@@ -24,6 +24,7 @@ help:
 	  'check               Aggregate offline checks (all packages by default)' \
 	  'check PACKAGE=name  Select one package for Rust checks' \
 	  'qualify-cli         Test icq help, version and error process contracts' \
+	  'qualify-umbrella    Check empty, topology, SNS and combined features' \
 	  'fetch-dependencies  Explicit locked Cargo cache preparation (network)' \
 	  'deps-list           List local workspace package versions' \
 	  'deps-update         Explicit Cargo dependency update (network)' \
@@ -31,10 +32,10 @@ help:
 	  'doc-links-check     Check local documentation file links' \
 	  'toko-tooling-check  Admit Cargo pin, members, lockfile and snapshot' \
 	  'install-tools       Prepare shared host and Rust developer tools'
-	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-patch RELEASE_GROUP=sns-migration  Release and publish migration evidence' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
+	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-minor RELEASE_GROUP=query     Release and publish the umbrella' 'release-patch RELEASE_GROUP=sns-migration  Release and publish migration evidence' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
 
 check:
-	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(TOKO_TOOLING_ROOT)/scripts/ci/run-validation-targets.sh" --fail-fast toko-tooling-check tools-check doc-links-check fmt-check clippy rustdoc test
+	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(TOKO_TOOLING_ROOT)/scripts/ci/run-validation-targets.sh" --fail-fast toko-tooling-check tools-check doc-links-check fmt-check clippy rustdoc test qualify-umbrella
 ci: check
 
 icq: toko-tooling-check | toko-execution-check
@@ -57,6 +58,15 @@ test: toko-tooling-check
 
 qualify-cli: toko-tooling-check
 	RUSTFLAGS="-D warnings" cargo test -p ic-query-cli --test cli --locked --offline
+
+.PHONY: qualify-umbrella
+qualify-umbrella: toko-tooling-check
+	cargo check -p ic-query --no-default-features --locked --offline
+	cargo check -p ic-query --no-default-features --features topology --locked --offline
+	cargo check -p ic-query --no-default-features --features sns --locked --offline
+	cargo clippy -p ic-query --all-features --all-targets --locked --offline -- -D warnings
+	RUSTDOCFLAGS="-D warnings" cargo doc -p ic-query --all-features --no-deps --locked --offline
+	RUSTFLAGS="-D warnings" cargo test -p ic-query --all-features --locked --offline
 
 doc-links-check: toko-tooling-check
 	@perl "$(TOKO_TOOLING_ROOT)/scripts/ci/check-documentation-links.pl" \

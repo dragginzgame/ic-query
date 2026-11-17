@@ -1,9 +1,10 @@
 # ICRC balance and SNS neuron migration evidence
 
-Status: implemented in `ic-sns-migration`, composed by the CLI's `icrc` and `sns`
-adapters. The package name is retained. It supports migration consumers of
+Status: implemented in `ic-query-sns`, composed by the CLI's `icrc` and `sns`
+adapters. The package is renamed from `ic-sns-migration` to `ic-query-sns`;
+the broader name does not expand the implemented contract. It supports migration consumers of
 Motoko, Toko, Dragginz and similar applications; it remains independent of
-`ic-topology`.
+`ic-query-topology`.
 
 ## Selection and purpose
 

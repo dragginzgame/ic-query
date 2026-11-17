@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-use ic_topology::node::changes::NodeChangesReport;
+use ic_query_topology::node::changes::NodeChangesReport;
 
 pub(crate) fn node_changes(report: &NodeChangesReport) -> String {
     let before = &report.before;

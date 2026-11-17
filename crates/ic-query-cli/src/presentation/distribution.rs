@@ -3,7 +3,7 @@
 use ic_host_text::bordered_table;
 use std::fmt::Write;
 
-use ic_topology::subnet::distribution::{RecordOutcome, SubnetDistributionReport};
+use ic_query_topology::subnet::distribution::{RecordOutcome, SubnetDistributionReport};
 
 pub(crate) fn subnet_distribution(report: &SubnetDistributionReport) -> String {
     let summary = &report.summary;

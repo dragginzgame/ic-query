@@ -1,6 +1,6 @@
 //! Selected placement rows; no inferred fleet ownership or subnet suitability.
 use ic_host_text::bordered_table;
-use ic_topology::placement::collection::{PlacementCollectionReport, PlacementOutcome};
+use ic_query_topology::placement::collection::{PlacementCollectionReport, PlacementOutcome};
 
 pub(crate) fn render(report: &PlacementCollectionReport) -> String {
     let rows: Vec<_> = report

@@ -1,6 +1,19 @@
 # Topology changelog
 
-Release group: `topology`. Package: `ic-topology`.
+Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
+
+## [0.110.0] - Unreleased
+
+### ⚠️ Breaking
+
+- Rename the package and directory to `ic-query-topology`; Rust imports become
+  `ic_query_topology`. Downstream manifests must select the new package and
+  rebuild. There is no old-name alias or forwarding crate. Earlier `ic-topology`
+  releases remain immutable historical packages. Report JSON and schema 1 are
+  unchanged; retained evidence needs no reset. This new public Rust identity
+  requires the minor release despite retaining report behavior.
+- Preserve and qualify the working-tree Platform 0.34.12 / Protocol 0.3.4 lock
+  update; compatible manifest floors remain unchanged.
 
 ## [0.109.2] - 2026-11-17
 

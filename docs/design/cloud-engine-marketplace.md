@@ -18,7 +18,7 @@ transfer tokens, acquire signing keys or inspect private owner/admin data.
 
 The implemented surfaces are `cloud_engine::prices::fetch` /
 `icq topology cloud-engine prices` and `cloud_engine::available::fetch` /
-`icq topology cloud-engine available`. Both belong within `ic-topology`, with pure CLI presentation.
+`icq topology cloud-engine available`. Both belong within `ic-query-topology`, with pure CLI presentation.
 Do not add another crate or general canister-call interface.
 
 `cloud_engine::candidates::fetch(page_limit)` / `icq topology cloud-engine candidates`

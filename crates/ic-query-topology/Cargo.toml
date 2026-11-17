@@ -1,5 +1,5 @@
 [package]
-name = "ic-topology"
+name = "ic-query-topology"
 version = "0.109.2"
 description = "Read-only IC infrastructure evidence for Canic topology decisions"
 edition.workspace = true

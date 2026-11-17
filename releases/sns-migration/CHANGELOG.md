@@ -1,6 +1,22 @@
-# SNS migration changelog
+# SNS changelog
 
-Release group: `sns-migration`. Package: `ic-sns-migration`.
+Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
+The delivery group and historical ledger path remain stable through this rename.
+
+## [0.105.0] - Unreleased
+
+### ⚠️ Breaking
+
+- Rename the package and directory to `ic-query-sns`; Rust imports become
+  `ic_query_sns`. Consumers must change their manifest/imports and rebuild.
+  No old-name alias or forwarding crate remains. Previously published packages
+  retain their original identity; this first release under the new identity
+  advances the minor. JSON schema 1, records and retained evidence need no reset.
+- The name leaves room for future SNS capabilities. Current functionality
+  remains read-only ICRC balance and selected SNS neuron migration evidence;
+  expansion requires explicit contracts. ICRC balance reads still work outside SNS.
+- Preserve and qualify the working-tree Platform 0.34.12 / Protocol 0.3.4 lock
+  update without narrowing compatible requirements.
 
 ## [0.104.3] - 2026-11-17
 

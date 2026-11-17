@@ -1,6 +1,6 @@
 //! Raw configured settings; effective defaults and capacity belong to other contracts.
 use ic_host_text::bordered_table;
-use ic_topology::subnet::settings::SubnetSettingsReport;
+use ic_query_topology::subnet::settings::SubnetSettingsReport;
 
 pub(crate) fn render(report: &SubnetSettingsReport) -> String {
     let rows = rows(&report.settings);
@@ -22,7 +22,7 @@ pub(crate) fn render(report: &SubnetSettingsReport) -> String {
     )
 }
 
-fn rows(settings: &ic_topology::subnet::settings::SubnetSettings) -> Vec<Vec<String>> {
+fn rows(settings: &ic_query_topology::subnet::settings::SubnetSettings) -> Vec<Vec<String>> {
     let limits = settings.resource_limits;
     let features = settings.features;
     let optional = |value: Option<u64>, default_selected: bool| {
@@ -98,12 +98,12 @@ fn number(value: u64, default_selected: bool) -> String {
 }
 
 pub(crate) fn comparison(
-    report: &ic_topology::subnet::compare::SettingsComparisonReport,
+    report: &ic_query_topology::subnet::compare::SettingsComparisonReport,
 ) -> String {
     use std::fmt::Write;
     let left = report.left_settings.report();
     let right = report.right_settings.report();
-    let defaults = ic_topology::subnet::settings::SubnetSettings::default();
+    let defaults = ic_query_topology::subnet::settings::SubnetSettings::default();
     let left_rows = rows(left.map_or(&defaults, |r| &r.settings));
     let right_rows = rows(right.map_or(&defaults, |r| &r.settings));
     let combined: Vec<_> = left_rows

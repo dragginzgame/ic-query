@@ -1,7 +1,7 @@
 //! Compact availability summaries; full page/node evidence stays in JSON.
 
 use ic_host_text::bordered_table;
-use ic_topology::cloud_engine::available::{AvailableNodesReport, TraversalStop};
+use ic_query_topology::cloud_engine::available::{AvailableNodesReport, TraversalStop};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::Write,

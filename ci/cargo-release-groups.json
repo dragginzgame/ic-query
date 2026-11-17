@@ -3,19 +3,27 @@
   "groups": [
     {
       "name": "topology",
-      "primary": "ic-topology",
+      "primary": "ic-query-topology",
       "version": "package",
-      "members": ["ic-topology"],
+      "members": ["ic-query-topology"],
       "changelog": "releases/topology/CHANGELOG.md",
-      "dependencies": ["ic-topology"]
+      "dependencies": ["ic-query-topology"]
     },
     {
       "name": "sns-migration",
-      "primary": "ic-sns-migration",
+      "primary": "ic-query-sns",
       "version": "package",
-      "members": ["ic-sns-migration"],
+      "members": ["ic-query-sns"],
       "changelog": "releases/sns-migration/CHANGELOG.md",
-      "dependencies": ["ic-sns-migration"]
+      "dependencies": ["ic-query-sns"]
+    },
+    {
+      "name": "query",
+      "primary": "ic-query",
+      "version": "package",
+      "members": ["ic-query"],
+      "changelog": "releases/query/CHANGELOG.md",
+      "dependencies": []
     },
     {
       "name": "cli",

@@ -1,18 +1,21 @@
 //! Two state-time observations, retaining source/freshness distinctions.
 use ic_host_text::bordered_table;
-use ic_topology::subnet::progress::{LaterObservation, StateTimeChange, SubnetProgressReport};
+use ic_query_topology::subnet::progress::{
+    LaterObservation, StateTimeChange, SubnetProgressReport,
+};
 use std::fmt::Write;
 pub(crate) fn render(report: &SubnetProgressReport) -> String {
     let mut rows = Vec::new();
-    let mut append = |label: &str, o: &ic_topology::subnet::progress::StateTimeObservation| {
-        rows.push(vec![
-            label.into(),
-            o.certified_time_nanoseconds.to_string(),
-            o.delegation_time_nanoseconds
-                .map_or_else(|| "none (root)".into(), |n| n.to_string()),
-            o.observed_at_unix_nanoseconds.to_string(),
-        ])
-    };
+    let mut append =
+        |label: &str, o: &ic_query_topology::subnet::progress::StateTimeObservation| {
+            rows.push(vec![
+                label.into(),
+                o.certified_time_nanoseconds.to_string(),
+                o.delegation_time_nanoseconds
+                    .map_or_else(|| "none (root)".into(), |n| n.to_string()),
+                o.observed_at_unix_nanoseconds.to_string(),
+            ])
+        };
     append("Before", &report.before);
     let change = match &report.after {
         LaterObservation::Read {

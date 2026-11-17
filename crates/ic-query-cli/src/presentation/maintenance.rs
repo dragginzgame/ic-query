@@ -1,6 +1,6 @@
 //! Compact maintenance evidence; never a completion verdict.
 use ic_host_text::{bordered_table, escape};
-use ic_topology::subnet::{
+use ic_query_topology::subnet::{
     configuration::SubnetConfigurationReport,
     maintenance::{ConfigurationOutcome, MaintenanceReport, VersionMatch},
 };
@@ -86,11 +86,11 @@ pub(crate) fn render(report: &MaintenanceReport) -> String {
         }
     }
     let change = match &report.message_change {
-        Some(ic_topology::subnet::activity::MessageChange::Increased { by }) => {
+        Some(ic_query_topology::subnet::activity::MessageChange::Increased { by }) => {
             format!("increased by {by}")
         }
-        Some(ic_topology::subnet::activity::MessageChange::Unchanged) => "unchanged".into(),
-        Some(ic_topology::subnet::activity::MessageChange::Decreased) => {
+        Some(ic_query_topology::subnet::activity::MessageChange::Unchanged) => "unchanged".into(),
+        Some(ic_query_topology::subnet::activity::MessageChange::Decreased) => {
             "decreased; cause unknown".into()
         }
         None => "unavailable".into(),

@@ -6,14 +6,30 @@ aggregate workspace release or root release ledger.
 
 | Group | Package | Release notes |
 | --- | --- | --- |
-| Topology | `ic-topology` | [Topology changelog](releases/topology/CHANGELOG.md) |
-| SNS migration | `ic-sns-migration` | [SNS migration changelog](releases/sns-migration/CHANGELOG.md) |
+| Query umbrella | `ic-query` | [Query changelog and legacy migration](releases/query/CHANGELOG.md) |
+| Topology | `ic-query-topology` | [Topology changelog](releases/topology/CHANGELOG.md) |
+| SNS migration | `ic-query-sns` | [SNS changelog](releases/sns-migration/CHANGELOG.md) |
 | CLI | `ic-query-cli` (`icq`) | [CLI changelog and copyable command examples](releases/cli/CHANGELOG.md) |
 
 Group ownership is declared in [ci/cargo-release-groups.json](ci/cargo-release-groups.json).
 See the [restart design](docs/design/0.104-restart.md) for version continuity and
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
+
+## CLI 0.105.15 — Unreleased
+
+### ▶️ Try it
+
+After publication, with Cargo and network access, install the CLI composing the
+renamed specialist crates; commands are unchanged:
+
+```bash
+cargo install ic-query-cli --version 0.105.15 --locked
+icq --version
+```
+
+Library users can select the [new `ic-query` umbrella](releases/query/CHANGELOG.md)
+or either specialist directly.
 
 ## CLI 0.105.14 — 2026-11-17
 

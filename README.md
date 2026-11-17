@@ -3,6 +3,12 @@
 A Cargo workspace for read-only IC evidence supporting Canic application topology,
 uptime and subnet maintenance, with a separately scoped SNS migration library.
 
+The next library releases adopt the family names `ic-query-topology` and
+`ic-query-sns`. Rust imports become `ic_query_topology` and `ic_query_sns`;
+`ic-query-cli` and the `icq` binary keep their names. This is a hard cut with no
+old-name aliases. The SNS name permits future expansion; its current reports
+remain selected ICRC balances and SNS neuron evidence for migration.
+
 The 2026-11-17 delivery is ready to park: topology 0.109.2, SNS migration 0.104.3
 and CLI 0.105.14 are published. [Qualification and setup](docs/development/setup.md)
 records the hosted checks and installed CLI smoke observations. Resume product
@@ -15,13 +21,22 @@ with Platform 0.34.12 / Protocol 0.3.4. Commands and report contracts are unchan
 
 | Package | Responsibility |
 | --- | --- |
-| `ic-topology` | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
-| `ic-sns-migration` | Selected ICRC account balances and SNS neuron evidence for migration consumers |
+| `ic-query` | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
+| `ic-query-topology` | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
+| `ic-query-sns` | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
 | `ic-query-cli` (`icq`) | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
 
-`ic-query` is the workspace name; there is no umbrella library. The libraries
-remain independent. Add CLI adapters and their dependencies when reports exist.
-Shared helpers must have demonstrated consumers and respect Platform ownership.
+The four-crate workspace keeps the specialist libraries independent. The umbrella
+is an optional convenience; direct specialist dependencies remain supported.
+The next `ic-query` release is 0.104.0, replacing the legacy 0.103.1 API with
+an explicit breaking cut. See the [migration notes](releases/query/CHANGELOG.md).
+
+```toml
+ic-query = { version = "0.104.0", features = ["topology", "sns"] }
+```
+
+Use `ic_query::topology` and `ic_query::sns`. No feature means no specialist
+dependency. The CLI continues to compose the specialist libraries directly.
 
 Native reports list registered subnets, look up one canister's subnet through the
 mainnet NNS Registry, or observe subnet type and node identities in certified state.
@@ -80,7 +95,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.34.11 native reads, Protocol 0.3.3 and Types 0.21.2,
+0.34.12 native reads, Protocol 0.3.4 and Types 0.21.2,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

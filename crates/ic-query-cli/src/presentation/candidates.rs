@@ -1,7 +1,7 @@
 //! Compact declaration coverage, without a selected or computed deployment price.
 
 use ic_host_text::bordered_table;
-use ic_topology::cloud_engine::{
+use ic_query_topology::cloud_engine::{
     candidates::{CandidatePricing, CandidatesReport},
     prices::FeeOutcome,
 };

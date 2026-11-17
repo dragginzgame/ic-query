@@ -1,13 +1,15 @@
 use std::time::Duration;
 
-use ic_topology::node::{NodeError, NodeEvidence, NodeReport};
-use ic_topology::subnet::configuration::{SubnetConfigurationEvidence, SubnetConfigurationReport};
-use ic_topology::subnet::nodes::{NodeRead, NodeReadOutcome, SubnetNodesReport};
+use ic_query_topology::node::{NodeError, NodeEvidence, NodeReport};
+use ic_query_topology::subnet::configuration::{
+    SubnetConfigurationEvidence, SubnetConfigurationReport,
+};
+use ic_query_topology::subnet::nodes::{NodeRead, NodeReadOutcome, SubnetNodesReport};
 
 use super::*;
 
-fn partial_distribution() -> ic_topology::subnet::distribution::SubnetDistributionReport {
-    use ic_topology::subnet::distribution::*;
+fn partial_distribution() -> ic_query_topology::subnet::distribution::SubnetDistributionReport {
+    use ic_query_topology::subnet::distribution::*;
     let inventory = inventory(NodeReadOutcome::NotStarted);
     let node_id = inventory.nodes[0].node_id;
     SubnetDistributionReport {
@@ -64,7 +66,7 @@ fn partial_distribution() -> ic_topology::subnet::distribution::SubnetDistributi
 
 #[test]
 fn distribution_output_preserves_partial_json_and_escapes_source_text() {
-    use ic_topology::subnet::distribution::*;
+    use ic_query_topology::subnet::distribution::*;
     let mut report = partial_distribution();
     let output = distribution_output(&report, true).unwrap();
     assert_eq!(output.exit_code, ExitCode::FAILURE);
@@ -267,7 +269,7 @@ fn complete_inventory_prints_node_evidence_and_exits_successfully() {
 
 #[test]
 fn prices_output_keeps_daily_raw_values_partial_status_and_safe_text() {
-    use ic_topology::cloud_engine::prices::*;
+    use ic_query_topology::cloud_engine::prices::*;
     let evidence = |method| PriceEvidence {
         endpoint: "https://ic0.app",
         source_canister: "q6cfj-fyaaa-aaaar-qb77q-cai",
@@ -339,8 +341,8 @@ fn prices_output_keeps_daily_raw_values_partial_status_and_safe_text() {
     );
 }
 
-fn availability_fixture() -> ic_topology::cloud_engine::available::AvailableNodesReport {
-    use ic_topology::cloud_engine::available::*;
+fn availability_fixture() -> ic_query_topology::cloud_engine::available::AvailableNodesReport {
+    use ic_query_topology::cloud_engine::available::*;
     let principal = Principal::from_slice(&[1]);
     AvailableNodesReport {
         schema: 1,
@@ -384,7 +386,7 @@ fn availability_fixture() -> ic_topology::cloud_engine::available::AvailableNode
 
 #[test]
 fn available_output_distinguishes_exhaustion_from_inventory_completeness() {
-    use ic_topology::cloud_engine::available::*;
+    use ic_query_topology::cloud_engine::available::*;
     let mut report = availability_fixture();
     let output = available_output(&report, true).unwrap();
     assert_eq!(output.exit_code, ExitCode::FAILURE);
@@ -421,7 +423,7 @@ fn available_output_distinguishes_exhaustion_from_inventory_completeness() {
 
 #[test]
 fn candidates_output_retains_partial_evidence_and_distinguishes_unknown_prices() {
-    use ic_topology::cloud_engine::{candidates::*, prices::*};
+    use ic_query_topology::cloud_engine::{candidates::*, prices::*};
     let mut report = CandidatesReport {
         schema: 1,
         elapsed: Duration::from_secs(4),
@@ -503,7 +505,7 @@ fn candidates_output_retains_partial_evidence_and_distinguishes_unknown_prices()
 
 #[test]
 fn engine_output_preserves_omission_raw_evidence_and_membership_uncertainty() {
-    use ic_topology::cloud_engine::engine::*;
+    use ic_query_topology::cloud_engine::engine::*;
     let mut report = EngineReport {
         schema: 1,
         requested_engine_id: " engine\n\x1b\u{202e} ".parse().unwrap(),
@@ -597,7 +599,7 @@ fn engine_output_preserves_omission_raw_evidence_and_membership_uncertainty() {
 
 #[test]
 fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succeeds() {
-    use ic_topology::{
+    use ic_query_topology::{
         ReadError,
         subnet::{
             activity::MessageChange, configuration::SubnetConfigurationError, maintenance::*,
@@ -618,10 +620,14 @@ fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succe
             error: SubnetConfigurationError::Read(ReadError::Deadline),
         },
         metrics_before: MetricsOutcome::Failed {
-            error: ic_topology::subnet::metrics::SubnetMetricsError::Read(ReadError::Deadline),
+            error: ic_query_topology::subnet::metrics::SubnetMetricsError::Read(
+                ReadError::Deadline,
+            ),
         },
         metrics_after: MetricsOutcome::Failed {
-            error: ic_topology::subnet::metrics::SubnetMetricsError::Read(ReadError::Deadline),
+            error: ic_query_topology::subnet::metrics::SubnetMetricsError::Read(
+                ReadError::Deadline,
+            ),
         },
         message_change: None,
         expected_before: VersionMatch::Differs,
@@ -640,11 +646,11 @@ fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succe
     after.registered_subnet_type = -1;
     after.evidence.record_version += 1;
     report.configuration = ConfigurationOutcome::Compared {
-        report: Box::new(ic_topology::subnet::changes::compare(before, after).unwrap()),
+        report: Box::new(ic_query_topology::subnet::changes::compare(before, after).unwrap()),
     };
     report.collection_complete = true;
     let metrics = |total| {
-        use ic_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
+        use ic_query_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
         MetricsOutcome::Read {
             report: SubnetMetricsReport {
                 schema: 1,
@@ -682,7 +688,7 @@ fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succe
 
 #[test]
 fn compare_output_preserves_partial_coverage_and_terminal_safety() {
-    use ic_topology::{
+    use ic_query_topology::{
         ReadError,
         subnet::{compare::*, distribution::DistributionError, metrics::*},
     };
@@ -773,7 +779,7 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
         d.summary.selected_nodes = selected;
         d.summary.provider_resolved = shared;
         d.summary.provider_unknown = selected - shared;
-        d.summary.providers = vec![ic_topology::subnet::distribution::GroupCount {
+        d.summary.providers = vec![ic_query_topology::subnet::distribution::GroupCount {
             value: Principal::from_slice(&[9]),
             nodes: shared,
         }];
@@ -792,7 +798,7 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
         let DistributionOutcome::Read { report: d } = &mut side.distribution else {
             panic!()
         };
-        d.summary.data_centers = vec![ic_topology::subnet::distribution::GroupCount {
+        d.summary.data_centers = vec![ic_query_topology::subnet::distribution::GroupCount {
             value: raw_dc.into(),
             nodes: 1,
         }];
@@ -819,7 +825,7 @@ fn compare_output_preserves_partial_coverage_and_terminal_safety() {
 
 #[test]
 fn placements_output_preserves_partial_json_and_escapes_rejections() {
-    use ic_topology::placement::{
+    use ic_query_topology::placement::{
         PlacementError,
         collection::{CanisterPlacement, PlacementCollectionReport, PlacementOutcome},
     };
@@ -850,11 +856,11 @@ fn placements_output_preserves_partial_json_and_escapes_rejections() {
     assert!(text.text.contains("| CANISTER") && text.text.contains("unavailable"));
     assert!(!text.text.contains('\u{1b}'));
     report.canisters[0].outcome = PlacementOutcome::Read {
-        report: ic_topology::placement::PlacementReport {
+        report: ic_query_topology::placement::PlacementReport {
             schema: 1,
             canister_id,
             subnet_id: canister_id,
-            evidence: ic_topology::placement::PlacementEvidence {
+            evidence: ic_query_topology::placement::PlacementEvidence {
                 endpoint: "https://ic0.app",
                 source_canister: "rwlgt-iiaaa-aaaaa-aaaaa-cai",
                 source_method: "get_subnet_for_canister",
@@ -879,7 +885,7 @@ fn placements_output_preserves_partial_json_and_escapes_rejections() {
 
 #[test]
 fn settings_output_preserves_raw_values_and_labels_defaults() {
-    use ic_topology::subnet::settings::*;
+    use ic_query_topology::subnet::settings::*;
     let mut report = SubnetSettingsReport {
         schema: 1,
         subnet_id: Principal::from_slice(&[10]),
@@ -926,14 +932,14 @@ fn settings_output_preserves_raw_values_and_labels_defaults() {
         0
     );
     assert!(json["settings"]["resource_limits"]["maximum_state_delta"].is_null());
-    use ic_topology::subnet::{compare::*, distribution::DistributionError, metrics::*};
+    use ic_query_topology::subnet::{compare::*, distribution::DistributionError, metrics::*};
     let candidate = |id| Candidate {
         subnet_id: Principal::from_slice(&[id]),
         distribution: DistributionOutcome::Failed {
             error: DistributionError::InitialDeadline,
         },
         metrics: MetricsOutcome::Failed {
-            error: SubnetMetricsError::Read(ic_topology::ReadError::Deadline),
+            error: SubnetMetricsError::Read(ic_query_topology::ReadError::Deadline),
         },
     };
     let combined = SettingsComparisonReport {
@@ -976,7 +982,7 @@ fn settings_output_preserves_raw_values_and_labels_defaults() {
 
 #[test]
 fn progress_output_retains_partial_evidence_and_raw_times() {
-    use ic_topology::subnet::progress::*;
+    use ic_query_topology::subnet::progress::*;
     let id = Principal::from_slice(&[1]);
     let report = SubnetProgressReport {
         schema: 1,
@@ -998,7 +1004,7 @@ fn progress_output_retains_partial_evidence_and_raw_times() {
             original_certificate_bytes_retained: false,
         },
         after: LaterObservation::Failed {
-            error: StateTimeError::Read(ic_topology::ReadError::Deadline),
+            error: StateTimeError::Read(ic_query_topology::ReadError::Deadline),
         },
     };
     let text = progress_output(&report, false).unwrap();

@@ -118,7 +118,7 @@ jobs:
         id: dependencies
         run: perl scripts/ci/setup-diagnostics.pl dependencies make fetch-dependencies
       - name: Qualify native scaffold offline
-        run: make clippy rustdoc test
+        run: make clippy rustdoc test qualify-umbrella
       - name: Retain sanitized setup failure diagnostics
         id: setup_artifact
         if: failure() && (steps.snapshot.outcome == 'failure' || steps.host_setup.outcome == 'failure' || steps.toolchain.outcome == 'failure' || steps.admission.outcome == 'failure' || steps.dependencies.outcome == 'failure')

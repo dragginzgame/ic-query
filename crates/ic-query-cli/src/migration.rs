@@ -2,7 +2,7 @@
 use crate::{CommandOutput, presentation::migration as render};
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use ic_platform_types::{Account, Principal};
-use ic_sns_migration::{balance, neuron};
+use ic_query_sns::{balance, neuron};
 use std::process::ExitCode;
 
 fn json() -> Arg {

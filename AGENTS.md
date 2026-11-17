@@ -71,21 +71,25 @@ by the accepted Canic or separate SNS migration purpose.
 
 ## SNS migration support
 
-SNS migration belongs in the separate `ic-sns-migration` crate in this
-repository. The `ic-topology` crate must contain no SNS module, feature or
+SNS migration belongs in the separate `ic-query-sns` crate in this
+repository. The `ic-query-topology` crate must contain no SNS module, feature or
 dependency on that crate. Each library selects its own Platform capabilities;
 neither depends on the other. A CLI may explicitly compose both.
 
 Support is limited to reading balances from any explicitly selected ICRC ledger
 and neuron information from any explicitly selected compatible SNS Governance
-canister. Dragginz and Toko are examples, not deployment restrictions. Its sole purpose is to support migration of users of Motoko, Toko,
+canister. Dragginz and Toko are examples, not deployment restrictions. Its current
+purpose is to support migration of users of Motoko, Toko,
 Dragginz and similar applications to our new platform. This is an exception to
-the topology focus, not a commitment to full SNS support.
+the topology focus. Broader SNS support is a possible future direction, not
+implemented functionality.
 
+The `ic-query-sns` name leaves room for future SNS capabilities; each expansion
+requires an explicit report contract. The rename itself adds no functionality.
 The scope reflects the maintainers' concern about SNS longevity; do not present
 possible Foundation replacement or removal as an established external fact.
-Do not expand this surface into SNS proposals, voting, swaps, treasury analytics,
-framework upgrades or a general SNS explorer. Supporting source resolution and
+Current scope excludes SNS proposals, voting, swaps, treasury analytics,
+framework upgrades and a general SNS explorer. Supporting source resolution and
 bounded pagination must serve the selected balance or neuron report.
 
 Preserve exact balances, neuron fields, source identities, observation times and
@@ -96,10 +100,13 @@ The implemented selectors, fields, bounds and limitations are defined in the
 
 ## Product boundaries
 
-- `ic-query` names the repository and virtual Cargo workspace, not an umbrella
-  library. `ic-topology` and `ic-sns-migration` own independent report contracts.
+- `ic-query` names the repository, virtual Cargo workspace and thin umbrella
+  crate. Its empty defaults and optional `topology`/`sns` features select direct
+  re-exports only; it owns no query policy, transport or shared implementation.
+  `ic-query-topology` and `ic-query-sns` own independent report contracts.
   `ic-query-cli` (`icq`) composes them through compile-time command adapters when
-  reports exist. Libraries must not depend on each other or on the CLI.
+  reports exist. Specialist libraries must not depend on each other, the umbrella
+  or the CLI. The CLI may continue to depend on specialists directly.
 - A future NNS capability would need a separately approved specialist crate and
   CLI adapter; it does not expand topology's scope. Do not add dynamic plugin
   loading, speculative feature flags or a generic query-core library. Extract
@@ -116,7 +123,7 @@ The implemented selectors, fields, bounds and limitations are defined in the
 - Use Platform's published native read, external DTO and bounded codec capabilities.
   The replacement supplier is now `dragginzgame/ic-platform` (formerly
   `ic-platform-new`); direct capability requests to that owner.
-  Query's lockfile selects registry Platform 0.34.11, Protocol 0.3.3 and Types
+  Query's lockfile selects registry Platform 0.34.12, Protocol 0.3.4 and Types
   0.21.2. Product manifests use compatible caret requirements with floors
   0.34.11, 0.3.2 and 0.21.2 respectively,
   so downstream consumers may select compatible patches independently. Keep

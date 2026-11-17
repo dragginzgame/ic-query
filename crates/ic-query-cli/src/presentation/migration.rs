@@ -1,6 +1,6 @@
 //! Pure, escaped human views of migration evidence; JSON keeps raw fields.
 use ic_host_text::bordered_table;
-use ic_sns_migration::{
+use ic_query_sns::{
     Observation, Outcome,
     balance::BalanceReport,
     neuron::{Neuron, NeuronReport, NeuronsReport},

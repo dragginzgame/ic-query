@@ -730,9 +730,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.34.11"
+version = "0.34.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6269645258c22c1cccbaaf62ec710b7a30fbbcfe879aff6a53ba53b8526c9c84"
+checksum = "22210d3951d67ea8f10e997ab05535e71c3106f4813b97832d4feac4ec1f732a"
 dependencies = [
  "curve25519-dalek",
  "ed25519-dalek",
@@ -748,9 +748,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-protocol"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4676f2fabfff6a9aab9d6cccdf2a5870059e88b21345bc1913818be621dc1f34"
+checksum = "f9263bb1cc99bf3eb81f6c23144873561ea7e52caa1e420a1cd58d3d2e1c5f85"
 dependencies = [
  "crc32fast",
  "ic-platform-types",
@@ -773,21 +773,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-query"
+version = "0.103.1"
+dependencies = [
+ "ic-query-sns",
+ "ic-query-topology",
+ "toko-tooling",
+]
+
+[[package]]
 name = "ic-query-cli"
 version = "0.105.14"
 dependencies = [
  "clap",
  "ic-host-text",
  "ic-platform-types",
- "ic-sns-migration",
- "ic-topology",
+ "ic-query-sns",
+ "ic-query-topology",
  "serde_json",
  "tokio",
  "toko-tooling",
 ]
 
 [[package]]
-name = "ic-sns-migration"
+name = "ic-query-sns"
 version = "0.104.3"
 dependencies = [
  "ic-platform",
@@ -801,7 +810,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ic-topology"
+name = "ic-query-topology"
 version = "0.109.2"
 dependencies = [
  "ic-platform",
