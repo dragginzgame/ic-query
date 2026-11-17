@@ -13,6 +13,17 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+CLI 0.105.17 moves the migration command and presentation unit tests into sibling
+`tests.rs` files under directory modules. The test bodies and production logic
+were compared against their original contents; only file layout and test-module
+wiring changed. All 52 CLI unit/process tests and strict CLI Clippy passed before
+release. Batch `batch-ANhXjUPq` then passed the full workspace gate, including
+204 tests, two re-export doctests and the umbrella feature matrix, and published
+the package from commit `54f60a9b99e506b0fa1c59e9a5df988db259e88c`. This also
+qualifies the retained zeroize 1.9.2 lockfile update. Registry source provenance
+matches the release tag, and the installed CLI reports 0.105.17 in version and
+nested help output.
+
 The family-name cutover moves the libraries from `ic-topology` and
 `ic-sns-migration` to `ic-query-topology` and `ic-query-sns`, with matching crate
 directories and Rust imports. CLI commands and report contracts are unchanged.
