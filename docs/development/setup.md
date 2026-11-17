@@ -13,6 +13,23 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-8iQvJGge` published topology 0.110.4, SNS 0.105.4, umbrella 0.104.4
+and CLI 0.105.20 on 2026-11-17, ending at
+`d9421a66d2eae249606ac0f1d05c6192e88c3e3f`. All four crates.io index entries
+were verified as available and non-yanked, and GitHub releases were published
+for all four tags. The built CLI reports `icq 0.105.20`.
+The actual batch took 604s versus the preceding 601s: this delivery does not
+demonstrate an overall speedup. Validation took 273s, setup 43s, metadata
+preparation 86s and publication 52s. Nested candidate projection totaled 17s
+and product admission 147s; these are included in validation, not additional
+intervals. One product execution supplied the three later groups through fresh
+shared proof admission. These are sequential deliveries with different inputs,
+not controlled benchmarks. GitHub release-entry creation and documentation
+delivery are outside the batch interval.
+[Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44184841669)
+was still running at readback; the local release qualification above does not
+establish a hosted result. The normal checkout was reconciled with all four tags.
+
 Batch `batch-JQkLIRLe` published topology 0.110.3, SNS 0.105.3, umbrella 0.104.3
 and CLI 0.105.19 on 2026-11-17, ending at
 `2860ff74fe44d10c1f634a1cfb9db90d3e5b4880`. Its actual batch time was 601s,
