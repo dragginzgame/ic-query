@@ -23,35 +23,65 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Select bounded setup evidence roots
+        run: printf 'TOKO_TOOLING_STORE=%s/ic-query-tool-store\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Admit snapshot before preparation
-        run: bash vendor/toko-tooling/scripts/ci/verify-toko-tooling-snapshot.sh --consumer . --require-annotations
+        id: snapshot
+        run: perl scripts/ci/setup-diagnostics.pl snapshot bash vendor/toko-tooling/scripts/ci/verify-toko-tooling-snapshot.sh --consumer . --require-annotations
       - name: Restore pinned tool downloads
         uses: ./vendor/toko-tooling/.github/actions/cache-tool-downloads
       - name: Prepare admission prerequisites
-        run: make install-host-tools
+        id: host_setup
+        run: perl scripts/ci/setup-diagnostics.pl host-tools make install-host-tools
       - name: Prepare selected Rust toolchain
+        id: toolchain
         shell: bash
         run: |
           toolchain="$(sed -n 's/^channel = "\([^"]*\)"/\1/p' rust-toolchain.toml)"
-          rustup toolchain install "$toolchain" --profile minimal --component rustfmt --component clippy
+          perl scripts/ci/setup-diagnostics.pl rust-toolchain rustup toolchain install "$toolchain" --profile minimal --component rustfmt --component clippy
       - name: Admit Cargo selection and documentation
-        run: make toko-tooling-check doc-links-check
+        id: admission
+        run: perl scripts/ci/setup-diagnostics.pl admission make toko-tooling-check doc-links-check
       - name: Prepare shared Rust developer tools
-        run: make install-rust-tools
+        id: rust_setup
+        run: perl scripts/ci/setup-diagnostics.pl rust-tools make install-rust-tools
       - name: Check formatting
         run: make fmt-check
       - name: Prepare the pinned secret scanner
+        id: scanner
         shell: bash
         run: |
+          perl scripts/ci/setup-diagnostics.pl security-scanner bash -euo pipefail <<'SETUP'
           gitleaks_bin="$(bash vendor/toko-tooling/scripts/ci/install-ci-tool.sh gitleaks \
             --install-dir "$RUNNER_TEMP/ic-query-security-bin")"
           printf 'GITLEAKS_BIN=%s\n' "$gitleaks_bin" >> "$GITHUB_ENV"
+          SETUP
       - name: Save pinned tool downloads
         uses: ./vendor/toko-tooling/.github/actions/cache-tool-downloads
         with:
           mode: save
       - name: Scan repository history for secrets
         run: '"$GITLEAKS_BIN" git --redact=100 --no-banner --no-color --log-level error'
+      - name: Retain sanitized setup failure diagnostics
+        id: setup_artifact
+        if: failure() && (steps.snapshot.outcome == 'failure' || steps.host_setup.outcome == 'failure' || steps.toolchain.outcome == 'failure' || steps.admission.outcome == 'failure' || steps.rust_setup.outcome == 'failure' || steps.scanner.outcome == 'failure')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: setup-scaffold-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ic-query-setup-diagnostics/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Report setup artifact outcome
+        if: always() && steps.setup_artifact.outcome != 'skipped'
+        env:
+          ARTIFACT_OUTCOME: ${{ steps.setup_artifact.outcome }}
+          ARTIFACT_URL: ${{ steps.setup_artifact.outputs.artifact-url }}
+        run: |
+          if [ "$ARTIFACT_OUTCOME" = success ] && [ -n "$ARTIFACT_URL" ]; then
+            printf 'Sanitized setup failure evidence: %s\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Setup diagnostics upload failed or evidence was missing; the original setup failure remains failed.\n' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
 
   native:
     strategy:
@@ -65,18 +95,47 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           persist-credentials: false
+      - name: Select bounded setup evidence roots
+        run: printf 'TOKO_TOOLING_STORE=%s/ic-query-tool-store\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Admit snapshot before preparation
-        run: bash vendor/toko-tooling/scripts/ci/verify-toko-tooling-snapshot.sh --consumer . --require-annotations
+        id: snapshot
+        run: perl scripts/ci/setup-diagnostics.pl snapshot bash vendor/toko-tooling/scripts/ci/verify-toko-tooling-snapshot.sh --consumer . --require-annotations
+      - name: Check setup diagnostic failure paths
+        run: perl scripts/ci/test-setup-diagnostics.pl
       - name: Prepare admission prerequisites
-        run: make install-host-tools
+        id: host_setup
+        run: perl scripts/ci/setup-diagnostics.pl host-tools make install-host-tools
       - name: Prepare selected Rust toolchain
+        id: toolchain
         shell: bash
         run: |
           toolchain="$(sed -n 's/^channel = "\([^"]*\)"/\1/p' rust-toolchain.toml)"
-          rustup toolchain install "$toolchain" --profile minimal --component rustfmt --component clippy
+          perl scripts/ci/setup-diagnostics.pl rust-toolchain rustup toolchain install "$toolchain" --profile minimal --component rustfmt --component clippy
       - name: Admit Cargo selection
-        run: make toko-tooling-check
+        id: admission
+        run: perl scripts/ci/setup-diagnostics.pl admission make toko-tooling-check
       - name: Prepare locked dependencies
-        run: make fetch-dependencies
+        id: dependencies
+        run: perl scripts/ci/setup-diagnostics.pl dependencies make fetch-dependencies
       - name: Qualify native scaffold offline
         run: make clippy rustdoc test
+      - name: Retain sanitized setup failure diagnostics
+        id: setup_artifact
+        if: failure() && (steps.snapshot.outcome == 'failure' || steps.host_setup.outcome == 'failure' || steps.toolchain.outcome == 'failure' || steps.admission.outcome == 'failure' || steps.dependencies.outcome == 'failure')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: setup-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ic-query-setup-diagnostics/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Report setup artifact outcome
+        if: always() && steps.setup_artifact.outcome != 'skipped'
+        env:
+          ARTIFACT_OUTCOME: ${{ steps.setup_artifact.outcome }}
+          ARTIFACT_URL: ${{ steps.setup_artifact.outputs.artifact-url }}
+        run: |
+          if [ "$ARTIFACT_OUTCOME" = success ] && [ -n "$ARTIFACT_URL" ]; then
+            printf 'Sanitized setup failure evidence: %s\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Setup diagnostics upload failed or evidence was missing; the original setup failure remains failed.\n' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

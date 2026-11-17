@@ -25,7 +25,7 @@ tests, strict Clippy for each affected package, Rustdoc, formatting, local links
 and tooling admission on Linux x86-64 on 2026-11-17. Each library's independent
 feature graph retains one Platform/Protocol/Types cohort. Protocol's management
 contract changes are unused here; public topology Protocol payload identities
-nevertheless require the pending topology 0.109.0 release and caller dependency
+nevertheless require topology 0.109.0 and caller dependency
 alignment. CLI syntax and report JSON are unchanged. This adoption did not rerun
 live reads or establish new macOS qualification; the earlier live evidence below
 used Platform 0.34.9 and Protocol 0.2.8.
@@ -45,9 +45,17 @@ across two pages, a separate explicit-cursor continuation and an empty exhausted
 anonymous-principal filter. Successful responses carried verified query signatures;
 full page budgets returned partial status as specified. These November 16 observations
 do not establish current balances, atomic snapshots or complete migration coverage.
-Toko-specific live checks and migration-contract macOS execution remain unqualified.
+Toko-specific live checks remain unqualified. The subsequent release qualification
+below includes offline migration-contract execution on macOS.
 See the [migration contract](../design/migration-evidence.md) for field omissions,
 deadlines and the distinction between query authentication and application certification.
+
+On 2026-11-17 topology 0.109.0, migration 0.104.1 and CLI 0.105.12 were published
+to crates.io and GitHub with registry-only suppliers. The installed registry CLI
+reported `icq 0.105.12`; live Dragginz checks repeated the balance above, read
+one exact neuron and retained a 100-neuron page with the expected partial exit 1.
+These are bounded mainnet observations with verified query signatures, not
+consensus-certified application state or a complete migration export.
 
 ## Preparation
 
@@ -224,6 +232,40 @@ CI checks the implemented packages on Linux x86-64 and macOS ARM64/x86-64. Forma
 single pinned Gitleaks history scan run separately from the host matrix. Every job
 admits snapshot bytes before preparing host tools and Rust, then admits the Cargo
 pin, members and lockfile before validation.
+
+[Release CI run 44053372936](https://github.com/dragginzgame/ic-query/actions/runs/44053372936)
+passed for commit `76c94fba5776b95d7be88602f4dba721c47f9763` on 2026-11-17:
+Clippy, Rustdoc and all 204 tests on Linux x86-64 and macOS ARM64/x86-64,
+plus scaffold formatting, documentation/tooling admission and secret scanning.
+This qualifies the delivered offline topology and migration contracts with
+Platform 0.34.10, Protocol 0.3.0 and Types 0.21.2; it does not qualify live reads
+on macOS or any later changes.
+
+### Setup failure evidence
+
+CI wraps setup commands with [the local collector](../../scripts/ci/setup-diagnostics.pl).
+It preserves the original failing status and prints sanitized excerpts. Failure
+artifacts contain at most 64 KiB of command output and eight selected attempt logs
+from the runner's dedicated Query tool/security directories, including hidden
+attempts. Each log reads at most 16 KiB and retains at most 64 KiB after sanitization;
+traversal stops at 1000 entries per root. Oversized lines, known credentials,
+sensitive fields, URL credentials/query strings and private-key blocks are omitted.
+Symlinks, caches, tool payloads and environment dumps are excluded.
+
+Each job uploads only the sanitized evidence directory on setup failure, retains
+it for seven days and links the artifact in its summary. Missing evidence and
+collection/upload failures are reported separately from the original setup error.
+The focused offline fixtures exercise hidden logs, sanitization, bounded output,
+missing logs, collector failure and original exit status:
+
+```bash
+perl scripts/ci/test-setup-diagnostics.pl
+actionlint .github/workflows/ci.yml
+```
+
+The 32 fixture assertions and workflow lint passed locally on Linux. They qualify
+local capture and wiring; hosted failure-artifact upload/retrieval has not been
+observed. A successful hosted setup run does not exercise that failure path.
 
 [CI run 43704031732](https://github.com/dragginzgame/ic-query/actions/runs/43704031732)
 passed on 2026-11-15 for commit `263a8e92da873543825c25e7dd6530c4db5ab673`:
