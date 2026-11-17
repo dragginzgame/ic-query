@@ -2,7 +2,7 @@
 
 Release group: `sns-migration`. Package: `ic-sns-migration`.
 
-## [0.104.1] - Unreleased
+## [0.104.1] - 2026-11-17
 
 ### 🔧 Tooling
 

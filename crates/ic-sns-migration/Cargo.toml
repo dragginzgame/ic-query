@@ -1,6 +1,6 @@
 [package]
 name = "ic-sns-migration"
-version = "0.104.0"
+version = "0.104.1"
 description = "Selected ICRC balances and SNS neuron evidence for user migration"
 edition.workspace = true
 rust-version.workspace = true

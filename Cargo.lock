@@ -788,7 +788,7 @@ dependencies = [
 
 [[package]]
 name = "ic-sns-migration"
-version = "0.104.0"
+version = "0.104.1"
 dependencies = [
  "ic-platform",
  "ic-platform-protocol",
