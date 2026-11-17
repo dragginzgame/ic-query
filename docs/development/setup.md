@@ -13,6 +13,22 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-xEsmsSI5` published topology 0.110.2, SNS 0.105.2, umbrella 0.104.2
+and CLI 0.105.18 on 2026-11-17, ending at
+`61e25445a3fec94111205157921fcee955c1e33d`. The locked Platform 0.34.14 graph
+passed the full product checks once; the three subsequent groups admitted that
+same execution proof. Current-source checks and CLI version tests remained fresh,
+and each registry archive passed publication verification. The batch took 692s,
+including tool preparation, validation, metadata preparation, Git delivery and
+registry publication; this is an actual delivery measurement, not a controlled
+speedup comparison. Retained phase timings remain with the batch receipts.
+
+Initial hosted CI passed the scaffold but exposed a setup-diagnostics test that
+counted every artifact upload, including the new optional timing artifact.
+The correction scopes its assertions to the two setup-artifact steps; all 32
+diagnostic checks pass locally. This repository-only test correction does not
+change the published crate sources. Hosted confirmation follows separately.
+
 CLI 0.105.17 moves the migration command and presentation unit tests into sibling
 `tests.rs` files under directory modules. The test bodies and production logic
 were compared against their original contents; only file layout and test-module

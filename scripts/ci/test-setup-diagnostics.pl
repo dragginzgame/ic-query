@@ -86,11 +86,13 @@ ok(!-e "$dir/ic-query-setup-diagnostics", 'successful setup creates no failure a
 is($status, 143, 'signal failure is retained');
 
 my $workflow = read_file('.github/workflows/ci.yml');
-my $uploads = () = $workflow =~ /uses: actions\/upload-artifact\@cf430e030ddbb5b0abf93d22962f4752f3646cd9/g;
+my $setup_steps = join "\n", grep { /^        id: setup_artifact$/m }
+    split /(?=^      - )/m, $workflow;
+my $uploads = () = $setup_steps =~ /uses: actions\/upload-artifact\@cf430e030ddbb5b0abf93d22962f4752f3646cd9/g;
 is($uploads, 2, 'scaffold and native jobs retain their own artifacts');
-my $retention = () = $workflow =~ /retention-days: 7/g;
+my $retention = () = $setup_steps =~ /retention-days: 7/g;
 is($retention, 2, 'both uploads have finite retention');
-my $missing = () = $workflow =~ /if-no-files-found: error/g;
+my $missing = () = $setup_steps =~ /if-no-files-found: error/g;
 is($missing, 2, 'missing upload evidence cannot silently pass');
 unlike($workflow, qr/continue-on-error:/, 'workflow does not mask setup/collection/upload failures');
 like($workflow, qr/if: failure\(\).*steps\.host_setup\.outcome/, 'upload is reachable after early setup failure');
