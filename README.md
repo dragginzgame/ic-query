@@ -16,15 +16,15 @@ work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
 Compatible supplier patches remain independent of Query's lockfile
-(Platform 0.34.12 / Protocol 0.3.4). CLI commands and specialist report contracts
+(Platform 0.34.13 / Protocol 0.3.5). CLI commands and specialist report contracts
 are unchanged; the umbrella deliberately replaces the legacy library API.
 
 | Package | Version | Responsibility |
 | --- | --- | --- |
-| `ic-query` | 0.104.0 | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
-| `ic-query-topology` | 0.110.0 | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
-| `ic-query-sns` | 0.105.0 | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
-| `ic-query-cli` (`icq`) | 0.105.15 | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
+| `ic-query` | 0.104.1 | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
+| `ic-query-topology` | 0.110.1 | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
+| `ic-query-sns` | 0.105.1 | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
+| `ic-query-cli` (`icq`) | 0.105.16 | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
 
 The four-crate workspace keeps the specialist libraries independent. The umbrella
 is an optional convenience; direct specialist dependencies remain supported.
@@ -32,7 +32,7 @@ is an optional convenience; direct specialist dependencies remain supported.
 an explicit breaking cut. See the [migration notes](releases/query/CHANGELOG.md).
 
 ```toml
-ic-query = { version = "0.104.0", features = ["topology", "sns"] }
+ic-query = { version = "0.104.1", features = ["topology", "sns"] }
 ```
 
 Use `ic_query::topology` and `ic_query::sns`. No feature means no specialist
@@ -95,7 +95,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.34.12 native reads, Protocol 0.3.4 and Types 0.21.2,
+0.34.13 native reads, Protocol 0.3.5 and Types 0.21.2,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
