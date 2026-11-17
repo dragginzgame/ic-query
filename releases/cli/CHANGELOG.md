@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.15] - Unreleased
+## [0.105.15] - 2026-11-17
 
 ### 🔧 Changed
 
@@ -11,7 +11,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   exit statuses are unchanged. Existing command examples still apply.
 - Qualify the retained Platform 0.34.12 / Protocol 0.3.4 lockfile selection.
 
-After publication, install with Cargo and network access:
+Install with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.15 --locked
