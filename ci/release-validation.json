@@ -1,0 +1,1 @@
+{"groups":["topology","sns-migration","query","cli"],"schema":1,"stages":["validate-common","validate-topology","validate-sns","validate-cli","qualify-umbrella"]}

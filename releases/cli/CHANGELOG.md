@@ -2,6 +2,28 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.18] - Unreleased
+
+### 🔧 Tooling
+
+- Select CLI-only validation without unrelated specialist or umbrella tests; keep the full fallback for shared or unknown changes.
+  [Query #3 — Select affected packages and consumers](https://github.com/dragginzgame/ic-query/issues/3).
+
+- Reuse exact-input Linux product checks across group releases using Tooling's
+  canonical final-version source and retained execution proofs. Keep current
+  CLI version/help, actual source/archive and registry checks fresh, and recover
+  evidence-output failures without repeating qualified product checks. See the
+  [validation scope and limitations](../../docs/development/setup.md#release-validation-selection).
+
+- Preserve the locked Platform 0.34.14 patch selection for this delivery.
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.18 --locked
+icq --version
+```
+
 ## [0.105.17] - 2026-11-17
 
 ### 🔧 Tooling

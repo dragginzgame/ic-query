@@ -2,6 +2,13 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.2] - Unreleased
+
+### 🔧 Tooling
+
+- Select the umbrella feature matrix independently for isolated umbrella changes; retain full validation for shared or unknown changes.
+  [Query #3 — Select affected packages and consumers](https://github.com/dragginzgame/ic-query/issues/3).
+
 ## [0.104.1] - 2026-11-17
 
 ### 🔧 Changed

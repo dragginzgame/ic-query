@@ -25,6 +25,8 @@ help:
 	  'check PACKAGE=name  Select one package for Rust checks' \
 	  'qualify-cli         Test icq help, version and error process contracts' \
 	  'qualify-umbrella    Check empty, topology, SNS and combined features' \
+	  'qualify-release-validation  Check release dispatch and recovery fixtures' \
+	  'qualify-release-reuse       Explicit Linux native multi-group qualification' \
 	  'fetch-dependencies  Explicit locked Cargo cache preparation (network)' \
 	  'deps-list           List local workspace package versions' \
 	  'deps-update         Explicit Cargo dependency update (network)' \
@@ -35,8 +37,29 @@ help:
 	@printf '%s\n' 'release-minor RELEASE_GROUP=topology  Release and publish topology' 'release-minor RELEASE_GROUP=query     Release and publish the umbrella' 'release-patch RELEASE_GROUP=sns-migration  Release and publish migration evidence' 'release-patch RELEASE_GROUP=cli       Release and publish the CLI'
 
 check:
-	+@VALIDATION_REPOSITORY_ROOT="$(CURDIR)" bash "$(TOKO_TOOLING_ROOT)/scripts/ci/run-validation-targets.sh" --fail-fast toko-tooling-check tools-check doc-links-check fmt-check clippy rustdoc test qualify-umbrella
+	+@$(if $(strip $(PACKAGE)),$(MAKE) --no-print-directory validate-common clippy rustdoc test,bash scripts/ci/validation.sh full)
 ci: check
+
+.PHONY: validate-common validate-native validate-topology validate-sns validate-cli qualify-release-validation qualify-release-reuse
+validate-common: toko-tooling-check tools-check doc-links-check fmt-check
+
+validate-native:
+	+@bash scripts/ci/validation.sh native
+
+validate-topology:
+	+@bash scripts/ci/reuse-validation.sh stage $@
+
+validate-sns:
+	+@bash scripts/ci/reuse-validation.sh stage $@
+
+validate-cli:
+	+@bash scripts/ci/reuse-validation.sh stage $@
+
+qualify-release-validation:
+	@bash scripts/ci/test-release-validation.sh
+
+qualify-release-reuse:
+	@bash scripts/ci/test-release-reuse.sh
 
 icq: toko-tooling-check | toko-execution-check
 	cargo install --path crates/ic-query-cli --bin icq --locked --offline --debug --force
@@ -59,8 +82,11 @@ test: toko-tooling-check
 qualify-cli: toko-tooling-check
 	RUSTFLAGS="-D warnings" cargo test -p ic-query-cli --test cli --locked --offline
 
-.PHONY: qualify-umbrella
-qualify-umbrella: toko-tooling-check
+.PHONY: qualify-umbrella qualify-umbrella-current
+qualify-umbrella:
+	+@bash scripts/ci/reuse-validation.sh stage $@
+
+qualify-umbrella-current: toko-tooling-check
 	cargo check -p ic-query --no-default-features --locked --offline
 	cargo check -p ic-query --no-default-features --features topology --locked --offline
 	cargo check -p ic-query --no-default-features --features sns --locked --offline

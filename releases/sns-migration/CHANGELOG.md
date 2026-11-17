@@ -3,6 +3,15 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.2] - Unreleased
+
+### 🔧 Tooling
+
+- Select SNS validation together with its CLI and umbrella consumers; retain full validation for shared or unknown changes.
+  [Query #3 — Select affected packages and consumers](https://github.com/dragginzgame/ic-query/issues/3).
+
+- Preserve the locked Platform 0.34.14 patch selection; migration contracts are unchanged.
+
 ## [0.105.1] - 2026-11-17
 
 ### 🔧 Changed

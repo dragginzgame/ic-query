@@ -319,7 +319,7 @@ directly. Installation is offline; report commands still access mainnet.
 `deps-list` lists local workspace package versions, not transitive dependencies
 or registry publication status. The group column reads the ownership declared in
 [`ci/cargo-release-groups.json`](../../ci/cargo-release-groups.json). Release
-automation remains deferred; the maintainer has enabled publication. `deps-update`
+delivery uses the shared runner and the local release adapter. `deps-update`
 runs the shared `cargo update -v`
 workflow; it intentionally changes lockfiles and may access the registry. To select
 one dependency, use `make deps-update DEPENDENCY_PACKAGE=clap`. Review direct
@@ -348,7 +348,123 @@ formatting, Clippy, Rustdoc and tests. `PACKAGE=name` narrows Cargo compilation,
 documentation and test selection; formatting and documentation-link checks remain
 repository-wide. All four packages are covered by the default aggregate, including
 the umbrella's empty, topology-only, SNS-only and combined feature configurations.
+With `PACKAGE=name`, only that package's Rust gates run; use `qualify-umbrella`
+explicitly when changing its feature combinations.
 Warnings are errors in the Rust gates. `make fmt` applies the shared formatter.
+
+### Release validation selection
+
+[Query #3 — Select affected Query packages and consumers](https://github.com/dragginzgame/ic-query/issues/3)
+is addressed by the local selector over Tooling's shared baseline, plan and
+evidence helpers. The [stage roster](../../ci/release-validation.json) is used
+once by `make check`, by native CI (without the separate scaffold checks), and
+by release selection. Group membership remains in the Cargo release policy.
+
+| Isolated implementation change / selected group | Required Rust checks |
+| --- | --- |
+| CLI | CLI Clippy, Rustdoc, unit and process tests |
+| Umbrella | Empty, topology, SNS and combined feature checks; combined lint, docs and re-export doctests |
+| Topology | Topology, CLI and umbrella checks |
+| SNS migration | SNS, CLI and umbrella checks |
+| Shared, unclassified or unavailable baseline | Complete roster |
+
+Selection includes **all** changed paths since the selected group's previous
+annotated ancestor tag, plus the group's own checks. A specialist change broadens
+a CLI release even when it has not been released separately. Manifests, locks,
+tooling, workflow/recipe changes, design/setup documentation and unknown paths
+select the full roster. Release notes and the root README do not broaden Rust
+selection. The selector refuses an unmapped stage or group; new obligations must
+update the mapping and its fixtures. Baseline availability alone grants no reuse.
+
+| Flow | Owner, guarantee and trigger |
+| --- | --- |
+| Development | `make clippy/rustdoc/test PACKAGE=name` selects the edited package; `make check` checks the complete roster |
+| Changed release wiring | `make qualify-release-validation` exercises Query mappings and actual Make/Cargo argv with simulated Cargo effects; also selected in scaffold CI |
+| Repository CI | Scaffold owns formatting, docs, secret scanning and wiring fixtures; `make validate-native` runs every product stage on all three supported hosts |
+| Release/batch | `scripts/release.sh verify` selects from the previous group tag, admits Linux candidate product proofs where eligible, and writes a source/group-bound receipt |
+| Publication | Existing group/tag/source admission and selected-package archive verification, upload and registry provenance remain fresh |
+| Recovery | Completed same-source validation is re-admitted from its original runner records; missing proof output can be reconstructed without executing Cargo again |
+
+Release evidence lives under `target/validation/release.*`, referenced by protected
+`.git/release-state` receipts. Keep these records with the release attempt.
+The shared verifier rejects missing, changed, failed or interrupted group evidence.
+The receipt binds the complete proof and logs across the separately admitted
+version-preparation transaction. Original full-gate receipts retain their old
+meaning for pre-selection source commits. A failed/incomplete gate starts a new
+retained attempt; an already executed product proof may satisfy the new attempt
+only after shared exact-input admission. New source selects a fresh plan and
+preserves the previous attempt.
+A completed gate whose evidence is damaged refuses rather than silently
+replacing its proof or rerunning expensive work.
+
+On Linux with the admitted system GCC tool closure, Tooling's canonical editor
+prepares a disposable source containing the
+intended final versions from the numbered group drafts. Query runs the selected
+Rust checks as one product set in that source. A later group can reach the exact
+same candidate bytes after earlier groups have shipped, and reuse the original
+execution proof. Source, selected targets, dependencies, compiler/native inputs,
+executable bytes, bounded environment or host changes invalidate the match.
+Different selections execute separately; a full-set proof is not relabelled as
+an independently executed subset. This avoids repeated native-input observation
+for each small package stage without adding a local proof cache or version editor.
+
+Receipts retain `executed` or `reused`, original execution source/group, logs and
+shared custody bindings. Missing/stale product proof takes ordinary execution;
+corruption keeps its diagnostic and damaged proof while the shared runner seeks
+a valid match or executes anew. A failed command produces no successful proof.
+The source renderer and admission helper never publish from the candidate.
+Actual group metadata, selected package archives, registry availability and
+upload/readback recovery retain their existing fresh checks.
+
+Common source/tool/format/document admission still runs on every actual group.
+When CLI checks are selected, its 28 process tests also run against the actual
+intermediate versions. Candidate tests alone cannot establish that installed
+version/help contract. Cargo configuration/build overrides, new library package
+metadata readers, build scripts or unqualified native tool layouts use ordinary current-source validation until
+their effects are qualified. The current reuse contract also excludes product
+reads of release ledgers; none exist. macOS retains ordinary execution because
+the shared native-input observer currently qualifies Linux only. CI still tests
+all supported hosts, independently of local publication.
+
+```bash
+make qualify-release-validation
+make check
+# Explicit, slower native sequence and adversarial recovery qualification:
+make qualify-release-reuse
+```
+
+The rewritten full gate passed locally on Linux on 2026-11-17: 204 tests, two
+re-export doctests, all four feature configurations, strict Clippy/Rustdoc and
+common admission. Its warm local stage timings were 6s common, 15s topology,
+5s SNS, 7s CLI and 5s umbrella; some Cargo artifacts were rebuilt. These are
+stage timings, not a cold-build benchmark or a measured deployment speedup.
+All 26 wiring assertions passed locally on Linux. They cover the four mappings, actual leaf arguments, conservative
+fallback, source drift, required failures, metadata-era custody and recovery.
+They simulate Cargo and do not publish, exercise registry upload,
+or establish hosted macOS acceptance for this pending patch. The separate native
+reuse qualifier runs real Cargo in a retained fixture, prepares all four groups
+through the canonical metadata transaction, and checks cross-group proof origin,
+isolated CLI dispatch, damaged evidence, bounded-environment drift, required
+failure and recovery. Git commits in that fixture simulate metadata delivery;
+no tag push, upload or registry effect is performed. Its logs and phase timings
+remain under `target/reuse-qualification/`. Run it when the mapping, source
+projection, native input contract or relevant release wiring changes, or select
+`qualify_release_reuse` in the CI manual-dispatch inputs. It is not an extra gate
+on every release or ordinary CI push.
+
+Local native qualification on 2026-11-17 passed the four-group sequence:
+topology executed the selected product checks (148s total admission), then SNS,
+umbrella and CLI reused the same original execution proof (70s, 67s and 64s).
+The subsequent conservative expansion of the native tool inventory was qualified
+with isolated CLI execution, seal-output recovery, corrupted-log rejection,
+environment invalidation and failed-build refusal/recovery. A full admission
+with that final inventory executed fresh product checks in 109s; the ordinary
+full gate with warm dependencies took 54s. A subsequent umbrella-group admission
+reused that final full-product execution proof and passed in 68s, including fresh
+common checks and actual-version CLI tests. These paths provide different evidence
+and do not demonstrate a wall-clock speedup: input observation, proof custody
+and fresh current-source checks have measurable overhead. All observations were
+local Linux fixture runs; hosted acceptance and actual publication remain pending.
 
 CLI integration tests belong in `crates/ic-query-cli/tests/`. Add source fixtures
 beside the owning library as reports are implemented. No separate qualification

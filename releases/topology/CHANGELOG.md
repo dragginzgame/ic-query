@@ -2,6 +2,15 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.2] - Unreleased
+
+### 🔧 Tooling
+
+- Select topology validation together with its CLI and umbrella consumers; retain full validation for shared or unknown changes.
+  [Query #3 — Select affected packages and consumers](https://github.com/dragginzgame/ic-query/issues/3).
+
+- Preserve the locked Platform 0.34.14 patch selection; report contracts are unchanged.
+
 ## [0.110.1] - 2026-11-17
 
 ### 🔧 Changed

@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      qualify_release_reuse:
+        description: Run explicit Linux native multi-group reuse qualification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +52,24 @@ jobs:
         run: perl scripts/ci/setup-diagnostics.pl rust-tools make install-rust-tools
       - name: Check formatting
         run: make fmt-check
+      - name: Qualify Query release selection
+        run: make qualify-release-validation
+      - name: Qualify native release reuse when requested
+        if: github.event_name == 'workflow_dispatch' && inputs.qualify_release_reuse
+        run: |
+          make fetch-dependencies
+          bash vendor/toko-tooling/scripts/dev/install-rust-tools.sh --consumer . \
+            --package ic-build --version 0.73.0 --bin ic-build-release-metadata \
+            --profile debug --features cli
+          make qualify-release-reuse
+      - name: Retain selected native qualification timings
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.qualify_release_reuse
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: query-reuse-timings-${{ github.run_id }}-${{ github.run_attempt }}
+          path: target/reuse-qualification/sequence.*/target/sequence/timings.tsv
+          if-no-files-found: warn
+          retention-days: 7
       - name: Prepare the pinned secret scanner
         id: scanner
         shell: bash
@@ -118,7 +141,7 @@ jobs:
         id: dependencies
         run: perl scripts/ci/setup-diagnostics.pl dependencies make fetch-dependencies
       - name: Qualify native scaffold offline
-        run: make clippy rustdoc test qualify-umbrella
+        run: make validate-native
       - name: Retain sanitized setup failure diagnostics
         id: setup_artifact
         if: failure() && (steps.snapshot.outcome == 'failure' || steps.host_setup.outcome == 'failure' || steps.toolchain.outcome == 'failure' || steps.admission.outcome == 'failure' || steps.dependencies.outcome == 'failure')

@@ -16,7 +16,7 @@ work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
 Compatible supplier patches remain independent of Query's lockfile
-(Platform 0.34.13 / Protocol 0.3.5). CLI commands and specialist report contracts
+(Platform 0.34.14 / Protocol 0.3.5). CLI commands and specialist report contracts
 are unchanged; the umbrella deliberately replaces the legacy library API.
 
 | Package | Version | Responsibility |
