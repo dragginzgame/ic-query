@@ -1,9 +1,11 @@
 use super::*;
 use ic_platform::certificate::PreparedRootKey;
 use std::{cell::Cell, future::ready};
+
 fn id() -> Principal {
     Principal::from_slice(&[1])
 }
+
 fn observation(time: u64) -> StateTimeObservation {
     StateTimeObservation {
         subnet_id: id(),
@@ -19,6 +21,7 @@ fn observation(time: u64) -> StateTimeObservation {
         original_certificate_bytes_retained: false,
     }
 }
+
 #[tokio::test(start_paused = true)]
 async fn progress_order_extremes_and_clock_reversal() {
     for (a, b, expected) in [
@@ -53,6 +56,7 @@ async fn progress_order_extremes_and_clock_reversal() {
         assert_eq!(json["before"]["certified_time_nanoseconds"], a);
     }
 }
+
 #[tokio::test(start_paused = true)]
 async fn progress_failures_and_identity_admission() {
     let calls = Cell::new(0);
@@ -109,6 +113,7 @@ async fn progress_failures_and_identity_admission() {
     unverified.state_certificate_verified = false;
     assert!(admit(unverified, id()).is_err());
 }
+
 #[tokio::test(start_paused = true)]
 async fn progress_cancellation_starts_no_later_work() {
     for stop in [5, 15, 25] {

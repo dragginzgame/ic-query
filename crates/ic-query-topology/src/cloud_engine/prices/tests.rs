@@ -9,9 +9,11 @@ fn observation(bytes: Vec<u8>) -> Observation {
         observed_at: 123,
     }
 }
+
 fn encoded<T: Fixture>(value: &T) -> Vec<u8> {
     encode_one(value, 2 * 1024 * 1024).unwrap()
 }
+
 fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::MarketplaceEntry {
     let mut key = provider.map_or_else(String::new, |id| format!("{id},"));
     key.push_str(class_key(&class));
@@ -33,9 +35,11 @@ fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::
         },
     }
 }
+
 fn project(rows: &[wire::MarketplaceEntry]) -> Result<PriceObservation, PriceError> {
     project_prices(&observation(encoded(&rows.to_vec())))
 }
+
 fn hex(text: &str) -> Vec<u8> {
     text.as_bytes()
         .as_chunks::<2>()
@@ -224,10 +228,12 @@ struct Step {
     wait: u64,
     result: Result<Vec<u8>, PriceError>,
 }
+
 struct Fake {
     calls: RefCell<Vec<&'static str>>,
     steps: RefCell<VecDeque<Step>>,
 }
+
 impl Fake {
     fn new(steps: Vec<Step>) -> Self {
         Self {
@@ -236,6 +242,7 @@ impl Fake {
         }
     }
 }
+
 impl Source for Fake {
     async fn query(&self, method: &'static str) -> Result<Observation, PriceError> {
         self.calls.borrow_mut().push(method);
@@ -244,12 +251,14 @@ impl Source for Fake {
         step.result.map(observation)
     }
 }
+
 fn price_step(wait: u64) -> Step {
     Step {
         wait,
         result: Ok(encoded(&vec![row(NodeType::Type4, None, None)])),
     }
 }
+
 fn fee_step(wait: u64, fee: f64) -> Step {
     Step {
         wait,

@@ -1,14 +1,16 @@
 use ic_platform_types::Principal;
-use ic_query_topology::node::{NodeEvidence, NodeReport};
-use ic_query_topology::placement::{PlacementEvidence, PlacementReport};
-use ic_query_topology::subnet::activity::{MessageChange, SubnetActivityReport};
-use ic_query_topology::subnet::configuration::{
-    SubnetConfigurationEvidence, SubnetConfigurationReport,
+use ic_query_topology::{
+    node::{NodeEvidence, NodeReport},
+    placement::{PlacementEvidence, PlacementReport},
+    subnet::{
+        SubnetEvidence, SubnetReport,
+        activity::{MessageChange, SubnetActivityReport},
+        configuration::{SubnetConfigurationEvidence, SubnetConfigurationReport},
+        list::{SubnetListEvidence, SubnetListReport},
+        membership::SubnetMembershipReport,
+        metrics::{SubnetMetricsEvidence, SubnetMetricsReport},
+    },
 };
-use ic_query_topology::subnet::list::{SubnetListEvidence, SubnetListReport};
-use ic_query_topology::subnet::membership::SubnetMembershipReport;
-use ic_query_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
-use ic_query_topology::subnet::{SubnetEvidence, SubnetReport};
 
 use super::{
     node, placement, subnet, subnet_activity, subnet_configuration, subnet_list, subnet_membership,

@@ -1,11 +1,14 @@
-use std::cell::Cell;
-use std::future::{pending, ready};
-use std::time::Duration;
+use std::{
+    cell::Cell,
+    future::{pending, ready},
+    time::Duration,
+};
 
 use super::*;
-use crate::ReadError;
-use crate::subnet::SubnetEvidence;
-use crate::subnet::configuration::SubnetConfigurationEvidence;
+use crate::{
+    ReadError,
+    subnet::{SubnetEvidence, configuration::SubnetConfigurationEvidence},
+};
 
 fn id(byte: u8) -> Principal {
     Principal::from_slice(&[byte])

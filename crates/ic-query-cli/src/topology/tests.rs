@@ -1,10 +1,12 @@
 use std::time::Duration;
 
-use ic_query_topology::node::{NodeError, NodeEvidence, NodeReport};
-use ic_query_topology::subnet::configuration::{
-    SubnetConfigurationEvidence, SubnetConfigurationReport,
+use ic_query_topology::{
+    node::{NodeError, NodeEvidence, NodeReport},
+    subnet::{
+        configuration::{SubnetConfigurationEvidence, SubnetConfigurationReport},
+        nodes::{NodeRead, NodeReadOutcome, SubnetNodesReport},
+    },
 };
-use ic_query_topology::subnet::nodes::{NodeRead, NodeReadOutcome, SubnetNodesReport};
 
 use super::*;
 

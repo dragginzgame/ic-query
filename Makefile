@@ -20,8 +20,8 @@ export RUSTUP_AUTO_INSTALL := 0
 .PHONY: help icq check doc-links-check fetch-dependencies clippy rustdoc test qualify-cli
 help:
 	@printf '%s\n' \
-	  'icq                 Install this checkout as icq on PATH (locked, offline)' \
-	  'check               Aggregate offline checks (all packages by default)' \
+	  'icq                 Install this checkout as icq on PATH (locked)' \
+	  'check               Aggregate checks (all packages by default)' \
 	  'check PACKAGE=name  Select one package for Rust checks' \
 	  'qualify-cli         Test icq help, version and error process contracts' \
 	  'qualify-umbrella    Check empty, topology, SNS and combined features' \
@@ -68,7 +68,7 @@ qualify-release-reuse:
 	@bash scripts/ci/test-release-reuse.sh
 
 icq: toko-tooling-check | toko-execution-check
-	cargo install --path crates/ic-query-cli --bin icq --locked --offline --debug --force
+	cargo install --path crates/ic-query-cli --bin icq --locked --debug --force
 	@command -v icq >/dev/null || { printf '%s\n' 'Add your Cargo installation bin directory to PATH, then run icq --help.' >&2; exit 1; }
 	@icq --version
 	@printf '%s\n' 'Run: icq --help'
@@ -77,28 +77,28 @@ fetch-dependencies: | toko-execution-check
 	cargo fetch --locked
 
 clippy: toko-tooling-check
-	cargo clippy $(CARGO_SELECTION) --all-targets --locked --offline -- -D warnings
+	cargo clippy $(CARGO_SELECTION) --all-targets --locked -- -D warnings
 
 rustdoc: toko-tooling-check
-	RUSTDOCFLAGS="-D warnings" cargo doc $(CARGO_SELECTION) --no-deps --locked --offline
+	RUSTDOCFLAGS="-D warnings" cargo doc $(CARGO_SELECTION) --no-deps --locked
 
 test: toko-tooling-check
-	RUSTFLAGS="-D warnings" cargo test $(CARGO_SELECTION) --locked --offline
+	RUSTFLAGS="-D warnings" cargo test $(CARGO_SELECTION) --locked
 
 qualify-cli: toko-tooling-check
-	RUSTFLAGS="-D warnings" cargo test -p ic-query-cli --test cli --locked --offline
+	RUSTFLAGS="-D warnings" cargo test -p ic-query-cli --test cli --locked
 
 .PHONY: qualify-umbrella qualify-umbrella-current
 qualify-umbrella:
 	+@bash scripts/ci/reuse-validation.sh stage $@
 
 qualify-umbrella-current: toko-tooling-check
-	cargo check -p ic-query --no-default-features --locked --offline
-	cargo check -p ic-query --no-default-features --features topology --locked --offline
-	cargo check -p ic-query --no-default-features --features sns --locked --offline
-	cargo clippy -p ic-query --all-features --all-targets --locked --offline -- -D warnings
-	RUSTDOCFLAGS="-D warnings" cargo doc -p ic-query --all-features --no-deps --locked --offline
-	RUSTFLAGS="-D warnings" cargo test -p ic-query --all-features --locked --offline
+	cargo check -p ic-query --no-default-features --locked
+	cargo check -p ic-query --no-default-features --features topology --locked
+	cargo check -p ic-query --no-default-features --features sns --locked
+	cargo clippy -p ic-query --all-features --all-targets --locked -- -D warnings
+	RUSTDOCFLAGS="-D warnings" cargo doc -p ic-query --all-features --no-deps --locked
+	RUSTFLAGS="-D warnings" cargo test -p ic-query --all-features --locked
 
 doc-links-check: toko-tooling-check
 	@perl "$(TOKO_TOOLING_ROOT)/scripts/ci/check-documentation-links.pl" \

@@ -1,4 +1,8 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
+
+#[cfg(test)]
+mod tests;
+
 pub(crate) mod compare;
 pub(crate) mod migration;
 pub(crate) mod placements;
@@ -6,19 +10,22 @@ pub(crate) mod progress;
 pub(crate) mod settings;
 
 use ic_host_text::bordered_table;
-use std::collections::BTreeSet;
-use std::fmt::Write;
+use std::{collections::BTreeSet, fmt::Write};
 
-use ic_query_topology::node::NodeReport;
-use ic_query_topology::placement::PlacementReport;
-use ic_query_topology::subnet::SubnetReport;
-use ic_query_topology::subnet::activity::{MessageChange, SubnetActivityReport};
-use ic_query_topology::subnet::changes::SubnetChangesReport;
-use ic_query_topology::subnet::configuration::SubnetConfigurationReport;
-use ic_query_topology::subnet::list::SubnetListReport;
-use ic_query_topology::subnet::membership::SubnetMembershipReport;
-use ic_query_topology::subnet::metrics::SubnetMetricsReport;
-use ic_query_topology::subnet::nodes::{NodeReadOutcome, SubnetNodesReport};
+use ic_query_topology::{
+    node::NodeReport,
+    placement::PlacementReport,
+    subnet::{
+        SubnetReport,
+        activity::{MessageChange, SubnetActivityReport},
+        changes::SubnetChangesReport,
+        configuration::SubnetConfigurationReport,
+        list::SubnetListReport,
+        membership::SubnetMembershipReport,
+        metrics::SubnetMetricsReport,
+        nodes::{NodeReadOutcome, SubnetNodesReport},
+    },
+};
 
 mod available;
 mod candidates;
@@ -404,6 +411,3 @@ pub(crate) fn subnet(report: &SubnetReport) -> String {
 fn registry_version(version: Option<u64>) -> String {
     version.map_or_else(|| "unavailable".to_owned(), |value| value.to_string())
 }
-
-#[cfg(test)]
-mod tests;

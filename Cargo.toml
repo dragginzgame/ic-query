@@ -15,6 +15,7 @@ repository = "https://github.com/dragginzgame/ic-query"
 publish = true
 
 [workspace.dependencies]
+# Production
 clap = "4.6.7"
 ic-host-text = "0.77.2"
 ic-platform = { version = "0.34.11", default-features = false }
@@ -23,10 +24,14 @@ ic-platform-types = { version = "0.21.2", default-features = false }
 ic-query-sns = { path = "crates/ic-query-sns", version = "0.105.6" }
 ic-query-topology = { path = "crates/ic-query-topology", version = "0.110.6" }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.154"
 thiserror = "2.0.18"
+
+# Production and tests
+serde_json = "1.0.154"
 tokio = { version = "1.54.1", default-features = false }
-toko-tooling = "=0.45.3"
+
+# Tests and tooling
+toko-tooling = "=0.45.11"
 
 [workspace.lints.cargo]
 unused_dependencies = "deny"

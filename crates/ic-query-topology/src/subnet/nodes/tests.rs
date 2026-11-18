@@ -1,9 +1,10 @@
-use std::cell::{Cell, RefCell};
-use std::future::{pending, ready};
+use std::{
+    cell::{Cell, RefCell},
+    future::{pending, ready},
+};
 
 use super::*;
-use crate::node::NodeEvidence;
-use crate::subnet::configuration::SubnetConfigurationEvidence;
+use crate::{node::NodeEvidence, subnet::configuration::SubnetConfigurationEvidence};
 
 fn id(byte: u8) -> Principal {
     Principal::from_slice(&[byte])

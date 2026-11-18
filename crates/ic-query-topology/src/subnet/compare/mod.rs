@@ -1,4 +1,8 @@
 //! Two selected placement candidates, without ranking or capacity inference.
+
+#[cfg(test)]
+mod tests;
+
 use super::{
     distribution::{self, DistributionError, SubnetDistributionReport},
     metrics::{self, MetricsOutcome, SubnetMetricsError, SubnetMetricsReport},
@@ -144,6 +148,7 @@ impl Serialize for SubnetComparisonReport {
         value.end()
     }
 }
+
 /// One selected candidate, including unavailable or partial evidence.
 #[derive(Debug, Serialize)]
 pub struct Candidate {
@@ -154,6 +159,7 @@ pub struct Candidate {
     /// Independent certified resource observation.
     pub metrics: MetricsOutcome,
 }
+
 /// A distribution failure does not erase the other acquisitions.
 #[derive(Debug, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
@@ -169,6 +175,7 @@ pub enum DistributionOutcome {
         error: DistributionError,
     },
 }
+
 impl DistributionOutcome {
     /// Borrow an acquired distribution, including partial reports.
     #[must_use]
@@ -179,11 +186,13 @@ impl DistributionOutcome {
         }
     }
 }
+
 impl Candidate {
     fn complete(&self) -> bool {
         self.distribution.report().is_some_and(|r| r.complete) && self.metrics.report().is_some()
     }
 }
+
 /// Failures before any candidate acquisition.
 #[derive(Debug, Error)]
 pub enum ComparisonError {
@@ -194,6 +203,7 @@ pub enum ComparisonError {
     #[error(transparent)]
     Read(#[from] ReadError),
 }
+
 /// Collect left distribution/metrics, then right distribution/metrics.
 ///
 /// Retains all component failures and continues independent reads. Each distribution
@@ -210,6 +220,7 @@ pub async fn fetch(
 ) -> Result<SubnetComparisonReport, ComparisonError> {
     collect(left, right, distribution::fetch, metrics::fetch).await
 }
+
 async fn collect<D, DF, M, MF>(
     left: Principal,
     right: Principal,
@@ -245,6 +256,7 @@ where
         registry_versions_agree,
     })
 }
+
 async fn acquire<D, DF, M, MF>(
     subnet_id: Principal,
     distribution: &mut D,
@@ -269,8 +281,6 @@ where
         metrics,
     }
 }
-#[cfg(test)]
-mod tests;
 
 /// Optional settings composition; the original comparison remains intact once.
 #[derive(Debug, Serialize)]

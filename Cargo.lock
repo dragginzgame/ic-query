@@ -730,9 +730,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform"
-version = "0.34.15"
+version = "0.34.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70d95425a6f387880d21e9ce37e83ff6aea3fde380685f25573720231e71c30c"
+checksum = "866eba5d2c1bf18457a3c2a5c1a306dab075626efbe9c83acf1eeb952d58a023"
 dependencies = [
  "curve25519-dalek",
  "ed25519-dalek",
@@ -748,9 +748,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-protocol"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2ae9adc784809f210d491f301a9b4549bf619dbbeac835dc7c8d49d1eb152b0"
+checksum = "34a9e427266040f66a8a1734942cb8adecfeee30ad84e186bbe155ed5eafcae6"
 dependencies = [
  "crc32fast",
  "ic-platform-types",
@@ -761,9 +761,9 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-types"
-version = "0.21.2"
+version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b08201b2ebbb9a9f0e1c8ee2854f48ff3f68a777c441147273c600bf6723d7d"
+checksum = "1ebaae959b3a485c68803aa242a967568ed15411208670de5a858da84324dba0"
 dependencies = [
  "crc32fast",
  "data-encoding",
@@ -1693,9 +1693,9 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "smallvec"
-version = "1.16.5"
+version = "1.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "149309498a5f7334b12ddae0cad8aba81ce785fe91755068867e017cf98fee46"
+checksum = "3244542535d5de959d90ec55d1b5ff0fd2bb7b1310223907d5f11932847f7b59"
 
 [[package]]
 name = "socket2"
@@ -1874,9 +1874,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.45.3"
+version = "0.45.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41141f3a04bea22cacdaa5e36774d69e1335f5461098311eb6bb2731ee113da5"
+checksum = "bf733054c231d91c9260a18f4d160aea4a03b1c7d22940333c3c82f4ac0e4348"
 
 [[package]]
 name = "tower"

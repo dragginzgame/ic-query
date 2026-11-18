@@ -14,6 +14,7 @@ struct Fake {
     calls: RefCell<Vec<(&'static str, Vec<u8>)>>,
     delay: Duration,
 }
+
 impl Fake {
     fn new(replies: Vec<Result<Vec<u8>, Failure>>) -> Self {
         Self {
@@ -23,6 +24,7 @@ impl Fake {
         }
     }
 }
+
 impl Source for Fake {
     async fn query(
         &self,
@@ -38,12 +40,15 @@ impl Source for Fake {
             .expect("unexpected extra read")
     }
 }
+
 fn failed() -> Failure {
     Failure::new(FailureKind::Read, "fixture unavailable")
 }
+
 fn target() -> Principal {
     "zqfso-syaaa-aaaaq-aaafq-cai".parse().unwrap()
 }
+
 fn fixture_neuron() -> neuron::Neuron {
     let Some(sns::GetNeuronResult::Neuron(n)) =
         sns::decode_get_neuron(include_bytes!("fixtures/sns-neuron.bin"), mainnet::LIMITS)
@@ -54,6 +59,7 @@ fn fixture_neuron() -> neuron::Neuron {
     };
     n
 }
+
 fn request(pages: u8) -> ListRequest {
     ListRequest {
         governance: target(),
@@ -62,6 +68,7 @@ fn request(pages: u8) -> ListRequest {
         max_pages: pages,
     }
 }
+
 fn page(start: u8, length: usize) -> Vec<neuron::Neuron> {
     (0..length)
         .map(|i| {
@@ -73,6 +80,7 @@ fn page(start: u8, length: usize) -> Vec<neuron::Neuron> {
         })
         .collect()
 }
+
 fn observed<T>(value: T) -> Observation<T> {
     Observation {
         method: "list_neurons",
@@ -83,6 +91,7 @@ fn observed<T>(value: T) -> Observation<T> {
         outcome: Outcome::Read { value },
     }
 }
+
 #[tokio::test]
 async fn balance_keeps_above_u128_and_independent_metadata_failure() {
     let fake = Fake::new(vec![
@@ -112,6 +121,7 @@ async fn balance_keeps_above_u128_and_independent_metadata_failure() {
     assert!(report.balance.query_signature_verified);
     assert!(!report.balance.result_certified);
 }
+
 #[tokio::test]
 async fn failed_balance_is_not_zero_and_does_not_hide_metadata() {
     let fake = Fake::new(vec![
@@ -127,6 +137,7 @@ async fn failed_balance_is_not_zero_and_does_not_hide_metadata() {
     assert!(json["balance"]["outcome"].get("value").is_none());
     assert!(json["account"]["subaccount"].is_null());
 }
+
 #[tokio::test]
 async fn optional_presence_and_unknown_permission_codes_survive_get() {
     let fake = Fake::new(vec![Ok(include_bytes!("fixtures/sns-neuron.bin").to_vec())]);
@@ -145,6 +156,7 @@ async fn optional_presence_and_unknown_permission_codes_survive_get() {
     assert_eq!(value.neuron_fees_e8s, 17);
     assert_eq!(value.maturity_e8s_equivalent, 23);
 }
+
 #[tokio::test]
 async fn get_separates_wrong_id_missing_result_governance_and_decode_failures() {
     for (bytes, expected) in [
@@ -174,6 +186,7 @@ async fn get_separates_wrong_id_missing_result_governance_and_decode_failures() 
         );
     }
 }
+
 #[tokio::test]
 async fn malformed_neuron_page_does_not_become_empty_success() {
     // Independent list fixture includes one valid neuron and one absent ID.
@@ -184,6 +197,7 @@ async fn malformed_neuron_page_does_not_become_empty_success() {
     assert!(!report.traversal_exhausted);
     assert_eq!(fake.calls.borrow().len(), 1);
 }
+
 #[tokio::test]
 async fn page_limit_and_short_page_have_distinct_coverage() {
     let report = neuron::collect_pages(request(1), |cursor, _| {
@@ -214,6 +228,7 @@ async fn page_limit_and_short_page_have_distinct_coverage() {
     assert_eq!(report.stop_reason, StopReason::Exhausted);
     assert!(!report.atomic_snapshot);
 }
+
 #[tokio::test]
 async fn later_failure_or_repeated_cursor_preserves_prior_pages() {
     for repeats in [false, true] {
@@ -235,6 +250,7 @@ async fn later_failure_or_repeated_cursor_preserves_prior_pages() {
         assert!(!report.pages[1].observation.is_read());
     }
 }
+
 #[tokio::test]
 async fn filtered_full_page_is_not_exhausted_or_paginated() {
     let mut request = request(1);
@@ -252,6 +268,7 @@ async fn filtered_full_page_is_not_exhausted_or_paginated() {
             .is_err()
     );
 }
+
 #[test]
 fn pages_refuse_duplicates_nonadvance_invalid_ids_and_wrong_filter() {
     assert!(neuron::validate_page(&page(1, 101), None, None).is_err());
@@ -268,6 +285,7 @@ fn pages_refuse_duplicates_nonadvance_invalid_ids_and_wrong_filter() {
         assert!(neuron::validate_page(&[n], None, None).is_err());
     }
 }
+
 #[tokio::test(start_paused = true)]
 async fn leaf_timeout_and_shared_deadline_prevent_extra_calls() {
     let mut fake = Fake::new(vec![]);
@@ -289,6 +307,7 @@ async fn leaf_timeout_and_shared_deadline_prevent_extra_calls() {
     }
     assert_eq!(fake.calls.borrow().len(), 2);
 }
+
 #[tokio::test(start_paused = true)]
 async fn cancellation_starts_no_subsequent_metadata_reads() {
     let mut fake = Fake::new(vec![]);

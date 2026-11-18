@@ -112,6 +112,13 @@ my $env = canonical_record($environment);
 ref($env) eq 'HASH' && defined($env->{PATH}) && !ref($env->{PATH}) && length($env->{PATH})
     && !grep { $_ !~ /\A[A-Za-z_][A-Za-z0-9_]*\z/ || !defined($env->{$_}) || ref($env->{$_}) || $env->{$_} =~ /\x00/ } keys %$env
     or die "stage requires an explicit bounded string environment including PATH\n";
+# Preserve invocation-scoped Cargo policy across the bounded child environment.
+# It is part of the context hashed for proof lookup and subsequent execution.
+if (exists $ENV{CARGO_NET_OFFLINE}) {
+    !exists $env->{CARGO_NET_OFFLINE} || $env->{CARGO_NET_OFFLINE} eq $ENV{CARGO_NET_OFFLINE}
+        or die "conflicting invocation and stage CARGO_NET_OFFLINE settings\n";
+    $env->{CARGO_NET_OFFLINE} = $ENV{CARGO_NET_OFFLINE};
+}
 safe_route($observer);
 $observer = abs_path($observer) // die "missing stage observer\n";
 -x $observer or die "stage observer is not executable\n";

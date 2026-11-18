@@ -135,7 +135,7 @@ if [[ -n "$baseline" ]]; then
 fi
 current_log=target/sequence/setup.log
 # Prepare the fixture's selected editor once; subsequent setup must admit it
-# without invoking installation again. Real dependencies remain locked/offline.
+# without invoking installation again. Real dependencies remain locked; Cargo settings are inherited.
 RELEASE_SOURCE="$(git rev-parse HEAD)"
 RELEASE_SETUP_MODE=prepare bash scripts/release.sh setup > "$current_log" 2>&1
 cat > target/sequence/setup-make <<'MAKE'
@@ -178,6 +178,10 @@ run_selected() {
     bash scripts/ci/reuse-validation.sh products > "$current_log" 2>&1
 }
 prepare_attempt seal-failure
+jq -e --arg selected "${CARGO_NET_OFFLINE-unset}" \
+    'if $selected == "unset" then has("CARGO_NET_OFFLINE") | not
+     else .CARGO_NET_OFFLINE == $selected end' \
+    "$QUERY_VALIDATION_ATTEMPT/reuse-environment.json" >/dev/null
 run_selected
 jq -e '(.command[0] | endswith("/make")) and .command[1:] == ["--no-print-directory","validate-cli"]' "$QUERY_VALIDATION_ATTEMPT/products.seal.json" >/dev/null
 echo 'Qualified an isolated CLI selection with real Cargo and no specialist test dispatch.'

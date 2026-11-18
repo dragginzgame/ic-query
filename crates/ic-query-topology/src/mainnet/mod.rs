@@ -1,10 +1,17 @@
 //! Shared admission and limits for the implemented mainnet reports.
 
-use std::future::Future;
-use std::time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH};
+#[cfg(test)]
+mod tests;
 
-use ic_platform::certificate::{PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits};
-use ic_platform::native::{ReadClient, ReadConfig, ReadError as NativeError};
+use std::{
+    future::Future,
+    time::{Duration, SystemTime, SystemTimeError, UNIX_EPOCH},
+};
+
+use ic_platform::{
+    certificate::{PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits},
+    native::{ReadClient, ReadConfig, ReadError as NativeError},
+};
 use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::Principal;
 use thiserror::Error;
@@ -57,12 +64,14 @@ pub(crate) fn client() -> Result<ReadClient, ReadError> {
     })
     .map_err(|e| ReadError::Transport(Box::new(e)))
 }
+
 fn context() -> Result<(u64, TimePolicy), ReadError> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(ReadError::Clock)?;
     context_at(now)
 }
+
 fn context_at(now: Duration) -> Result<(u64, TimePolicy), ReadError> {
     let now = u64::try_from(now.as_nanos()).map_err(|_| ReadError::ClockRange)?;
     let expiry = now
@@ -81,6 +90,7 @@ fn context_at(now: Duration) -> Result<(u64, TimePolicy), ReadError> {
         },
     ))
 }
+
 pub(crate) async fn query(
     client: &ReadClient,
     target: Principal,
@@ -90,6 +100,7 @@ pub(crate) async fn query(
     let (expiry, policy) = context()?;
     read(client.query(target, method, args, expiry, policy)).await
 }
+
 pub(crate) async fn subnet(
     client: &ReadClient,
     target: Principal,
@@ -113,6 +124,3 @@ pub(crate) fn observed_at() -> Result<u64, ReadError> {
         .map(|duration| duration.as_secs())
         .map_err(ReadError::Clock)
 }
-
-#[cfg(test)]
-mod tests;

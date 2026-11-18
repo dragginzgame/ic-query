@@ -1,7 +1,9 @@
 //! Process entrypoint for specialist IC query adapters.
 
-use std::io::{self, Write};
-use std::process::ExitCode;
+use std::{
+    io::{self, Write},
+    process::ExitCode,
+};
 
 use clap::Command;
 

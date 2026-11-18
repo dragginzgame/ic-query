@@ -13,6 +13,29 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Local adoption on 2026-11-19 selects Toko Tooling 0.45.10, Platform 0.34.17,
+Protocol 0.3.6 and Types 0.21.3. The Platform family was reviewed at
+[`2856344`](https://github.com/dragginzgame/ic-platform/tree/2856344360e15e0bf8f7781842dbbe6e5c7cd8ef):
+the selected maintenance patches require no Query API changes; optional stable
+storage capabilities remain unselected. Compatible supplier floors are retained.
+The existing smallvec 1.16.6 working selection is preserved.
+Rust imports, test declaration placement, function spacing and the workspace
+dependency catalog follow the new baseline. `make check` passes locally on Linux
+x86-64: 204 tests, two re-export doctests, the umbrella feature matrix, strict
+Clippy/Rustdoc, formatting and snapshot admission. This is local qualification,
+not a new publication, hosted macOS result or live-network check.
+The release wiring fixture passed 32 assertions, including default, explicitly
+offline and explicitly online Cargo settings. The native four-group fixture
+`sequence.j3WMqY` measured 119/46/45/40s for topology/SNS/umbrella/CLI validation,
+with one product execution and three fresh reuse admissions. These local timings
+exclude publication and hosted CI and are not a controlled performance comparison.
+The subsequent 0.45.11 adoption updates the tooling marker and snapshot. Its
+optional diagnostic-helper fix is outside Query’s selected payload; the installed
+policy and executable payload match 0.45.10.
+The same native fixture passed isolated CLI selection, inherited Cargo policy,
+prepared-tool admission, missing/tampered evidence refusal, proof-sealing recovery,
+corrupted-proof re-execution, environment invalidation and failed-product recovery.
+
 Batch `batch-5JWxwAZD` published topology 0.110.6, SNS 0.105.6, umbrella 0.104.6
 and CLI 0.105.22 on 2026-11-18, ending at
 `d41e3a800f753920731d038cfce33b207533bed4`. All four registry versions were
@@ -27,6 +50,11 @@ are outside the batch interval.
 [Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44292580476)
 was still running at readback. The released dependency graph retains Platform
 0.34.15 and smallvec 1.16.5; unrelated working lockfile edits remain deferred.
+The release run was subsequently superseded by the documentation follow-up.
+[CI run 44292861726](https://github.com/dragginzgame/ic-query/actions/runs/44292861726)
+passed for `172812b345bc4ba7ea9b7ddd50459b281df646be`, containing the same delivered
+product code. This closes the pending hosted result for the producer; it does not
+qualify Canic's separate dependency/import cutover.
 
 Batch `batch-1DEFBf5T` published topology 0.110.5, SNS 0.105.5, umbrella 0.104.5
 and CLI 0.105.21 on 2026-11-18, ending at
@@ -147,8 +175,8 @@ passed for that exact release commit on Linux x86-64 and macOS ARM64/x86-64,
 including 204 tests, two re-export doctests, the feature matrix, strict
 Clippy/Rustdoc and scaffold checks. No new live-network qualification is claimed.
 
-All topology reads select published Platform 0.34.13 `native-read`, Protocol 0.3.5
-for Registry/placement/cloud-engine codecs, and Types 0.21.2. Product and test
+All topology reads select published Platform 0.34.17 `native-read`, Protocol 0.3.6
+for Registry/placement/cloud-engine codecs, and Types 0.21.3. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-query-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
@@ -392,7 +420,9 @@ directory (normally `~/.cargo/bin`), replacing an existing Cargo-installed `icq`
 It uses the development profile and prepared, locked dependencies, then checks
 that `icq` is available on PATH. Cargo installation-root overrides are respected;
 keep the selected bin directory on PATH. Run `icq --help` or pass report arguments
-directly. Installation is offline; report commands still access mainnet.
+directly. Cargo may fetch missing locked dependencies; report commands access mainnet.
+For an explicitly offline development run, use `CARGO_NET_OFFLINE=true make check`
+after preparing dependencies. Ordinary commands preserve caller Cargo settings.
 
 `deps-list` lists local workspace package versions, not transitive dependencies
 or registry publication status. The group column reads the ownership declared in
@@ -494,9 +524,11 @@ group; it is not resealed for each specialist/umbrella label. Full development,
 native CI and non-candidate fallback still use the original complete stage roster.
 Existing completed release evidence retains its original meaning.
 
-Setup first admits locked dependencies offline and checks the selected tool
-payloads. Fresh preparation fetches or installs only after a failed availability
-check; recovery remains check-only. Group boundaries still recheck tools, source
+Setup fetches missing locked dependencies and checks the selected tool payloads.
+Candidate dependencies are prepared before reusable evidence is sealed. Explicit
+`CARGO_NET_OFFLINE` settings are preserved during setup and product execution.
+Fresh tool preparation installs only after a failed availability check; recovery
+keeps tool admission check-only. Group boundaries still recheck tools, source
 and metadata: no batch marker or cached success bypasses those admissions.
 The shared timing journal now separates candidate/editor preparation, native tool
 inventory, product admission, seal write/check, current-version CLI tests, plan
@@ -771,11 +803,11 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.45.3** was selected from crates.io on 2026-11-18 through
+Toko Tooling **0.45.11** was selected from crates.io on 2026-11-19 through
 the supported updater. Its authenticated archive SHA-256 is:
 
 ```text
-41141f3a04bea22cacdaa5e36774d69e1335f5461098311eb6bb2731ee113da5
+bf733054c231d91c9260a18f4d160aea4a03b1c7d22940333c3c82f4ac0e4348
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the selected roots and

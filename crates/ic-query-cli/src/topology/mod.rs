@@ -1,12 +1,13 @@
 //! Command adapter for the topology library.
 
+#[cfg(test)]
+mod tests;
+
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use ic_platform_types::Principal;
 use std::process::ExitCode;
 
-use crate::presentation;
-
-use crate::CommandOutput;
+use crate::{CommandOutput, presentation};
 
 pub(crate) fn command() -> Command {
     Command::new("topology")
@@ -610,9 +611,6 @@ fn nodes_output(
         },
     })
 }
-
-#[cfg(test)]
-mod tests;
 
 fn compare_output(
     report: &ic_query_topology::subnet::compare::SubnetComparisonReport,

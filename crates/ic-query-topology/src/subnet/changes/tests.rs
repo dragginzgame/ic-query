@@ -1,5 +1,4 @@
-use std::cell::Cell;
-use std::future::ready;
+use std::{cell::Cell, future::ready};
 
 use super::*;
 use crate::subnet::configuration::SubnetConfigurationEvidence;

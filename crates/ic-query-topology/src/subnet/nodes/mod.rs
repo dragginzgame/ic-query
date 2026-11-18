@@ -1,5 +1,8 @@
 //! Bounded registered-node inventory for one subnet, retaining partial observations.
 
+#[cfg(test)]
+mod tests;
+
 use std::time::Duration;
 
 use ic_platform_types::Principal;
@@ -8,11 +11,14 @@ use thiserror::Error;
 use tokio::time::{Instant, sleep_until};
 
 use super::configuration::{self, SubnetConfigurationError, SubnetConfigurationReport};
-use crate::node::{self, NodeError, NodeReport};
-use crate::{ReadError, mainnet};
+use crate::{
+    ReadError, mainnet,
+    node::{self, NodeError, NodeReport},
+};
 
 /// Maximum selected membership; larger records are refused before node reads.
 pub const MAX_NODES: usize = 128;
+
 /// Node reads proceed in batches of at most four, without background tasks.
 pub const CONCURRENCY: usize = 4;
 /// Overall asynchronous budget, including the initial configuration read.
@@ -262,6 +268,3 @@ fn serialize_node_error<S: Serializer>(
     }
     fields.end()
 }
-
-#[cfg(test)]
-mod tests;

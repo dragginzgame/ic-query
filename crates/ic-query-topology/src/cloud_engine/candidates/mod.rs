@@ -1,5 +1,8 @@
 //! Match public declarations to observed candidates without selecting a tariff.
 
+#[cfg(test)]
+mod tests;
+
 use super::{available, prices};
 use ic_platform_types::Principal;
 use serde::Serialize;
@@ -126,6 +129,3 @@ fn matching_indices(
         })
         .collect()
 }
-
-#[cfg(test)]
-mod tests;

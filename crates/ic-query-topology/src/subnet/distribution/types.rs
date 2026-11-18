@@ -8,8 +8,10 @@ use serde::{Serialize, Serializer, ser::SerializeStruct};
 use thiserror::Error;
 
 use super::super::configuration::{SubnetConfigurationError, SubnetConfigurationReport};
-use crate::ReadError;
-use crate::node::{NodeError, NodeReport};
+use crate::{
+    ReadError,
+    node::{NodeError, NodeReport},
+};
 
 /// One selected subnet's version-pinned Registry relationships.
 #[derive(Debug, Serialize)]

@@ -1,5 +1,8 @@
 //! Two certified metrics reads for bounded activity evidence, without an uptime verdict.
 
+#[cfg(test)]
+mod tests;
+
 use std::time::Duration;
 
 use ic_platform_types::Principal;
@@ -117,6 +120,3 @@ pub(super) fn message_change(before: u64, after: u64) -> MessageChange {
         std::cmp::Ordering::Less => MessageChange::Decreased,
     }
 }
-
-#[cfg(test)]
-mod tests;

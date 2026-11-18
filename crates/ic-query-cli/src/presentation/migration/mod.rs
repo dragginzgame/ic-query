@@ -1,4 +1,8 @@
 //! Pure, escaped human views of migration evidence; JSON keeps raw fields.
+
+#[cfg(test)]
+mod tests;
+
 use ic_host_text::bordered_table;
 use ic_query_sns::{
     Observation, Outcome,
@@ -12,6 +16,7 @@ fn value<T: ToString>(o: &Observation<T>) -> String {
         Outcome::Failed { error } => format!("unavailable: {error}"),
     }
 }
+
 fn time<T>(o: &Observation<T>) -> String {
     format!(
         "{} – {}",
@@ -21,10 +26,13 @@ fn time<T>(o: &Observation<T>) -> String {
             .map_or_else(|| "unavailable".into(), |v| v.to_string())
     )
 }
+
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
+
 const NOTICE: &str = "Successful queries verify node signatures, not certified application state. Separate reads are not an atomic snapshot. No migration or entitlement decision is made. Use --json for raw fields and failures.";
+
 pub(crate) fn balance(report: &BalanceReport) -> String {
     let rows = vec![
         vec![
@@ -54,6 +62,7 @@ pub(crate) fn balance(report: &BalanceReport) -> String {
         NOTICE
     )
 }
+
 fn row(neuron: &Neuron) -> Vec<String> {
     vec![
         neuron
@@ -68,6 +77,7 @@ fn row(neuron: &Neuron) -> Vec<String> {
             .map_or_else(|| "absent".into(), |v| v.to_string()),
     ]
 }
+
 fn table(rows: &[Vec<String>]) -> String {
     bordered_table(
         &[
@@ -80,6 +90,7 @@ fn table(rows: &[Vec<String>]) -> String {
         rows,
     )
 }
+
 pub(crate) fn neuron(report: &NeuronReport) -> String {
     let rows = match &report.neuron.outcome {
         Outcome::Read { value } => vec![row(value)],
@@ -100,6 +111,7 @@ pub(crate) fn neuron(report: &NeuronReport) -> String {
         NOTICE
     )
 }
+
 pub(crate) fn neurons(report: &NeuronsReport) -> String {
     let mut rows = Vec::new();
     let mut pages = Vec::new();
@@ -138,6 +150,3 @@ pub(crate) fn neurons(report: &NeuronsReport) -> String {
         NOTICE
     )
 }
-
-#[cfg(test)]
-mod tests;

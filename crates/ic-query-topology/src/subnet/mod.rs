@@ -3,6 +3,9 @@
 //! These observations do not establish complete Registry membership, node
 //! liveness, allocatable capacity, hardware capabilities or authoritative routing.
 
+#[cfg(test)]
+mod tests;
+
 use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
@@ -153,6 +156,3 @@ fn project(
         },
     })
 }
-
-#[cfg(test)]
-mod tests;

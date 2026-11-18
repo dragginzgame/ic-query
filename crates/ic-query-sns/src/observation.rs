@@ -34,6 +34,7 @@ pub struct Failure {
     /// Exact Governance error code, including unknown signed codes.
     pub governance_error_type: Option<i32>,
 }
+
 impl Failure {
     pub(crate) fn new(kind: FailureKind, message: impl Into<String>) -> Self {
         Self {
@@ -76,6 +77,7 @@ pub struct Observation<T> {
     /// Independent value or failure.
     pub outcome: Outcome<T>,
 }
+
 impl<T> Observation<T> {
     /// Whether this observation yielded admitted data.
     #[must_use]

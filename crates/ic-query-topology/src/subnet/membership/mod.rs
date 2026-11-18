@@ -1,11 +1,16 @@
 //! Compare registered members and observed node keys without claiming an atomic snapshot.
 
+#[cfg(test)]
+mod tests;
+
 use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
 
-use super::configuration::{self, SubnetConfigurationError, SubnetConfigurationReport};
-use super::{SubnetError, SubnetReport};
+use super::{
+    SubnetError, SubnetReport,
+    configuration::{self, SubnetConfigurationError, SubnetConfigurationReport},
+};
 
 /// Two separately acquired reports and their node-set differences.
 #[derive(Debug, Serialize)]
@@ -119,6 +124,3 @@ async fn collect(
         observed_key_without_registration,
     })
 }
-
-#[cfg(test)]
-mod tests;

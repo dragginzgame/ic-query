@@ -1,4 +1,8 @@
 //! Coordinated maintenance observations without an uptime or completion verdict.
+
+#[cfg(test)]
+mod tests;
+
 use super::{
     activity::{self, MessageChange},
     changes::{self, ComparisonRefusal, SubnetChangesError, SubnetChangesReport},
@@ -46,6 +50,7 @@ pub struct MaintenanceReport {
     /// Second configured-version assessment.
     pub expected_after: VersionMatch,
 }
+
 /// Exact configured-string agreement, not running-software agreement.
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -59,6 +64,7 @@ pub enum VersionMatch {
     /// Configuration read unavailable.
     Unavailable,
 }
+
 /// Configuration evidence, retaining inputs on every later failure.
 #[derive(Debug, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
@@ -86,6 +92,7 @@ pub enum ConfigurationOutcome {
         reason: ComparisonRefusal,
     },
 }
+
 impl ConfigurationOutcome {
     /// Borrow the original observations without copying evidence.
     #[must_use]
@@ -102,6 +109,7 @@ impl ConfigurationOutcome {
         }
     }
 }
+
 impl MaintenanceReport {
     /// Complete collection and available comparisons, not successful maintenance.
     #[must_use]
@@ -111,6 +119,7 @@ impl MaintenanceReport {
             && self.message_change.is_some()
     }
 }
+
 /// Failures before a report can be anchored.
 #[derive(Debug, Error)]
 pub enum MaintenanceError {
@@ -127,6 +136,7 @@ pub enum MaintenanceError {
     #[error("initial maintenance configuration failed: {0}")]
     Initial(#[source] SubnetConfigurationError),
 }
+
 /// Observe configuration then metrics twice, with one wait between rounds.
 ///
 /// Each existing reader keeps its 20-second deadline and admission bounds.
@@ -150,6 +160,7 @@ pub async fn fetch(
     )
     .await
 }
+
 async fn collect<C, CF, M, MF>(
     subnet_id: Principal,
     interval_seconds: u64,
@@ -227,6 +238,7 @@ where
         expected_after,
     })
 }
+
 fn assess(report: Option<&SubnetConfigurationReport>, expected: Option<&str>) -> VersionMatch {
     match (report, expected) {
         (None, _) => VersionMatch::Unavailable,
@@ -235,6 +247,7 @@ fn assess(report: Option<&SubnetConfigurationReport>, expected: Option<&str>) ->
         _ => VersionMatch::Differs,
     }
 }
+
 fn read_category(error: &ReadError) -> &'static str {
     match error {
         ReadError::Transport(_) => "transport",
@@ -242,6 +255,7 @@ fn read_category(error: &ReadError) -> &'static str {
         ReadError::Clock(_) | ReadError::ClockRange => "clock",
     }
 }
+
 fn configuration_error<S: Serializer>(
     error: &SubnetConfigurationError,
     s: S,
@@ -275,5 +289,3 @@ fn configuration_error<S: Serializer>(
     )?;
     value.end()
 }
-#[cfg(test)]
-mod tests;

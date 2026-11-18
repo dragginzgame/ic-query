@@ -11,8 +11,10 @@ use tokio::time::Instant;
 
 /// The published, deliberately partial SNS neuron projection.
 pub use sns::Neuron;
+
 /// Fixed maximum number of returned neurons per query.
 pub const PAGE_SIZE: u32 = 100;
+
 /// Maximum admitted pages per collection.
 pub const MAX_PAGES: u8 = 20;
 
@@ -30,6 +32,7 @@ pub struct NeuronReport {
     /// Selected fields or exact failure.
     pub neuron: Observation<Neuron>,
 }
+
 /// Read one exact neuron using the published SNS projection.
 /// Does not return omitted followee/reward/disbursement fields or a full export.
 /// Requires Tokio IO/time and applies a 20-second whole-call deadline.
@@ -39,6 +42,7 @@ pub struct NeuronReport {
 pub async fn fetch(governance: Principal, neuron_id: [u8; 32]) -> Result<NeuronReport, Failure> {
     Ok(get(&mainnet::Mainnet::new()?, governance, neuron_id).await)
 }
+
 pub(crate) async fn get(
     source: &impl Source,
     governance: Principal,
@@ -102,6 +106,7 @@ pub struct ListRequest {
     /// the upstream principal-filtered method ignores its cursor.
     pub max_pages: u8,
 }
+
 /// Why collection stopped; exhaustion is not an atomic snapshot guarantee.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -115,6 +120,7 @@ pub enum StopReason {
     /// A read or admission failed; earlier admitted pages remain available.
     Failed,
 }
+
 /// One query's cursor and independent selected records or failure.
 #[derive(Clone, Debug, Serialize)]
 pub struct Page {
@@ -123,6 +129,7 @@ pub struct Page {
     /// Independent timestamps, authentication and response outcome.
     pub observation: Observation<Vec<Neuron>>,
 }
+
 /// Bounded, non-atomic neuron evidence with retained partial coverage.
 #[derive(Clone, Debug, Serialize)]
 pub struct NeuronsReport {
@@ -145,6 +152,7 @@ pub struct NeuronsReport {
     /// Separate live reads have no common state version.
     pub atomic_snapshot: bool,
 }
+
 /// Collect up to 20 pages of 100 records within a shared 60-second deadline.
 /// Each read is bounded to 20 seconds; cancellation drops pending work.
 /// Filtered reads require one page and never pretend that a full page is complete.
@@ -155,6 +163,7 @@ pub async fn list(request: ListRequest) -> Result<NeuronsReport, Failure> {
     validate_request(request)?;
     collect(&mainnet::Mainnet::new()?, request).await
 }
+
 fn validate_request(request: ListRequest) -> Result<(), Failure> {
     if !(1..=MAX_PAGES).contains(&request.max_pages) {
         return Err(mainnet::admission("max_pages must be 1 through 20"));
@@ -166,6 +175,7 @@ fn validate_request(request: ListRequest) -> Result<(), Failure> {
     }
     Ok(())
 }
+
 pub(crate) async fn collect(
     source: &impl Source,
     request: ListRequest,
@@ -193,6 +203,7 @@ pub(crate) async fn collect(
     })
     .await
 }
+
 pub(crate) async fn collect_pages<F, Fut>(
     request: ListRequest,
     mut read: F,
@@ -252,6 +263,7 @@ where
     }
     Ok(report)
 }
+
 fn id(neuron: &Neuron) -> Result<[u8; 32], Failure> {
     neuron
         .id
@@ -259,6 +271,7 @@ fn id(neuron: &Neuron) -> Result<[u8; 32], Failure> {
         .and_then(|id| id.id.as_slice().try_into().ok())
         .ok_or_else(|| mainnet::admission("neuron ID is absent or not exactly 32 bytes"))
 }
+
 pub(crate) fn validate_page(
     neurons: &[Neuron],
     cursor: Option<[u8; 32]>,

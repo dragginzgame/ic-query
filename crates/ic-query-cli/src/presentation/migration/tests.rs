@@ -1,4 +1,5 @@
 use super::*;
+
 fn read<T>(value: T) -> Observation<T> {
     Observation {
         method: "fixture",
@@ -9,6 +10,7 @@ fn read<T>(value: T) -> Observation<T> {
         outcome: Outcome::Read { value },
     }
 }
+
 #[test]
 fn balance_text_escapes_symbol_and_keeps_exact_base_units() {
     let report = BalanceReport {

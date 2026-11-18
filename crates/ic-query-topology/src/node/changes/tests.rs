@@ -1,5 +1,7 @@
-use std::cell::{Cell, RefCell};
-use std::future::ready;
+use std::{
+    cell::{Cell, RefCell},
+    future::ready,
+};
 
 use super::*;
 use crate::node::NodeEvidence;

@@ -34,12 +34,12 @@
 //! SNS migration and NNS governance are outside this package's scope. Canic owns
 //! planning and execution; this library will supply evidence and comparisons.
 
+#[cfg(test)]
+mod tests;
+
 pub mod cloud_engine;
 mod mainnet;
 pub use mainnet::ReadError;
 pub mod node;
 pub mod placement;
 pub mod subnet;
-
-#[cfg(test)]
-mod tests;

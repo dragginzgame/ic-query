@@ -4,6 +4,7 @@ use ic_query_topology::subnet::progress::{
     LaterObservation, StateTimeChange, SubnetProgressReport,
 };
 use std::fmt::Write;
+
 pub(crate) fn render(report: &SubnetProgressReport) -> String {
     let mut rows = Vec::new();
     let mut append =

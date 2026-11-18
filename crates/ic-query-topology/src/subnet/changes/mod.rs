@@ -1,5 +1,8 @@
 //! Compare selected Registry configurations without inferring maintenance events or uptime.
 
+#[cfg(test)]
+mod tests;
+
 use std::time::Duration;
 
 use ic_platform_types::Principal;
@@ -219,6 +222,3 @@ where
     report.requested_interval_seconds = Some(interval_seconds);
     Ok(report)
 }
-
-#[cfg(test)]
-mod tests;

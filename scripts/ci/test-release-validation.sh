@@ -22,6 +22,7 @@ set -euo pipefail
 printf 'cargo' >> "$TRACE"
 printf ' %s' "$@" >> "$TRACE"
 printf '\n' >> "$TRACE"
+printf '%s\n' "${CARGO_NET_OFFLINE-unset}" >> "$TRACE.environment"
 [[ "${1:-}" != -V ]] || { echo 'fixture cargo'; exit 0; }
 if [[ -n "${FAIL_PACKAGE:-}" && " $* " == *" -p $FAIL_PACKAGE "* ]]; then exit 19; fi
 CARGO
@@ -75,12 +76,12 @@ for group in cli query topology sns-migration; do
     if rg -q -- '--workspace' "$TRACE"; then exit 1; fi
     if [[ "$group" == cli ]]; then
         if rg -q -- '-p ic-query-topology|-p ic-query-sns|-p ic-query ' "$TRACE"; then exit 1; fi
-        rg -q '^cargo test -p ic-query-cli --locked --offline$' "$TRACE"
+        rg -q '^cargo test -p ic-query-cli --locked$' "$TRACE"
     elif [[ "$group" == topology ]]; then
         if rg -q -- '-p ic-query-sns' "$TRACE"; then exit 1; fi
-        rg -q '^cargo test -p ic-query-topology --locked --offline$' "$TRACE"
-        rg -q '^cargo test -p ic-query-cli --locked --offline$' "$TRACE"
-        rg -q '^cargo test -p ic-query --all-features --locked --offline$' "$TRACE"
+        rg -q '^cargo test -p ic-query-topology --locked$' "$TRACE"
+        rg -q '^cargo test -p ic-query-cli --locked$' "$TRACE"
+        rg -q '^cargo test -p ic-query --all-features --locked$' "$TRACE"
     elif [[ "$group" == sns-migration ]]; then
         if rg -q -- '-p ic-query-topology' "$TRACE"; then exit 1; fi
     fi
@@ -88,6 +89,19 @@ for group in cli query topology sns-migration; do
 done
 [[ -z "$(git status --porcelain)" ]]
 ok 'sequential group selection preserves all versions and ledgers'
+# Ordinary checks may fetch dependencies; an explicit offline selection survives
+# dispatch unchanged instead of being replaced by the consumer recipes.
+select_plan cli network-policy
+for offline in unset true false; do
+    rm -f "$TRACE.environment"
+    (
+        if [[ "$offline" == unset ]]; then unset CARGO_NET_OFFLINE;
+        else export CARGO_NET_OFFLINE="$offline"; fi
+        run_plan network-policy
+    )
+    [[ "$(sort -u "$TRACE.environment")" == "$offline" ]]
+done
+ok 'Cargo network policy follows the caller for default, offline and online checks'
 # Native candidate selection projects the same obligations into one admission.
 for group in cli query topology sns-migration; do
     mkdir -p "target/combined-$group"

@@ -205,6 +205,11 @@ file or separate review framework.
 
 ## Validation and evidence
 
+- Cargo may retrieve missing locked dependencies during normal work and releases.
+  Offline mode requires explicit authorization for the invocation or job. Preserve
+  the caller’s Cargo settings and report Cargo’s error if a selected package is
+  unavailable. Complete dependency preparation before sealing reusable evidence.
+
 - Ordinary coding and cleanup end after the relevant focused checks pass. Do not
   turn that handoff into release preparation, fleet adoption or qualification of
   every supported host. Those are separately requested workflows; missing broad
@@ -695,6 +700,9 @@ repository budget; raw output belongs under `target/evidence/`. See the
 [retention contract](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/engineering-details.md#changelogs-and-artifact-preservation)
 for exceptions, historical cleanup and protected release/recovery records.
 
+Use `### 🎯 Qualification` for results such as cursor behavior across an upgrade
+or the workload budget at which an operation completes. Use `### 🧪 Testing`
+for changes to test tooling or coverage.
 Use IcyDB-style emoji category sections in the owning release changelog; read the
 [changelog rules](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md) when updating them. Every issue fixed must
 have a direct link in that changelog before handoff, except legal and licensing
@@ -723,6 +731,29 @@ storage allocation, admission, backing access or persistence integrations.
 
 ## Rust workspaces and portable tooling
 
+Prefer one grouped `use` declaration per crate in each scope. Factor out shared
+path prefixes with nested braces. Group imports that share visibility and
+attributes, and preserve the names each import brings into scope.
+
+Write handwritten and generated Rust to compile on all supported targets by
+default. Use a Wasm or host target condition only when a specific operation
+requires a target-exclusive API or a genuinely different implementation.
+Deployment to the IC alone does not justify a target guard. Reuse a portable
+API when one exists. Where IC and host clock or entropy sources must differ,
+confine target selection to the implementation that obtains the time or random
+bytes. Keep callers and shared application logic unconditional.
+
+In handwritten and generated Rust, leave a blank line between the import block,
+item-level macro invocations and function definitions. Separate adjacent functions
+with a blank line, including methods, tests and test helpers. Keep comments and
+attributes attached to their item. Write endpoint mounts and endpoint attributes
+with several named arguments on multiple lines, one argument per line.
+Document each endpoint's caller-visible purpose, each guard's access policy and
+each mount's role. A shared mount needs one comment for the group.
+
+Place `mod tests;` with the module declarations at the top of its parent file,
+after module documentation and inner attributes and before implementation items.
+Keep its conditional compilation attributes attached to the declaration.
 Keep Rust tests and test-only helpers in `tests.rs`, `*_tests.rs` or `tests/`;
 declare fixture-only package roles explicitly. Adopt the naming layout as a
 hard cut, including references, under the
@@ -909,8 +940,12 @@ unused alias from its group's dependency roster when removing its declaration;
 retain the package in the group's member roster. Private product dependencies
 may use path-only entries; qualification owns its own workspace catalog.
 Remove unused workspace dependencies and their obsolete aliases; do not allow
-the unused-dependency lint merely to preserve a display catalog. Cargo.toml needs
-no release-group blocks, role sections or changelog comments. Keep group ownership
+the unused-dependency lint merely to preserve a display catalog. When
+`[workspace.dependencies]` contains multiple roles, group the used entries
+under `# Production`, `# Production and tests`, and `# Tests and tooling`,
+in that order. Omit empty groups and sort within each. Production includes
+normal and build dependencies across supported targets and features. Use the
+mixed heading for entries also declared for tests or tooling. Keep group ownership
 in the existing JSON policy under the
 [workspace versioning rules](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/rust-workspaces.md#coordinated-versions-and-workspace-boundaries).
 Dependency adoption must distinguish required compatibility/security changes from

@@ -1,6 +1,8 @@
 use super::*;
-use crate::ReadError;
-use crate::tests::{self as fixtures, encode_fixture as encode_one};
+use crate::{
+    ReadError,
+    tests::{self as fixtures, encode_fixture as encode_one},
+};
 use std::{cell::Cell, time::Duration};
 
 // Independently assembled from the selected IDL and Candid binary specification,
@@ -17,6 +19,7 @@ fn hex(raw: &str) -> Vec<u8> {
         .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect()
 }
+
 fn id(n: u16) -> Principal {
     Principal::from_slice(&n.to_le_bytes())
 }
@@ -24,6 +27,7 @@ fn id(n: u16) -> Principal {
 fn request() -> EngineId {
     "engine-x".parse().unwrap()
 }
+
 fn view() -> wire::EngineView {
     wire::EngineView {
         id: "engine-x".into(),
@@ -39,6 +43,7 @@ fn view() -> wire::EngineView {
         }),
     }
 }
+
 // The candidate response projection is decode-only. Keep fixture encoding in
 // an independent upstream schema; conversion is fixture setup only.
 fn encode_views(views: &[wire::EngineView], maximum: usize) -> Vec<u8> {
@@ -46,12 +51,14 @@ fn encode_views(views: &[wire::EngineView], maximum: usize) -> Vec<u8> {
         serde_json::from_value(serde_json::to_value(views).unwrap()).unwrap();
     encode_one(&published, maximum).unwrap()
 }
+
 fn read(outcome: EngineOutcome) -> EngineRecord {
     let EngineOutcome::Read { record } = outcome else {
         panic!("expected admitted view")
     };
     *record
 }
+
 async fn literal(bytes: Vec<u8>) -> Result<EngineReport, EngineError> {
     collect(request(), |_| async {
         Ok(Observation {

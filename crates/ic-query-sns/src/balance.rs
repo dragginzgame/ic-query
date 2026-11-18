@@ -30,6 +30,7 @@ pub struct BalanceReport {
     /// Separate queries never claim a single state snapshot.
     pub atomic_snapshot: bool,
 }
+
 /// Read one account balance, then independent decimals and symbol observations.
 /// Each call has a 20-second deadline within 60 seconds overall; no retries.
 /// Raw values are preserved even when display metadata fails. Requires Tokio IO/time.
@@ -39,6 +40,7 @@ pub struct BalanceReport {
 pub async fn fetch(ledger: Principal, account: Account) -> Result<BalanceReport, Failure> {
     Ok(collect(&mainnet::Mainnet::new()?, ledger, account).await)
 }
+
 pub(crate) async fn collect(
     source: &impl Source,
     target: Principal,

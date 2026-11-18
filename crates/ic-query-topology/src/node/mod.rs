@@ -1,12 +1,17 @@
 //! Selected node Registry data, not verified hardware or observed running state.
 
+#[cfg(test)]
+mod tests;
+
 use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::{Principal, PrincipalError};
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::mainnet::{REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD};
-use crate::{ReadError, mainnet};
+use crate::{
+    ReadError,
+    mainnet::{self, REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD},
+};
 
 pub mod changes;
 
@@ -176,6 +181,3 @@ pub(crate) fn project_response(
         },
     })
 }
-
-#[cfg(test)]
-mod tests;

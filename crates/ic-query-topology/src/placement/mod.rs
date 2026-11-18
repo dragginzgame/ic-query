@@ -4,6 +4,9 @@
 //! consensus-certified Registry snapshot. Transport admits only mainnet, using
 //! Platform's built-in trust root and query-signature verification.
 
+#[cfg(test)]
+mod tests;
+
 pub mod collection;
 
 use ic_platform_protocol::{
@@ -19,8 +22,10 @@ use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::mainnet::REGISTRY;
-use crate::{ReadError, mainnet};
+use crate::{
+    ReadError,
+    mainnet::{self, REGISTRY},
+};
 
 const METHOD: &str = "get_subnet_for_canister";
 const REPLY_LIMITS: decoder::Limits = decoder::Limits {
@@ -139,6 +144,3 @@ fn report(canister_id: Principal, subnet_id: Principal, observed_at: u64) -> Pla
         },
     }
 }
-
-#[cfg(test)]
-mod tests;

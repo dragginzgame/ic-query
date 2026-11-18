@@ -1,5 +1,8 @@
 //! Selected public engine-to-subnet/operator/node evidence for Canic planning.
 
+#[cfg(test)]
+mod tests;
+
 use super::{CANISTER, Observation};
 use crate::mainnet;
 use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
@@ -160,6 +163,3 @@ fn nodes(field: &'static str, nodes: &[Principal]) -> Result<BTreeSet<Principal>
     }
     Ok(set)
 }
-
-#[cfg(test)]
-mod tests;

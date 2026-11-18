@@ -1,7 +1,10 @@
 //! Registered feature and resource declarations, without resolving replica defaults.
+
+#[cfg(test)]
+mod tests;
+
 use crate::{ReadError, mainnet};
-use ic_platform_protocol::registry as protobuf;
-use ic_platform_protocol::registry_settings as wire;
+use ic_platform_protocol::{registry as protobuf, registry_settings as wire};
 use ic_platform_types::Principal;
 use serde::Serialize;
 use thiserror::Error;
@@ -146,9 +149,6 @@ fn project(
     })
 }
 
-#[cfg(test)]
-mod tests;
-
 /// Independent settings acquisition, preserving failures separately from absence.
 #[derive(Debug, Serialize)]
 #[serde(tag = "status", rename_all = "snake_case")]
@@ -165,6 +165,7 @@ pub enum SettingsOutcome {
         error: SubnetSettingsError,
     },
 }
+
 impl SettingsOutcome {
     /// Borrow the acquired report, if available.
     #[must_use]
@@ -175,6 +176,7 @@ impl SettingsOutcome {
         }
     }
 }
+
 impl From<Result<SubnetSettingsReport, SubnetSettingsError>> for SettingsOutcome {
     fn from(value: Result<SubnetSettingsReport, SubnetSettingsError>) -> Self {
         match value {
@@ -183,6 +185,7 @@ impl From<Result<SubnetSettingsReport, SubnetSettingsError>> for SettingsOutcome
         }
     }
 }
+
 fn settings_error<S: serde::Serializer>(
     error: &SubnetSettingsError,
     serializer: S,

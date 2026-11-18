@@ -1,4 +1,8 @@
 //! Two authenticated subnet state times, without an uptime or completion verdict.
+
+#[cfg(test)]
+mod tests;
+
 use crate::{ReadError, mainnet};
 use ic_platform::certificate::{
     TimePolicy, TimeWindow, VerificationLimits, VerifyError,
@@ -82,6 +86,7 @@ pub enum LaterObservation {
         error: StateTimeError,
     },
 }
+
 /// One bounded pair, preserving partial evidence.
 #[derive(Debug, Serialize)]
 pub struct SubnetProgressReport {
@@ -100,6 +105,7 @@ pub struct SubnetProgressReport {
     /// Both reads succeeded, regardless of their ordering.
     pub collection_complete: bool,
 }
+
 /// Failed acquisition; never a subnet health classification.
 #[derive(Debug, Error)]
 pub enum StateTimeError {
@@ -119,6 +125,7 @@ pub enum StateTimeError {
     #[error("subnet time observation does not match the admitted source")]
     SourceMismatch,
 }
+
 /// Failures before a progress report can be anchored.
 #[derive(Debug, Error)]
 pub enum ProgressError {
@@ -194,6 +201,7 @@ async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTime
         original_certificate_bytes_retained: false,
     })
 }
+
 fn admit(
     value: StateTimeObservation,
     subnet: Principal,
@@ -203,6 +211,7 @@ fn admit(
     }
     Ok(value)
 }
+
 async fn sample<F, Fut>(
     subnet_id: Principal,
     interval_seconds: u64,
@@ -251,6 +260,7 @@ where
         elapsed: started.elapsed(),
     })
 }
+
 fn read_error<S: Serializer>(error: &StateTimeError, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(match error {
         StateTimeError::Read(ReadError::Deadline) => "read_deadline",
@@ -261,5 +271,3 @@ fn read_error<S: Serializer>(error: &StateTimeError, s: S) -> Result<S::Ok, S::E
         StateTimeError::Identity(_) | StateTimeError::SourceMismatch => "source_identity",
     })
 }
-#[cfg(test)]
-mod tests;

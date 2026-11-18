@@ -1,4 +1,8 @@
 //! Explicit bounded canister selections; no fleet discovery or deployment authority.
+
+#[cfg(test)]
+mod tests;
+
 use super::{PlacementError, PlacementReport};
 use crate::{ReadError, mainnet};
 use ic_platform_types::Principal;
@@ -9,6 +13,7 @@ use tokio::time::{Instant, sleep_until};
 
 /// Largest explicit selection admitted before any lookup.
 pub const MAX_CANISTERS: usize = 32;
+
 /// Shared asynchronous budget across sequential leaf lookups.
 pub const DEADLINE: Duration = Duration::from_secs(60);
 
@@ -201,6 +206,3 @@ fn serialize_error<S: Serializer>(
     }
     fields.end()
 }
-
-#[cfg(test)]
-mod tests;

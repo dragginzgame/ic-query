@@ -80,11 +80,7 @@ case "$1" in
     setup)
         bash "$shared/check-release-source.sh"
         release_timing_begin query-setup-dependencies
-        if [[ "${RELEASE_SETUP_MODE:-check}" == prepare ]]; then
-            cargo fetch --locked --offline || cargo fetch --locked
-        else
-            cargo fetch --locked --offline
-        fi
+        cargo fetch --locked
         release_timing_end 0
         release_timing_begin query-setup-tools
         if ! "$make_bin" --no-print-directory tools-check; then

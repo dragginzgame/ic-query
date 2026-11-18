@@ -2,6 +2,7 @@
 use ic_platform_protocol::candid::Nat;
 use ic_platform_types::Principal;
 use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SubnetFrame {
     pub replica_version: String,
@@ -9,6 +10,7 @@ pub struct SubnetFrame {
     pub halted: bool,
     pub node_ids: Vec<Principal>,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FullViewFrame {
     pub id: String,
@@ -18,6 +20,7 @@ pub struct FullViewFrame {
     pub deleted_at: Option<i64>,
     pub node_ids: Vec<Principal>,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum NodeClass {
     #[serde(rename = "type4")]
@@ -33,11 +36,13 @@ pub enum NodeClass {
     #[serde(rename = "type4_5")]
     Type4_5,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Price {
     pub gross_cycles: Nat,
     pub net_cycles: Nat,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PriceEntry {
     pub dc: Option<String>,
@@ -46,11 +51,13 @@ pub struct PriceEntry {
     pub provider: Option<Principal>,
     pub price: Price,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MarketplaceEntry {
     pub key: String,
     pub entry: PriceEntry,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AvailableNode {
     pub dc: Option<String>,
@@ -60,12 +67,14 @@ pub struct AvailableNode {
     pub operator: Principal,
     pub sev_enabled: bool,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Page {
     pub next: Option<Principal>,
     pub registry_version: u64,
     pub nodes: Vec<AvailableNode>,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum EngineError {
     Internal(String),
@@ -78,6 +87,7 @@ pub enum EngineError {
     NotVetted,
     BadRequest(String),
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum PageResult {
     #[serde(rename = "ok")]
@@ -92,6 +102,7 @@ pub struct RegistryCopyStatus {
     pub latest: u64,
     pub caught_up: bool,
 }
+
 #[derive(Serialize)]
 pub struct Placement {
     pub subnet_id: Option<Principal>,
@@ -102,6 +113,7 @@ struct Corpus {
     version: u32,
     frames: Vec<Frame>,
 }
+
 #[derive(Deserialize)]
 struct Frame {
     schema: String,
@@ -139,27 +151,34 @@ pub trait Fixture: Serialize + 'static {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl Fixture for Vec<FullViewFrame> {
     const SCHEMA: &'static str = "Vec<FullViewFrame>";
 }
+
 impl Fixture for Vec<MarketplaceEntry> {
     const SCHEMA: &'static str = "Vec<MarketplaceEntry>";
 }
+
 impl Fixture for PageResult {
     const SCHEMA: &'static str = "PageResult";
 }
+
 impl Fixture for RegistryCopyStatus {
     const SCHEMA: &'static str = "RegistryCopyStatus";
 }
+
 impl Fixture for Result<Placement, String> {
     const SCHEMA: &'static str = "Result<Placement, String>";
 }
+
 impl Fixture for f64 {
     const SCHEMA: &'static str = "f64";
     fn input(&self) -> serde_json::Value {
         self.to_bits().to_string().into()
     }
 }
+
 pub fn encode_fixture<T: Fixture>(value: &T, maximum: usize) -> Result<Vec<u8>, &'static str> {
     let bytes = frame(T::SCHEMA, &value.input());
     if bytes.len() > maximum {

@@ -37,12 +37,16 @@ major from the selected package's compatibility impact; all use the same gate.
 Mixed increments use separate reconciled batches. Independent groups with the
 same increment can use an explicit supplier-first `RELEASE_GROUPS` roster.
 
-Setup fetches the locked graph, prepares the declared host/Rust developer tools
-and metadata editor `ic-build` 0.73.0, then checks them offline. Recovery only
-admits the saved selections. The complete gate runs sequentially through
-`make check`: tooling, links, formatting, strict Clippy, Rustdoc and tests. No
-partial group validation or cross-version evidence reuse is claimed. Each group
-runs the complete gate. Metadata checks bind the passed source and exact payload;
+Setup fetches missing locked dependencies, prepares the declared host/Rust tools
+and metadata editor `ic-build` 0.73.0, then admits their selected payloads. Recovery
+checks saved tool selections without installing tools. Explicit Cargo offline
+settings remain effective. The qualified group plan selects tooling, links,
+formatting, strict Clippy, Rustdoc, tests and affected consumer obligations.
+On eligible Linux hosts, canonical candidate product evidence is executed once
+and freshly admitted for subsequent groups; current-version CLI process tests
+remain separate. Other environments use current-source checks. The
+[setup guide](setup.md#focused-validation-and-qualification) owns qualification.
+Metadata checks bind the passed source and exact payload;
 publication separately requires a clean source at its annotated group tag and
 uses Cargo's normal package verification. Hosted CI remains asynchronous.
 

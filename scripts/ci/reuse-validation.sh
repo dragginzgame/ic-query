@@ -64,6 +64,9 @@ case "$mode" in
         candidate="$(jq -er .directory "$attempt/projection.json")"
         identity="$(jq -er .identity "$attempt/projection.json")"
         release_timing_end 0
+        release_timing_begin query-candidate-dependencies
+        (cd "$candidate" && cargo fetch --locked)
+        release_timing_end 0
         release_timing_begin query-tool-inventory
         mkdir -p "$candidate/target/query-reuse"
         # A recursive Make invocation must not change the stage identity merely
@@ -101,8 +104,9 @@ case "$mode" in
         jq -cnS --arg path "$PATH" --arg home "$HOME" --arg cargo_home "$cargo_home" \
             --arg rustup_home "${RUSTUP_HOME:-$HOME/.rustup}" --arg tools "$tools_file" --arg identity "$identity" \
             '{PATH:$path,HOME:$home,CARGO_HOME:$cargo_home,RUSTUP_HOME:$rustup_home,
-              CARGO_NET_OFFLINE:"true",RUSTUP_AUTO_INSTALL:"0",LC_ALL:"C.UTF-8",TZ:"UTC",
-              CARGO_STAGE_TOOLS:$tools,CARGO_STAGE_IDENTITY:$identity}' > "$attempt/reuse-environment.json"
+              RUSTUP_AUTO_INSTALL:"0",LC_ALL:"C.UTF-8",TZ:"UTC",
+              CARGO_STAGE_TOOLS:$tools,CARGO_STAGE_IDENTITY:$identity}
+              + ($ENV | with_entries(select(.key == "CARGO_NET_OFFLINE")))' > "$attempt/reuse-environment.json"
         release_timing_end 0
         ;;
     stage)

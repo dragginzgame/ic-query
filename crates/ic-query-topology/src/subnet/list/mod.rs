@@ -3,13 +3,18 @@
 //! The complete selected record is returned or the operation fails. Registration
 //! establishes neither liveness, available capacity nor permission to deploy.
 
+#[cfg(test)]
+mod tests;
+
 use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::{Principal, PrincipalError};
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::mainnet::{REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD};
-use crate::{ReadError, mainnet};
+use crate::{
+    ReadError,
+    mainnet::{self, REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD},
+};
 
 const KEY: &str = "subnet_list";
 
@@ -154,6 +159,3 @@ fn project(bytes: &[u8], observed_at: u64) -> Result<SubnetListReport, SubnetLis
         },
     })
 }
-
-#[cfg(test)]
-mod tests;

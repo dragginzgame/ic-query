@@ -1,5 +1,8 @@
 //! Bounded public availability traversal with explicit per-page evidence.
 
+#[cfg(test)]
+mod tests;
+
 use super::{CANISTER, Observation};
 use crate::mainnet;
 use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
@@ -15,8 +18,10 @@ pub use types::*;
 const STATUS_METHOD: &str = "registryCopyStatus";
 const PAGE_METHOD: &str = "listAvailableNodesPage";
 const PAGE_SIZE: usize = 100;
+
 /// Default traversal budget: ten pages, each admitting at most 100 nodes.
 pub const DEFAULT_PAGE_LIMIT: u16 = 10;
+
 /// Largest caller-selected traversal budget; the 60-second deadline still applies.
 pub const MAX_PAGE_LIMIT: u16 = 100;
 const OVERALL: Duration = Duration::from_secs(60);
@@ -253,6 +258,3 @@ fn admit(
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests;

@@ -1,12 +1,13 @@
-use std::future::ready;
-use std::time::Duration;
+use std::{future::ready, time::Duration};
 
 use ic_platform_types::Principal;
 use tokio::time::Instant;
 
 use super::{MessageChange, SubnetActivityError, sample};
-use crate::ReadError;
-use crate::subnet::metrics::{SubnetMetricsError, SubnetMetricsEvidence, SubnetMetricsReport};
+use crate::{
+    ReadError,
+    subnet::metrics::{SubnetMetricsError, SubnetMetricsEvidence, SubnetMetricsReport},
+};
 
 fn observation(total: u64, time: u64) -> SubnetMetricsReport {
     SubnetMetricsReport {

@@ -13,6 +13,7 @@ use std::cell::Cell;
 fn id(n: u8) -> Principal {
     Principal::from_slice(&[n])
 }
+
 fn node(dc: Option<&str>) -> AvailableNode {
     AvailableNode {
         node_id: id(1),
@@ -23,6 +24,7 @@ fn node(dc: Option<&str>) -> AvailableNode {
         sev_enabled: true,
     }
 }
+
 fn price(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> MarketplacePrice {
     MarketplacePrice {
         key: format!("{provider:?},{class:?},{dc:?}"),
@@ -34,6 +36,7 @@ fn price(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> Mark
         updated_at_unix_nanoseconds: -1,
     }
 }
+
 fn availability(exhausted: bool) -> AvailableNodesReport {
     AvailableNodesReport {
         schema: 1,
@@ -71,6 +74,7 @@ fn availability(exhausted: bool) -> AvailableNodesReport {
         },
     }
 }
+
 fn evidence(method: &'static str) -> PriceEvidence {
     PriceEvidence {
         endpoint: "https://ic0.app",
@@ -81,6 +85,7 @@ fn evidence(method: &'static str) -> PriceEvidence {
         result_certified: false,
     }
 }
+
 fn prices(complete: bool) -> CloudEnginePricesReport {
     CloudEnginePricesReport {
         schema: 1,

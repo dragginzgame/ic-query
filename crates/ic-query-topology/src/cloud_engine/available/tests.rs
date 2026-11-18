@@ -5,12 +5,14 @@ use std::{cell::RefCell, collections::VecDeque};
 fn id(n: u16) -> Principal {
     Principal::from_slice(&n.to_le_bytes())
 }
+
 fn encoded(value: &wire::AvailableNodesPageResult) -> Vec<u8> {
     // Encode through an independently authored upstream schema.
     let fixture: fixtures::PageResult =
         serde_json::from_value(serde_json::to_value(value).unwrap()).unwrap();
     encode_one(&fixture, 1024 * 1024).unwrap()
 }
+
 fn hex(raw: &str) -> Vec<u8> {
     raw.as_bytes()
         .as_chunks::<2>()
@@ -19,12 +21,14 @@ fn hex(raw: &str) -> Vec<u8> {
         .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect()
 }
+
 fn observation(bytes: Vec<u8>) -> Observation {
     Observation {
         bytes,
         observed_at: 123,
     }
 }
+
 fn node(n: u16) -> wire::AvailableNode {
     wire::AvailableNode {
         node_id: id(n),
@@ -35,6 +39,7 @@ fn node(n: u16) -> wire::AvailableNode {
         sev_enabled: true,
     }
 }
+
 fn page(
     nodes: Vec<wire::AvailableNode>,
     next: Option<Principal>,
@@ -46,6 +51,7 @@ fn page(
         registry_version: version,
     }
 }
+
 fn response(page: wire::AvailableNodesPage) -> Vec<u8> {
     encoded(&wire::AvailableNodesPageResult::Ok(Some(page)))
 }
@@ -156,11 +162,13 @@ struct Step {
     wait: u64,
     result: Result<Vec<u8>, AvailableError>,
 }
+
 struct Fake {
     status: RefCell<Option<Step>>,
     steps: RefCell<VecDeque<Step>>,
     calls: RefCell<Vec<Option<Principal>>>,
 }
+
 impl Fake {
     fn new(steps: Vec<Step>) -> Self {
         Self {
@@ -181,15 +189,18 @@ impl Fake {
         }
     }
 }
+
 async fn perform(step: Step) -> Result<Observation, AvailableError> {
     tokio::time::sleep(Duration::from_secs(step.wait)).await;
     step.result.map(observation)
 }
+
 impl Source for Fake {
     async fn status(&self) -> Result<Observation, AvailableError> {
         let step = self.status.borrow_mut().take().expect("status read once");
         perform(step).await
     }
+
     async fn page(&self, start: Option<Principal>) -> Result<Observation, AvailableError> {
         self.calls.borrow_mut().push(start);
         let step = self
@@ -200,12 +211,14 @@ impl Source for Fake {
         perform(step).await
     }
 }
+
 fn good(nodes: Vec<wire::AvailableNode>, next: Option<Principal>, version: u64) -> Step {
     Step {
         wait: 0,
         result: Ok(response(page(nodes, next, version))),
     }
 }
+
 fn fail(error: AvailableError) -> Step {
     Step {
         wait: 0,

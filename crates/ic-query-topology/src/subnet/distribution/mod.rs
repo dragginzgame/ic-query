@@ -3,8 +3,10 @@
 //! A common requested Registry version is not consensus certification, verified
 //! geography, independent failure domains, live capacity or an atomic observation.
 
-use std::collections::BTreeSet;
-use std::time::Duration;
+#[cfg(test)]
+mod tests;
+
+use std::{collections::BTreeSet, time::Duration};
 
 use ic_platform_protocol::registry as protobuf;
 use ic_platform_types::Principal;
@@ -22,6 +24,7 @@ pub use types::*;
 
 /// Maximum selected nodes, distinct operators and distinct data centers per phase.
 pub const MAX_NODES: usize = 128;
+
 /// Maximum simultaneous logical reads, in bounded batches without spawned tasks.
 pub const CONCURRENCY: usize = 4;
 /// Overall asynchronous budget including initial version and configuration queries.
@@ -231,6 +234,3 @@ async fn read_record<K, T>(
     };
     row.finished_after = Some(started.elapsed());
 }
-
-#[cfg(test)]
-mod tests;

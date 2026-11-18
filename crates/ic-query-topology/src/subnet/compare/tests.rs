@@ -8,9 +8,11 @@ use std::{
     cell::{Cell, RefCell},
     future::ready,
 };
+
 fn id(n: u8) -> Principal {
     Principal::from_slice(&[n])
 }
+
 fn distribution(id: Principal, complete: bool) -> SubnetDistributionReport {
     SubnetDistributionReport {
         schema: 1,
@@ -66,6 +68,7 @@ fn distribution(id: Principal, complete: bool) -> SubnetDistributionReport {
         },
     }
 }
+
 fn metric(id: Principal) -> SubnetMetricsReport {
     SubnetMetricsReport {
         schema: 1,
@@ -83,6 +86,7 @@ fn metric(id: Principal) -> SubnetMetricsReport {
         },
     }
 }
+
 #[tokio::test]
 async fn selection_order_versions_and_raw_values() {
     let events = RefCell::new(vec![]);
@@ -133,6 +137,7 @@ async fn selection_order_versions_and_raw_values() {
     assert!(matches!(duplicate, Err(ComparisonError::SameSubnet)));
     assert_eq!(events.borrow().len(), 4);
 }
+
 #[tokio::test]
 async fn every_failure_preserves_other_inputs_and_all_failures_are_explicit() {
     for mask in 1..16 {
@@ -180,6 +185,7 @@ async fn every_failure_preserves_other_inputs_and_all_failures_are_explicit() {
     assert!(!report.collection_complete);
     assert!(report.left.distribution.report().is_some());
 }
+
 #[tokio::test(start_paused = true)]
 async fn cancellation_at_every_acquisition_starts_no_later_work() {
     for stop in 1..=4 {

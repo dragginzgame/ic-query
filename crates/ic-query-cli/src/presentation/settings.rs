@@ -89,6 +89,7 @@ fn rows(settings: &ic_query_topology::subnet::settings::SubnetSettings) -> Vec<V
     ];
     rows
 }
+
 fn number(value: u64, default_selected: bool) -> String {
     if value == 0 && default_selected {
         "0 (replica default selected)".into()

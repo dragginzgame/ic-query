@@ -146,7 +146,7 @@ jobs:
       - name: Prepare locked dependencies
         id: dependencies
         run: perl scripts/ci/setup-diagnostics.pl dependencies make fetch-dependencies
-      - name: Qualify native scaffold offline
+      - name: Qualify native scaffold
         run: make validate-native
       - name: Retain sanitized setup failure diagnostics
         id: setup_artifact

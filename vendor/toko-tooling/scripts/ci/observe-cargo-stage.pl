@@ -67,7 +67,7 @@ if (exists $policy->{qualification_workspace}) {
     push @manifests,'qualification/Cargo.toml';
 }
 for my $manifest (@manifests) {
-    my $metadata=$json->decode(command('cargo','metadata','--offline','--locked','--all-features','--format-version','1','--manifest-path',$manifest));
+    my $metadata=$json->decode(command('cargo','metadata','--locked','--all-features','--format-version','1','--manifest-path',$manifest));
     for my $package (@{$metadata->{packages}}) {
         my $package_manifest=$package->{manifest_path};
         # Local tracked source is already enumerated. External package directories

@@ -5,6 +5,7 @@ use ic_query_topology::subnet::{
     maintenance::{ConfigurationOutcome, MaintenanceReport, VersionMatch},
 };
 use std::fmt::Write;
+
 pub(crate) fn render(report: &MaintenanceReport) -> String {
     let (before, after) = report.configuration.observations();
     let fields = |r: Option<&SubnetConfigurationReport>| {

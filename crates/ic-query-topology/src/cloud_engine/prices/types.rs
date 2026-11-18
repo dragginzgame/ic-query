@@ -1,8 +1,10 @@
 //! Query-owned daily price reports and typed partial failures.
 
 use crate::ReadError;
-use ic_platform_protocol::candid as decoder;
-use ic_platform_protocol::cloud_engine::{EncodeError, NodeType};
+use ic_platform_protocol::{
+    candid as decoder,
+    cloud_engine::{EncodeError, NodeType},
+};
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 use std::time::Duration;

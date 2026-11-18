@@ -1,4 +1,8 @@
 //! Compile-time ICRC and SNS command adapters; no migration execution.
+
+#[cfg(test)]
+mod tests;
+
 use crate::{CommandOutput, presentation::migration as render};
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use ic_platform_types::{Account, Principal};
@@ -11,11 +15,13 @@ fn json() -> Arg {
         .action(ArgAction::SetTrue)
         .help("Print raw schema-1 JSON evidence")
 }
+
 fn principal(name: &'static str) -> Arg {
     Arg::new(name)
         .required(true)
         .value_parser(value_parser!(Principal))
 }
+
 pub(crate) fn icrc_command() -> Command {
     Command::new("icrc")
         .about("Read selected ICRC accounts for migration evidence")
@@ -35,6 +41,7 @@ pub(crate) fn icrc_command() -> Command {
                 .arg(json()),
         )
 }
+
 pub(crate) fn sns_command() -> Command {
     Command::new("sns").about("Read selected SNS neurons for migration evidence")
         .subcommand(Command::new("neuron").about("Inspect selected fields; not a full neuron export or entitlement decision")
@@ -52,6 +59,7 @@ pub(crate) fn sns_command() -> Command {
                     .help("At most 100 neurons per page, 60 seconds total"))
                 .arg(json())))
 }
+
 fn parse_hex32(text: &str) -> Result<[u8; 32], String> {
     if text.len() != 64 || !text.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err("expected exactly 64 hexadecimal digits (32 bytes)".into());
@@ -63,6 +71,7 @@ fn parse_hex32(text: &str) -> Result<[u8; 32], String> {
     }
     Ok(bytes)
 }
+
 fn output(text: String, complete: bool) -> CommandOutput {
     CommandOutput {
         text,
@@ -73,6 +82,7 @@ fn output(text: String, complete: bool) -> CommandOutput {
         },
     }
 }
+
 pub(crate) async fn run(
     namespace: &str,
     matches: &ArgMatches,
@@ -125,6 +135,3 @@ pub(crate) async fn run(
         Ok(output(text, report.traversal_exhausted))
     }
 }
-
-#[cfg(test)]
-mod tests;

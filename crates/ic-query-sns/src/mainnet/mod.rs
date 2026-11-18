@@ -1,7 +1,9 @@
 //! Migration-owned mainnet admission and bounded observation policy.
 use crate::{Failure, FailureKind, Observation, Outcome};
-use ic_platform::certificate::{PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits};
-use ic_platform::native::{ReadClient, ReadConfig};
+use ic_platform::{
+    certificate::{PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits},
+    native::{ReadClient, ReadConfig},
+};
 use ic_platform_protocol::candid::Limits;
 use ic_platform_types::Principal;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -29,6 +31,7 @@ pub(crate) trait Source {
         args: &[u8],
     ) -> Result<Vec<u8>, Failure>;
 }
+
 pub(crate) struct Mainnet(ReadClient);
 impl Mainnet {
     pub(crate) fn new() -> Result<Self, Failure> {
@@ -52,6 +55,7 @@ impl Mainnet {
         .map_err(|e| Failure::new(FailureKind::Read, e.to_string()))
     }
 }
+
 impl Source for Mainnet {
     async fn query(
         &self,
@@ -87,12 +91,14 @@ impl Source for Mainnet {
             .map_err(|e| Failure::new(FailureKind::Read, e.to_string()))
     }
 }
+
 fn now_ms() -> Option<u64> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .ok()
         .and_then(|n| n.as_millis().try_into().ok())
 }
+
 pub(crate) async fn observe(
     source: &impl Source,
     target: Principal,
@@ -149,12 +155,15 @@ pub(crate) async fn observe(
         },
     }
 }
+
 pub(crate) fn encode(e: ic_platform_protocol::sns::EncodeError) -> Failure {
     Failure::new(FailureKind::Encode, e.to_string())
 }
+
 pub(crate) fn decode(e: ic_platform_protocol::candid::Error) -> Failure {
     Failure::new(FailureKind::Decode, e.to_string())
 }
+
 pub(crate) fn admission(message: &str) -> Failure {
     Failure::new(FailureKind::Admission, message)
 }

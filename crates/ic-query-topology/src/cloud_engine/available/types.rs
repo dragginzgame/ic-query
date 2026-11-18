@@ -1,10 +1,9 @@
 //! Available-node observations, traversal coverage and typed stop reasons.
 
 use crate::ReadError;
-use ic_platform_protocol::cloud_engine::NodeType;
 use ic_platform_protocol::{
     candid as decoder,
-    cloud_engine::{EncodeError, EngineError},
+    cloud_engine::{EncodeError, EngineError, NodeType},
 };
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer, ser::SerializeStruct};
@@ -212,11 +211,13 @@ impl From<EncodeError> for AvailableError {
         Self::Encode(error)
     }
 }
+
 impl From<decoder::Error> for AvailableError {
     fn from(error: decoder::Error) -> Self {
         Self::Decode(error)
     }
 }
+
 impl Serialize for AvailableError {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let category = match self {

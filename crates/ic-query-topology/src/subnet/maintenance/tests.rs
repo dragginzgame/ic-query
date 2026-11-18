@@ -1,12 +1,16 @@
-use super::super::{configuration::SubnetConfigurationEvidence, metrics::SubnetMetricsEvidence};
-use super::*;
+use super::{
+    super::{configuration::SubnetConfigurationEvidence, metrics::SubnetMetricsEvidence},
+    *,
+};
 use std::{
     cell::{Cell, RefCell},
     future::ready,
 };
+
 fn id() -> Principal {
     Principal::from_slice(&[1])
 }
+
 fn config(v: u64) -> SubnetConfigurationReport {
     SubnetConfigurationReport {
         schema: 1,
@@ -30,6 +34,7 @@ fn config(v: u64) -> SubnetConfigurationReport {
         },
     }
 }
+
 fn metric(n: u64) -> SubnetMetricsReport {
     SubnetMetricsReport {
         schema: 1,
@@ -47,6 +52,7 @@ fn metric(n: u64) -> SubnetMetricsReport {
         },
     }
 }
+
 #[tokio::test(start_paused = true)]
 async fn ordering_wait_and_exact_raw_values() {
     let events = RefCell::new(vec![]);
@@ -91,6 +97,7 @@ async fn ordering_wait_and_exact_raw_values() {
     );
     assert_eq!(json["atomic_snapshot"], false);
 }
+
 #[tokio::test(start_paused = true)]
 async fn invalid_inputs_and_anchor_failure_do_no_later_work() {
     for (interval, expected) in [(0, None), (61, None), (1, Some("é".repeat(129)))] {
@@ -114,6 +121,7 @@ async fn invalid_inputs_and_anchor_failure_do_no_later_work() {
     .await;
     assert!(matches!(result, Err(MaintenanceError::Initial(_))));
 }
+
 #[tokio::test(start_paused = true)]
 async fn every_later_failure_retains_independent_evidence() {
     for failed in 1..4 {
@@ -155,6 +163,7 @@ async fn every_later_failure_retains_independent_evidence() {
         }
     }
 }
+
 #[tokio::test(start_paused = true)]
 async fn refusal_does_not_discard_activity_or_inputs() {
     let n = Cell::new(3);
@@ -196,6 +205,7 @@ async fn refusal_does_not_discard_activity_or_inputs() {
         MessageChange::Decreased
     );
 }
+
 #[tokio::test(start_paused = true)]
 async fn cancellation_at_each_read_and_wait_starts_no_later_work() {
     for blocked in 0..4 {

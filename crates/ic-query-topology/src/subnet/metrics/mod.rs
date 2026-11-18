@@ -1,5 +1,8 @@
 //! Certified resource observations for one subnet, without inferred capacity or rates.
 
+#[cfg(test)]
+mod tests;
+
 use ic_platform_types::Principal;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
@@ -103,6 +106,7 @@ pub enum MetricsOutcome {
         error: SubnetMetricsError,
     },
 }
+
 impl MetricsOutcome {
     /// Borrow successfully acquired evidence.
     #[must_use]
@@ -113,6 +117,7 @@ impl MetricsOutcome {
         }
     }
 }
+
 impl From<Result<SubnetMetricsReport, SubnetMetricsError>> for MetricsOutcome {
     fn from(value: Result<SubnetMetricsReport, SubnetMetricsError>) -> Self {
         match value {
@@ -121,6 +126,7 @@ impl From<Result<SubnetMetricsReport, SubnetMetricsError>> for MetricsOutcome {
         }
     }
 }
+
 fn metrics_error<S: Serializer>(error: &SubnetMetricsError, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(match error {
         SubnetMetricsError::Read(ReadError::Transport(_)) => "transport",
@@ -128,6 +134,3 @@ fn metrics_error<S: Serializer>(error: &SubnetMetricsError, s: S) -> Result<S::O
         SubnetMetricsError::Read(ReadError::Clock(_) | ReadError::ClockRange) => "clock",
     })
 }
-
-#[cfg(test)]
-mod tests;

@@ -154,7 +154,6 @@ if (-e "$tree/qualification/Cargo.toml" && !exists $policy->{qualification_works
 my (%versions,@requests);
 chdir $tree or die $!;
 local $ENV{CARGO_TARGET_DIR}="$tree/target";
-local $ENV{CARGO_NET_OFFLINE}='true';
 local $ENV{CARGO_RELEASE_METADATA_EDITOR}=$editor;
 local $ENV{CARGO_RELEASE_METADATA_MAX_BYTES}='8388608';
 delete @ENV{qw(RELEASE_COMMIT RELEASE_GROUP RELEASE_PREVIOUS RELEASE_VERSION RELEASE_DATE RELEASE_SOURCE BLOB_RELEASE_SOURCE_ROOT BLOB_RELEASE_VALIDATION_PLAN)};

@@ -1,9 +1,11 @@
 //! Daily marketplace declarations and an independently observed network markup.
 
+#[cfg(test)]
+mod tests;
+
 use std::{collections::BTreeSet, time::Duration};
 
-use ic_platform_protocol::cloud_engine::NodeType;
-use ic_platform_protocol::{candid as decoder, cloud_engine as wire};
+use ic_platform_protocol::{candid as decoder, cloud_engine as wire, cloud_engine::NodeType};
 use tokio::time::Instant;
 
 mod source;
@@ -174,6 +176,3 @@ fn project_fee(observation: &Observation) -> Result<(f64, PriceEvidence), PriceE
     }
     Ok((markup, evidence(FEE_METHOD, observation.observed_at)))
 }
-
-#[cfg(test)]
-mod tests;

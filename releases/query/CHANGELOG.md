@@ -2,6 +2,23 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.7] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.11 and its Rust layout and dependency-catalog rules.
+  Cargo may fetch missing locked dependencies; explicit offline selections remain
+  effective, and candidate dependencies are prepared before proof sealing.
+- Qualify the locked Platform 0.34.17, Protocol 0.3.6 and Types 0.21.3 graph
+  while retaining compatible manifest floors.
+- Retain empty defaults and direct specialist re-exports across the feature matrix.
+
+### 🎯 Qualification
+
+- Linux workspace checks pass with the selected graph; release wiring passes
+  32 assertions. Native four-group validation executes products once and admits
+  fresh reuse for the other three groups. See the [setup evidence](../../docs/development/setup.md).
+
 ## [0.104.6] - 2026-11-18
 
 ### 🔧 Tooling

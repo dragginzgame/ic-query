@@ -16,7 +16,7 @@ work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
 Compatible supplier patches remain independent of Query's lockfile
-(Platform 0.34.15 / Protocol 0.3.5). CLI commands and specialist report contracts
+(Platform 0.34.17 / Protocol 0.3.6). CLI commands and specialist report contracts
 are unchanged; the umbrella deliberately replaces the legacy library API.
 
 | Package | Version | Responsibility |
@@ -95,7 +95,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.34.13 native reads, Protocol 0.3.5 and Types 0.21.2,
+0.34.17 native reads, Protocol 0.3.6 and Types 0.21.3,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.
@@ -113,14 +113,14 @@ make fetch-dependencies
 make deps-list
 toko-cloc -d 0
 make qualify-cli
-cargo run --locked --offline -p ic-query-cli -- --help
-cargo run --locked --offline -p ic-query-cli -- topology subnet list --json
-cargo run --locked --offline -p ic-query-cli -- topology canister show \
+cargo run --locked -p ic-query-cli -- --help
+cargo run --locked -p ic-query-cli -- topology subnet list --json
+cargo run --locked -p ic-query-cli -- topology canister show \
   ryjl3-tyaaa-aaaaa-aaaba-cai --json
 ```
 
 `make deps-update` explicitly updates dependencies. `make check` is the aggregate
-offline gate; use the focused commands in setup during ordinary work.
+validation gate; use the focused commands in setup during ordinary work.
 
 Placement queries access mainnet. A subnet mapping does not prove canister
 existence or uptime, and verified query signatures do not make the returned
