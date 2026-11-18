@@ -13,6 +13,21 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-5JWxwAZD` published topology 0.110.6, SNS 0.105.6, umbrella 0.104.6
+and CLI 0.105.22 on 2026-11-18, ending at
+`d41e3a800f753920731d038cfce33b207533bed4`. All four registry versions were
+verified available and non-yanked, with GitHub release entries and built CLI
+output `icq 0.105.22`. The Tooling 0.45.3 batch summary measured 582.5s, 19.4s
+below the preceding 601.9s delivery. It recorded four Cargo upload packages and
+three reused admissions. Reused product admission took 13.91/15.35/14.18s;
+proof lookup took 0.028/0.040/0.028s. Fresh observations and custody checks remained
+required. These sequential deliveries have unrecorded cache warmth and are not a
+controlled benchmark. GitHub release-entry creation and documentation delivery
+are outside the batch interval.
+[Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44292580476)
+was still running at readback. The released dependency graph retains Platform
+0.34.15 and smallvec 1.16.5; unrelated working lockfile edits remain deferred.
+
 Batch `batch-1DEFBf5T` published topology 0.110.5, SNS 0.105.5, umbrella 0.104.5
 and CLI 0.105.21 on 2026-11-18, ending at
 `67999bc706d40557c8373c831f998bd7ad6bd01d`. It delivered shared TOML-based CI
