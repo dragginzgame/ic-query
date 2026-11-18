@@ -2,6 +2,24 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.21] - Unreleased
+
+### 🔧 Tooling
+
+- Retire the unused standalone provenance helper through the exporter; preserve
+  existing publication admission. [Query #5](https://github.com/dragginzgame/ic-query/issues/5).
+
+- Prepare CI Rust through the shared helper and `rust-toolchain.toml`, preserving
+  setup diagnostics and using the prepared host parsers. Remove duplicated
+  channel parsing, profile and component selections from both jobs.
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.21 --locked
+icq --version
+```
+
 ## [0.105.20] - 2026-11-17
 
 ### 🔧 Tooling

@@ -2,6 +2,16 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.5] - Unreleased
+
+### 🔧 Tooling
+
+- Retire the unused standalone provenance helper through the exporter; preserve
+  existing publication admission. [Query #5](https://github.com/dragginzgame/ic-query/issues/5).
+
+- Use the shared Rust preparation helper for CI, keeping toolchain selections in
+  `rust-toolchain.toml` and preserving setup failure diagnostics.
+
 ## [0.104.4] - 2026-11-17
 
 ### 🔧 Tooling

@@ -2,6 +2,16 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.5] - Unreleased
+
+### 🔧 Tooling
+
+- Retire the unused standalone provenance helper through the exporter; preserve
+  existing publication admission. [Query #5](https://github.com/dragginzgame/ic-query/issues/5).
+
+- Use the shared Rust preparation helper for CI, keeping toolchain selections in
+  `rust-toolchain.toml` and preserving setup failure diagnostics.
+
 ## [0.110.4] - 2026-11-17
 
 ### 🔧 Tooling

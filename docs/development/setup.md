@@ -635,6 +635,15 @@ on macOS or any later changes.
 ### Setup failure evidence
 
 CI wraps setup commands with [the local collector](../../scripts/ci/setup-diagnostics.pl).
+Both scaffold and native jobs prepare host tools first, then expose
+`.tools/host/bin` on the invoking step's `PATH` for `yq` and `jq`. They call the
+snapshot-owned `prepare-rust-toolchain.sh --toolchain-file rust-toolchain.toml`
+through that collector. Channel, profile, components and optional targets come
+from the TOML file, without a second workflow selection. Local workflow lint,
+all 32 diagnostic assertions and simulated rustup calls from both actual step
+bodies passed; a simulated status 29 retained diagnostics and remained failed.
+This does not establish a new hosted setup result.
+
 It preserves the original failing status and prints sanitized excerpts. Failure
 artifacts contain at most 64 KiB of command output and eight selected attempt logs
 from the runner's dedicated Query tool/security directories, including hidden
@@ -704,9 +713,17 @@ all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The current selection includes the pre-commit hook and 83 installed payload files.
-Release/publication runners, source/receipt admission and package provenance
-checks were added through the supported exporter for the authorized delivery.
+The current selection includes the pre-commit hook and 84 installed payload files,
+including the explicitly selected Rust toolchain preparation helper and its
+workspace-version reader companion.
+Release/publication runners and source/receipt admission remain selected.
+The unused standalone package-provenance entrypoint was retired through the
+authenticated exporter after tracing Make, CI, hooks, scripts, documentation and
+shared companion declarations. Publication still uses `scripts/release.sh
+publication` for source/tag admission, then the shared Cargo publication adapter
+and runner for locked package verification and upload. No new duplicate archive
+check was added. This resolves
+[Query #5](https://github.com/dragginzgame/ic-query/issues/5).
 The 0.45.0 exporter updates grouped candidate preparation, Cargo metadata
 admission and the shared proof runner. Invocation-local TOML reuse compares full
 input bytes; fresh graph checks remain around mutations. Streaming input hashes
