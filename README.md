@@ -21,10 +21,10 @@ are unchanged; the umbrella deliberately replaces the legacy library API.
 
 | Package | Version | Responsibility |
 | --- | --- | --- |
-| `ic-query` | 0.104.6 | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
-| `ic-query-topology` | 0.110.6 | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
-| `ic-query-sns` | 0.105.6 | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
-| `ic-query-cli` (`icq`) | 0.105.22 | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
+| `ic-query` | 0.104.7 | Thin umbrella with optional `topology` and `sns` re-exports; empty defaults |
+| `ic-query-topology` | 0.110.7 | Infrastructure topology, capabilities, resources, costs and changes for Canic decisions |
+| `ic-query-sns` | 0.105.7 | Selected ICRC account balances and SNS neuron evidence; future SNS capabilities require explicit contracts |
+| `ic-query-cli` (`icq`) | 0.105.23 | Parsing, process IO and presentation through compile-time adapters to specialist libraries |
 
 The four-crate workspace keeps the specialist libraries independent. The umbrella
 is an optional convenience; direct specialist dependencies remain supported.

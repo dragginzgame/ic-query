@@ -13,6 +13,21 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-SFhsiU9h` published topology 0.110.7, SNS 0.105.7, umbrella
+0.104.7 and CLI 0.105.23 on 2026-11-18, ending at
+`a66abb9d581f4adf18325922597889ff91b9630c`. All four registry versions were
+confirmed available and non-yanked; GitHub release entries were created and the
+built CLI reports `icq 0.105.23`. The release selects Tooling 0.45.11,
+Platform 0.34.17, Protocol 0.3.6 and Types 0.21.3. The batch took 579.4s,
+with one product execution and three fresh reuse admissions. Candidate dependency
+preparation took 0.10–0.11s per group with dependencies already available, before
+proof sealing. Cache warmth is otherwise unrecorded; the 3.1s difference from the
+previous batch is not a controlled performance comparison.
+[Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44421298183)
+was in progress at readback. Concurrent ic-host-text 0.77.3 and rand_pcg 0.10.3
+lock edits are preserved on local branch `deferred/query-lock-during-4511` and
+restored after reconciliation; this release retains 0.77.2 and 0.10.2 respectively.
+
 Local adoption on 2026-11-19 selects Toko Tooling 0.45.10, Platform 0.34.17,
 Protocol 0.3.6 and Types 0.21.3. The Platform family was reviewed at
 [`2856344`](https://github.com/dragginzgame/ic-platform/tree/2856344360e15e0bf8f7781842dbbe6e5c7cd8ef):
