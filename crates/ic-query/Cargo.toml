@@ -1,6 +1,6 @@
 [package]
 name = "ic-query"
-version = "0.104.4"
+version = "0.104.5"
 description = "Feature-selected IC topology and SNS query libraries"
 edition.workspace = true
 rust-version.workspace = true
