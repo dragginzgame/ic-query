@@ -13,6 +13,20 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-1DEFBf5T` published topology 0.110.5, SNS 0.105.5, umbrella 0.104.5
+and CLI 0.105.21 on 2026-11-18, ending at
+`67999bc706d40557c8373c831f998bd7ad6bd01d`. It delivered shared TOML-based CI
+toolchain preparation and retired the unused provenance entrypoint (Query #5).
+All four registry entries were verified available and non-yanked, GitHub releases
+were published, and the built CLI reports `icq 0.105.21`. The actual batch took
+602s, excluding GitHub release-entry creation and documentation delivery. Local
+release and archive checks passed; this is not a controlled performance comparison.
+The release retained Platform 0.34.15 and smallvec 1.16.5. Unrelated working-tree
+updates to those dependencies were preserved separately for restoration after
+reconciliation, rather than included in this CI cleanup.
+[Hosted CI](https://github.com/dragginzgame/ic-query/actions/runs/44275897846)
+was still running at readback.
+
 Batch `batch-8iQvJGge` published topology 0.110.4, SNS 0.105.4, umbrella 0.104.4
 and CLI 0.105.20 on 2026-11-17, ending at
 `d9421a66d2eae249606ac0f1d05c6192e88c3e3f`. All four crates.io index entries
