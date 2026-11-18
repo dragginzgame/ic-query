@@ -109,7 +109,8 @@ observed_dirty="$(git status --porcelain --untracked-files=all)"
 [[ "$observed" == "$source" && "$observed_dirty" == "$dirty" ]] || fail 'source changed before Cargo dispatch'
 printf 'Publication evidence: %s\n' "$attempt"
 printf 'started\n' > "$attempt/dispatch"
-release_timing_begin "cargo-$mode"
+package_list="$(IFS=,; printf '%s' "${packages[*]}")"
+release_timing_begin "cargo-$mode" executed "packages=$package_list"
 set +e
 cargo "${arguments[@]}" 2>&1 | tee "$attempt/cargo.log"
 statuses=("${PIPESTATUS[@]}")

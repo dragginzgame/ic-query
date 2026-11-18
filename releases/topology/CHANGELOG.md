@@ -2,6 +2,14 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.6] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.3 for topology release admission, retaining fresh input
+  hashing while reducing repeated JSON processing and improving timing detail.
+  [Tooling #394](https://github.com/dragginzgame/toko-tooling/issues/394).
+
 ## [0.110.5] - 2026-11-18
 
 ### 🔧 Tooling

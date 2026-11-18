@@ -240,6 +240,10 @@ file or separate review framework.
   Offline admission checks every member, Cargo.lock and installed bytes together.
   See the
   [tooling selection rule](https://github.com/dragginzgame/toko-tooling/blob/d4b09ceb6dd94d825adee2b894fa26dac4618ae0/rules/cargo-dependencies.md#toko-tooling-during-dependency-updates).
+- When adding or widening a release check, record the failure it detects, the
+  changes that require it, its existing callers and its observed elapsed cost in
+  the owning release plan or review. Use existing timing evidence. If the cost
+  is unknown, record it on the next ordinary delivery.
 - Give repeated validation one execution owner: selected group scope must reach
   the leaf commands, and aggregate gates must not repeat full lint/setup through
   nested targets. Reuse unchanged release-stage evidence only through the

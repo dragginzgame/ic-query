@@ -7,7 +7,7 @@ use lib $RealBin;
 use ReleaseTiming;
 use JSON::PP;
 my $operation=shift(@ARGV)//'';
-if ($operation eq 'begin' && @ARGV==2) {
+if ($operation eq 'begin' && (@ARGV==2 || @ARGV==3)) {
     my $span=ReleaseTiming::begin(@ARGV);
     print encode_json($span) if $span;
 } elsif ($operation eq 'end' && @ARGV==2) {
@@ -25,4 +25,4 @@ if ($operation eq 'begin' && @ARGV==2) {
     eval {ReleaseTiming::finish($span,$status)};
     if ($@) {warn $@; $status ||= 1;}
     exit $status;
-} else {die "usage: release-timing.pl begin PHASE MODE | end TOKEN STATUS | run PHASE MODE COMMAND... | report JOURNAL\n";}
+} else {die "usage: release-timing.pl begin PHASE MODE [ORIGIN] | end TOKEN STATUS | run PHASE MODE COMMAND... | report JOURNAL\n";}

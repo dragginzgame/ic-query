@@ -2,6 +2,21 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.22] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Toko Tooling 0.45.3 for reduced canonical JSON processing during stage
+  reuse, detailed observation timings and shared batch summaries. Preserve fresh
+  input hashing and proof custody. [Tooling #394](https://github.com/dragginzgame/toko-tooling/issues/394).
+
+After publication, install with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.22 --locked
+icq --version
+```
+
 ## [0.105.21] - 2026-11-18
 
 ### 🔧 Tooling

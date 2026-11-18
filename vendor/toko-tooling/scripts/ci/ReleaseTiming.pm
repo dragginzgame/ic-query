@@ -97,4 +97,68 @@ sub report {
     close $fh or die "close timing journal: $!\n";
     return \@spans;
 }
+# Use the outer monotonic observation for a single uninterrupted delivery. A
+# resumed batch has separate clocks and may include operator wait between runs.
+sub batch_metrics {
+    my ($rows)=@_;
+    my @attempts=grep { $_->{phase} eq 'batch-attempt' && !length($_->{parent}) } @$rows;
+    return unless @attempts && $attempts[-1]{result} eq 'passed';
+    my %roots=map { $_->{id}=>1 } @attempts;
+    my (%phases,%checks,%packages);
+    my ($uploads,$identified,$reuse)=(0,0,0);
+    for my $row (@$rows) {
+        next unless $roots{$row->{attempt}} && $row->{result} eq 'passed';
+        my $phase=$row->{phase};
+        $phases{$phase} += $row->{elapsed_seconds} if $roots{$row->{parent}};
+        if ($phase =~ /\A(?:validation-stage|publication-admission):[^:]+\z/) {
+            if ($row->{mode} eq 'reused') { $reuse++; }
+            else { $checks{$phase}++; }
+        }
+        if ($phase eq 'cargo-publish') {
+            $uploads++;
+            if (($row->{origin}//'') =~ /\Apackages=(.+)\z/) {
+                $identified++;
+                $packages{$_}=1 for split /,/, $1;
+            }
+        }
+    }
+    return unless keys %phases;
+    return {wall=>@attempts==1 ? $attempts[0]{elapsed_seconds} : undef,
+        attempts=>scalar @attempts, start=>$attempts[0]{started_unix},
+        phases=>\%phases, checks=>\%checks, reuse=>$reuse,
+        packages=>$uploads && $identified==$uploads ? scalar(keys %packages) : undef};
+}
+
+sub describe_batch {
+    my ($current,$groups,$prior,$prior_id)=@_;
+    return "Release timing summary unavailable: no completed batch timing.\n" unless $current;
+    my $wall=$current->{wall};
+    my $out=defined($wall) ? sprintf("Batch wall time %.1fs", $wall)
+        : "Resumed batch ($current->{attempts} attempts); uninterrupted wall time unavailable";
+    $out.="; groups: ".join(', ',@$groups)."; packages observed by Cargo upload: ".($current->{packages}//'unrecorded')."\n";
+    my $times=$current->{phases};
+    my @top=sort {$times->{$b}<=>$times->{$a} || $a cmp $b} keys %$times;
+    splice @top,3 if @top>3;
+    my @labels;
+    for my $phase (@top) {
+        my $label=sprintf('%s %.1fs',$phase,$times->{$phase});
+        if ($prior && exists $prior->{phases}{$phase}) {
+            $label.=sprintf(' (%+.1fs)',$times->{$phase}-$prior->{phases}{$phase});
+        }
+        push @labels,$label;
+    }
+    $out.="Slowest outer phases (across groups): ".join(', ',@labels)."\n";
+    my $counts=$current->{checks};
+    my @repeated=sort grep {$counts->{$_}>1} keys %$counts;
+    $out.="Repeated journaled checks: ".(@repeated ? join(', ',map {"$_ x$counts->{$_}"} @repeated) : 'none observed')
+        ."; reused admissions: $current->{reuse}\n";
+    if ($prior && defined($wall) && defined($prior->{wall})) {
+        $out.=sprintf("Previous matching batch %s: %.1fs; change %+.1fs\n",$prior_id,$prior->{wall},$wall-$prior->{wall});
+        my %all=(%$counts,%{$prior->{checks}});
+        my @changed=sort grep {($counts->{$_}//0)!=($prior->{checks}{$_}//0)} keys %all;
+        $out.="Changed check execution counts: ".join(', ',map {"$_ ".($prior->{checks}{$_}//0)." -> ".($counts->{$_}//0)} @changed)."\n" if @changed;
+        $out.="Previous package count: ".($prior->{packages}//'unrecorded')."; previous reused admissions: $prior->{reuse}\n";
+    } else { $out.="No comparable uninterrupted baseline available.\n"; }
+    return $out."Cache warmth is unrecorded; compare like inputs before attributing a regression.\n";
+}
 1;

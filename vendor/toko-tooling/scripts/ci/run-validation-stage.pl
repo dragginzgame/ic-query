@@ -72,11 +72,11 @@ sub exact_keys {
         or die "unknown or missing stage schema fields\n";
 }
 sub canonical_record {
-    my ($path) = @_;
-    my $raw = bytes($path);
+    my ($path,$raw) = @_;
+    $raw //= bytes($path);
     my $value = $json->decode($raw);
     $raw eq $json->encode($value)."\n" or die "stage JSON must be canonical (duplicate keys and ambiguous encodings refuse): $path\n";
-    return wantarray ? ($value,$raw) : $value;
+    return $value;
 }
 sub safe_route {
     my ($path) = @_;
@@ -141,10 +141,14 @@ sub run_child {
     waitpid($pid,0) == $pid or die "wait stage: $!\n";
     return $? & 127 ? 128 + ($? & 127) : $? >> 8;
 }
+my ($last_observer_bytes,$last_inventory);
 sub observe {
     my ($phase) = @_;
     my $observer_digest = file_digest($observer);
+    my $command_span = ReleaseTiming::begin("validation-stage:$stage:$phase-observer-command",'executed',$attempt);
     my $status = run_child("$attempt/$phase-observation.json", "$attempt/$phase-observation.stderr", $observer);
+    eval { ReleaseTiming::finish($command_span,$status) };
+    if ($@) { $status ? warn($@) : die($@); }
     if ($status) {
         my $diagnostic = eval { bytes("$attempt/$phase-observation.stderr") };
         print STDERR defined($diagnostic) ? $diagnostic : $@;
@@ -154,18 +158,30 @@ sub observe {
     $observer_digest eq file_digest($observer) && $runner_digest eq file_digest(abs_path($0))
         or die "stage observer/runner changed during observation\n";
     -x $selected_program && abs_path($selected_program) eq $program && -x $observer or die "stage executable admission changed during observation\n";
-    my $observation = canonical_record("$attempt/$phase-observation.json");
+    my $observation = timed("$phase-observation-json",sub {
+        my $path = "$attempt/$phase-observation.json";
+        my $raw = bytes($path);
+        if (!defined($last_observer_bytes) || $raw ne $last_observer_bytes) {
+            $last_inventory = canonical_record($path,$raw);
+            $last_observer_bytes = $raw;
+        }
+        return $last_inventory;
+    });
     exact_keys($observation,qw(schema files configuration));
     $json->encode($observation->{schema}) eq '1' && ref($observation->{files}) eq 'ARRAY' && @{$observation->{files}}
         && ref($observation->{configuration}) eq 'HASH' or die "unsupported or incomplete stage observation\n";
-    my (%seen,@files);
-    for my $path (@{$observation->{files}}) {
-        defined($path) && !ref($path) && length($path) && !$seen{$path}++ or die "invalid/duplicate stage input\n";
-        safe_route($path) unless $path =~ m{^/}; # Absolute tool routes may use managed selectors.
-        $path !~ /[\x00\r\n]/ or die "invalid stage input path\n";
-        my $resolved = abs_path($path) // die "missing stage input: $path\n";
-        push @files, {path=>$path,resolved=>$resolved,sha256=>file_digest($resolved)};
-    }
+    my @files;
+    timed("$phase-listed-files",sub {
+        my %seen;
+        for my $path (@{$observation->{files}}) {
+            defined($path) && !ref($path) && length($path) && !$seen{$path}++ or die "invalid/duplicate stage input\n";
+            safe_route($path) unless $path =~ m{^/}; # Absolute tool routes may use managed selectors.
+            $path !~ /[\x00\r\n]/ or die "invalid stage input path\n";
+            my $resolved = abs_path($path) // die "missing stage input: $path\n";
+            push @files, {path=>$path,resolved=>$resolved,sha256=>file_digest($resolved)};
+        }
+        return 1;
+    });
     return {schema=>1,stage=>$stage,contract=>$contract,cwd=>$root,command=>\@command,
         observer=>{path=>$observer,sha256=>$observer_digest},
         runner=>{sha256=>$runner_digest,perl=>file_digest($^X),
@@ -204,10 +220,21 @@ closedir $proofs or die "close stage proofs: $!\n";
 for my $candidate (@candidates) {
     safe_route($candidate);
     my $admitted = eval {
-        my ($record,$record_raw) = canonical_record($candidate);
+        # The canonical context is the first member of a v1 proof. Match
+        # those exact bytes, then validate canonical JSON for the remaining
+        # envelope using null in their place. Duplicate keys still refuse.
+        my $raw = bytes($candidate);
+        my $prefix = '{"context":';
+        my $end = length($prefix) + length($context_raw);
+        substr($raw,0,length($prefix)) eq $prefix
+            && substr($raw,length($prefix),length($context_raw)) eq $context_raw
+            && substr($raw,$end,1) eq ',' or die "ineligible original stage context\n";
+        my $envelope = $prefix.'null'.substr($raw,$end);
+        my $record = $json->decode($envelope);
+        $json->encode($record)."\n" eq $envelope or die "noncanonical original stage proof\n";
         exact_keys($record,qw(schema kind context origin result logs elapsed_seconds));
         $json->encode($record->{schema}) eq '1' && $record->{kind} eq 'release-stage-execution'
-            && $json->encode($record->{result}) eq '0' && $json->encode($record->{context}) eq $context_raw
+            && $json->encode($record->{result}) eq '0'
             && $json->encode($record->{elapsed_seconds}) =~ /\A(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:e[+-]?[0-9]+)?\z/i
             or die "ineligible original stage proof\n";
         exact_keys($record->{origin},qw(source group attempt));
@@ -217,7 +244,7 @@ for my $candidate (@candidates) {
             or die "invalid original stage provenance\n";
         check_logs($record);
         $proof = $record;
-        $proof_digest = sha256_hex($record_raw);
+        $proof_digest = sha256_hex($raw);
         1;
     };
     if ($admitted) { $proof_path=$candidate; $mode='reused'; last; }

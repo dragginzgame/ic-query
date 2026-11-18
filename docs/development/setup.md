@@ -36,7 +36,8 @@ The actual batch took 604s versus the preceding 601s: this delivery does not
 demonstrate an overall speedup. Validation took 273s, setup 43s, metadata
 preparation 86s and publication 52s. Nested candidate projection totaled 17s
 and product admission 147s; these are included in validation, not additional
-intervals. One product execution supplied the three later groups through fresh
+intervals. Product admission includes the first product execution, not just
+evidence checking. One product execution supplied the three later groups through fresh
 shared proof admission. These are sequential deliveries with different inputs,
 not controlled benchmarks. GitHub release-entry creation and documentation
 delivery are outside the batch interval.
@@ -572,6 +573,46 @@ Raw profiles and disposable fixtures remain under
 `target/evidence/query-admission-profile/run.brYM8z/`; the table above retains
 the compact results without tool inventories or environment values.
 
+The 2026-11-18 read-only investigation of the 0.45.0 delivery used the existing
+`batch-8iQvJGge` timing journal and retained stage records. Its 147.45s product
+admission aggregate breaks down as follows (seconds; observations and lookup are
+children of the outer interval, not additional elapsed time):
+
+| Group / mode | Outer admission | Initial observation | Post-execution observation | Proof lookup | Final observation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Topology / executed | 80.96 | 7.32 | 7.34 | 0.00 | 7.45 |
+| SNS / reused | 18.22 | 7.35 | — | 3.11 | 7.26 |
+| Umbrella / reused | 30.11 | 19.09 | — | 3.16 | 7.36 |
+| CLI / reused | 18.15 | 7.26 | — | 3.09 | 7.30 |
+
+Nine observations total 77.73s. Original execution evidence records 65.49s,
+including its 7.34s post-execution observation: roughly 58.15s represents product
+execution and associated bookkeeping. Reused admissions total 66.49s. Proof
+lookup totals 9.36s, context serialization 0.75s and final custody checks 0.79s.
+The umbrella initial-observation stderr records Cargo package-cache lock waits;
+the journal does not isolate their duration. In the latest `batch-1DEFBf5T`, the
+three reused admissions were 18.00/18.08/17.48s, so 30.11s is not a stable cost.
+
+All nine observer documents describe the same 26,360 paths; all four retained
+initial contexts match. The roster comprises 235 candidate paths, 13,235 registry
+paths, 4,074 Rust toolchain paths, 4,905 system headers and 3,911 other native/tool
+paths. The runner hashes those paths at each boundary: 237,240 listed-path digest
+reads, plus runtime and proof/log reads. The observer independently hashes the
+235 candidate source files on each invocation. There are 26,331 distinct resolved
+paths, with 29 additional alias entries. Each reused group also parses the same
+approximately 7.6MB canonical proof before the final custody recheck.
+
+These counts identify repeated work, not permission to skip fresh admission.
+The journal cannot attribute time or bytes to individual file reads. Query calls
+the shared runner once per group and has no redundant local dispatch to remove.
+[Tooling #394](https://github.com/dragginzgame/toko-tooling/issues/394) owns further
+profiling and qualified reductions within shared observation/parsing operations,
+preserving logical paths, mutation checks, before/final observation and original
+proof custody. No local cache, runtime change or new speedup is claimed here;
+historical proofs and the unrelated working lockfile remain untouched. Hosted CI
+completion is independent of these local admission costs and is not a reason to
+remove a required release check or add a hosted wait.
+
 Common source/tool/format/document admission still runs on every actual group.
 When CLI checks are selected, its 28 process tests also run against the actual
 intermediate versions. Candidate tests alone cannot establish that installed
@@ -715,11 +756,11 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.45.0** was selected from crates.io on 2026-11-17 through
+Toko Tooling **0.45.3** was selected from crates.io on 2026-11-18 through
 the supported updater. Its authenticated archive SHA-256 is:
 
 ```text
-3789a925c1165317eff84cc80436195b66c0478b0c2b441bc2f1a755caf6a23a
+41141f3a04bea22cacdaa5e36774d69e1335f5461098311eb6bb2731ee113da5
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the selected roots and
@@ -738,7 +779,7 @@ publication` for source/tag admission, then the shared Cargo publication adapter
 and runner for locked package verification and upload. No new duplicate archive
 check was added. This resolves
 [Query #5](https://github.com/dragginzgame/ic-query/issues/5).
-The 0.45.0 exporter updates grouped candidate preparation, Cargo metadata
+The earlier 0.45.0 exporter updated grouped candidate preparation, Cargo metadata
 admission and the shared proof runner. Invocation-local TOML reuse compares full
 input bytes; fresh graph checks remain around mutations. Streaming input hashes
 and reduced canonical serialization preserve proof custody. Detailed runner
@@ -764,6 +805,45 @@ The new flow guidance matches the development, CI, release, publication and
 recovery ownership table above. Versions 0.44.10–0.44.11 introduced setup-failure
 diagnostics and repository-qualified issue references; Query's implemented
 diagnostic coverage and its limits are recorded in the setup failure section.
+Version 0.45.3 reduces repeated canonical JSON processing in the shared runner:
+unchanged observer output can reuse its parsed inventory within an invocation,
+while every observation still resolves and hashes the listed files. Proof lookup
+matches the freshly computed canonical context bytes and validates the remaining
+envelope, avoiding a second decode of that context. New spans separate observer
+commands, inventory parsing and listed-file hashing. The existing Cargo sealer
+also receives the supplier's stricter record admission; Query does not select
+the new generic non-Cargo mode or add a local proof cache.
+
+The shared batch summary reads retained journals without replaying a release:
+
+```bash
+make release-batch-summary BATCH=batch-1DEFBf5T
+```
+
+This requires that named batch's local retained evidence. The adoption check
+reproduced 601.9s versus 603.7s for its preceding matching batch and verified the
+intent and timing journal hashes were unchanged. Older journals lack the new
+Cargo package-count observations, so the summary correctly reports those counts
+as unrecorded. This is historical readback, not a 0.45.3 deployment benchmark.
+
+Local 0.45.3 adoption qualification on 2026-11-18 passed snapshot/tool admission,
+documentation links, workflow lint, all 32 diagnostic assertions and all 31
+release-wiring assertions. Native fixture `sequence.US8m4y` passed the four groups
+in 126/43/41/40s with one execution and three reuses of the same candidate proof.
+It also passed isolated CLI dispatch, missing/tampered evidence refusal,
+seal-output recovery, corrupted-proof re-execution, environment invalidation,
+failed-product recovery and setup/check-only recovery. Final complete admission
+reused the proof in 38s. Metadata delivery and installation effects were simulated;
+no publication ran. The fixture used the existing working selections of Platform
+0.34.16 and smallvec 1.16.6, with package-cache waits observed, so these are not
+controlled comparisons with the published 0.45.0 batches.
+
+The SNS reuse sample took 13.96s for product admission. Its initial/final observer
+commands took 0.95/0.95s, listed-file hashing 5.32/5.27s, inventory JSON processing
+0.91/0.003s and proof lookup 0.028s. These nested intervals demonstrate the new
+timing breakdown and retained hashing; they do not establish a deployment speedup.
+The supplier's exact-byte JSON reuse operates inside the shared runner, with no
+Query-owned cache or weakened admission boundary.
 The baseline also clarifies asynchronous hosted
 CI for delivery, one-tier qualification package layout and independent compatible
 thiserror selection. Query has no separate qualification packages, and its

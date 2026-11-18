@@ -5,7 +5,7 @@ _release_timing_helper="${BASH_SOURCE[0]%/*}/release-timing.pl"
 release_timing_token=''
 release_timing_begin() {
     [[ -n "${RELEASE_TIMING_JOURNAL:-}" ]] || return 0
-    release_timing_token="$(perl "$_release_timing_helper" begin "$1" "${2:-executed}")"
+    release_timing_token="$(perl "$_release_timing_helper" begin "$1" "${2:-executed}" "${3:-}")"
 }
 release_timing_end() {
     [[ -n "$release_timing_token" ]] || return 0

@@ -41,7 +41,7 @@ endif
 endif
 endif
 
-_shared_batch_targets := release-batch-resume release-batch-status release-batch-timings release-batch-reconcile release-batch-retire
+_shared_batch_targets := release-batch-resume release-batch-status release-batch-summary release-batch-timings release-batch-reconcile release-batch-retire
 ifneq ($(word 2,$(filter release-patch release-minor release-major release-resume $(_shared_batch_targets),$(MAKECMDGOALS))),)
 $(error Select exactly one release target)
 endif

@@ -12,19 +12,19 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 use ReleaseTiming;
 
-my ($root,$groups,$resume,$publish,$publication_result,$setup,$status,$reconcile,$retire,$timings);
+my ($root,$groups,$resume,$publish,$publication_result,$setup,$status,$reconcile,$retire,$timings,$summary);
 my $delivery=$ENV{RELEASE_DELIVERY}//'direct';
 my ($kind,$remote,$branch)=('patch','origin','main');
 GetOptions('root=s'=>\$root,'groups=s'=>\$groups,'resume=s'=>\$resume,
     'kind=s'=>\$kind,'remote=s'=>\$remote,'branch=s'=>\$branch,
     'publish-target=s'=>\$publish,'delivery=s'=>\$delivery,
     'publication-result=s'=>\$publication_result,'setup-target=s'=>\$setup,
-    'status=s'=>\$status,'timings=s'=>\$timings,'reconcile=s'=>\$reconcile,'retire=s'=>\$retire) && !@ARGV
-    or die "usage: run-release-batch.pl --root DIR --groups GROUP[,GROUP...] [--kind patch|minor|major] [--setup-target TARGET] [--publish-target TARGET] | --root DIR --resume|--status|--timings|--reconcile|--retire ID\n";
+    'summary=s'=>\$summary,'status=s'=>\$status,'timings=s'=>\$timings,'reconcile=s'=>\$reconcile,'retire=s'=>\$retire) && !@ARGV
+    or die "usage: run-release-batch.pl --root DIR --groups GROUP[,GROUP...] [--kind patch|minor|major] [--setup-target TARGET] [--publish-target TARGET] | --root DIR --resume|--status|--summary|--timings|--reconcile|--retire ID\n";
 $root=abs_path($root//'') // die "missing repository root\n";
-my @operations=grep {defined} ($resume,$status,$reconcile,$retire,$timings);
+my @operations=grep {defined} ($resume,$status,$reconcile,$retire,$timings,$summary);
 @operations<=1 or die "select one batch operation\n";
-my $operation=defined($timings)?'timings':defined($status)?'status':defined($reconcile)?'reconcile':defined($retire)?'retire':'resume';
+my $operation=defined($summary)?'summary':defined($timings)?'timings':defined($status)?'status':defined($reconcile)?'reconcile':defined($retire)?'retire':'resume';
 $resume=$operations[0] if @operations;
 (!defined($publication_result) || $operation eq 'resume') or die "publication reconciliation belongs to resume\n";
 $delivery eq 'direct' or die "release batches currently require direct delivery; PR policy is not overridden\n";
@@ -69,12 +69,14 @@ output('git','-C',$root,'rev-parse','--show-toplevel') eq $root or die "select t
 my $common=output('git','-C',$root,'rev-parse','--git-common-dir');
 $common=abs_path("$root/$common") unless $common =~ m{\A/};
 my $state="$common/release-state/frozen";
-regular_route($state); make_path($state);
+regular_route($state);
+make_path($state) unless $operation eq 'summary';
 # One durable queue per normal checkout. Groups in a batch execute sequentially;
 # unrelated Cargo writes never need to acquire this lock.
 regular_route("$state/lock");
-open my $lock,'>>',"$state/lock" or die $!;
-print "Waiting for release batch queue: $state\n" unless $operation eq 'timings';
+my $lock_mode=$operation eq 'summary' ? '<' : '>>';
+open my $lock,$lock_mode,"$state/lock" or die $!;
+print "Waiting for release batch queue: $state\n" unless $operation eq 'timings' || $operation eq 'summary';
 flock($lock,LOCK_EX) or die $!;
 run($^X,"$RealBin/check-retained-state.pl",'--root',$state) if $operation eq 'resume';
 my ($record,$id);
@@ -141,6 +143,42 @@ my $work="$root/target/release-frozen/$id";
 my $gitdir="$dir/repository.git";
 regular_route($_) for ($dir,$work,$gitdir);
 sub save { write_json("$dir/intent.json",$record); }
+sub timing_summary {
+    my $current=ReleaseTiming::batch_metrics(ReleaseTiming::report("$dir/timings.jsonl"));
+    my ($prior,$prior_id);
+    if ($current && defined $current->{wall}) {
+        opendir my $dh,$state or die "read release history: $!\n";
+        my @history;
+        for my $other (readdir $dh) {
+            next unless $other ne $id && $other =~ /\Abatch-[A-Za-z0-9_]+\z/;
+            my $journal="$state/$other/timings.jsonl";
+            next unless !-l "$state/$other" && !-l $journal && -f $journal;
+            my $mtime=(stat $journal)[9];
+            push @history,[$mtime,$other];
+        }
+        closedir $dh;
+        for my $item (sort {$b->[0]<=>$a->[0] || $a->[1] cmp $b->[1]} @history) {
+            # Journals are appended through completion. Once a journal predates
+            # the best start, older entries cannot improve the comparison.
+            last if $prior && $item->[0]+1 <= $prior->{start};
+            my $other=$item->[1];
+            my $path="$state/$other/intent.json";
+            next unless -f $path && !-l $path;
+            my $intent=eval { read_json($path) };
+            next unless ref($intent) eq 'HASH' && ref($intent->{groups}) eq 'ARRAY';
+            next unless $intent->{phase} eq 'complete';
+            next if grep { ($intent->{$_}//'') ne ($record->{$_}//'') }
+                qw(root branch destination kind setup publish);
+            next unless join(',',@{$intent->{groups}}) eq join(',',@{$record->{groups}});
+            my $metrics=eval { ReleaseTiming::batch_metrics(ReleaseTiming::report("$state/$other/timings.jsonl")) };
+            warn "Skipping timing history for $other: $@" if $@;
+            next unless $metrics && defined($metrics->{wall}) && $metrics->{start} < $current->{start};
+            ($prior,$prior_id)=($metrics,$other) if !$prior || $metrics->{start} > $prior->{start};
+        }
+    }
+    print ReleaseTiming::describe_batch($current,$record->{groups},$prior,$prior_id);
+}
+if ($operation eq 'summary') { timing_summary(); exit 0; }
 if ($operation eq 'timings') {
     print JSON::PP->new->canonical->pretty->encode(ReleaseTiming::report("$dir/timings.jsonl"));
     exit 0;
@@ -193,17 +231,24 @@ if ($operation eq 'reconcile' || $operation eq 'retire') {
     print "Retired $id; release commits and tags are retained in the normal repository.\n";
     exit 0;
 }
-$ENV{RELEASE_TIMING_JOURNAL}="$dir/timings.jsonl";
+my $already_complete=$record->{phase} eq 'complete';
+$ENV{RELEASE_TIMING_JOURNAL}=$already_complete ? '' : "$dir/timings.jsonl";
 delete @ENV{qw(RELEASE_TIMING_ATTEMPT RELEASE_TIMING_PARENT)};
 $ENV{RELEASE_SOURCE}=$record->{source};
 my $batch_span=ReleaseTiming::begin('batch-attempt','executed',$id);
-$ENV{RELEASE_TIMING_ATTEMPT}=$batch_span->{id};
-$ENV{RELEASE_TIMING_PARENT}=$batch_span->{id};
+if ($batch_span) {
+    $ENV{RELEASE_TIMING_ATTEMPT}=$batch_span->{id};
+    $ENV{RELEASE_TIMING_PARENT}=$batch_span->{id};
+}
+my $show_summary;
 END {
     my $status=$?;
     if ($batch_span) {
         eval {ReleaseTiming::finish($batch_span,$status)};
         if ($@) {warn $@; $status ||= 1;}
+    }
+    if ($show_summary && !$status) {
+        eval { timing_summary(); 1 } or warn "Delivery completed; timing summary unavailable: $@";
     }
     $?=$status;
 }
@@ -320,6 +365,7 @@ while ($record->{index}<@{$record->{groups}}) {
     }
 }
 $record->{phase}='complete'; $record->{commit}=output('git','-C',$work,'rev-parse','HEAD'); save();
+$show_summary=1;
 print "Batch delivery complete: $record->{commit}\n";
 print "Normal checkout was not modified. Any cargo update or edits there belong to the next candidate.\n";
 print "Reconcile its branch/lockfile with the delivered commit before the next batch; never reset away deferred work.\n";
