@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.22] - Unreleased
+## [0.105.22] - 2026-11-18
 
 ### 🔧 Tooling
 
@@ -10,7 +10,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   reuse, detailed observation timings and shared batch summaries. Preserve fresh
   input hashing and proof custody. [Tooling #394](https://github.com/dragginzgame/toko-tooling/issues/394).
 
-After publication, install with Cargo and network access:
+Install with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.22 --locked
