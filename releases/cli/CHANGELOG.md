@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.21] - Unreleased
+## [0.105.21] - 2026-11-18
 
 ### 🔧 Tooling
 
@@ -13,7 +13,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   setup diagnostics and using the prepared host parsers. Remove duplicated
   channel parsing, profile and component selections from both jobs.
 
-After publication, install with Cargo and network access:
+Install with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.21 --locked

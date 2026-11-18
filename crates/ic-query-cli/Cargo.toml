@@ -1,6 +1,6 @@
 [package]
 name = "ic-query-cli"
-version = "0.105.20"
+version = "0.105.21"
 description = "CLI adapters for specialist IC query libraries"
 edition.workspace = true
 rust-version.workspace = true
