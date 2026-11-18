@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "ic-query-topology"
-version = "0.110.6"
+version = "0.110.7"
 dependencies = [
  "ic-platform",
  "ic-platform-protocol",
