@@ -840,15 +840,16 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-The current checkout selects Toko Tooling **0.45.16**. The exporter verified
-the crates.io archive against the lockfile and used the 0.45.13 archive to
+The current checkout selects Toko Tooling **0.45.18**. The exporter verified
+the crates.io archive against the lockfile and used the 0.45.16 archive to
 verify the previous snapshot. The refresh updated the installed baseline and
-receipt. Query's Rust source uses `cfg(test)` for unit-test modules and feature
-gates for the umbrella's optional exports. The source and manifests have no
-host or Wasm target guards. The current archive SHA-256 is:
+receipt. The [Wasm gate review](../../TOKO-TOOLING.md#wasm-target-guards) found no
+target guards in Query's Rust source, Cargo manifests or build configuration.
+The existing `cfg` predicates select unit-test modules and the umbrella's
+optional exports. The current archive SHA-256 is:
 
 ```text
-a2095850545e0fd3c5580fab610cab78561242fc09c74221e27f3e7f654d5776
+d24c2c13aacee2afda27e77ed8d6c13ff5ad383e08a2f80645561b2a9f935b11
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the selected roots and
