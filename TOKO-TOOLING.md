@@ -744,6 +744,14 @@ These rules apply to handwritten and generated Rust.
   macro. Start with a bare `///`, put the exact type name alone on the next
   line, then describe its role on one or more lines. Close with a bare `///`
   and leave one blank source line before the code.
+- Use the same header for handwritten entity structs and their adapter structs,
+  including unit structs that map an application row to a trait contract.
+  After the declaration, leave a blank line and place its inherent `impl`
+  blocks first, followed by its trait `impl` blocks alphabetically by trait
+  name. Leave a blank line between blocks. If there is no inherent `impl`,
+  start with the first trait implementation. Use this layout for new definitions.
+  When formatting existing code, limit layout changes to the requested types
+  or files.
 - Start with module comments and inner attributes, then child module declarations
   (including `mod tests;`), then imports. Leave one blank line before the import
   block and one before the following item. Prefer one nested `use` per crate
@@ -752,6 +760,12 @@ These rules apply to handwritten and generated Rust.
   adjacent methods, tests and test helpers. Keep comments and attributes attached
   to their item. Give each named argument its own line in multi-argument endpoint
   mounts and attributes. Document each mount’s role and each guard’s access policy.
+- In a Rust function or method, leave one blank line between preceding
+  statements and the returned value. This applies to an explicit `return`
+  (including an early `return;`) and to an implicit tail expression such as
+  `Ok(x)`. Apply the spacing within the block containing the return. A body
+  consisting of one expression, even across several lines, needs no leading
+  blank line.
 - Group a canister’s endpoint mount macros and directly exported query and
   update handlers at the top of its library root, immediately after module
   declarations and imports. Put constants, types, guard implementations and
@@ -763,10 +777,16 @@ These rules apply to handwritten and generated Rust.
   When both directories exist, place `endpoints/` and `ops/` under the same parent.
 - Immediately above each canister endpoint’s attributes, write an ordinary
   `//` comment block. Put the exact Rust function name alone on the first line
-  and its caller-visible behavior on the second. Follow with `// scope  :`
-  for the actual access policy and `// limits :` for endpoint-specific bounds.
-  Use `public` for unrestricted access and `none specified` when the endpoint
-  sets no explicit bound. Generate the same comments in endpoint templates.
+  and its caller-visible behavior on the second. Include `// scope  :` only
+  when a session scope is required and `// guard  :` only when an explicit
+  admission guard applies. If both apply, list the scope first. Always end
+  the header with `// limits :` for the request and reply budgets.
+  Write `default` when both use the framework defaults. For overrides, name
+  the configured limits or contract and distinguish request from reply when
+  they differ. Describe any caller-visible work bound or handler-level
+  authorization in the behavior line. A guard can restrict an unscoped
+  endpoint, and a scoped endpoint can also require a guard.
+  Generate the same comments in endpoint templates.
   Reserve `///` for Rust API documentation outside this endpoint header.
 - Use ordinary module discovery. The prohibition on `#[path]` includes
   conditional path overrides. Use either `foo.rs` or `foo/mod.rs` for a module.
@@ -779,26 +799,72 @@ These rules apply to handwritten and generated Rust.
   `#[cfg(test)]` on unit-test modules. Apply the [Wasm target guard rule](#wasm-target-guards)
   to any target condition on the declaration. Declare fixture-only package roles explicitly.
 
-For import and test layout examples, see the [Rust hygiene guide](https://github.com/dragginzgame/toko-tooling/blob/9e5d87fd59e297875cce3c4bc818a0f12cd07a9f/docs/principles/rust-code-hygiene.md).
+For import and test layout examples, see the [Rust hygiene guide](https://github.com/dragginzgame/toko-tooling/blob/3846fcb68e52a00c4a5ee5376c3e4ab8ac1f80af/docs/principles/rust-code-hygiene.md).
 
 Prefer `#[expect(..., reason = "...")]` over `#[allow(...)]` for Rust lint
 suppressions. Repositories must review every `allow` for conversion and retain
 one only with a concrete reason why an expectation cannot work. Follow the
-[lint suppression rule](https://github.com/dragginzgame/toko-tooling/blob/9e5d87fd59e297875cce3c4bc818a0f12cd07a9f/docs/principles/rust-code-hygiene.md#lint-suppressions).
+[lint suppression rule](https://github.com/dragginzgame/toko-tooling/blob/3846fcb68e52a00c4a5ee5376c3e4ab8ac1f80af/docs/principles/rust-code-hygiene.md#lint-suppressions).
 
 ### Wasm target guards
 
-Write canister Rust unconditionally by default. Remove a Wasm target guard
-unless removing it breaks the shipped Wasm build, required runtime behavior,
-or an explicitly supported consumer or test. For each guard kept, identify
-what fails and put the condition at the narrowest boundary that resolves it.
-Apply this to handwritten and generated Rust, including inverse and compound
-predicates such as `#[cfg(any(target_arch = "wasm32", test))]`.
+Keep one unconditional application implementation for IC Wasm and supported
+local host use. Endpoints, guards, provisioning, storage, routing and outbound
+calls stay readable in the editor's native configuration. Target predicates
+make rust-analyzer grey out deployed code in VS Code and force readers to
+reconstruct which implementation runs.
+
+Reject new Wasm target guards and remove existing ones during review unless
+they meet the primitive exception below. Apply the same rule to generated
+Rust and its templates. It covers `target_arch`, `target_family`, their
+negations and compound predicates, including `any(target_arch = "wasm32", test)`.
+Do not move a platform split into `cfg!`, `cfg_attr`, a Cargo feature or a
+conditional re-export to preserve it under another spelling.
+
+Review related target guards together. If removing one reveals a missing
+symbol, trace it through generated implementations, trait definitions, module
+exports and Cargo target dependencies. Test the affected Wasm build and
+supported host callers with the whole chain unguarded and the relevant
+feature enabled. For example, test a derived DTO with its schema trait,
+context and optional dependencies available on both targets. If that works,
+remove the redundant target conditions throughout the chain. A genuinely
+optional capability can remain behind its ordinary feature.
+
+If the guarded code itself has no required behavior or supported caller,
+remove it along with its private scaffolding after checking public contracts.
+If the objection is package size, build time or dependency exclusion, identify
+the independent requirement and affected consumer. Verify it against the
+candidate artifact, timing or resolved graph as appropriate. An error caused
+solely by another target guard is insufficient evidence to keep either guard.
 
 A Wasm-only product’s native unit tests count as supported tests. Running them
 does not establish support for ordinary host builds. Unused-code warnings on
 an unsupported host, fewer host dependencies, and the absence of host callers
 are insufficient reasons to retain a guard.
+
+For an IC-only canister, compile and lint the canister for its shipped IC
+target. Write endpoints, provisioning, database operations and outbound calls
+directly against their IC APIs. A supplier exporting a function only on
+Wasm does not require a matching guard at its call site. Never add a native
+branch or parallel native module that discards arguments and traps, panics,
+returns a dummy value or skips the operation just to pass host checking.
+Compile and test supported local host behavior. Keep application code shared
+when both targets build it. Scope an overly broad workspace check to the
+targets each package supports while preserving every required host caller and test.
+When removing a native stand-in, delete its paired modules, conditional
+re-exports and forwarding-only wrappers together. Keep real native tests
+selected. If a supported caller needs an API hidden by the supplier, fix the
+export at its owner and track the failing check until the fix is available.
+
+Keep a target distinction only at the primitive that demonstrably needs it.
+For example, if a maintained native test executes code that reads IC time
+or obtains IC randomness, supply that test with a clock or entropy input.
+Use a target guard only if the remaining primitive actually fails to compile,
+link or execute on a required target without it. Record the primitive, target,
+supported caller and observed failure in the review, and verify the smallest
+guard that fixes it. For a clock, only the clock read can differ. For randomness,
+only acquisition of entropy can differ. Expiry, ID construction and every
+caller stay shared. Without a demonstrated failure, remove the guard.
 
 ### Common Rust lint policy
 
@@ -840,7 +906,13 @@ wildcard_imports = "warn"
 missing_panics_doc = "warn"
 must_use_candidate = "warn"
 too_many_lines = "allow"
+empty_line_after_doc_comments = "allow"
 ```
+
+Allow `clippy::empty_line_after_doc_comments` in the workspace lint table (or
+the package lint table for a standalone crate). The blank line after an entity
+or adapter header is intentional. Never add an item-level `#[expect]` or
+`#[allow]` for this lint.
 
 Use `unsafe_code = "forbid"` for packages requiring no unsafe constructs. Keep
 `deny` with narrow reviewed expectations for FFI and unsafe export attributes;
@@ -1003,7 +1075,7 @@ framework dependencies on core development. Follow the
 Do not add Python tooling. Read the applicable
 [workspace/tooling contracts](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/engineering-details.md#rust-workspaces-and-portable-tooling)
 for manifests, dependencies, hooks, installers or shared snapshots, and the
-[Rust hygiene guide](https://github.com/dragginzgame/toko-tooling/blob/9e5d87fd59e297875cce3c4bc818a0f12cd07a9f/docs/principles/rust-code-hygiene.md) for Rust implementation.
+[Rust hygiene guide](https://github.com/dragginzgame/toko-tooling/blob/3846fcb68e52a00c4a5ee5376c3e4ab8ac1f80af/docs/principles/rust-code-hygiene.md) for Rust implementation.
 
 ## Host support
 

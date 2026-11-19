@@ -21,6 +21,7 @@ fn row(class: NodeType, provider: Option<Principal>, dc: Option<&str>) -> wire::
         key.push(',');
         key.push_str(dc);
     }
+
     wire::MarketplaceEntry {
         key,
         entry: wire::PriceEntry {
@@ -248,6 +249,7 @@ impl Source for Fake {
         self.calls.borrow_mut().push(method);
         let step = self.steps.borrow_mut().pop_front().unwrap();
         tokio::time::sleep(Duration::from_secs(step.wait)).await;
+
         step.result.map(observation)
     }
 }

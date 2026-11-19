@@ -14,6 +14,7 @@ fn partial_distribution() -> ic_query_topology::subnet::distribution::SubnetDist
     use ic_query_topology::subnet::distribution::*;
     let inventory = inventory(NodeReadOutcome::NotStarted);
     let node_id = inventory.nodes[0].node_id;
+
     SubnetDistributionReport {
         schema: 1,
         endpoint: "https://ic0.app",
@@ -133,6 +134,7 @@ fn inventory(outcome: NodeReadOutcome) -> SubnetNodesReport {
     let succeeded = matches!(outcome, NodeReadOutcome::Read { .. });
     let not_started = matches!(outcome, NodeReadOutcome::NotStarted);
     let cancelled = matches!(outcome, NodeReadOutcome::OverallDeadline);
+
     SubnetNodesReport {
         schema: 1,
         atomic_snapshot: false,
@@ -346,6 +348,7 @@ fn prices_output_keeps_daily_raw_values_partial_status_and_safe_text() {
 fn availability_fixture() -> ic_query_topology::cloud_engine::available::AvailableNodesReport {
     use ic_query_topology::cloud_engine::available::*;
     let principal = Principal::from_slice(&[1]);
+
     AvailableNodesReport {
         schema: 1,
         page_limit: 10,
@@ -653,6 +656,7 @@ fn maintenance_partial_output_preserves_evidence_and_complete_disagreement_succe
     report.collection_complete = true;
     let metrics = |total| {
         use ic_query_topology::subnet::metrics::{SubnetMetricsEvidence, SubnetMetricsReport};
+
         MetricsOutcome::Read {
             report: SubnetMetricsReport {
                 schema: 1,

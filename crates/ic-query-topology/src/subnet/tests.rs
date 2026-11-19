@@ -60,6 +60,7 @@ fn exact_node_limit_succeeds_and_excess_is_not_truncated() {
     let mut consumed = 0;
     let unbounded = std::iter::from_fn(|| {
         consumed += 1;
+
         Some(Principal::from_slice(&[1]))
     });
     assert!(matches!(

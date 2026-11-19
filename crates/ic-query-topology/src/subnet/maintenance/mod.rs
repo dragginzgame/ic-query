@@ -199,6 +199,7 @@ where
         Ok(after) => match changes::compare(before, after) {
             Ok(mut report) => {
                 report.requested_interval_seconds = Some(interval_seconds);
+
                 ConfigurationOutcome::Compared {
                     report: Box::new(report),
                 }
@@ -221,6 +222,7 @@ where
         .map(|(a, b)| {
             activity::message_change(a.update_transactions_total, b.update_transactions_total)
         });
+
     Ok(MaintenanceReport {
         schema: 1,
         subnet_id,
@@ -287,5 +289,6 @@ fn configuration_error<S: Serializer>(
             _ => None,
         },
     )?;
+
     value.end()
 }

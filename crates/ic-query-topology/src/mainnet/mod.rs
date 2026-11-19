@@ -69,6 +69,7 @@ fn context() -> Result<(u64, TimePolicy), ReadError> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(ReadError::Clock)?;
+
     context_at(now)
 }
 
@@ -82,6 +83,7 @@ fn context_at(now: Duration) -> Result<(u64, TimePolicy), ReadError> {
         max_age_ns: 300_000_000_000,
         max_future_skew_ns: 60_000_000_000,
     };
+
     Ok((
         expiry,
         TimePolicy {
@@ -98,6 +100,7 @@ pub(crate) async fn query(
     args: &[u8],
 ) -> Result<Vec<u8>, ReadError> {
     let (expiry, policy) = context()?;
+
     read(client.query(target, method, args, expiry, policy)).await
 }
 
@@ -106,6 +109,7 @@ pub(crate) async fn subnet(
     target: Principal,
 ) -> Result<ic_platform::native::SubnetObservation, ReadError> {
     let (expiry, policy) = context()?;
+
     read(client.read_subnet(target, expiry, policy)).await
 }
 

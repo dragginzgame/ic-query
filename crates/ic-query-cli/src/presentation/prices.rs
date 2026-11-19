@@ -52,5 +52,6 @@ pub(crate) fn cloud_engine_prices(report: &CloudEnginePricesReport) -> String {
         prices.evidence.result_certified,
     ).expect("String write");
     text.push_str("Keys identify [provider,]class[,data center]; declarations are not binding quotes or available capacity.\nSeparate observations, not an atomic snapshot. Use --json for raw classes, scopes, timestamps and evidence.\n");
+
     text
 }

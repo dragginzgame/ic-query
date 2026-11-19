@@ -105,6 +105,7 @@ pub async fn fetch(subnet_id: Principal) -> Result<SubnetSettingsReport, SubnetS
         .parse()
         .map_err(|error| SubnetSettingsError::SourceIdentity(format!("{error}")))?;
     let bytes = mainnet::query(&client, registry, mainnet::REGISTRY_METHOD, &argument).await?;
+
     project(subnet_id, &bytes, mainnet::observed_at()?)
 }
 
@@ -130,6 +131,7 @@ fn project(
         SETTINGS_LIMITS,
     )
     .map_err(SubnetSettingsError::Settings)?;
+
     Ok(SubnetSettingsReport {
         schema: 1,
         subnet_id,
@@ -208,5 +210,6 @@ fn settings_error<S: serde::Serializer>(
     let mut value = serializer.serialize_struct("SettingsError", 2)?;
     value.serialize_field("kind", kind)?;
     value.serialize_field("registry_code", &code)?;
+
     value.end()
 }

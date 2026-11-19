@@ -10,6 +10,7 @@ fn encoded(value: &wire::AvailableNodesPageResult) -> Vec<u8> {
     // Encode through an independently authored upstream schema.
     let fixture: fixtures::PageResult =
         serde_json::from_value(serde_json::to_value(value).unwrap()).unwrap();
+
     encode_one(&fixture, 1024 * 1024).unwrap()
 }
 
@@ -147,6 +148,7 @@ fn skipped_ip_work_is_bounded_independently_of_selected_fields() {
         frame.extend(prefix);
         frame.extend(std::iter::repeat_n(b'x', length));
         let result = decode_page(&observation(frame));
+
         if accepted {
             assert_eq!(result.unwrap().nodes.len(), 1);
         } else {
@@ -192,12 +194,14 @@ impl Fake {
 
 async fn perform(step: Step) -> Result<Observation, AvailableError> {
     tokio::time::sleep(Duration::from_secs(step.wait)).await;
+
     step.result.map(observation)
 }
 
 impl Source for Fake {
     async fn status(&self) -> Result<Observation, AvailableError> {
         let step = self.status.borrow_mut().take().expect("status read once");
+
         perform(step).await
     }
 
@@ -208,6 +212,7 @@ impl Source for Fake {
             .borrow_mut()
             .pop_front()
             .expect("no unexpected page");
+
         perform(step).await
     }
 }
@@ -292,6 +297,7 @@ async fn unready_and_application_errors_are_not_empty_successes() {
         ]);
         let report = collect(&source, DEFAULT_PAGE_LIMIT).await.unwrap();
         assert!(!report.pagination_exhausted && report.pages.len() == 1);
+
         if let TraversalStop::Failed {
             error: AvailableError::Application(got),
             ..

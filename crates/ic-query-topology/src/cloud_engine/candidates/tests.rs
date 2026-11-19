@@ -173,6 +173,7 @@ async fn coverage_is_independent_of_collection_and_preserves_raw_evidence() {
     let report = collect(async { Ok(availability(true)) }, || async {
         let mut prices = prices(true);
         prices.prices.entries.clear();
+
         Ok(prices)
     })
     .await
@@ -202,6 +203,7 @@ async fn price_failure_keeps_candidates_and_initial_failure_starts_no_pricing() 
     let called = Cell::new(false);
     let result = collect(async { Err(AvailableError::CopyNotReady) }, || {
         called.set(true);
+
         async { Ok(prices(true)) }
     })
     .await;
@@ -220,10 +222,12 @@ async fn sequential_budgets_and_cancellation_do_not_start_later_work() {
     let report = collect(
         async {
             tokio::time::sleep(Duration::from_secs(60)).await;
+
             Ok(availability(false))
         },
         || async {
             tokio::time::sleep(Duration::from_secs(30)).await;
+
             Err(PriceError::OverallDeadline)
         },
     )
@@ -236,6 +240,7 @@ async fn sequential_budgets_and_cancellation_do_not_start_later_work() {
         Duration::from_secs(1),
         collect(std::future::pending(), || {
             called.set(true);
+
             async { Ok(prices(true)) }
         }),
     )
@@ -253,6 +258,7 @@ async fn sequential_budgets_and_cancellation_do_not_start_later_work() {
         Duration::from_secs(1),
         collect(async { Ok(availability(true)) }, || async {
             let _guard = Dropped(&dropped);
+
             std::future::pending().await
         }),
     )
@@ -277,6 +283,7 @@ async fn maximum_candidate_join_keeps_order_and_bounded_references() {
                 .map(|offset| {
                     let mut node = node(Some("dc"));
                     node.node_id = Principal::from_slice(&(page * 100 + offset).to_le_bytes());
+
                     node
                 })
                 .collect(),

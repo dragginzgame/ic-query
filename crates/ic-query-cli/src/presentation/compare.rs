@@ -8,6 +8,7 @@ pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> 
     let values = |side: &Candidate| {
         let mut rows = if let Some(d) = side.distribution.report() {
             let c = &d.configuration;
+
             vec![
                 c.registered_subnet_type.to_string(),
                 format!("{:?}", c.replica_version_id),
@@ -50,6 +51,7 @@ pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> 
         } else {
             rows.extend(["unavailable".into(), "unavailable".into()]);
         }
+
         rows
     };
     let left = values(&report.left);
@@ -167,6 +169,7 @@ pub(crate) fn render(report: &SubnetComparisonReport, overlap_details: bool) -> 
         }
     }
     text.push_str("Independent observations; no atomic snapshot, capacity ranking or merge-feasibility claim.\nProvider/location counts describe registered declarations, not verified failure domains.\nUse --json for raw evidence, per-record coverage and failure categories.\n");
+
     text
 }
 
@@ -178,6 +181,7 @@ fn shared_nodes<T>(groups: &[SharedGroup<T>], left: bool, selected: Option<usize
             group.right_nodes
         })
     });
+
     match count.zip(selected) {
         Some((count, selected)) if count <= selected => format!("{count} / {selected}"),
         _ => "unavailable".into(),
@@ -192,6 +196,7 @@ fn write_shared_groups<T: std::fmt::Display>(
     writeln!(text, "\n{title}").expect("String write");
     if groups.is_empty() {
         text.push_str("None observed in the acquired evidence.\n");
+
         return;
     }
     let rows: Vec<_> = groups

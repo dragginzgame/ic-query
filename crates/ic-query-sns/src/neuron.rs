@@ -65,6 +65,7 @@ pub(crate) async fn get(
     .await
     .project(|bytes| {
         let reply = sns::decode_get_neuron(&bytes, mainnet::LIMITS).map_err(mainnet::decode)?;
+
         match reply.result {
             None => Err(Failure::new(
                 FailureKind::MissingResult,
@@ -81,10 +82,12 @@ pub(crate) async fn get(
                         "returned neuron ID differs from requested ID",
                     ));
                 }
+
                 Ok(neuron)
             }
         }
     });
+
     NeuronReport {
         schema: 1,
         endpoint: mainnet::ENDPOINT,
@@ -162,6 +165,7 @@ pub struct NeuronsReport {
 /// Later read/admission failures remain in the report alongside prior pages.
 pub async fn list(request: ListRequest) -> Result<NeuronsReport, Failure> {
     validate_request(request)?;
+
     collect(&mainnet::Mainnet::new()?, request).await
 }
 
@@ -174,6 +178,7 @@ fn validate_request(request: ListRequest) -> Result<(), Failure> {
             "principal-filtered SNS listings support only one page and no cursor",
         ));
     }
+
     Ok(())
 }
 
@@ -187,6 +192,7 @@ pub(crate) async fn collect(
             limit: PAGE_SIZE,
             start_page_at: cursor.map(|id: [u8; 32]| sns::NeuronId { id: id.to_vec() }),
         };
+
         mainnet::observe(
             source,
             request.governance,
@@ -231,16 +237,19 @@ where
         let start_after = cursor;
         let observation = read(cursor, deadline).await.project(|neurons| {
             validate_page(&neurons, cursor, request.of_principal)?;
+
             Ok(neurons)
         });
         let count = match &observation.outcome {
             Outcome::Failed { .. } => {
                 report.stop_reason = StopReason::Failed;
+
                 None
             }
             Outcome::Read { value } => {
                 cursor = value.last().map(id).transpose()?;
                 report.retained_neurons += value.len();
+
                 Some(value.len())
             }
         };
@@ -248,6 +257,7 @@ where
             start_after,
             observation,
         });
+
         match count {
             None => break,
             Some(n) if n < PAGE_SIZE as usize => {
@@ -262,6 +272,7 @@ where
             Some(_) => {}
         }
     }
+
     Ok(report)
 }
 
@@ -305,5 +316,6 @@ pub(crate) fn validate_page(
         }
         previous = Some(current);
     }
+
     Ok(())
 }

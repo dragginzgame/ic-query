@@ -338,6 +338,7 @@ impl Serialize for DistributionError {
             fields.serialize_field("requested", requested)?;
             fields.serialize_field("returned", returned)?;
         }
+
         fields.end()
     }
 }

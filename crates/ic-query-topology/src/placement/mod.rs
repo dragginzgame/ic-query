@@ -114,6 +114,7 @@ pub async fn fetch(canister_id: Principal) -> Result<PlacementReport, PlacementE
     let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
     let subnet_id = decode_subnet(&bytes)?;
     let observed_at = mainnet::observed_at()?;
+
     Ok(report(canister_id, subnet_id, observed_at))
 }
 

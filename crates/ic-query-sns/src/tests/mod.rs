@@ -35,6 +35,7 @@ impl Source for Fake {
     ) -> Result<Vec<u8>, Failure> {
         self.calls.borrow_mut().push((method, args.to_vec()));
         tokio::time::sleep(self.delay).await;
+
         self.replies
             .borrow_mut()
             .pop_front()
@@ -58,6 +59,7 @@ fn fixture_neuron() -> neuron::Neuron {
     else {
         panic!()
     };
+
     n
 }
 
@@ -77,6 +79,7 @@ fn page(start: u8, length: usize) -> Vec<neuron::Neuron> {
             n.id = Some(sns::NeuronId {
                 id: vec![start + u8::try_from(i).unwrap(); 32],
             });
+
             n
         })
         .collect()
@@ -203,6 +206,7 @@ async fn malformed_neuron_page_does_not_become_empty_success() {
 async fn page_limit_and_short_page_have_distinct_coverage() {
     let report = neuron::collect_pages(request(1), |cursor, _| {
         assert!(cursor.is_none());
+
         std::future::ready(observed(page(1, 100)))
     })
     .await
@@ -214,11 +218,14 @@ async fn page_limit_and_short_page_have_distinct_coverage() {
         calls += 1;
         let rows = if calls == 1 {
             assert!(cursor.is_none());
+
             page(1, 100)
         } else {
             assert_eq!(cursor, Some([100; 32]));
+
             page(101, 2)
         };
+
         std::future::ready(observed(rows))
     })
     .await
@@ -240,6 +247,7 @@ async fn later_failure_or_repeated_cursor_preserves_prior_pages() {
             if calls == 2 && !repeats {
                 o.outcome = Outcome::Failed { error: failed() };
             }
+
             std::future::ready(o)
         })
         .await
@@ -328,6 +336,7 @@ async fn explicit_continuation_binds_first_cursor_and_rejects_filter_combination
     r.start_after = Some([100; 32]);
     let report = neuron::collect_pages(r, |cursor, _| {
         assert_eq!(cursor, Some([100; 32]));
+
         std::future::ready(observed(page(101, 1)))
     })
     .await

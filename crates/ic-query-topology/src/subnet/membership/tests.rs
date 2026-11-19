@@ -154,6 +154,7 @@ async fn first_failure_never_polls_the_second_reader() {
         ready(Err(SubnetConfigurationError::MissingContent)),
         async {
             polled.set(true);
+
             Ok(observation(vec![id(1)]))
         },
     )
@@ -174,14 +175,17 @@ async fn second_failure_follows_configuration_and_retains_it() {
         id(10),
         async {
             first_done.set(true);
+
             Ok(configuration(vec![id(1)]))
         },
         async {
             assert!(first_done.get());
+
             Err(SubnetError::Read(ReadError::Deadline))
         },
     )
     .await;
+
     match result {
         Err(SubnetMembershipError::Observation {
             configuration,
@@ -202,6 +206,7 @@ async fn cancellation_during_first_read_never_starts_the_second() {
         Duration::from_secs(1),
         collect(id(10), pending(), async {
             polled.set(true);
+
             Ok(observation(vec![id(1)]))
         }),
     )

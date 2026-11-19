@@ -69,6 +69,7 @@ pub async fn fetch_with_page_limit(
             requested: page_limit,
         });
     }
+
     collect(&source::MainnetSource(mainnet::client()?), page_limit).await
 }
 
@@ -83,6 +84,7 @@ async fn collect(
     let registry_copy = tokio::time::timeout_at(deadline, async {
         let observation = source.status().await?;
         let status = wire::decode_registry_copy_status_response(&observation.bytes, LIMITS)?;
+
         Ok::<_, AvailableError>(RegistryCopyObservation {
             source_method: STATUS_METHOD,
             observed_at_unix_seconds: observation.observed_at,
@@ -155,6 +157,7 @@ async fn collect(
         }
         start = next;
     };
+
     Ok(AvailableNodesReport {
         schema: 1,
         page_limit,
@@ -256,5 +259,6 @@ fn admit(
             });
         }
     }
+
     Ok(())
 }

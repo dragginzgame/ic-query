@@ -10,6 +10,7 @@ fn blob(tag: &[u8], value: &[u8]) -> Vec<u8> {
     }
     bytes.push(length as u8);
     bytes.extend_from_slice(value);
+
     bytes
 }
 
@@ -17,6 +18,7 @@ fn report(record: &[u8]) -> Result<SubnetSettingsReport, SubnetSettingsError> {
     let mut envelope = vec![16, 172, 2];
     envelope.extend(blob(&[26], record));
     envelope.extend([40, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1]);
+
     project(
         Principal::from_slice(&[10]),
         &envelope,

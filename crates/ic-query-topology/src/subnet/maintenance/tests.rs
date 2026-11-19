@@ -66,16 +66,20 @@ async fn ordering_wait_and_exact_raw_values() {
             events.borrow_mut().push(("c", start.elapsed().as_secs()));
             n.set(n.get() + 1);
             let v = n.get();
+
             async move {
                 tokio::time::sleep(Duration::from_secs(2)).await;
+
                 Ok(config(v))
             }
         },
         || {
             events.borrow_mut().push(("m", start.elapsed().as_secs()));
             let v = n.get();
+
             async move {
                 tokio::time::sleep(Duration::from_secs(3)).await;
+
                 Ok(metric(v))
             }
         },
@@ -133,6 +137,7 @@ async fn every_later_failure_retains_independent_evidence() {
             || {
                 let i = call.get();
                 call.set(i + 1);
+
                 ready(if i == failed {
                     Err(SubnetConfigurationError::Read(ReadError::Deadline))
                 } else {
@@ -142,6 +147,7 @@ async fn every_later_failure_retains_independent_evidence() {
             || {
                 let i = call.get();
                 call.set(i + 1);
+
                 ready(if i == failed {
                     Err(SubnetMetricsError::Read(ReadError::Deadline))
                 } else {
@@ -173,6 +179,7 @@ async fn refusal_does_not_discard_activity_or_inputs() {
         Some("v".into()),
         || {
             n.set(n.get() - 1);
+
             ready(Ok(config(n.get())))
         },
         || ready(Ok(metric(u64::MAX))),
@@ -219,20 +226,24 @@ async fn cancellation_at_each_read_and_wait_starts_no_later_work() {
                 || {
                     let i = count.get();
                     count.set(i + 1);
+
                     async move {
                         if i == blocked {
                             std::future::pending::<()>().await;
                         }
+
                         Ok(config(i))
                     }
                 },
                 || {
                     let i = count.get();
                     count.set(i + 1);
+
                     async move {
                         if i == blocked {
                             std::future::pending::<()>().await;
                         }
+
                         Ok(metric(i))
                     }
                 },
@@ -251,10 +262,12 @@ async fn cancellation_at_each_read_and_wait_starts_no_later_work() {
             None,
             || {
                 count.set(count.get() + 1);
+
                 ready(Ok(config(1)))
             },
             || {
                 count.set(count.get() + 1);
+
                 ready(Ok(metric(0)))
             },
         ),

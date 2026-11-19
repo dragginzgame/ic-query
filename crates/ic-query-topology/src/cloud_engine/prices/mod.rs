@@ -49,6 +49,7 @@ const LIMITS: decoder::Limits = decoder::Limits {
 /// are retained in the report's `network_fee` outcome, with `complete = false`.
 pub async fn fetch() -> Result<CloudEnginePricesReport, PriceError> {
     let client = mainnet::client()?;
+
     collect(&source::MainnetSource(client)).await
 }
 
@@ -75,6 +76,7 @@ async fn collect(source: &impl Source) -> Result<CloudEnginePricesReport, PriceE
             Ok(Ok((markup, evidence))) => FeeOutcome::Read { markup, evidence },
         }
     };
+
     Ok(CloudEnginePricesReport {
         schema: 1,
         started_at_unix_seconds,
@@ -144,6 +146,7 @@ fn project_prices(observation: &Observation) -> Result<PriceObservation, PriceEr
         });
     }
     entries.sort_by(|a, b| a.key.cmp(&b.key));
+
     Ok(PriceObservation {
         entries,
         evidence: evidence(PRICES_METHOD, observation.observed_at),
@@ -178,5 +181,6 @@ fn project_fee(observation: &Observation) -> Result<(f64, PriceEvidence), PriceE
     if !markup.is_finite() || markup < 0.0 {
         return Err(AdmissionError::InvalidFee.into());
     }
+
     Ok((markup, evidence(FEE_METHOD, observation.observed_at)))
 }

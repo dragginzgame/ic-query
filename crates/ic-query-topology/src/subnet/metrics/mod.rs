@@ -69,6 +69,7 @@ pub async fn fetch(subnet_id: Principal) -> Result<SubnetMetricsReport, SubnetMe
     let metrics = observation.metrics().ok_or_else(|| {
         ReadError::Transport(Box::new(ic_platform::native::ReadError::MissingPath))
     })?;
+
     Ok(SubnetMetricsReport {
         schema: 1,
         subnet_id,

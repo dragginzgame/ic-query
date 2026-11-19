@@ -73,6 +73,7 @@ async fn maximum_inventory_is_scoped_ordered_bounded_and_keeps_independent_evide
         let active = &active;
         let peak = &peak;
         let calls = &calls;
+
         async move {
             calls.borrow_mut().push(node_id);
             active.set(active.get() + 1);
@@ -83,6 +84,7 @@ async fn maximum_inventory_is_scoped_ordered_bounded_and_keeps_independent_evide
                 128 - node_id.as_slice()[0],
             )))
             .await;
+
             Ok(node(node_id))
         }
     })
@@ -180,6 +182,7 @@ async fn partial_failures_keep_node_identity_typed_causes_and_raw_registry_field
     let calls = Cell::new(0);
     let report = collect(id(250), 1, ready(Ok(configuration(6))), |node_id| {
         calls.set(calls.get() + 1);
+
         ready(match node_id.as_slice()[0] {
             0 => Err(NodeError::RegistryRejected {
                 code: 3,
@@ -237,17 +240,21 @@ async fn deadline_includes_configuration_retains_finished_rows_and_cancels_only_
         1,
         async {
             tokio::time::sleep(Duration::from_secs(15)).await;
+
             Ok(configuration(9))
         },
         |node_id| {
             let active = &active;
             let calls = &calls;
+
             async move {
                 calls.set(calls.get() + 1);
                 active.set(active.get() + 1);
                 let _guard = InFlight(active);
+
                 if node_id == id(0) {
                     tokio::time::sleep(Duration::from_secs(1)).await;
+
                     Ok(node(node_id))
                 } else {
                     pending().await
@@ -287,8 +294,10 @@ async fn deadline_wins_over_newly_ready_work_at_the_boundary() {
     let calls = Cell::new(0);
     let report = collect(id(250), 1, ready(Ok(configuration(5))), |node_id| {
         calls.set(calls.get() + 1);
+
         async move {
             tokio::time::sleep(DEADLINE).await;
+
             Ok(node(node_id))
         }
     })
@@ -310,6 +319,7 @@ async fn caller_cancellation_leaves_no_detached_reads() {
         calls.set(calls.get() + 1);
         active.set(active.get() + 1);
         let _guard = InFlight(&active);
+
         pending().await
     });
     assert!(

@@ -29,9 +29,11 @@ pub(crate) fn render(report: &PlacementCollectionReport) -> String {
                     ("unavailable".into(), "not started".into(), "—".into())
                 }
             };
+
             vec![row.canister_id.to_string(), subnet, status, observed]
         })
         .collect();
+
     format!(
         "Selected canister placements\n\nCollection: {} | selected: {} | elapsed: {:.2}s\n\n{}\n\nIndependent mainnet Registry routing observations; no common Registry version or atomic snapshot.\nQuery signatures are verified for successful reads; results are not consensus-certified.\nRouting does not establish existence, liveness, fleet ownership or deployment authority.\nUse --json for each lookup's source evidence and failure category.\n",
         if report.collection_complete {

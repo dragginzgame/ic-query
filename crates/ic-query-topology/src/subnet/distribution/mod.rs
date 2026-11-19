@@ -50,6 +50,7 @@ pub const DEADLINE: Duration = Duration::from_secs(60);
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetDistributionReport, DistributionError> {
     let started_at = mainnet::observed_at()?;
     let source = source::MainnetSource(mainnet::client()?);
+
     collect(subnet_id, started_at, &source).await
 }
 
@@ -78,6 +79,7 @@ async fn collect(
         if configuration.registered_node_ids.len() > MAX_NODES {
             return Err(DistributionError::NodeLimit);
         }
+
         Ok((version, latest.observed_at, configuration))
     };
     let (version, version_observed_at, configuration) = tokio::select! {
@@ -123,6 +125,7 @@ async fn collect(
     let data_centers = phase(
         data_center_ids.into_iter().map(|id| {
             let key = format!("data_center_record_{id}");
+
             (id, key)
         }),
         source,
@@ -138,6 +141,7 @@ async fn collect(
     // synchronous report assembly ended at the boundary after all reads completed.
     let overall_deadline_reached =
         unfinished(&nodes) || unfinished(&operators) || unfinished(&data_centers);
+
     Ok(SubnetDistributionReport {
         schema: 1,
         endpoint: mainnet::ENDPOINT,
@@ -205,6 +209,7 @@ async fn phase<K, T>(
             _ = work => {}
         }
     }
+
     rows
 }
 
@@ -220,6 +225,7 @@ async fn read_record<K, T>(
     row.outcome = RecordOutcome::OverallDeadline;
     let result = async {
         let observation = source.value(&row.source_key, version).await?;
+
         project(
             &row.id,
             envelope(&observation.bytes, version)?,

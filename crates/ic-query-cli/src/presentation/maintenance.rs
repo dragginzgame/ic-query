@@ -128,6 +128,7 @@ pub(crate) fn render(report: &MaintenanceReport) -> String {
         }
     }
     text.push_str("Registry signatures and metrics certificates are separate evidence; no atomic snapshot.\nRunning replica version, continuous uptime and maintenance completion are unobserved.\nUse --json for raw evidence, exact membership changes and failure categories.\n");
+
     text
 }
 

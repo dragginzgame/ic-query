@@ -115,6 +115,7 @@ async fn collect(
         .filter(|id| configuration.registered_node_ids.binary_search(id).is_err())
         .copied()
         .collect();
+
     Ok(SubnetMembershipReport {
         schema: 1,
         atomic_snapshot: false,

@@ -102,6 +102,7 @@ pub enum SubnetError {
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetReport, SubnetError> {
     let client = mainnet::client()?;
     let observation = mainnet::subnet(&client, subnet_id).await?;
+
     project(
         subnet_id,
         observation.subnet(),
@@ -140,6 +141,7 @@ fn project(
     if subnet_type.is_some_and(|value| value.len() > MAX_SUBNET_TYPE_BYTES) {
         return Err(SubnetError::SubnetTypeLimit);
     }
+
     Ok(SubnetReport {
         schema: 1,
         subnet_id: requested,

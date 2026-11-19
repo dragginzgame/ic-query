@@ -110,6 +110,7 @@ pub(crate) fn subnet_changes(report: &SubnetChangesReport) -> String {
         }
     }
     text.push_str("\nTwo Registry observations, not a complete change history or proof of running software, maintenance completion or uptime.\nUse --json for both full configurations and their source/verification evidence.");
+
     text
 }
 
@@ -180,6 +181,7 @@ pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
                         Some([]) => "empty",
                         Some(_) => "present",
                     };
+
                     (format!("O{}", operator + 1), hostos, chip, "ok")
                 }
                 NodeReadOutcome::Failed { .. } => ("-".into(), "-".into(), "-", "failed"),
@@ -189,6 +191,7 @@ pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
                 NodeReadOutcome::OverallDeadline => ("-".into(), "-".into(), "-", "cancelled"),
                 NodeReadOutcome::NotStarted => ("-".into(), "-".into(), "-", "not started"),
             };
+
             vec![
                 row.node_id.to_string(),
                 operator,
@@ -219,6 +222,7 @@ pub(crate) fn subnet_nodes(report: &SubnetNodesReport) -> String {
         }
     }
     text.push_str("\nChip ID shows registration only; '-' means unavailable. Read failures do not prove downtime.\nRunning software, node liveness and TEE attestation are not established.\nUse --json for full chip IDs, per-node timing, verification and source evidence.");
+
     text
 }
 
@@ -230,6 +234,7 @@ pub(crate) fn node(report: &NodeReport) -> String {
             for byte in bytes {
                 write!(hex, "{byte:02x}").expect("writing to a String cannot fail");
             }
+
             hex
         },
     );
@@ -237,6 +242,7 @@ pub(crate) fn node(report: &NodeReport) -> String {
         .hostos_version_id
         .as_ref()
         .map_or_else(|| "absent".to_owned(), |value| format!("{value:?}"));
+
     format!(
         "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nTEE attestation verified: {}\n\nNode: {}\nRegistered operator: {}\nRegistered SEV-SNP chip ID (hex; 0x alone means present-empty): {}\nConfigured HostOS version: {}\nRunning HostOS version: not observed\nA registered chip ID does not establish usable TEE protection, node liveness or reduced authentication requirements; absence does not prove missing hardware capability.",
         report.evidence.endpoint,
@@ -269,6 +275,7 @@ pub(crate) fn subnet_membership(report: &SubnetMembershipReport) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join("\n");
+
     format!(
         "Atomic snapshot: {}\nRegistered IDs without an observed key ({}):\n{}\nObserved key IDs absent from the returned Registry record ({}):\n{}\nDifferences may reflect transitions, source age or coverage; matching sets do not establish live nodes.\n\nRegistry observation:\n{}\n\nSubnet-certified observation:\n{}",
         report.atomic_snapshot,
@@ -288,6 +295,7 @@ pub(crate) fn subnet_configuration(report: &SubnetConfigurationReport) -> String
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join("\n");
+
     format!(
         "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nReturned record membership complete: {}\n\nSubnet: {}\nRegistered subnet type (raw): {}\nConfigured replica version: {:?}\nEffective/running version: not resolved (empty configuration can use a separate cloud-engine record)\nConfigured is_halted: {}\nConfigured halt_at_cup_height: {}\nHalt flags do not establish observed downtime or a reached CUP height.\nRegistered node identities ({}):\n{}",
         report.evidence.endpoint,
@@ -316,6 +324,7 @@ pub(crate) fn subnet_activity(report: &SubnetActivityReport) -> String {
         MessageChange::Unchanged => "unchanged (does not establish downtime)".to_owned(),
         MessageChange::Decreased => "decreased (cause and state ordering unknown)".to_owned(),
     };
+
     format!(
         "First observation:\n{}\n\nRequested wait between reads: {} seconds\n\nSecond observation:\n{}\n\nReplicated-message counter: {}\nTwo samples do not establish uptime, throughput or a certified time interval.",
         subnet_metrics(&report.before),
@@ -348,6 +357,7 @@ pub(crate) fn subnet_list(report: &SubnetListReport) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join("\n");
+
     format!(
         "Source: {} / {} / {} / {}\nObserved at: {} Unix seconds\nRecord mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {}\nResult consensus-certified: {}\nSelected record complete: {}\n\nRegistered subnets ({}):\n{}",
         report.evidence.endpoint,
@@ -392,6 +402,7 @@ pub(crate) fn subnet(report: &SubnetReport) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join("\n");
+
     format!(
         "Source: {}{}\nObserved at: {} Unix seconds\nState certificate verified: {}\nComplete Registry membership established: {}\nRegistry version: {}\n\nSubnet: {}\nObserved subnet type (subnet-certified, not Registry-confirmed): {}\nObserved node identities ({}):\n{}",
         report.evidence.endpoint,

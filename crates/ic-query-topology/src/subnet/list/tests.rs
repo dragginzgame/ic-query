@@ -12,6 +12,7 @@ fn envelope(record: &[u8]) -> Vec<u8> {
     bytes.push(length as u8);
     bytes.extend_from_slice(record);
     bytes.extend_from_slice(&[40, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1]);
+
     bytes
 }
 

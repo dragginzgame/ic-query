@@ -49,6 +49,7 @@ async fn stalled_read_reaches_deadline_without_waiting_on_wall_time() {
 #[tokio::test]
 async fn transport_failure_preserves_the_supplier_error() {
     let result = read(future::ready(Err::<(), _>(NativeError::Packet))).await;
+
     match result {
         Err(ReadError::Transport(error)) => {
             assert!(matches!(*error, NativeError::Packet));

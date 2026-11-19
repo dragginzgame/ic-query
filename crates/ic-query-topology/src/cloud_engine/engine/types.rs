@@ -26,6 +26,7 @@ impl FromStr for EngineId {
         if raw.is_empty() || raw.len() > 256 {
             return Err(InvalidEngineId { bytes: raw.len() });
         }
+
         Ok(Self(raw.to_owned()))
     }
 }

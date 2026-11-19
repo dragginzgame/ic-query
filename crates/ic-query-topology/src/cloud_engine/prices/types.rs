@@ -177,6 +177,7 @@ impl Serialize for PriceError {
                 _ => None,
             },
         )?;
+
         state.end()
     }
 }

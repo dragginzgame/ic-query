@@ -51,6 +51,7 @@ pub(crate) fn cloud_engine_available(report: &AvailableNodesReport) -> String {
         .into_iter()
         .map(|((class, dc), (nodes, chips, providers))| {
             let dc = dc.map_or_else(|| "(absent)".to_owned(), |raw| format!("{raw:?}"));
+
             vec![
                 class,
                 nodes.to_string(),
@@ -78,5 +79,6 @@ pub(crate) fn cloud_engine_available(report: &AvailableNodesReport) -> String {
         report.query_signature_verified, report.result_certified,
     ).expect("String write");
     text.push_str("New-engine eligibility only. Pages are read afresh; no atomic inventory or reserved capacity.\nCHIP ID counts the source's registration flag, not verified TEE protection or liveness.\nUse --json for node identities, operators/providers, page cursors, timing and stop details.\n");
+
     text
 }

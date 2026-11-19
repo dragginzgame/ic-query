@@ -20,6 +20,11 @@ pub(super) trait Source {
     async fn value(&self, key: &str, version: u64) -> Result<Observation, DistributionError>;
 }
 
+///
+/// MainnetSource
+/// Reads the mainnet Registry version and records for the distribution report.
+///
+
 pub(super) struct MainnetSource(pub ReadClient);
 
 impl MainnetSource {
@@ -32,6 +37,7 @@ impl MainnetSource {
             .parse()
             .map_err(|error| DistributionError::SourceIdentity(format!("{error}")))?;
         let bytes = mainnet::query(&self.0, registry, method, &argument).await?;
+
         Ok(Observation {
             bytes,
             observed_at: mainnet::observed_at()?,
@@ -47,6 +53,7 @@ impl Source for MainnetSource {
     async fn value(&self, key: &str, version: u64) -> Result<Observation, DistributionError> {
         // Includes the 256-byte data-center identity, prefix and full-width version.
         let argument = protobuf::encode_get_value_request(key.as_bytes(), Some(version), 512)?;
+
         self.query(mainnet::REGISTRY_METHOD, argument).await
     }
 }
@@ -72,6 +79,7 @@ pub(super) fn envelope(
     if response.value.is_none() {
         return Err(DistributionError::MissingContent);
     }
+
     Ok(response)
 }
 
@@ -89,6 +97,7 @@ pub(super) fn data_center_identity(raw: &str) -> Option<String> {
         return None;
     }
     let identity = raw.to_lowercase();
+
     (identity.len() <= 256).then_some(identity)
 }
 
@@ -124,6 +133,7 @@ pub(super) fn operator(
         byte_length: record.dc_id.len(),
         identity: data_center_identity(record.dc_id),
     };
+
     Ok(OperatorReport {
         registered_operator_bytes: record.node_operator_principal_id.to_vec(),
         provider,
@@ -147,6 +157,7 @@ pub(super) fn data_center(
     if data_center_identity(record.id).as_deref() != Some(id) {
         return Err(DistributionError::IdentityMismatch);
     }
+
     Ok(DataCenterReport {
         id: record.id.to_owned(),
         region: record.region.to_owned(),

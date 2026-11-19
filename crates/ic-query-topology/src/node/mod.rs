@@ -117,6 +117,7 @@ pub async fn fetch(node_id: Principal) -> Result<NodeReport, NodeError> {
         .parse()
         .map_err(|error| NodeError::SourceIdentity(format!("{error}")))?;
     let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
+
     project(node_id, &bytes, mainnet::observed_at()?)
 }
 
@@ -126,6 +127,7 @@ fn source_key(node_id: Principal) -> String {
 
 fn project(node_id: Principal, bytes: &[u8], observed_at: u64) -> Result<NodeReport, NodeError> {
     let response = protobuf::decode_get_value_response(bytes, LIMITS)?;
+
     project_response(node_id, response, observed_at)
 }
 
@@ -160,6 +162,7 @@ pub(crate) fn project_response(
     {
         return Err(NodeError::HostosVersionLimit);
     }
+
     Ok(NodeReport {
         schema: 1,
         node_id,

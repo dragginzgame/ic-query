@@ -161,6 +161,7 @@ pub fn compare(
             reason: ComparisonRefusal::ConflictingVersion,
         });
     }
+
     Ok(report)
 }
 
@@ -204,5 +205,6 @@ where
     };
     let mut report = compare(before, after)?;
     report.requested_interval_seconds = Some(interval_seconds);
+
     Ok(report)
 }

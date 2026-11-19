@@ -21,7 +21,7 @@ tokio = { workspace = true, features = ["time"] }
 
 [dev-dependencies]
 serde_json.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
+tokio = { workspace = true, features = ["macros", "test-util"] }
 toko-tooling.workspace = true
 
 [lints]

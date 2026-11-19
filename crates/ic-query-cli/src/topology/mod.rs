@@ -254,6 +254,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .get_one::<Principal>("subnet")
             .expect("required subnet");
         let report = ic_query_topology::subnet::settings::fetch(id).await?;
+
         return Ok(settings_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("canister", "placements") {
@@ -263,10 +264,12 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .copied()
             .collect();
         let report = ic_query_topology::placement::collection::fetch(&ids).await?;
+
         return Ok(placements_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("cloud-engine", "prices") {
         let report = ic_query_topology::cloud_engine::prices::fetch().await?;
+
         return Ok(prices_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("cloud-engine", "available") {
@@ -275,6 +278,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .expect("default page budget");
         let report =
             ic_query_topology::cloud_engine::available::fetch_with_page_limit(page_limit).await?;
+
         return Ok(available_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("cloud-engine", "candidates") {
@@ -282,6 +286,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .get_one::<u16>("max-pages")
             .expect("default page budget");
         let report = ic_query_topology::cloud_engine::candidates::fetch(page_limit).await?;
+
         return Ok(candidates_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("cloud-engine", "show") {
@@ -290,6 +295,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .expect("required typed engine ID")
             .clone();
         let report = ic_query_topology::cloud_engine::engine::fetch(id).await?;
+
         return Ok(engine_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("subnet", "nodes") {
@@ -297,6 +303,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .get_one::<Principal>("subnet")
             .expect("required typed argument");
         let report = ic_query_topology::subnet::nodes::fetch(id).await?;
+
         return Ok(nodes_output(&report, arguments.get_flag("json"))?);
     }
     if (entity, action) == ("subnet", "distribution") {
@@ -304,6 +311,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             .get_one::<Principal>("subnet")
             .expect("required typed argument");
         let report = ic_query_topology::subnet::distribution::fetch(id).await?;
+
         return Ok(distribution_output(&report, arguments.get_flag("json"))?);
     }
     let text: Result<String, Box<dyn std::error::Error>> = match (entity, action) {
@@ -318,6 +326,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                         .expect("required right subnet"),
                 )
                 .await?;
+
                 return Ok(settings_comparison_output(
                     &report,
                     arguments.get_flag("json"),
@@ -333,6 +342,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                     .expect("required right subnet"),
             )
             .await?;
+
             return Ok(compare_output(
                 &report,
                 arguments.get_flag("json"),
@@ -349,6 +359,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                     .expect("default interval"),
             )
             .await?;
+
             return Ok(progress_output(&report, arguments.get_flag("json"))?);
         }
         ("subnet", "maintenance") => {
@@ -362,6 +373,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 arguments.get_one::<String>("expected-version").cloned(),
             )
             .await?;
+
             return Ok(maintenance_output(&report, arguments.get_flag("json"))?);
         }
         ("node", "changes") => {
@@ -372,6 +384,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<u64>("interval-seconds")
                 .expect("default interval");
             let report = ic_query_topology::node::changes::fetch(id, interval).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -386,6 +399,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<u64>("interval-seconds")
                 .expect("default interval");
             let report = ic_query_topology::subnet::changes::fetch(id, interval).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -397,6 +411,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("node")
                 .expect("required typed argument");
             let report = ic_query_topology::node::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -408,6 +423,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("subnet")
                 .expect("required typed argument");
             let report = ic_query_topology::subnet::membership::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -419,6 +435,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("subnet")
                 .expect("required typed argument");
             let report = ic_query_topology::subnet::configuration::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -433,6 +450,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<u64>("interval-seconds")
                 .expect("default interval");
             let report = ic_query_topology::subnet::activity::fetch(subnet_id, interval).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -441,6 +459,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
         }
         ("subnet", "list") => {
             let report = ic_query_topology::subnet::list::fetch().await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -452,6 +471,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("canister")
                 .expect("required typed argument");
             let report = ic_query_topology::placement::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -463,6 +483,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("subnet")
                 .expect("required typed argument");
             let report = ic_query_topology::subnet::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -474,6 +495,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
                 .get_one::<Principal>("subnet")
                 .expect("required typed argument");
             let report = ic_query_topology::subnet::metrics::fetch(id).await?;
+
             if arguments.get_flag("json") {
                 Ok(serde_json::to_string_pretty(&report)?)
             } else {
@@ -484,6 +506,7 @@ pub(crate) async fn run(matches: &ArgMatches) -> Result<CommandOutput, Box<dyn s
             "Clap admits only declared operations; the entrypoint handles namespace help"
         ),
     };
+
     Ok(CommandOutput {
         text: text?,
         exit_code: ExitCode::SUCCESS,

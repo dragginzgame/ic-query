@@ -107,6 +107,7 @@ pub async fn fetch(
 ) -> Result<PlacementCollectionReport, CollectionError> {
     validate(canister_ids)?;
     let started_at = mainnet::observed_at()?;
+
     Ok(collect(canister_ids, started_at, super::fetch).await)
 }
 
@@ -120,6 +121,7 @@ fn validate(ids: &[Principal]) -> Result<(), CollectionError> {
             return Err(CollectionError::Duplicate { canister_id });
         }
     }
+
     Ok(())
 }
 
@@ -165,6 +167,7 @@ where
             Err(error) => PlacementOutcome::Failed { error },
         };
     }
+
     PlacementCollectionReport {
         schema: 1,
         atomic_snapshot: false,
@@ -204,5 +207,6 @@ fn serialize_error<S: Serializer>(
     if let PlacementError::RegistryRejected(reason) = error {
         fields.serialize_field("reason", reason)?;
     }
+
     fields.end()
 }

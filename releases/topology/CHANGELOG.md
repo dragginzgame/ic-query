@@ -2,6 +2,15 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.11] - Unreleased
+
+### 🔧 Tooling
+
+- Update the packaged development dependency to Toko Tooling 0.45.21 and apply
+  its return spacing and read adapter layout.
+- Select the registry settings codec through `registry` and the Tokio test
+  runtime through `test-util`.
+
 ## [0.110.10] - 2026-11-19
 
 ### 🔧 Tooling

@@ -133,6 +133,7 @@ pub enum SubnetNodesError {
 /// the returned report with their original typed causes.
 pub async fn fetch(subnet_id: Principal) -> Result<SubnetNodesReport, SubnetNodesError> {
     let started_at = mainnet::observed_at()?;
+
     collect(
         subnet_id,
         started_at,
@@ -204,6 +205,7 @@ where
             _ = work => {}
         }
     }
+
     Ok(SubnetNodesReport {
         schema: 1,
         atomic_snapshot: false,
@@ -266,5 +268,6 @@ fn serialize_node_error<S: Serializer>(
         fields.serialize_field("reason", reason)?;
         fields.serialize_field("key", key)?;
     }
+
     fields.end()
 }

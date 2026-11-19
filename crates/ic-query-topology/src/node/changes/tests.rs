@@ -8,6 +8,7 @@ use crate::node::NodeEvidence;
 
 fn node(version: u64) -> NodeReport {
     let node_id = Principal::from_slice(&[1]);
+
     NodeReport {
         schema: 1,
         node_id,
@@ -174,8 +175,10 @@ async fn sampling_waits_after_first_completion_and_accepts_interval_boundaries()
             let call = calls.get();
             calls.set(call + 1);
             starts.borrow_mut().push(started.elapsed());
+
             async move {
                 tokio::time::sleep(Duration::from_secs(if call == 0 { 3 } else { 5 })).await;
+
                 Ok(node(8 + call))
             }
         })
@@ -197,6 +200,7 @@ async fn invalid_waits_and_initial_errors_stop_before_later_reads() {
     for interval in [0, 61, u64::MAX] {
         let result = sample(interval, || {
             calls.set(calls.get() + 1);
+
             ready(Ok(node(8)))
         })
         .await;
@@ -205,6 +209,7 @@ async fn invalid_waits_and_initial_errors_stop_before_later_reads() {
     assert_eq!(calls.get(), 0);
     let result = sample(1, || {
         calls.set(calls.get() + 1);
+
         ready(Err(NodeError::MissingContent))
     })
     .await;
@@ -221,6 +226,7 @@ async fn second_failure_preserves_first_and_cancellation_starts_no_more_reads() 
     let result = sample(1, || {
         let call = calls.get();
         calls.set(call + 1);
+
         ready(if call == 0 {
             Ok(node(8))
         } else {
@@ -244,10 +250,12 @@ async fn second_failure_preserves_first_and_cancellation_starts_no_more_reads() 
             sample(2, || {
                 let call = calls.get();
                 calls.set(call + 1);
+
                 async move {
                     if call == 1 {
                         tokio::time::sleep(Duration::from_secs(10)).await;
                     }
+
                     Ok(node(8 + call))
                 }
             }),

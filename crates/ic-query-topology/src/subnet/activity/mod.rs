@@ -104,6 +104,7 @@ where
         before.update_transactions_total,
         after.update_transactions_total,
     );
+
     Ok(SubnetActivityReport {
         schema: 1,
         interval_seconds,

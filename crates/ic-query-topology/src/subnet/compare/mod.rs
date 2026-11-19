@@ -81,6 +81,7 @@ impl SubnetComparisonReport {
     pub fn infrastructure_overlap(&self) -> Option<InfrastructureOverlap> {
         let left = &self.left.distribution.report()?.summary;
         let right = &self.right.distribution.report()?.summary;
+
         Some(InfrastructureOverlap {
             providers: overlap(
                 &left.providers,
@@ -123,6 +124,7 @@ fn overlap<T: Ord + Clone>(
             }
         }
     }
+
     RelationshipOverlap {
         shared,
         left_unknown_nodes,
@@ -145,6 +147,7 @@ impl Serialize for SubnetComparisonReport {
         value.serialize_field("atomic_snapshot", &self.atomic_snapshot)?;
         value.serialize_field("registry_versions_agree", &self.registry_versions_agree)?;
         value.serialize_field("infrastructure_overlap", &self.infrastructure_overlap())?;
+
         value.end()
     }
 }
@@ -245,6 +248,7 @@ where
         .report()
         .zip(right.distribution.report())
         .map(|(a, b)| a.requested_registry_version == b.requested_registry_version);
+
     Ok(SubnetComparisonReport {
         schema: 1,
         collection_complete: left.complete() && right.complete(),
@@ -275,6 +279,7 @@ where
         Err(error) => DistributionOutcome::Failed { error },
     };
     let metrics = metrics(subnet_id).await.into();
+
     Candidate {
         subnet_id,
         distribution,
@@ -340,6 +345,7 @@ where
     let comparison = comparison(left, right).await?;
     let left_settings: super::settings::SettingsOutcome = settings(left).await.into();
     let right_settings: super::settings::SettingsOutcome = settings(right).await.into();
+
     Ok(SettingsComparisonReport {
         schema: 1,
         collection_complete: comparison.collection_complete

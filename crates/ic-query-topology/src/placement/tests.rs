@@ -4,6 +4,7 @@ use super::{PlacementError, Principal, REPLY_LIMITS, decode_subnet, decoder, rep
 
 fn reply(subnet_id: Option<Principal>) -> Vec<u8> {
     let response: Result<_, String> = Ok(GetSubnetForCanisterResponseOk { subnet_id });
+
     encode_fixture(&response, 1024).expect("fixture encodes")
 }
 

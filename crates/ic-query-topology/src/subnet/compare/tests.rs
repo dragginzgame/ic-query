@@ -95,10 +95,12 @@ async fn selection_order_versions_and_raw_values() {
         id(2),
         |id| {
             events.borrow_mut().push(("distribution", id));
+
             ready(Ok(distribution(id, true)))
         },
         |id| {
             events.borrow_mut().push(("metrics", id));
+
             ready(Ok(metric(id)))
         },
     )
@@ -129,6 +131,7 @@ async fn selection_order_versions_and_raw_values() {
         id(1),
         |_| {
             events.borrow_mut().push(("unexpected", id(1)));
+
             ready(Ok(distribution(id(1), true)))
         },
         |_| ready(Ok(metric(id(1)))),
@@ -148,6 +151,7 @@ async fn every_failure_preserves_other_inputs_and_all_failures_are_explicit() {
             |id| {
                 let n = calls.get();
                 calls.set(n + 1);
+
                 ready(if mask & (1 << n) != 0 {
                     Err(DistributionError::InitialDeadline)
                 } else {
@@ -157,6 +161,7 @@ async fn every_failure_preserves_other_inputs_and_all_failures_are_explicit() {
             |id| {
                 let n = calls.get();
                 calls.set(n + 1);
+
                 ready(if mask & (1 << n) != 0 {
                     Err(SubnetMetricsError::Read(ReadError::Deadline))
                 } else {
@@ -195,15 +200,19 @@ async fn cancellation_at_every_acquisition_starts_no_later_work() {
             id(2),
             |id| {
                 calls.set(calls.get() + 1);
+
                 async move {
                     tokio::time::sleep(Duration::from_secs(10)).await;
+
                     Ok(distribution(id, true))
                 }
             },
             |id| {
                 calls.set(calls.get() + 1);
+
                 async move {
                     tokio::time::sleep(Duration::from_secs(10)).await;
+
                     Ok(metric(id))
                 }
             },
@@ -262,6 +271,7 @@ async fn overlap_keeps_independent_coverage_versions_and_node_counts() {
             d.summary.provider_resolved = 4;
             d.summary.location_resolved = 2;
             d.summary.location_unknown = 2;
+
             ready(Ok(d))
         },
         |_| ready(Err(SubnetMetricsError::Read(ReadError::Deadline))),
@@ -347,6 +357,7 @@ async fn overlap_distinguishes_unavailable_partial_empty_and_complete_empty() {
 
 fn settings_report(subnet_id: Principal) -> super::super::settings::SubnetSettingsReport {
     use crate::subnet::settings::*;
+
     SubnetSettingsReport {
         schema: 1,
         subnet_id,
@@ -383,16 +394,19 @@ async fn settings_comparison_order_partial_outcomes_and_independent_versions() {
                     b,
                     |id| {
                         events.borrow_mut().push(("distribution", id));
+
                         ready(Ok(distribution(id, mask & 1 == 0)))
                     },
                     |id| {
                         events.borrow_mut().push(("metrics", id));
+
                         ready(Ok(metric(id)))
                     },
                 )
             },
             |selected| {
                 events.borrow_mut().push(("settings", selected));
+
                 ready(if mask & (if selected == id(1) { 2 } else { 4 }) == 0 {
                     Ok(settings_report(selected))
                 } else {
@@ -420,6 +434,7 @@ async fn settings_comparison_order_partial_outcomes_and_independent_versions() {
             json["comparison"]["left"]["distribution"]["report"]["requested_registry_version"],
             1
         );
+
         if mask & 2 == 0 {
             assert_eq!(
                 json["left_settings"]["report"]["evidence"]["record_version"],
@@ -443,10 +458,12 @@ async fn settings_comparison_admission_failure_and_cancellation_stop_later_reads
         id(1),
         |_, _| {
             calls.set(99);
+
             ready(Err(ComparisonError::SameSubnet))
         },
         |_| {
             calls.set(99);
+
             ready(Ok(settings_report(id(1))))
         },
     )
@@ -459,6 +476,7 @@ async fn settings_comparison_admission_failure_and_cancellation_stop_later_reads
         |_, _| ready(Err(ComparisonError::Read(ReadError::Deadline))),
         |_| {
             calls.set(99);
+
             ready(Ok(settings_report(id(1))))
         },
     )
@@ -480,8 +498,10 @@ async fn settings_comparison_admission_failure_and_cancellation_stop_later_reads
             },
             |selected| {
                 calls.set(calls.get() + 1);
+
                 async move {
                     tokio::time::sleep(Duration::from_secs(10)).await;
+
                     Ok(settings_report(selected))
                 }
             },

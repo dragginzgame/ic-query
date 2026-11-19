@@ -126,6 +126,7 @@ pub async fn fetch(
         .parse()
         .map_err(|error| SubnetConfigurationError::SourceIdentity(format!("{error}")))?;
     let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
+
     project(subnet_id, &bytes, mainnet::observed_at()?)
 }
 
@@ -139,6 +140,7 @@ fn project(
     observed_at: u64,
 ) -> Result<SubnetConfigurationReport, SubnetConfigurationError> {
     let response = protobuf::decode_get_value_response(bytes, LIMITS)?;
+
     project_response(subnet_id, response, observed_at)
 }
 
@@ -177,6 +179,7 @@ pub(crate) fn project_response(
     {
         return Err(SubnetConfigurationError::DuplicateIdentity);
     }
+
     Ok(SubnetConfigurationReport {
         schema: 1,
         subnet_id,

@@ -10,8 +10,6 @@ pub(super) trait Source {
     async fn page(&self, start: Option<Principal>) -> Result<Observation, AvailableError>;
 }
 
-pub(super) struct MainnetSource(pub ReadClient);
-
 pub(super) fn page_argument(start: Option<Principal>) -> Result<Vec<u8>, wire::EncodeError> {
     wire::encode_list_available_nodes_page_args(
         &wire::ListAvailableNodesPageArgs {
@@ -22,6 +20,13 @@ pub(super) fn page_argument(start: Option<Principal>) -> Result<Vec<u8>, wire::E
         512,
     )
 }
+
+///
+/// MainnetSource
+/// Reads registry copy status and available-node pages for the report.
+///
+
+pub(super) struct MainnetSource(pub ReadClient);
 
 impl Source for MainnetSource {
     async fn status(&self) -> Result<Observation, AvailableError> {

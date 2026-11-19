@@ -49,6 +49,7 @@ pub(crate) fn node_changes(report: &NodeChangesReport) -> String {
         .expect("String write");
     }
     text.push_str("Two observations do not establish event history, running software, node liveness or usable TEE protection.\n");
+
     text
 }
 

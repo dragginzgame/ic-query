@@ -62,6 +62,7 @@ pub(crate) async fn collect(
         if amount.0.bits() > 4096 {
             return Err(mainnet::admission("balance exceeds 4096-bit report bound"));
         }
+
         Ok(amount.0.to_string())
     });
     let decimals = mainnet::observe(
@@ -86,8 +87,10 @@ pub(crate) async fn collect(
         if symbol.len() > 256 {
             return Err(mainnet::admission("symbol exceeds 256 UTF-8 bytes"));
         }
+
         Ok(symbol)
     });
+
     BalanceReport {
         schema: 1,
         endpoint: mainnet::ENDPOINT,

@@ -154,8 +154,10 @@ async fn sampling_waits_after_first_completion_and_calls_exactly_twice() {
             if index == 1 {
                 assert_eq!(start.elapsed(), Duration::from_secs(interval + 2));
             }
+
             async move {
                 tokio::time::sleep(Duration::from_secs(2)).await;
+
                 Ok(configuration(8 + index, &[1]))
             }
         })
@@ -179,6 +181,7 @@ async fn invalid_intervals_and_initial_failures_do_not_start_followup_reads() {
     let calls = Cell::new(0);
     let error = sample(1, || {
         calls.set(calls.get() + 1);
+
         ready(Err(SubnetConfigurationError::MissingContent))
     })
     .await
@@ -196,6 +199,7 @@ async fn second_failure_keeps_first_observation_and_cancellation_stops_sampling(
     let error = sample(1, || {
         let index = calls.get();
         calls.set(index + 1);
+
         ready(if index == 0 {
             Ok(configuration(8, &[1]))
         } else {
@@ -211,6 +215,7 @@ async fn second_failure_keeps_first_observation_and_cancellation_stops_sampling(
     calls.set(0);
     let work = sample(60, || {
         calls.set(calls.get() + 1);
+
         ready(Ok(configuration(8, &[1])))
     });
     assert!(

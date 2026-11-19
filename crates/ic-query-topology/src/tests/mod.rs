@@ -136,6 +136,7 @@ pub fn frame(schema: &str, input: &serde_json::Value) -> Vec<u8> {
         .find(|entry| entry.schema == schema && &entry.input == input)
         .unwrap_or_else(|| panic!("missing independent {schema} fixture; regenerate the corpus"));
     assert_eq!(value.hex.len() % 2, 0);
+
     value
         .hex
         .as_bytes()
@@ -185,5 +186,6 @@ pub fn encode_fixture<T: Fixture>(value: &T, maximum: usize) -> Result<Vec<u8>, 
     if bytes.len() > maximum {
         return Err("fixture output bound");
     }
+
     Ok(bytes)
 }

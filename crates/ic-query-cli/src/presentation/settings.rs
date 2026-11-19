@@ -6,6 +6,7 @@ use ic_query_topology::subnet::settings::SubnetSettingsReport;
 pub(crate) fn render(report: &SubnetSettingsReport) -> String {
     let rows = rows(&report.settings);
     let e = &report.evidence;
+
     format!(
         "Subnet: {}\n\nRegistered settings\n\n{}\n\nSource: {} / {} / {}\nKey: {}\nObserved: {} Unix seconds | record mutation version: {}\nRecord mutation timestamp: {} Unix nanoseconds\nQuery signature verified: {} | result consensus-certified: {} | TEE attestation verified: {}\n\nDefault-selected values remain unresolved; absent values are not zero or unlimited.\nConfigured features do not establish running behavior, usable TEE protection or reduced authentication requirements.\nThese declarations do not measure free capacity.\n",
         report.subnet_id,
@@ -88,6 +89,7 @@ fn rows(settings: &ic_query_topology::subnet::settings::SubnetSettings) -> Vec<V
             "seconds".into(),
         ],
     ];
+
     rows
 }
 
@@ -139,5 +141,6 @@ pub(crate) fn comparison(
         }
     }
     text.push_str("Settings and distribution versions are independent. Absent declarations are not zero or unlimited; replica defaults remain unresolved.\nConfigured SEV does not establish usable TEE protection or reduced authentication requirements. No free-capacity estimate is derived.\n");
+
     text
 }

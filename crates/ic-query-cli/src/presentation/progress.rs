@@ -25,6 +25,7 @@ pub(crate) fn render(report: &SubnetProgressReport) -> String {
             change,
         } => {
             append("After", observation);
+
             match change {
                 StateTimeChange::Advanced { by_nanoseconds } => {
                     format!("advanced by {by_nanoseconds} nanoseconds")
@@ -40,6 +41,7 @@ pub(crate) fn render(report: &SubnetProgressReport) -> String {
                 "unavailable".into(),
                 "unavailable".into(),
             ]);
+
             "unavailable; second read failed".into()
         }
     };
@@ -66,5 +68,6 @@ pub(crate) fn render(report: &SubnetProgressReport) -> String {
     );
     let e = &report.before;
     writeln!(text,"Source: {} {} | leaf {}\nFreshness: maximum age {} ns, future skew {} ns (both certificate timestamps)\nCertificate and selected-subnet authority verified. Original encoding bytes are not retained.\nTwo samples do not establish continuous uptime, running software or maintenance completion. Use --json for raw evidence and failure category.",e.endpoint,e.source_path,e.state_tree_path,e.maximum_age_nanoseconds,e.maximum_future_skew_nanoseconds).expect("String write");
+
     text
 }

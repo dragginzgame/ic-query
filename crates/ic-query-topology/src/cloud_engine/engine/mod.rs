@@ -38,6 +38,7 @@ const LIMITS: decoder::Limits = decoder::Limits {
 /// A read failure never becomes a successful empty result.
 pub async fn fetch(engine_id: EngineId) -> Result<EngineReport, EngineError> {
     let client = mainnet::client()?;
+
     collect(engine_id, |argument| async move {
         super::query(&client, METHOD, argument)
             .await
@@ -59,6 +60,7 @@ where
     let views = wire::decode_get_engine_views_response(&observation.bytes, LIMITS)
         .map_err(EngineError::Decode)?;
     let outcome = project(&engine_id, views)?;
+
     Ok(EngineReport {
         schema: 1,
         requested_engine_id: engine_id,
@@ -113,6 +115,7 @@ fn project(
             record_only: record_set.difference(&copy_set).copied().collect(),
             registry_copy_only: copy_set.difference(&record_set).copied().collect(),
         };
+
         Some(RegistryCopySubnet {
             node_ids: copy_nodes,
             configured_replica_version: subnet.replica_version,
@@ -122,6 +125,7 @@ fn project(
     } else {
         None
     };
+
     Ok(EngineOutcome::Read {
         record: Box::new(EngineRecord {
             subnet_id,
@@ -142,6 +146,7 @@ fn bound(field: &'static str, actual: usize, maximum: usize) -> Result<(), Engin
             maximum,
         });
     }
+
     Ok(())
 }
 
@@ -149,6 +154,7 @@ fn identity(field: &'static str, id: Principal) -> Result<(), EngineRefusal> {
     if id.as_slice().is_empty() {
         return Err(EngineRefusal::EmptyIdentity { field });
     }
+
     Ok(())
 }
 
@@ -161,5 +167,6 @@ fn nodes(field: &'static str, nodes: &[Principal]) -> Result<BTreeSet<Principal>
             return Err(EngineRefusal::DuplicateNode { field, node_id });
         }
     }
+
     Ok(set)
 }

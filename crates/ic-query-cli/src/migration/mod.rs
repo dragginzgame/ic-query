@@ -69,6 +69,7 @@ fn parse_hex32(text: &str) -> Result<[u8; 32], String> {
         *byte =
             u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).expect("validated ASCII hex");
     }
+
     Ok(bytes)
 }
 
@@ -102,11 +103,13 @@ pub(crate) async fn run(
         } else {
             render::balance(&report)
         };
+
         return Ok(output(text, report.complete));
     }
     let (_, neurons) = matches.subcommand().expect("neuron namespace");
     let (operation, args) = neurons.subcommand().expect("neuron operation");
     let governance = *args.get_one::<Principal>("governance").expect("required");
+
     if operation == "show" {
         let report = neuron::fetch(
             governance,
@@ -118,6 +121,7 @@ pub(crate) async fn run(
         } else {
             render::neuron(&report)
         };
+
         Ok(output(text, report.neuron.is_read()))
     } else {
         let report = neuron::list(neuron::ListRequest {
@@ -132,6 +136,7 @@ pub(crate) async fn run(
         } else {
             render::neurons(&report)
         };
+
         Ok(output(text, report.traversal_exhausted))
     }
 }

@@ -14,6 +14,7 @@ fn varint(mut n: u64) -> Vec<u8> {
         n >>= 7;
     }
     bytes.push(n as u8);
+
     bytes
 }
 
@@ -21,6 +22,7 @@ fn blob(tag: u8, value: &[u8]) -> Vec<u8> {
     let mut bytes = vec![tag];
     bytes.extend(varint(value.len() as u64));
     bytes.extend(value);
+
     bytes
 }
 
@@ -29,6 +31,7 @@ fn response(record: &[u8], version: u64) -> Vec<u8> {
     bytes.extend(varint(version));
     bytes.extend(blob(26, record));
     bytes.extend([40, 42]);
+
     bytes
 }
 
@@ -61,6 +64,7 @@ impl Source for Fixture {
         tokio::time::sleep(self.latest_delay).await;
         let mut bytes = vec![8];
         bytes.extend(varint(self.version));
+
         Ok(Observation {
             bytes,
             observed_at: 101,
@@ -85,6 +89,7 @@ impl Source for Fixture {
                 key: key.as_bytes().to_vec(),
             })?
             .clone();
+
         Ok(Observation {
             bytes,
             observed_at: 102,
@@ -115,6 +120,7 @@ impl Fixture {
         }
         result.operator(500, &[3], "DC1");
         result.dc("dc1", "Dc1", "CH,Zurich", "Owner");
+
         result
     }
 

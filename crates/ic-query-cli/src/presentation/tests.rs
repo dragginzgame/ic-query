@@ -47,6 +47,7 @@ fn changes_text_is_compact_escapes_values_and_keeps_observation_limits() {
 fn node_changes_text_distinguishes_presence_and_same_length_byte_changes() {
     let fixture = || {
         let node_id = Principal::from_slice(&[1]);
+
         NodeReport {
             schema: 1,
             node_id,

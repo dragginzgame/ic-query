@@ -34,6 +34,7 @@ async fn invalid_intervals_fail_without_reading_or_waiting() {
         let mut calls = 0;
         let result = sample(interval, || {
             calls += 1;
+
             ready(Ok(observation(0, 0)))
         })
         .await;
@@ -50,8 +51,10 @@ async fn exactly_two_reads_wait_after_the_first_completes_at_both_interval_bound
         let start = Instant::now();
         let report = sample(interval, || {
             starts.push(Instant::now());
+
             async {
                 tokio::time::sleep(Duration::from_secs(3)).await;
+
                 Ok(observation(1, 0))
             }
         })
@@ -99,6 +102,7 @@ async fn first_failure_keeps_typed_cause_and_stops_without_wait_or_retry() {
     let mut calls = 0;
     let result = sample(10, || {
         calls += 1;
+
         ready(Err(SubnetMetricsError::Read(ReadError::Deadline)))
     })
     .await;
@@ -117,6 +121,7 @@ async fn second_failure_retains_first_observation_and_never_retries() {
     let mut calls = 0;
     let result = sample(10, || {
         calls += 1;
+
         ready(if calls == 1 {
             Ok(observation(123, 456))
         } else {
@@ -145,6 +150,7 @@ async fn cancellation_during_wait_does_not_start_a_second_read() {
         Duration::from_secs(1),
         sample(60, || {
             calls += 1;
+
             ready(Ok(observation(0, 0)))
         }),
     )

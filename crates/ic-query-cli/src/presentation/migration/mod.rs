@@ -47,6 +47,7 @@ pub(crate) fn balance(report: &BalanceReport) -> String {
         ],
         vec!["Symbol".into(), value(&report.symbol), time(&report.symbol)],
     ];
+
     format!(
         "Ledger: {}\nOwner: {}\nSubaccount: {}\nSource: {}\nComplete: {}\n{}\n{}",
         report.ledger,
@@ -100,6 +101,7 @@ pub(crate) fn neuron(report: &NeuronReport) -> String {
         Outcome::Read { .. } => String::new(),
         Outcome::Failed { error } => bordered_table(&["FAILURE"], &[vec![error.to_string()]]),
     };
+
     format!(
         "Governance: {}\nRequested neuron: {}\nSource: {} get_neuron\nLocal Unix ms: {}\n{}\n{}\nSelected fields only; permissions, dissolve state and other raw fields are in --json.\n{}",
         report.governance,
@@ -119,6 +121,7 @@ pub(crate) fn neurons(report: &NeuronsReport) -> String {
         let status = match &page.observation.outcome {
             Outcome::Read { value } => {
                 rows.extend(value.iter().map(row));
+
                 format!("{} records", value.len())
             }
             Outcome::Failed { error } => format!("unavailable: {error}"),
@@ -129,6 +132,7 @@ pub(crate) fn neurons(report: &NeuronsReport) -> String {
             status,
         ]);
     }
+
     format!(
         "Governance: {}\nSource: {} list_neurons\nPermission principal: {}\nStart after: {}\nRetained: {} | traversal exhausted: {} | stop: {:?}\n{}\n{}\nSelected fields only; use --json for all retained fields and cursors.\n{}",
         report.request.governance,

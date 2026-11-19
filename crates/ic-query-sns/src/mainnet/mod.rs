@@ -33,7 +33,13 @@ pub(crate) trait Source {
     ) -> Result<Vec<u8>, Failure>;
 }
 
+///
+/// Mainnet
+/// Runs migration reads with the admitted mainnet root and verification policy.
+///
+
 pub(crate) struct Mainnet(ReadClient);
+
 impl Mainnet {
     pub(crate) fn new() -> Result<Self, Failure> {
         ReadClient::new(ReadConfig {
@@ -77,6 +83,7 @@ impl Source for Mainnet {
             max_age_ns: 300_000_000_000,
             max_future_skew_ns: 60_000_000_000,
         };
+
         self.0
             .query(
                 target,
@@ -144,6 +151,7 @@ pub(crate) async fn observe(
     } else {
         result
     };
+
     Observation {
         method,
         started_at_unix_ms: started,

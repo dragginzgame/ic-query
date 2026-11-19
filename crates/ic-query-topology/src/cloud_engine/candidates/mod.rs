@@ -93,12 +93,14 @@ where
                     price_indices: matching_indices(node, &report.prices.entries),
                 })
                 .collect();
+
             CandidatePricing::Read { report, matches }
         }
         Err(error) => CandidatePricing::Failed { error },
     };
     let collection_complete = availability.pagination_exhausted
         && matches!(&pricing, CandidatePricing::Read { report, .. } if report.complete);
+
     Ok(CandidatesReport {
         schema: 1,
         elapsed: start.elapsed(),

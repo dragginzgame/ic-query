@@ -94,5 +94,6 @@ pub(crate) fn subnet_distribution(report: &SubnetDistributionReport) -> String {
         report.query_signature_verified, report.result_certified,
     ).expect("String write");
     text.push_str("Counts cover selected membership. Locations/owners are Registry declarations, not verified failure domains.\nNo liveness, capacity or TEE attestation claim. Use --json for per-node joins, raw evidence and failures.\n");
+
     text
 }

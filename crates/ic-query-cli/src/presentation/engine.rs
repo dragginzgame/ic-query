@@ -93,5 +93,6 @@ pub(crate) fn cloud_engine(report: &EngineReport) -> String {
         evidence.query_signature_verified, evidence.result_certified,
     ).expect("String write");
     text.push_str("Engine-record nodes and Registry-copy membership are separate declarations.\nCopy version/freshness is not exposed; this is not an atomic IC inventory or proof of liveness.\nUse --json for raw ordering, optional values and membership differences.\n");
+
     text
 }

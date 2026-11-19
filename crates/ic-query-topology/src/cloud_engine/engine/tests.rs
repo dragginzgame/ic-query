@@ -49,6 +49,7 @@ fn view() -> wire::EngineView {
 fn encode_views(views: &[wire::EngineView], maximum: usize) -> Vec<u8> {
     let published: Vec<fixtures::FullViewFrame> =
         serde_json::from_value(serde_json::to_value(views).unwrap()).unwrap();
+
     encode_one(&published, maximum).unwrap()
 }
 
@@ -56,6 +57,7 @@ fn read(outcome: EngineOutcome) -> EngineRecord {
     let EngineOutcome::Read { record } = outcome else {
         panic!("expected admitted view")
     };
+
     *record
 }
 
@@ -128,6 +130,7 @@ async fn one_argument_one_query_and_successful_omission() {
         called.set(called.get() + 1);
         // One text-vector argument; independently authored request frame.
         assert_eq!(argument, hex("4449444c016d7101000108656e67696e652d78"));
+
         async {
             Ok(Observation {
                 bytes: encode_views(&[], 1024),
@@ -150,6 +153,7 @@ async fn one_argument_one_query_and_successful_omission() {
             argument,
             fixtures::frame("view-argument", &longest.as_str().into())
         );
+
         Ok(Observation {
             bytes: encode_views(&[], 1024),
             observed_at: 12,
@@ -324,6 +328,7 @@ async fn published_decode_budgets_and_skipped_fields_remain_bounded() {
         frame.extend(std::iter::repeat_n(b'x', length));
         frame.extend(hex("08656e67696e652d780000000000"));
         let result = literal(frame).await;
+
         if length == 100_000 {
             let report = result.unwrap();
             assert!(
@@ -351,6 +356,7 @@ async fn shared_deadline_errors_and_cancellation_do_not_retry() {
     let calls = Cell::new(0);
     let result = collect(request(), |_| async {
         calls.set(calls.get() + 1);
+
         mainnet::read::<Vec<u8>>(std::future::pending())
             .await
             .map(|bytes| Observation {
@@ -376,6 +382,7 @@ async fn shared_deadline_errors_and_cancellation_do_not_retry() {
         Duration::from_secs(1),
         collect(request(), |_| async {
             let _guard = Dropped(&dropped);
+
             std::future::pending().await
         }),
     )

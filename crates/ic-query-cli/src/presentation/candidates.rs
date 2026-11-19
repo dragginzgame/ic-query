@@ -106,5 +106,6 @@ pub(crate) fn cloud_engine_candidates(report: &CandidatesReport) -> String {
     }
     writeln!(text, "\nSource: {} / {}\nMethods: registryCopyStatus + listAvailableNodesPage + listMarketplacePrices + getNetworkFee", available.endpoint, available.source_canister).expect("String write");
     text.push_str("Matching uses exact class/provider/data-center scopes. Counts overlap when declarations overlap.\nNo tariff selected: precedence and customer discounts are unobserved; even one match is not a quote.\nIndependent signature-verified queries, not consensus-certified or an atomic inventory.\nEligibility does not establish live or reserved capacity. Use --json for nodes, matches and source evidence.\n");
+
     text
 }

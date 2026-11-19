@@ -187,6 +187,7 @@ async fn observe(subnet_id: Principal) -> Result<StateTimeObservation, StateTime
         },
         LIMITS,
     )?;
+
     Ok(StateTimeObservation {
         subnet_id,
         certified_time_nanoseconds: evidence.time_ns(),
@@ -209,6 +210,7 @@ fn admit(
     if value.subnet_id != subnet || !value.state_certificate_verified {
         return Err(StateTimeError::SourceMismatch);
     }
+
     Ok(value)
 }
 
@@ -243,6 +245,7 @@ where
                 std::cmp::Ordering::Equal => StateTimeChange::Unchanged,
                 std::cmp::Ordering::Less => StateTimeChange::Regressed,
             };
+
             LaterObservation::Read {
                 observation,
                 change,
@@ -250,6 +253,7 @@ where
         }
         Err(error) => LaterObservation::Failed { error },
     };
+
     Ok(SubnetProgressReport {
         schema: 1,
         subnet_id,

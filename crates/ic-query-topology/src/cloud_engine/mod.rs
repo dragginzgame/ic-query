@@ -26,6 +26,7 @@ async fn query(
 ) -> Result<Observation, ReadError> {
     let canister = CANISTER.parse().expect("fixed mainnet engine principal");
     let bytes = mainnet::query(client, canister, method, &argument).await?;
+
     Ok(Observation {
         bytes,
         observed_at: mainnet::observed_at()?,

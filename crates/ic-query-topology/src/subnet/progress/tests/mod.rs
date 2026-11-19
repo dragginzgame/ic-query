@@ -45,6 +45,7 @@ async fn progress_order_extremes_and_clock_reversal() {
             }
             let mut value = observation(if n == 0 { a } else { b });
             value.observed_at_unix_nanoseconds = if n == 0 { 100 } else { 1 };
+
             ready(Ok(value))
         })
         .await
@@ -85,11 +86,13 @@ async fn progress_failures_and_identity_admission() {
         let report = sample(id(), 1, || {
             let n = calls.get();
             calls.set(n + 1);
+
             ready(if n == 0 {
                 Ok(observation(1))
             } else if wrong_identity {
                 let mut v = observation(2);
                 v.subnet_id = Principal::anonymous();
+
                 Ok(v)
             } else {
                 Err(StateTimeError::Read(ReadError::Deadline))
@@ -120,8 +123,10 @@ async fn progress_cancellation_starts_no_later_work() {
         let calls = Cell::new(0);
         let work = sample(id(), 10, || {
             calls.set(calls.get() + 1);
+
             async {
                 tokio::time::sleep(Duration::from_secs(10)).await;
+
                 Ok(observation(1))
             }
         });

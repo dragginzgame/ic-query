@@ -94,11 +94,13 @@ async fn deadline_retains_completed_rows_cancels_active_and_never_starts_tail() 
     let result = collect(&[id(1), id(2), id(3)], 10, |selected| {
         calls.set(calls.get() + 1);
         let dropped = &dropped;
+
         async move {
             if selected == id(1) {
                 return Ok(super::super::report(selected, id(100), 20));
             }
             let _guard = Guard(dropped);
+
             pending().await
         }
     })
@@ -130,8 +132,10 @@ async fn caller_cancellation_drops_active_read_without_starting_tail() {
     let work = collect(&ids, 10, |_| {
         calls.set(calls.get() + 1);
         let dropped = &dropped;
+
         async move {
             let _guard = Guard(dropped);
+
             pending().await
         }
     });

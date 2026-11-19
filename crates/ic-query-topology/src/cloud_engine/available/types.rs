@@ -248,6 +248,7 @@ impl Serialize for AvailableError {
                 _ => None,
             },
         )?;
+
         state.end()
     }
 }

@@ -37,6 +37,7 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
     }
     if selected_command.has_subcommands() {
         selected_command.print_help()?;
+
         return Ok(ExitCode::SUCCESS);
     }
     let (namespace, selected) = matches.subcommand().expect("declared specialist namespace");
@@ -49,6 +50,7 @@ fn run() -> Result<ExitCode, Box<dyn std::error::Error>> {
         runtime.block_on(migration::run(namespace, selected))?
     };
     writeln!(io::stdout().lock(), "{}", output.text)?;
+
     Ok(output.exit_code)
 }
 
@@ -69,6 +71,7 @@ fn main() -> ExitCode {
         Ok(code) => code,
         Err(error) => {
             eprintln!("icq: {error}");
+
             ExitCode::FAILURE
         }
     }

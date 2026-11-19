@@ -112,6 +112,7 @@ pub async fn fetch() -> Result<SubnetListReport, SubnetListError> {
         .parse()
         .map_err(|error| SubnetListError::SourceIdentity(format!("{error}")))?;
     let bytes = mainnet::query(&client, registry, METHOD, &argument).await?;
+
     project(&bytes, mainnet::observed_at()?)
 }
 
@@ -142,6 +143,7 @@ fn project(bytes: &[u8], observed_at: u64) -> Result<SubnetListReport, SubnetLis
     if subnet_ids.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(SubnetListError::DuplicateIdentity);
     }
+
     Ok(SubnetListReport {
         schema: 1,
         subnet_ids,

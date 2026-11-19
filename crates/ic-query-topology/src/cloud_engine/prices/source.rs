@@ -9,11 +9,17 @@ pub(super) trait Source {
     async fn query(&self, method: &'static str) -> Result<Observation, PriceError>;
 }
 
+///
+/// MainnetSource
+/// Reads public marketplace observations with bounded query arguments.
+///
+
 pub(super) struct MainnetSource(pub ReadClient);
 
 impl Source for MainnetSource {
     async fn query(&self, method: &'static str) -> Result<Observation, PriceError> {
         let argument = encode_empty_args(64)?;
+
         Ok(super::super::query(&self.0, method, argument).await?)
     }
 }

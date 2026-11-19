@@ -71,6 +71,7 @@ pub(super) fn join(
                     Relationship::Unavailable { reason } => unavailable(*reason),
                     Relationship::Resolved { value } => {
                         references_resolved += 1;
+
                         if let Some(record) = data_centers.get(value.as_str()) {
                             *locations.entry(value.clone()).or_insert(0) += 1;
                             if !record.region.is_empty() {
@@ -79,6 +80,7 @@ pub(super) fn join(
                             if !record.owner.is_empty() {
                                 *owners.entry(record.owner.clone()).or_insert(0) += 1;
                             }
+
                             Relationship::Resolved {
                                 value: value.clone(),
                             }
@@ -87,6 +89,7 @@ pub(super) fn join(
                         }
                     }
                 };
+
                 (provider, dc, location)
             }
         };
@@ -101,6 +104,7 @@ pub(super) fn join(
     let location_resolved = locations.values().sum();
     let region_resolved: usize = regions.values().sum();
     let owner_resolved: usize = owners.values().sum();
+
     (
         relationships,
         DistributionSummary {

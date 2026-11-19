@@ -10,6 +10,7 @@ fn blob(tag: &[u8], value: &[u8]) -> Vec<u8> {
     }
     bytes.push(length as u8);
     bytes.extend_from_slice(value);
+
     bytes
 }
 
@@ -21,6 +22,7 @@ fn record(chip: Option<&[u8]>, hostos: Option<&str>) -> Vec<u8> {
     if let Some(hostos) = hostos {
         bytes.extend(blob(&[0x8a, 1], hostos.as_bytes())); // Optional field 17.
     }
+
     bytes
 }
 
@@ -28,6 +30,7 @@ fn envelope(record: &[u8]) -> Vec<u8> {
     let mut bytes = vec![16, 172, 2]; // Record mutation version 300.
     bytes.extend(blob(&[26], record));
     bytes.extend([40, 255, 255, 255, 255, 255, 255, 255, 255, 255, 1]);
+
     bytes
 }
 
