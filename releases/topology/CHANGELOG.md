@@ -2,6 +2,12 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.9] - Unreleased
+
+### 🔧 Tooling
+
+- Update the packaged development dependency to Toko Tooling 0.45.16.
+
 ## [0.110.8] - 2026-11-19
 
 ### 🔧 Tooling
