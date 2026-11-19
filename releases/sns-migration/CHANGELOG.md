@@ -3,7 +3,7 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
-## [0.105.10] - Unreleased
+## [0.105.10] - 2026-11-19
 
 ### 🔧 Tooling
 
