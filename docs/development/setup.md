@@ -13,6 +13,16 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-p5r3o_Qd` published topology 0.110.8, SNS 0.105.8, umbrella
+0.104.8 and CLI 0.105.24 on 2026-11-19, ending at
+`f17d0d9797c3a59e01d9ad0912fce13b0f43986d`. All four versions were confirmed
+available and non-yanked on crates.io, with published GitHub releases at the
+verified tags. The release selects Tooling 0.45.13. The Linux release gate passed
+with one product execution and three fresh reuse admissions. Cargo verified
+each archive before upload. The batch took 617.6 seconds, excluding GitHub
+release page creation. See the [hosted CI run](https://github.com/dragginzgame/ic-query/actions/runs/44495490469)
+for separate hosted results.
+
 Batch `batch-SFhsiU9h` published topology 0.110.7, SNS 0.105.7, umbrella
 0.104.7 and CLI 0.105.23 on 2026-11-18, ending at
 `a66abb9d581f4adf18325922597889ff91b9630c`. All four registry versions were
