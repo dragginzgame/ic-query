@@ -804,13 +804,15 @@ all 32 diagnostic assertions and simulated rustup calls from both actual step
 bodies passed; a simulated status 29 retained diagnostics and remained failed.
 This does not establish a new hosted setup result.
 
-It preserves the original failing status and prints sanitized excerpts. Failure
-artifacts contain at most 64 KiB of command output and eight selected attempt logs
-from the runner's dedicated Query tool/security directories, including hidden
-attempts. Each log reads at most 16 KiB and retains at most 64 KiB after sanitization;
-traversal stops at 1000 entries per root. Oversized lines, known credentials,
-sensitive fields, URL credentials/query strings and private-key blocks are omitted.
-Symlinks, caches, tool payloads and environment dumps are excluded.
+Toko Tooling's `SetupDiagnostics` helper captures command output, sanitizes
+excerpts and preserves the original failing status. Successful runs print only
+the phase and success status. Failure artifacts retain a command excerpt of at
+most 99 lines and 32,000 bytes plus a truncation notice. Query selects at most
+eight attempt logs from its dedicated runner tool and security directories,
+including hidden attempts. Each log reads at most 16 KiB and traversal stops at
+1000 entries per root. The helper omits oversized lines, known credentials,
+sensitive fields, URL credentials and query strings, and private-key blocks.
+Query excludes symlinks, caches, tool payloads and environment dumps.
 
 Each job uploads only the sanitized evidence directory on setup failure, retains
 it for seven days and links the artifact in its summary. Missing evidence and
@@ -823,7 +825,7 @@ perl scripts/ci/test-setup-diagnostics.pl
 actionlint .github/workflows/ci.yml
 ```
 
-The 32 fixture assertions and workflow lint passed locally on Linux. They qualify
+The 40 fixture assertions and workflow lint passed locally on Linux. They qualify
 local capture and wiring; hosted failure-artifact upload/retrieval has not been
 observed. A successful hosted setup run does not exercise that failure path.
 
@@ -879,9 +881,9 @@ all required executable companions: baseline, canonical root files, CI tool
 installer, documentation link checker, download-cache action, common Make
 interface and Cargo dependency Make interface. The common interface brings the
 LOC reporter. Reference documents and producer regression suites stay upstream.
-The current selection includes the pre-commit hook and 84 installed payload files,
-including the explicitly selected Rust toolchain preparation helper and its
-workspace-version reader companion.
+The current selection includes the pre-commit hook and 85 installed payload files,
+including `SetupDiagnostics.pm`, the explicitly selected Rust toolchain preparation
+helper and its workspace-version reader companion.
 Release/publication runners and source/receipt admission remain selected.
 The unused standalone package-provenance entrypoint was retired through the
 authenticated exporter after tracing Make, CI, hooks, scripts, documentation and

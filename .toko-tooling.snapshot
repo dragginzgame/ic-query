@@ -23,6 +23,7 @@ revision	af1ba8e16aaf1dae0951f08a228a4f00b928d09ff68997bd94ccc397ace5e4be
 # entrypoint	vendor/toko-tooling/scripts/ci/run-validation-stage.pl
 # entrypoint	vendor/toko-tooling/scripts/ci/seal-validation-stage.pl
 # entrypoint	vendor/toko-tooling/scripts/dev/prepare-rust-toolchain.sh
+# entrypoint	vendor/toko-tooling/scripts/ci/SetupDiagnostics.pm
 file	5ad48a8fb19d0a83e48909947adfb2db853ea21d13898ae0e0a3963c0278cf94	-	TOKO-TOOLING.md
 file	3f2971bfefccf71cf4929cabd1fa000e0c7b3d4002b9a08ca58821ccb048c123	-	LICENSE.md
 file	0ae38d62c728fb06f1a2dd2325f99f2277bfdb0cd48ac6df49d4120c0bfe88bd	-	CONTRIBUTING.md
@@ -42,6 +43,7 @@ file	356849fb17fefb1f30c12cfc2c149a6d6663bc28658cc9daf4bc4d8e5295b1b3	x	vendor/t
 file	4a3da285875cf66dbcd07a5eca328199779f981340f27528f7e4e6bdfe8e08d1	x	vendor/toko-tooling/scripts/ci/run-validation-stage.pl
 file	83d2ba87a3b9c18555df8b451938f908c412cf87c3a3851f8fb33d604bc19762	x	vendor/toko-tooling/scripts/ci/seal-validation-stage.pl
 file	31c47b675fba90850681c6fac0d685def34b08a68e7e05bc55ae0403419fdf82	x	vendor/toko-tooling/scripts/dev/prepare-rust-toolchain.sh
+file	5c4b137ef1c611246d62a033b5f3f35acdf377ca1a5153c595d28fe4b0db644a	-	vendor/toko-tooling/scripts/ci/SetupDiagnostics.pm
 file	578a5f7217e378280fe378328d39e4b7dcea653bd868159b57362461bd4e8555	x	vendor/toko-tooling/scripts/ci/verify-file-checksum.sh
 file	aec8dfcff940adbf7ca69d0e9edb4cd31b65648e1deef299ffb194e94e64c536	x	vendor/toko-tooling/scripts/ci/verify-toko-tooling-snapshot.sh
 file	33060e8f4a77791ef3c97caca8a983db98a8205f933d17bb08b632ee2e1d9f30	x	vendor/toko-tooling/scripts/ci/tool-catalog-records.pl

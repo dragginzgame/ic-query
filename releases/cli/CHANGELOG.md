@@ -2,6 +2,14 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.28] - Unreleased
+
+### 🔧 Tooling
+
+- Use Toko Tooling's shared setup diagnostics for CI command capture and
+  redaction. Keep Query's attempt-log selection and report successful setup with
+  a short phase summary. [Query #6 — Use shared setup diagnostics in CI](https://github.com/dragginzgame/ic-query/issues/6).
+
 ## [0.105.27] - 2026-11-19
 
 ### 🔧 Tooling
