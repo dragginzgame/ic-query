@@ -2,7 +2,7 @@
 
 Release group: `query`. Package: `ic-query`.
 
-## [0.104.11] - Unreleased
+## [0.104.11] - 2026-11-19
 
 ### 🔧 Tooling
 
