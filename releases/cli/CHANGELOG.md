@@ -2,14 +2,14 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.24]
+## [0.105.24] - 2026-11-19
 
 ### 🔧 Tooling
 
 - Select Toko Tooling 0.45.13 and align CLI module layout with its baseline.
   Command syntax and report output are unchanged.
 
-After publication, install the CLI with Cargo and network access:
+Install the CLI with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.24 --locked
