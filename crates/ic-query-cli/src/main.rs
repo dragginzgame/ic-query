@@ -1,15 +1,15 @@
 //! Process entrypoint for specialist IC query adapters.
 
+mod migration;
+mod presentation;
+mod topology;
+
 use std::{
     io::{self, Write},
     process::ExitCode,
 };
 
 use clap::Command;
-
-mod migration;
-mod presentation;
-mod topology;
 
 pub(crate) struct CommandOutput {
     pub(crate) text: String,

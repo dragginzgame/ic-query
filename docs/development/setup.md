@@ -448,10 +448,12 @@ workflow; it intentionally changes lockfiles and may access the registry. To sel
 one dependency, use `make deps-update DEPENDENCY_PACKAGE=clap`. Review direct
 supplier freshness separately: a lockfile update does not widen manifest ranges.
 
-The tooling source is pinned exactly in the root catalog and inherited as an
-inactive-target dev-dependency by every member, with the prescribed machete
-exemption. When adopting a new tooling release, update that pin and lockfile,
-then run `make toko-tooling-update`; it refreshes the authenticated snapshot.
+The tooling source is pinned exactly in the root catalog and inherited as a
+dev-dependency by every member, with the prescribed machete exemption. Use the
+[tooling selection rule](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/cargo-dependencies.md#toko-tooling-during-dependency-updates)
+if a supported check reports the unused marker. To adopt a new tooling release,
+update the pin and lockfile, run `make toko-tooling-preview` and review the
+selection before running `make toko-tooling-update`.
 
 ## Focused validation and qualification
 
@@ -816,13 +818,15 @@ section identifying the affected CLI group/version. Keep setup, runnable command
 and expected results directly in that root quick start, with detailed examples
 in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
-[group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/rules/changelogs.md#release-group-changelogs-and-shared-history).
+[group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-Toko Tooling **0.45.11** was selected from crates.io on 2026-11-19 through
-the supported updater. Its authenticated archive SHA-256 is:
+The current checkout selects Toko Tooling **0.45.13**. The exporter verified
+the cached crates.io archive against the lockfile and used the 0.45.11 archive to
+verify the previous snapshot. The refresh updated the installed baseline and
+receipt. The current archive SHA-256 is:
 
 ```text
-bf733054c231d91c9260a18f4d160aea4a03b1c7d22940333c3c82f4ac0e4348
+8e5ed346b3e29656bd1521a24ec326e40236bd1ba9101e807684cfd77d8dcbe9
 ```
 
 The [receipt](../../.toko-tooling.snapshot) records the selected roots and
@@ -941,8 +945,8 @@ the CLI examples follow the continuation convention. No package moves or product
 API changes were required. The supported updater refreshed the authenticated
 snapshot and admitted the installed host and Rust tools.
 
-See the release-pinned
-[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/69ea17e551f33254d87de9824c30f2e74536eb10/docs/adoption/consuming-snapshots.md)
-and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/69ea17e551f33254d87de9824c30f2e74536eb10/docs/adoption/make-interface.md).
+See the revision-pinned
+[consumer adoption guide](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/docs/adoption/consuming-snapshots.md)
+and [Make interface](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/docs/adoption/make-interface.md).
 Refresh through the authenticated exporter with the complete retained entrypoint
 set and review its preview. Never edit managed files or the receipt by hand.

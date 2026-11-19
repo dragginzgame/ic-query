@@ -1,20 +1,24 @@
 //! Daily marketplace declarations and an independently observed network markup.
 
+mod source;
 #[cfg(test)]
 mod tests;
+mod types;
 
 use std::{collections::BTreeSet, time::Duration};
 
-use ic_platform_protocol::{candid as decoder, cloud_engine as wire, cloud_engine::NodeType};
+use ic_platform_protocol::{
+    candid as decoder,
+    cloud_engine::{self as wire, NodeType},
+};
 use tokio::time::Instant;
 
-mod source;
-mod types;
 use crate::mainnet;
 use source::{Observation, Source};
 pub use types::*;
 
 use super::CANISTER;
+
 const PRICES_METHOD: &str = "listMarketplacePrices";
 const FEE_METHOD: &str = "getNetworkFee";
 const OVERALL: Duration = Duration::from_secs(30);

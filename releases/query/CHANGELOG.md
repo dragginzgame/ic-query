@@ -2,6 +2,12 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.8]
+
+### 🔧 Tooling
+
+- Select Toko Tooling 0.45.13 as the workspace development marker.
+
 ## [0.104.7] - 2026-11-18
 
 ### 🔧 Tooling

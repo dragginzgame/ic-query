@@ -1,4 +1,5 @@
 //! Consumer regression cases using frozen independent supplier wire fixtures.
+
 use crate::{
     balance,
     mainnet::{self, Source},

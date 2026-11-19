@@ -1,13 +1,19 @@
 //! Pure human-facing projections; process output remains in the entrypoint.
 
-#[cfg(test)]
-mod tests;
-
+mod available;
+mod candidates;
 pub(crate) mod compare;
+mod distribution;
+mod engine;
+pub(crate) mod maintenance;
 pub(crate) mod migration;
+mod node_changes;
 pub(crate) mod placements;
+mod prices;
 pub(crate) mod progress;
 pub(crate) mod settings;
+#[cfg(test)]
+mod tests;
 
 use ic_host_text::bordered_table;
 use std::{collections::BTreeSet, fmt::Write};
@@ -27,13 +33,6 @@ use ic_query_topology::{
     },
 };
 
-mod available;
-mod candidates;
-mod distribution;
-mod engine;
-pub(crate) mod maintenance;
-mod node_changes;
-mod prices;
 pub(crate) use available::cloud_engine_available;
 pub(crate) use candidates::cloud_engine_candidates;
 pub(crate) use distribution::subnet_distribution;

@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests;
+mod types;
 
 use super::{CANISTER, Observation};
 use crate::mainnet;
@@ -10,7 +11,6 @@ use ic_platform_types::Principal;
 use std::{collections::BTreeSet, future::Future};
 use tokio::time::Instant;
 
-mod types;
 pub use types::*;
 
 const METHOD: &str = "getEngineViews";

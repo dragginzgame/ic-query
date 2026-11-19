@@ -1,5 +1,6 @@
 //! Selected node Registry data, not verified hardware or observed running state.
 
+pub mod changes;
 #[cfg(test)]
 mod tests;
 
@@ -12,8 +13,6 @@ use crate::{
     ReadError,
     mainnet::{self, REGISTRY_LIMITS as LIMITS, REGISTRY_METHOD as METHOD},
 };
-
-pub mod changes;
 
 const MAX_CHIP_ID_BYTES: usize = 256;
 const MAX_HOSTOS_VERSION_BYTES: usize = 256;

@@ -3,15 +3,6 @@
 //! These observations do not establish complete Registry membership, node
 //! liveness, allocatable capacity, hardware capabilities or authoritative routing.
 
-#[cfg(test)]
-mod tests;
-
-use ic_platform_types::Principal;
-use serde::Serialize;
-use thiserror::Error;
-
-use crate::{ReadError, mainnet};
-
 pub mod activity;
 pub mod changes;
 pub mod compare;
@@ -24,6 +15,14 @@ pub mod metrics;
 pub mod nodes;
 pub mod progress;
 pub mod settings;
+#[cfg(test)]
+mod tests;
+
+use ic_platform_types::Principal;
+use serde::Serialize;
+use thiserror::Error;
+
+use crate::{ReadError, mainnet};
 
 const MAX_NODES: usize = 1024;
 const MAX_SUBNET_TYPE_BYTES: usize = 128;

@@ -1,4 +1,5 @@
 //! Migration-owned mainnet admission and bounded observation policy.
+
 use crate::{Failure, FailureKind, Observation, Outcome};
 use ic_platform::{
     certificate::{PreparedRootKey, TimePolicy, TimeWindow, VerificationLimits},

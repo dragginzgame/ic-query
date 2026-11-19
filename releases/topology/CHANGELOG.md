@@ -2,6 +2,13 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.8]
+
+### 🔧 Tooling
+
+- Select Toko Tooling 0.45.13 and align Rust module layout with its baseline.
+  Keep the frozen subnet-progress certificates and provenance beside their tests.
+
 ## [0.110.7] - 2026-11-18
 
 ### 🔧 Tooling

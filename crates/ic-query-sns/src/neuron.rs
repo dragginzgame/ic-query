@@ -1,4 +1,5 @@
 //! Selected SNS neuron records and bounded collection, without ownership inference.
+
 use crate::{
     Failure, FailureKind, Observation, Outcome,
     mainnet::{self, Source},

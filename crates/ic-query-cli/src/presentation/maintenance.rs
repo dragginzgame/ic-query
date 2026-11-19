@@ -1,4 +1,5 @@
 //! Compact maintenance evidence; never a completion verdict.
+
 use ic_host_text::{bordered_table, escape};
 use ic_query_topology::subnet::{
     configuration::SubnetConfigurationReport,

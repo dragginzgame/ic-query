@@ -1,4 +1,5 @@
 //! Replay-only Query test data; regeneration belongs to Platform qualification.
+
 use ic_platform_protocol::candid::Nat;
 use ic_platform_types::Principal;
 use serde::{Deserialize, Serialize};

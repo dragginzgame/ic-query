@@ -61,7 +61,7 @@ upload after an uncertain result without checking registry state and the retaine
 publication intent. Batch storage lives under the repository's ignored `target/`
 with compact Git recovery records; normal release does not clean it. Reconciliation
 only fast-forwards a clean normal checkout. See the pinned
-[batch contract](https://github.com/dragginzgame/toko-tooling/blob/626da7cd9626cc2e152594862a2d82ea82ef51da/docs/release-batches.md).
+[batch contract](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/docs/releases/release-batches.md).
 
 Linux adapter qualification on 2026-11-16 exercised both actual group metadata
 hooks in an isolated repository: untracked-source refusal, failed validation

@@ -4,10 +4,9 @@
 //! consensus-certified Registry snapshot. Transport admits only mainnet, using
 //! Platform's built-in trust root and query-signature verification.
 
+pub mod collection;
 #[cfg(test)]
 mod tests;
-
-pub mod collection;
 
 use ic_platform_protocol::{
     candid as decoder,

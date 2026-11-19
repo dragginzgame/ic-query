@@ -3,8 +3,11 @@
 //! A common requested Registry version is not consensus certification, verified
 //! geography, independent failure domains, live capacity or an atomic observation.
 
+mod source;
+mod summary;
 #[cfg(test)]
 mod tests;
+mod types;
 
 use std::{collections::BTreeSet, time::Duration};
 
@@ -14,10 +17,6 @@ use tokio::time::{Instant, sleep_until};
 
 use super::configuration;
 use crate::{mainnet, node};
-
-mod source;
-mod summary;
-mod types;
 
 use source::{Source, envelope};
 pub use types::*;

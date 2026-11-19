@@ -1,4 +1,5 @@
 //! Two state-time observations, retaining source/freshness distinctions.
+
 use ic_host_text::bordered_table;
 use ic_query_topology::subnet::progress::{
     LaterObservation, StateTimeChange, SubnetProgressReport,

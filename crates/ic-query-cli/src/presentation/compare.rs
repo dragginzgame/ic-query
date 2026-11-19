@@ -1,4 +1,5 @@
 //! Side-by-side placement evidence without scoring candidates.
+
 use ic_host_text::bordered_table;
 use ic_query_topology::subnet::compare::{Candidate, SharedGroup, SubnetComparisonReport};
 use std::fmt::Write;

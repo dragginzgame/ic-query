@@ -1,4 +1,5 @@
 //! Per-read outcomes and explicit observation boundaries.
+
 use serde::Serialize;
 
 /// Stable failure category; diagnostics never determine control flow.

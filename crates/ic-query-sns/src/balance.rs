@@ -1,4 +1,5 @@
 //! Exact ICRC balance evidence independent of SNS membership and display metadata.
+
 use crate::{
     Failure, Observation,
     mainnet::{self, Source},

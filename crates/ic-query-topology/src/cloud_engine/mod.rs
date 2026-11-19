@@ -2,13 +2,13 @@
 //!
 //! Marketplace declarations do not establish available capacity or binding quotes.
 
-use crate::{ReadError, mainnet};
-use ic_platform::native::ReadClient;
-
 pub mod available;
 pub mod candidates;
 pub mod engine;
 pub mod prices;
+
+use crate::{ReadError, mainnet};
+use ic_platform::native::ReadClient;
 
 const CANISTER: &str = "q6cfj-fyaaa-aaaar-qb77q-cai";
 

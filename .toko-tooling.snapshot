@@ -1,9 +1,9 @@
 # Toko Tooling snapshot v1
-# version	0.45.11
+# version	0.45.13
 # layout	vendor
 format	1
 source	https://crates.io/crates/toko-tooling
-revision	bf733054c231d91c9260a18f4d160aea4a03b1c7d22940333c3c82f4ac0e4348
+revision	8e5ed346b3e29656bd1521a24ec326e40236bd1ba9101e807684cfd77d8dcbe9
 # entrypoint	TOKO-TOOLING.md
 # entrypoint	LICENSE.md
 # entrypoint	CONTRIBUTING.md
@@ -23,7 +23,7 @@ revision	bf733054c231d91c9260a18f4d160aea4a03b1c7d22940333c3c82f4ac0e4348
 # entrypoint	vendor/toko-tooling/scripts/ci/run-validation-stage.pl
 # entrypoint	vendor/toko-tooling/scripts/ci/seal-validation-stage.pl
 # entrypoint	vendor/toko-tooling/scripts/dev/prepare-rust-toolchain.sh
-file	3e02a3a58db59600b7e69fc817db56b1c9303c77549c4a8f48f66ea8a81b9b2c	-	TOKO-TOOLING.md
+file	6ea82757639574ac192b973e9de613c5ca03b6916d207398c353d2dc4b58d0cb	-	TOKO-TOOLING.md
 file	3f2971bfefccf71cf4929cabd1fa000e0c7b3d4002b9a08ca58821ccb048c123	-	LICENSE.md
 file	0ae38d62c728fb06f1a2dd2325f99f2277bfdb0cd48ac6df49d4120c0bfe88bd	-	CONTRIBUTING.md
 file	e0f1b194ddbe5e5ae35864edc67727993511e093cff07506b4ffa503681edd52	x	vendor/toko-tooling/scripts/ci/install-ci-tool.sh

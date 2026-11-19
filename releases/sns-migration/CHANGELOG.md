@@ -3,6 +3,13 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.8]
+
+### 🔧 Tooling
+
+- Select Toko Tooling 0.45.13 and keep the frozen ledger and governance fixtures
+  beside the migration tests that replay them.
+
 ## [0.105.7] - 2026-11-18
 
 ### 🔧 Tooling

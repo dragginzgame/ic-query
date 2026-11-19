@@ -1,7 +1,9 @@
 //! Bounded public availability traversal with explicit per-page evidence.
 
+mod source;
 #[cfg(test)]
 mod tests;
+mod types;
 
 use super::{CANISTER, Observation};
 use crate::mainnet;
@@ -10,8 +12,6 @@ use ic_platform_types::Principal;
 use std::{collections::BTreeSet, time::Duration};
 use tokio::time::Instant;
 
-mod source;
-mod types;
 use source::Source;
 pub use types::*;
 

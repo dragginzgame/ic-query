@@ -1,4 +1,5 @@
 //! Raw configured settings; effective defaults and capacity belong to other contracts.
+
 use ic_host_text::bordered_table;
 use ic_query_topology::subnet::settings::SubnetSettingsReport;
 
