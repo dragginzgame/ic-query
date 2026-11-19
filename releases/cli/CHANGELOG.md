@@ -2,14 +2,14 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.27] - Unreleased
+## [0.105.27] - 2026-11-19
 
 ### 🔧 Tooling
 
 - Update the packaged development dependency to Toko Tooling 0.45.21 and apply
   its return spacing rule.
 
-After publication, install the CLI with Cargo and network access:
+Install the CLI with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.27 --locked
