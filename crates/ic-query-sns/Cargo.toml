@@ -1,6 +1,6 @@
 [package]
 name = "ic-query-sns"
-version = "0.105.8"
+version = "0.105.9"
 description = "Selected ICRC balances and SNS neuron evidence for user migration"
 edition.workspace = true
 rust-version.workspace = true
