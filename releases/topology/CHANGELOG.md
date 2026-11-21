@@ -2,7 +2,7 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
-## [0.110.12] - Unreleased
+## [0.110.12] - 2026-11-21
 
 ### 🔧 Tooling
 
