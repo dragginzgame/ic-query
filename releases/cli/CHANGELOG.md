@@ -2,7 +2,7 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
-## [0.105.28] - Unreleased
+## [0.105.28] - 2026-11-21
 
 ### 🔧 Tooling
 
@@ -14,7 +14,7 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
   network mode, and reuse rejects stage-selected overrides.
   [Toko Tooling #402 — Make caller ownership of Cargo network mode explicit across shared tooling](https://github.com/dragginzgame/toko-tooling/issues/402).
 
-After publication, install the CLI with Cargo and network access:
+Install the CLI with Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.28 --locked
