@@ -86,6 +86,25 @@ ok(length($body) < 200000, 'artifact payload is bounded');
 is($status, 19, 'missing attempt logs preserve original status');
 like(read_file("$dir/ic-query-setup-diagnostics/early-setup/collection.txt"), qr/No selected attempt logs/, 'missing attempt evidence explicit');
 like($console, qr/setup source unavailable/, 'command diagnostic survives missing attempt logs');
+($status, $dir, $console) = run_case('full-selection', 'exit 31;', sub {
+    my ($dir) = @_;
+    for my $index (1 .. 8) {
+        my $attempt = "$dir/ic-query-tool-store/attempt-$index";
+        make_path($attempt);
+        open my $log, '>', "$attempt/install.log" or die $!;
+        print {$log} "selected attempt $index\n";
+        close $log or die $!;
+    }
+    my $unused = "$dir/ic-query-security-bin";
+    make_path($unused);
+    for my $index (1 .. 1001) {
+        open my $entry, '>', "$unused/entry-$index" or die $!;
+        close $entry or die $!;
+    }
+});
+is($status, 31, 'full attempt selection preserves original failure');
+like(read_file("$dir/ic-query-setup-diagnostics/early-setup/collection.txt"), qr/selected_attempt_logs=8/, 'full selection is recorded without scanning the next root');
+unlike($console, qr/Diagnostic collection failed/, 'unused root cannot fail an already full selection');
 ($status, $dir, $console) = run_case('collector-failure', 'print STDERR "underlying setup failed\\n"; exit 23;', sub {
     my ($dir) = @_;
     open my $conflict, '>', "$dir/ic-query-setup-diagnostics" or die $!;

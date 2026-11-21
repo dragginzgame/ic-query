@@ -825,7 +825,7 @@ perl scripts/ci/test-setup-diagnostics.pl
 actionlint .github/workflows/ci.yml
 ```
 
-The 40 fixture assertions and workflow lint passed locally on Linux. They qualify
+The 43 fixture assertions and workflow lint passed locally on Linux. They qualify
 local capture and wiring; hosted failure-artifact upload/retrieval has not been
 observed. A successful hosted setup run does not exercise that failure path.
 
@@ -863,18 +863,28 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-The current checkout selects Toko Tooling **0.45.21**. The exporter verified
-the crates.io archive against the lockfile and used the 0.45.18 archive to
+The current checkout selects Toko Tooling **0.46.0**. The exporter verified
+the crates.io archive against the lockfile and used the 0.45.25 archive to
 verify the previous snapshot. The refresh updated the installed baseline and
-receipt. The [Wasm gate review](../../TOKO-TOOLING.md#wasm-target-guards) found no
+receipt. The release-dispatch fixture checks that Cargo receives the caller's
+network setting without added offline flags. The native reuse fixture checks
+that the stage runner refuses a network mode supplied only by the stage or one
+that conflicts with the caller. The
+[Wasm gate review](../../TOKO-TOOLING.md#wasm-target-guards) found no
 target guards in Query's Rust source, Cargo manifests or build configuration.
 The existing `cfg` predicates select unit-test modules and the umbrella's
 optional exports. The workspace Clippy table allows the blank line required
 after the mainnet read adapter headers. The current archive SHA-256 is:
 
 ```text
-af1ba8e16aaf1dae0951f08a228a4f00b928d09ff68997bd94ccc397ace5e4be
+4601d2785aaa14e01fd8656d6b3a57653337b214e027810c953595f1d91d6a8d
 ```
+
+On 2026-11-21, `make qualify-release-reuse` passed on Linux using the working
+lockfile in `target/reuse-qualification/sequence.zJzRTN`. The fixture rejected
+a stage-only Cargo network setting before product admission, then admitted the
+original caller environment. Topology executed product validation and SNS,
+umbrella and CLI reused it. The recovery checks and final readmission passed.
 
 The [receipt](../../.toko-tooling.snapshot) records the selected roots and
 all required executable companions: baseline, canonical root files, CI tool

@@ -182,6 +182,18 @@ jq -e --arg selected "${CARGO_NET_OFFLINE-unset}" \
     'if $selected == "unset" then has("CARGO_NET_OFFLINE") | not
      else .CARGO_NET_OFFLINE == $selected end' \
     "$QUERY_VALIDATION_ATTEMPT/reuse-environment.json" >/dev/null
+environment="$QUERY_VALIDATION_ATTEMPT/reuse-environment.json"
+cp "$environment" target/sequence/caller-environment.json
+unexpected_mode=true
+[[ "${CARGO_NET_OFFLINE-unset}" != true ]] || unexpected_mode=false
+jq -cS --arg mode "$unexpected_mode" '.CARGO_NET_OFFLINE = $mode' \
+    target/sequence/caller-environment.json > "$environment"
+if run_selected; then echo 'stage-selected Cargo network mode accepted' >&2; exit 1; fi
+grep -q 'conflicting invocation and stage CARGO_NET_OFFLINE settings' "$current_log"
+[[ ! -e "$QUERY_VALIDATION_ATTEMPT/products.admission.json" ]]
+mv "$current_log" target/sequence/network-mode-refusal.log
+cp target/sequence/caller-environment.json "$environment"
+echo 'Qualified refusal of a stage-selected Cargo network mode before product admission.'
 run_selected
 jq -e '(.command[0] | endswith("/make")) and .command[1:] == ["--no-print-directory","validate-cli"]' "$QUERY_VALIDATION_ATTEMPT/products.seal.json" >/dev/null
 echo 'Qualified an isolated CLI selection with real Cargo and no specialist test dispatch.'

@@ -9,6 +9,17 @@ Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 - Use Toko Tooling's shared setup diagnostics for CI command capture and
   redaction. Keep Query's attempt-log selection and report successful setup with
   a short phase summary. [Query #6 — Use shared setup diagnostics in CI](https://github.com/dragginzgame/ic-query/issues/6).
+- Stop scanning additional setup log roots once the evidence limit is met.
+- Adopt Toko Tooling 0.46.0. Release dispatch preserves the caller's Cargo
+  network mode, and reuse rejects stage-selected overrides.
+  [Toko Tooling #402 — Make caller ownership of Cargo network mode explicit across shared tooling](https://github.com/dragginzgame/toko-tooling/issues/402).
+
+After publication, install the CLI with Cargo and network access:
+
+```bash
+cargo install ic-query-cli --version 0.105.28 --locked
+icq --version
+```
 
 ## [0.105.27] - 2026-11-19
 

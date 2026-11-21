@@ -100,6 +100,10 @@ for offline in unset true false; do
         run_plan network-policy
     )
     [[ "$(sort -u "$TRACE.environment")" == "$offline" ]]
+    if rg -q -- '(^|[[:space:]])(--offline|--frozen)([[:space:]]|$)|net\.offline[[:space:]]*=' "$TRACE"; then
+        printf 'release validation injected Cargo network flags for caller mode %s\n' "$offline" >&2
+        exit 1
+    fi
 done
 ok 'Cargo network policy follows the caller for default, offline and online checks'
 # Native candidate selection projects the same obligations into one admission.

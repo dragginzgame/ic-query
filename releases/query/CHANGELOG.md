@@ -2,6 +2,12 @@
 
 Release group: `query`. Package: `ic-query`.
 
+## [0.104.12] - Unreleased
+
+### 🔧 Tooling
+
+- Update the packaged development dependency to Toko Tooling 0.46.0.
+
 ## [0.104.11] - 2026-11-19
 
 ### 🔧 Tooling
