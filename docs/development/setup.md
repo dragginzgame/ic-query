@@ -13,6 +13,16 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-jIhmZJMs` published topology 0.110.12, SNS 0.105.12, umbrella
+0.104.12 and CLI 0.105.28 on 2026-11-21, ending at
+`7516e0a8bfa07d617dab3f1f6153ab5e4fc974ec`. All four registry entries were
+verified available and non-yanked with the Toko Tooling 0.46.0 development pin.
+GitHub releases use the verified annotated tags. The Linux release gate
+executed product validation once and admitted reuse for the other three groups.
+Cargo verified all four archives before upload, and the built CLI reports
+`icq 0.105.28`. The batch took 579.2 seconds. See the
+[hosted CI run](https://github.com/dragginzgame/ic-query/actions/runs/44892433209).
+
 Batch `batch-pMv6gfYw` published topology 0.110.11, SNS 0.105.11, umbrella
 0.104.11 and CLI 0.105.27 on 2026-11-19, ending at
 `4016fddd0eaaa6a81b923ee6958fbec2723b64fe`. The four crates.io entries were
