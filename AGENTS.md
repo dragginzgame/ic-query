@@ -120,8 +120,10 @@ topology and CLI versions on crates.io and GitHub. Workspace packages inherit
 `publish = true`; publish only affected, qualified release groups. Migration
 reports own the independent `sns-migration` release group. Canic is the identified downstream
 consumer; coordinate its Rust type migration without changing that sibling here.
-Requests to "push" include the next appropriate versions, manifests/lockfile,
-release notes, GitHub delivery and crates.io publication under the baseline.
+In IC Query, a maintainer request to "push" the product changes authorizes
+version preparation, release notes, GitHub delivery and crates.io publication
+for the affected groups. This is Query’s local convention. Honor any narrower
+request, including GitHub-only or branch-only delivery.
 Compatible follow-ups normally increment the patch; incompatible pre-1.0 contracts
 require a minor. Never reuse delivered versions. Local supplier paths are for
 development only: publication requires available, qualified registry dependencies.

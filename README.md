@@ -15,8 +15,8 @@ records the hosted checks and installed CLI smoke observations. Resume product
 work for a concrete Canic decision or migration evidence requirement. Dragginz
 is the live migration example; Toko account checks remain deferred. Neuron reads
 retain selected fields and bounded pages, not a complete or atomic export.
-Compatible supplier patches remain independent of Query's lockfile
-(Platform 0.34.17 / Protocol 0.3.6). CLI commands and specialist report contracts
+Query keeps compatible supplier requirements and records the selected patches
+in Cargo.lock. CLI commands and specialist report contracts
 are unchanged; the umbrella deliberately replaces the legacy library API.
 
 | Package | Version | Responsibility |
@@ -95,7 +95,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.34.17 native reads, Protocol 0.3.6 and Types 0.21.3,
+0.35.1 native reads, Protocol 0.3.10 and Types 0.21.5,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

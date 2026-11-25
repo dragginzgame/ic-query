@@ -163,7 +163,7 @@ when changing component boundaries.
 Finish the accepted coherent outcome, including directly required callers,
 fixtures, docs and cleanup. Split independent outcomes, not compiler fallout or
 each proof of the same change. Stop at new independent scope or a release boundary.
-Maintain meaningful [changelog notes](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md) once per completed batch;
+Maintain meaningful [changelog notes](https://github.com/dragginzgame/toko-tooling/blob/5dd76be2840958cdb8c00f7d34f0a40e4a9e718c/rules/changelogs.md) once per completed batch;
 governance-only edits need no note unless they change a maintained surface or one
 is requested. Exclude all legal and licensing content from changelogs, including
 adoption notices and notes about this policy or its cleanup. This exclusion overrides
@@ -394,7 +394,10 @@ This section supersedes older linked guidance permitting new maintained imports.
   `private: true`. Retain the canonical contribution policy. An unpublished
   helper in a licensed repository still inherits that repository's licence;
   publication flags alone do not determine licence coverage or confidentiality.
-- Do not retain nested licence files, alternate licences, `licenses/` trees or
+- Toko Tooling keeps issued historical versions unchanged under `licenses/`
+  to identify earlier grants. Only the root licence applies to newly designated
+  material. Consumers select the root licence from their reviewed release.
+- Apart from that producer archive, do not retain nested licence files, alternate licences, `licenses/` trees or
   duplicate contribution policies in tracked source, including vendored tooling
   snapshots. Package metadata points to the root licence; a standalone package
   archive may include the canonical licence where its packaging requires it,
@@ -407,7 +410,7 @@ This section supersedes older linked guidance permitting new maintained imports.
   `"../LICENSE.md"`, pointing to the same repository-root file. Resolve the path
   from the owning workspace, never by repeating member-relative paths or adding
   nested licence copies. Use `license-file`, not a separate `license` expression.
-- Apart from these canonical files, required notices and factual metadata or
+- Apart from these canonical files, the producer archive, required notices and factual metadata or
   links to them, do not retain legal material in repository files. This includes
   legal audits, opinions, exposure assessments, drafting history, superseded
   drafts, signed agreements and legal commentary in docs, source comments,
@@ -724,8 +727,10 @@ for exceptions, historical cleanup and protected release/recovery records.
 Use `### 🎯 Qualification` for results such as cursor behavior across an upgrade
 or the workload budget at which an operation completes. Use `### 🧪 Testing`
 for changes to test tooling or coverage.
-Use IcyDB-style emoji category sections in the owning release changelog; read the
-[changelog rules](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md) when updating them. Every issue fixed must
+Use IcyDB-style emoji category sections in the owning release changelog. Keep
+adjacent bullets together without blank lines and leave space around fenced
+examples. Read the
+[changelog rules](https://github.com/dragginzgame/toko-tooling/blob/5dd76be2840958cdb8c00f7d34f0a40e4a9e718c/rules/changelogs.md) when updating them. Every issue fixed must
 have a descriptive link with its number and title in that changelog before handoff, except legal and licensing
 changes, which must not be recorded there: root `CHANGELOG.md` for a
 workspace without independent release groups, or `releases/<group>/CHANGELOG.md`
@@ -754,6 +759,14 @@ storage allocation, admission, backing access or persistence integrations.
 
 These rules apply to handwritten and generated Rust.
 
+- Start with module comments and inner attributes, then child module declarations
+  (including `mod tests;`), then imports. Leave one blank line before the import
+  block and one before the following item. Prefer one nested `use` per crate
+  for imports with the same scope, visibility and attributes. Preserve imported names.
+- Prefer grouping named module-wide constants after imports and any required
+  endpoint group, before module-wide type declarations. Keep a constant used
+  by just one section with that section. Keep anonymous compile-time assertions
+  with the declarations they validate.
 - In repositories with a documented design, give every macro-defined type,
   including private types, its own `///` block above its attributes or defining
   macro. Start with a bare `///`, put the exact type name alone on the next
@@ -761,22 +774,21 @@ These rules apply to handwritten and generated Rust.
   and leave one blank source line before the code.
 - Use the same header for handwritten structs and enums, including private
   helper enums, entities and unit adapter structs. Prefer module-wide types
-  near the top, after imports and any required endpoint group. Place a type
-  used by just one section immediately above that section.
+  near the top, after the named module-wide constants. Place a type used by
+  just one section immediately above that section.
   After the declaration, leave a blank line and place its inherent `impl`
   blocks first, followed by its trait `impl` blocks alphabetically by trait
   name. Leave a blank line between blocks. If there is no inherent `impl`,
   start with the first trait implementation. Use this layout for new definitions.
   When formatting existing code, limit layout changes to the requested types
   or files.
-- Start with module comments and inner attributes, then child module declarations
-  (including `mod tests;`), then imports. Leave one blank line before the import
-  block and one before the following item. Prefer one nested `use` per crate
-  for imports with the same scope, visibility and attributes. Preserve imported names.
 - Separate item-level macro invocations and functions with a blank line, including
   adjacent methods, tests and test helpers. Keep comments and attributes attached
   to their item. Give each named argument its own line in multi-argument endpoint
   mounts and attributes. Document each mount’s role and each guard’s access policy.
+- Omit comments that merely announce an inherited default or narrate an obvious
+  operation. Explain a choice when its reason or caller-visible effect is hard
+  to infer from the code.
 - In longer function bodies, separate distinct steps with one blank line.
   Keep closely related statements together. When a comment introduces the next
   step, put the blank line above the comment and keep the code directly below it.
@@ -799,11 +811,10 @@ These rules apply to handwritten and generated Rust.
   `//` comment block. Put the exact Rust function name alone on the first line
   and its caller-visible behavior on the second. Include `// scope  :` only
   when a session scope is required and `// guard  :` only when an explicit
-  admission guard applies. If both apply, list the scope first. Always end
-  the header with `// limits :` for the request and reply budgets.
-  Write `default` when both use the framework defaults. For overrides, name
-  the configured limits or contract and distinguish request from reply when
-  they differ. Describe any caller-visible work bound or handler-level
+  admission guard applies. If both apply, list the scope first. Include a final
+  `// limits :` line only when the endpoint overrides a framework request or
+  reply budget. Identify the affected direction and its configured limit or
+  contract. Describe any caller-visible work bound or handler-level
   authorization in the behavior line. A guard can restrict an unscoped
   endpoint, and a scoped endpoint can also require a guard.
   Generate the same comments in endpoint templates.

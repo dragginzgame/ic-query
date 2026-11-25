@@ -241,22 +241,23 @@ passed for that exact release commit on Linux x86-64 and macOS ARM64/x86-64,
 including 204 tests, two re-export doctests, the feature matrix, strict
 Clippy/Rustdoc and scaffold checks. No new live-network qualification is claimed.
 
-All topology reads select published Platform 0.34.17 `native-read`, Protocol 0.3.6
-for Registry/placement/cloud-engine codecs, and Types 0.21.3. Product and test
+The workspace selects published Platform 0.35.1 `native-read`, Protocol 0.3.10
+and Types 0.21.5 for topology and SNS migration reads. Query does not use the
+`stable-structures` export removed in Platform 0.35. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-query-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
-The CLI selects published `ic-host-text` 0.77.2 for bordered tables and terminal-safe
+The workspace lockfile selects published `ic-host-text` 0.77.6 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
 
-Product manifests use compatible requirements: Platform `0.34.11` permits
-`>=0.34.11, <0.35.0`, Protocol `0.3.2` permits `>=0.3.2, <0.4.0`, and Types
+Product manifests use compatible requirements. Platform `0.35.1` permits
+`>=0.35.1, <0.36.0`, Protocol `0.3.2` permits `>=0.3.2, <0.4.0`, and Types
 `0.21.2` permits `>=0.21.2, <0.22.0`. Cargo.lock retains the exact versions above
 for Query's locked validation and releases. Downstream consumers resolve within
 these ranges and the suppliers' own constraints; the manifest does not certify
 every future patch. Published Query versions cannot be edited retroactively;
-the relaxed requirements are delivered in topology 0.109.2, migration 0.104.3
-and CLI 0.105.14.
+the earlier move to compatible requirements shipped in topology 0.109.2,
+migration 0.104.3 and CLI 0.105.14.
 
 On 2026-11-17 a temporary downstream consumer selecting Protocol `=0.3.3`
 alongside both Query libraries reproduced the old resolution failure, then passed
@@ -871,13 +872,15 @@ section identifying the affected CLI group/version. Keep setup, runnable command
 and expected results directly in that root quick start, with detailed examples
 in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
-[group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/a716b501274678a8ebf163ef576bbb549e974acd/rules/changelogs.md#release-group-changelogs-and-shared-history).
+[group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/5dd76be2840958cdb8c00f7d34f0a40e4a9e718c/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-The current checkout selects Toko Tooling **0.46.0**. The exporter verified
-the crates.io archive against the lockfile and used the 0.45.25 archive to
-verify the previous snapshot. The refresh updated the installed baseline and
-receipt. The release-dispatch fixture checks that Cargo receives the caller's
-network setting without added offline flags. The native reuse fixture checks
+The current checkout selects Toko Tooling **0.46.4**. The exporter verified
+the crates.io archive against the lockfile and refreshed the 0.46.3 snapshot.
+The publication adapter now resolves relative evidence paths independently of
+`CDPATH`. A local CLI `publish-check` with a conflicting directory in `CDPATH`
+wrote selection evidence under the checkout and stopped at source admission.
+The release-dispatch fixture checks that Cargo receives the caller's network
+setting without added offline flags. The native reuse fixture checks
 that the stage runner refuses a network mode supplied only by the stage or one
 that conflicts with the caller. The
 [Wasm gate review](../../TOKO-TOOLING.md#wasm-target-guards) found no
@@ -887,7 +890,7 @@ optional exports. The workspace Clippy table allows the blank line required
 after the mainnet read adapter headers. The current archive SHA-256 is:
 
 ```text
-4601d2785aaa14e01fd8656d6b3a57653337b214e027810c953595f1d91d6a8d
+d3889bff0f8ff6dc8c80b161c908f4b598125b55bf55f18146471f9ac3294cff
 ```
 
 On 2026-11-21, `make qualify-release-reuse` passed on Linux using the working

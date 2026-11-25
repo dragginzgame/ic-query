@@ -2,6 +2,14 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.13] - Unreleased
+
+### 🔧 Tooling
+
+- Adopt Platform 0.35.1 for native topology reads and select Protocol 0.3.10
+  and Types 0.21.5 in the workspace lockfile.
+- Update the packaged development dependency to Toko Tooling 0.46.4.
+
 ## [0.110.12] - 2026-11-21
 
 ### 🔧 Tooling

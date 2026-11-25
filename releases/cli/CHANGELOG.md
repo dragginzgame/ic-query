@@ -2,6 +2,16 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.29] - Unreleased
+
+### 🔧 Tooling
+
+- Build the topology and SNS command adapters with Platform 0.35.1, Protocol
+  0.3.10 and Types 0.21.5 in the workspace lockfile.
+- Update the packaged development dependency and shared release tooling to
+  Toko Tooling 0.46.4. Relative publication evidence paths resolve from the
+  checkout even when `CDPATH` is set.
+
 ## [0.105.28] - 2026-11-21
 
 ### 🔧 Tooling
