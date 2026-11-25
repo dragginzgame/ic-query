@@ -16,14 +16,14 @@ See the [restart design](docs/design/0.104-restart.md) for version continuity an
 consumer-retirement obligations. Published legacy history remains in the
 [legacy repository](https://github.com/dragginzgame/ic-query-legacy).
 
-## CLI 0.105.29 — Unreleased
+## CLI 0.105.29 — 2026-11-25
 
 The workspace selects Platform 0.35.1 and Toko Tooling 0.46.4. See the
 [CLI ledger](releases/cli/CHANGELOG.md) for the full supplier selection.
 
 ### ▶️ Try it
 
-After publication, with Cargo and network access:
+With Cargo and network access:
 
 ```bash
 cargo install ic-query-cli --version 0.105.29 --locked
