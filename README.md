@@ -95,7 +95,7 @@ opaque engine ID to its subnet/operator and compares its record nodes with the
 embedded Registry copy. Missing or hidden engines remain explicit outcomes.
 The [migration library](docs/design/migration-evidence.md) now reads selected ICRC
 account balances and SNS neuron records with bounded, partial evidence. The workspace selects published Platform
-0.35.1 native reads, Protocol 0.3.10 and Types 0.21.5,
+0.35.1 native reads, Protocol 0.3.11 and Types 0.21.6,
 with no legacy Platform or Agent in the product/test graph. Full SNS
 support, NNS voting, governance analytics and Node Rewards are outside scope.
 The NNS Registry remains a source for infrastructure observations.

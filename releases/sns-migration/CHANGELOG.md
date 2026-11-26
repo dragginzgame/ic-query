@@ -3,6 +3,14 @@
 Release group: `sns-migration`. Package: `ic-query-sns` (formerly `ic-sns-migration`).
 The delivery group and historical ledger path remain stable through this rename.
 
+## [0.105.14] - Unreleased
+
+### 🔧 Tooling
+
+- Select Protocol 0.3.11 and Types 0.21.6 for ICRC balance and SNS neuron reads
+  in the workspace lockfile.
+- Update the packaged development dependency to Toko Tooling 0.46.8.
+
 ## [0.105.13] - 2026-11-25
 
 ### 🔧 Tooling

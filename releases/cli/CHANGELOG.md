@@ -2,6 +2,15 @@
 
 Release group: `cli`. Package: `ic-query-cli` (binary `icq`).
 
+## [0.105.30] - Unreleased
+
+### 🔧 Tooling
+
+- Build against Protocol 0.3.11 and Types 0.21.6 for report reads and
+  `ic-host-text` 0.77.7 for terminal tables in the workspace lockfile.
+- Update the packaged development dependency and installed tooling to
+  Toko Tooling 0.46.8.
+
 ## [0.105.29] - 2026-11-25
 
 ### 🔧 Tooling

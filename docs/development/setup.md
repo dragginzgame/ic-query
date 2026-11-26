@@ -250,13 +250,13 @@ passed for that exact release commit on Linux x86-64 and macOS ARM64/x86-64,
 including 204 tests, two re-export doctests, the feature matrix, strict
 Clippy/Rustdoc and scaffold checks. No new live-network qualification is claimed.
 
-The workspace selects published Platform 0.35.1 `native-read`, Protocol 0.3.10
-and Types 0.21.5 for topology and SNS migration reads. Query does not use the
+The workspace selects published Platform 0.35.1 `native-read`, Protocol 0.3.11
+and Types 0.21.6 for topology and SNS migration reads. Query does not use the
 `stable-structures` export removed in Platform 0.35. Product and test
 graphs no longer select legacy Platform or Agent. The topology tests replay a
 [portable corpus](../../crates/ic-query-topology/src/tests/README.md), packaged with
 the library; they do not need a sibling checkout or direct Candid dependency.
-The workspace lockfile selects published `ic-host-text` 0.77.6 for bordered tables and terminal-safe
+The workspace lockfile selects published `ic-host-text` 0.77.7 for bordered tables and terminal-safe
 Unicode alignment; report libraries remain independent of presentation dependencies.
 
 Product manifests use compatible requirements. Platform `0.35.1` permits
@@ -883,9 +883,10 @@ in the [CLI ledger](../../releases/cli/CHANGELOG.md), using actual public IDs.
 This follows the installed baseline and its pinned
 [group changelog policy](https://github.com/dragginzgame/toko-tooling/blob/5dd76be2840958cdb8c00f7d34f0a40e4a9e718c/rules/changelogs.md#release-group-changelogs-and-shared-history).
 
-The current checkout selects Toko Tooling **0.46.4**. The exporter verified
-the crates.io archive against the lockfile and refreshed the 0.46.3 snapshot.
-The publication adapter now resolves relative evidence paths independently of
+The current checkout selects Toko Tooling **0.46.8**. The exporter verified
+the crates.io archive against the lockfile and refreshed the 0.46.4 snapshot.
+`make deps-list` lists the four product groups from the root workspace.
+The publication adapter resolves relative evidence paths independently of
 `CDPATH`. A local CLI `publish-check` with a conflicting directory in `CDPATH`
 wrote selection evidence under the checkout and stopped at source admission.
 The release-dispatch fixture checks that Cargo receives the caller's network
@@ -899,7 +900,7 @@ optional exports. The workspace Clippy table allows the blank line required
 after the mainnet read adapter headers. The current archive SHA-256 is:
 
 ```text
-d3889bff0f8ff6dc8c80b161c908f4b598125b55bf55f18146471f9ac3294cff
+ca949d2e86d8c3c6e208e744ae2a807e038afcac0145d148adb8b44bf42cf885
 ```
 
 On 2026-11-21, `make qualify-release-reuse` passed on Linux using the working

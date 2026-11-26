@@ -461,7 +461,7 @@ checksum = "6ebaa1a2bf1290ab3bfe5a7b771d050ebffab2711c19a81691c683a5144a25de"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "subtle",
 ]
 
@@ -721,9 +721,9 @@ dependencies = [
 
 [[package]]
 name = "ic-host-text"
-version = "0.77.6"
+version = "0.77.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66f7f31f73e23372ac5fb4ee8f429e0e082fe654bea86edbebd6315d20900042"
+checksum = "388290635dda1e6ba8cecc93d8fb9eaa7f08cc4051fecaeb50413adbf6ba0606"
 dependencies = [
  "unicode-width",
 ]
@@ -748,25 +748,24 @@ dependencies = [
 
 [[package]]
 name = "ic-platform-protocol"
-version = "0.3.10"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d88dd91d78fd1ad65f86f5becfa44f996df85fbfd32c7368de4f99c1736555a"
+checksum = "fbbc0ec85800bfaeb3d2483433c4d26d02d46702573b9b71e0a5ba05cec1ccdb"
 dependencies = [
  "crc32fast",
  "ic-platform-types",
  "num-bigint 0.5.1",
  "serde",
- "sha2 0.11.1",
+ "sha2 0.11.2",
 ]
 
 [[package]]
 name = "ic-platform-types"
-version = "0.21.5"
+version = "0.21.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81810d3daa26f7ee13ed687d3f093f18bda2127bba5210a81fabae7a075e1b3f"
+checksum = "4f6c4c1f4cd93bf0143623ad199f705151a9508c746ad9dbed3eda4972f5d14f"
 dependencies = [
  "crc32fast",
- "data-encoding",
  "serde",
  "serde_bytes",
  "thiserror 2.0.21",
@@ -1648,9 +1647,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
+checksum = "5b0e5c7d67bc53f435386b2130fdc900488c5703770f6d8a4633060e34288a27"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.1",
@@ -1874,9 +1873,9 @@ dependencies = [
 
 [[package]]
 name = "toko-tooling"
-version = "0.46.4"
+version = "0.46.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3889bff0f8ff6dc8c80b161c908f4b598125b55bf55f18146471f9ac3294cff"
+checksum = "ca949d2e86d8c3c6e208e744ae2a807e038afcac0145d148adb8b44bf42cf885"
 
 [[package]]
 name = "tower"

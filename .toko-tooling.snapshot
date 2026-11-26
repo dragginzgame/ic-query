@@ -1,9 +1,9 @@
 # Toko Tooling snapshot v1
-# version	0.46.4
+# version	0.46.8
 # layout	vendor
 format	1
 source	https://crates.io/crates/toko-tooling
-revision	d3889bff0f8ff6dc8c80b161c908f4b598125b55bf55f18146471f9ac3294cff
+revision	ca949d2e86d8c3c6e208e744ae2a807e038afcac0145d148adb8b44bf42cf885
 # entrypoint	TOKO-TOOLING.md
 # entrypoint	LICENSE.md
 # entrypoint	CONTRIBUTING.md
@@ -24,7 +24,7 @@ revision	d3889bff0f8ff6dc8c80b161c908f4b598125b55bf55f18146471f9ac3294cff
 # entrypoint	vendor/toko-tooling/scripts/ci/seal-validation-stage.pl
 # entrypoint	vendor/toko-tooling/scripts/dev/prepare-rust-toolchain.sh
 # entrypoint	vendor/toko-tooling/scripts/ci/SetupDiagnostics.pm
-file	500328533f1ebd35729fca7dc4fa7ecfbf7a1b96d507f433edc9477c0d95e7ce	-	TOKO-TOOLING.md
+file	a2558befb54ff5c795040aba0ef0436d2151d4fb9b703584660198c2c032a917	-	TOKO-TOOLING.md
 file	63d84bafd72c8e09a4f63e53f3da8b90c59c240e95a7e6cf2804f65fa2fceab2	-	LICENSE.md
 file	0ae38d62c728fb06f1a2dd2325f99f2277bfdb0cd48ac6df49d4120c0bfe88bd	-	CONTRIBUTING.md
 file	e0f1b194ddbe5e5ae35864edc67727993511e093cff07506b4ffa503681edd52	x	vendor/toko-tooling/scripts/ci/install-ci-tool.sh
@@ -55,7 +55,7 @@ file	85acf1dd722a00daa6c0bbd7edaf49255285e10085829e9d9b3da6f886fca4b9	-	vendor/t
 file	0410d920b4e6f7aa7cc420aa157b287405168bd2ed51996b7b4302e15cf389c2	-	vendor/toko-tooling/make/rust-format.mk
 file	46077e4508b98e086e9772ac107b759bb251b3671aa965311c51b35dd71aef8d	x	vendor/toko-tooling/scripts/dev/install-git-hooks.sh
 file	f6ecd07a9577b0b307d2bef6c8185125c611e05732c119c63bb474cbf50e18d5	-	vendor/toko-tooling/make/execution.mk
-file	37fec4ef571caa7199f284bdcc28e4a5d8c74da300362f48e688654bbda64966	-	vendor/toko-tooling/scripts/dev/cargo-dependencies.pl
+file	c9a6e4268f7c8684f977bb72ea9140e0053333ee1ef701c654a403b53ba249a6	-	vendor/toko-tooling/scripts/dev/cargo-dependencies.pl
 file	b22e1fbb86ab35e9068a9d059b1399b72b7ba7e8f3db64a271bd132b85f76bc5	x	vendor/toko-tooling/scripts/ci/run-release.sh
 file	1970787aba8bc8d18e04ee80c1f293a81bc0b83b8404d8e1532390e1c94010bc	x	vendor/toko-tooling/scripts/ci/run-release-batch.pl
 file	1b01f4b482fb85986d1ffab592626ccbfec187ac7a5133ab946b0acd51a18381	-	vendor/toko-tooling/scripts/ci/check-release-delivery.sh

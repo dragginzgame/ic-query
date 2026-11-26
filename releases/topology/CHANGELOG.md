@@ -2,6 +2,14 @@
 
 Release group: `topology`. Package: `ic-query-topology` (formerly `ic-topology`).
 
+## [0.110.14] - Unreleased
+
+### 🔧 Tooling
+
+- Select Protocol 0.3.11 and Types 0.21.6 for topology reads in the workspace
+  lockfile.
+- Update the packaged development dependency to Toko Tooling 0.46.8.
+
 ## [0.110.13] - 2026-11-25
 
 ### 🔧 Tooling

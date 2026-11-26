@@ -86,6 +86,13 @@ at root; `.toko-tooling.snapshot` remains the root ownership receipt. Do not put
 consumer edits in the vendor tree. Product scripts, Makefiles, CI workflows,
 release policies and `AGENTS.md` remain consumer-owned outside it.
 
+When a repository offers a public Make target to install a product CLI, name
+the target after the executable: `make db`, `make canic` or `make blob`, for
+example. The target installs the executable for subsequent use from the shell.
+Use that spelling in help, setup instructions and callers that need the public
+install. When renaming a target, update its callers and remove the old
+`install-<binary>` alias. Each repository owns its install recipe and destination.
+
 Select only used executable entrypoints. Release and publication are explicit
 selections, not companions of the default Make interface. Reference documentation
 stays online, and producer regression suites stay upstream; qualify actual local
@@ -209,6 +216,15 @@ response and existing records; do not create a parallel tracker, mandatory repor
 file or separate review framework.
 
 ## Validation and evidence
+
+- When an agent runs a verbose build, test or benchmark, capture stdout and
+  stderr in a task-specific log and check the command's own exit status. Reuse
+  the command's existing log when available. Otherwise use an ignored local
+  directory such as `target/logs/`. Short command results can stay inline.
+- Scope searches, diffs and file reads to the question. When full output is
+  needed, save it locally and inspect focused excerpts. For progress checks,
+  show only new relevant lines. Report the outcome, key measurements or first
+  actionable error, and the log path when one was used.
 
 - The caller owns Cargo’s network mode. Use `--locked` to preserve dependency
   selection. Repository commands, CI jobs, release stages and fixtures must
@@ -382,8 +398,10 @@ This section supersedes older linked guidance permitting new maintained imports.
 
 ## Canonical licence and contribution policy
 
-- Use only the Toko Studios Network Licence when granting a public licence for
-  first-party code. Repositories granting that licence keep one root `LICENSE.md`
+- Use the Toko Studios Network Licence when granting a public licence for
+  first-party code, with one exception: `dragginzgame/ic-wire` may offer its
+  first-party code under the Apache License 2.0 to support wider reuse.
+  Repositories granting the Toko licence keep one root `LICENSE.md`
   and one root `CONTRIBUTING.md`, byte-identical to
   the canonical files in its reviewed Toko Tooling release. Adopt updates from
   that master deliberately; do not customise the copies or fetch moving `main`
@@ -396,7 +414,7 @@ This section supersedes older linked guidance permitting new maintained imports.
   publication flags alone do not determine licence coverage or confidentiality.
 - Toko Tooling keeps issued historical versions unchanged under `licenses/`
   to identify earlier grants. Only the root licence applies to newly designated
-  material. Consumers select the root licence from their reviewed release.
+  material. Consumers using the Toko licence select it from their reviewed release.
 - Apart from that producer archive, do not retain nested licence files, alternate licences, `licenses/` trees or
   duplicate contribution policies in tracked source, including vendored tooling
   snapshots. Package metadata points to the root licence; a standalone package
@@ -1058,8 +1076,8 @@ versions within explicit release groups where contracts need independent
 releases. Independent product groups all use explicit package versions and
 `releases/<group>/CHANGELOG.md`; the root has no shared version and its changelog
 is an index. Require explicit group selection for releases and publication.
-Use `make deps-list` to view every local package's version and release group,
-including the separate qualification workspace. Keep root `Cargo.toml` dependency
+Use `make deps-list` for root workspace versions and release groups. Add
+`DEPENDENCY_MANIFEST=qualification/Cargo.toml` to include qualification packages. Keep root `Cargo.toml` dependency
 declarations for actual member usage, not display-only package entries. Remove an
 unused alias from its group's dependency roster when removing its declaration;
 retain the package in the group's member roster. Private product dependencies
