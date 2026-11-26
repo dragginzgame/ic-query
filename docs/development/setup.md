@@ -13,6 +13,15 @@ selected SNS neurons.
 CLI process tests exercise local help, version and rejected arguments without
 network calls. Running report commands does access mainnet.
 
+Batch `batch-_fohiXLI` published topology 0.110.14, SNS 0.105.14, umbrella
+0.104.14 and CLI 0.105.30 on 2026-11-26, ending at
+`6a5a37f8d0f7a8760e8c179dae651584874edc70`. All four downloaded crates
+matched the registry checksums and their annotated GitHub release tags.
+The Linux release gate ran product validation once and admitted reuse for
+the other three groups. Cargo verified each archive before upload. The built
+CLI reports `icq 0.105.30`. The batch took 595.0 seconds. See the
+[hosted CI run](https://github.com/dragginzgame/ic-query/actions/runs/45880835132).
+
 Batch `batch-sEuCQQch` published topology 0.110.13, SNS 0.105.13, umbrella
 0.104.13 and CLI 0.105.29 on 2026-11-25, ending at
 `9d3abeb2635daae2485c83fe6eb6d87ef17548ec`. All four downloaded crates
